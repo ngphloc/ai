@@ -10,6 +10,8 @@ package net.ml.hmm.adapter;
 import java.util.List;
 import java.util.Map;
 
+import net.hudup.core.Constants;
+
 /**
  * This is utility class to provide static utility methods. It is also adapter to other libraries.
  * 
@@ -31,7 +33,7 @@ public class Util {
 	 */
 	static {
 		try {
-//			DECIMAL_PRECISION = Constants.DECIMAL_PRECISION;
+			DECIMAL_PRECISION = Constants.DECIMAL_PRECISION;
 		}
 		catch (Throwable e) {}
 	}
@@ -45,7 +47,7 @@ public class Util {
 	 * @return new array
 	 */
 	public static <T> T[] newArray(Class<T> tClass, int length) {
-		throw new RuntimeException("Require Hudup framework."); //return net.hudup.core.Util.newArray(tClass, length);
+		return net.hudup.core.Util.newArray(tClass, length);
 	}
 
 	
@@ -56,7 +58,7 @@ public class Util {
 	 * @return new list with initial capacity.
 	 */
 	public static <T> List<T> newList(int initialCapacity) {
-		throw new RuntimeException("Require Hudup framework."); //return net.hudup.core.Util.newList(initialCapacity);
+	    return net.hudup.core.Util.newList(initialCapacity);
 	}
 	
 	
@@ -68,7 +70,7 @@ public class Util {
 	 * @return new map.
 	 */
 	public static <K, V> Map<K, V> newMap(int initialCapacity) {
-		throw new RuntimeException("Require Hudup framework."); //return net.hudup.core.Util.newMap(initialCapacity);
+	    return net.hudup.core.Util.newMap(initialCapacity);
 	}
 
 
@@ -77,7 +79,7 @@ public class Util {
 	 * @param e throwable error.
 	 */
 	public static void trace(Throwable e) {
-		throw new RuntimeException("Require Hudup framework."); //net.hudup.core.logistic.LogUtil.trace(e);
+		net.hudup.core.logistic.LogUtil.trace(e);
 	}
 
 

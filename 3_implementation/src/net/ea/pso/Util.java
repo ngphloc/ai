@@ -128,6 +128,11 @@ public class Util {
 	 * @return Text form (string) of the specified array of objects, in which each object is converted as a word in such text form.
 	 */
 	public static <T extends Object> String toText(T[] array, String sep) {
+		try {
+		    return net.ea.pso.adapter.Util.toText(array, sep);
+		}
+		catch (Throwable e) {}
+
 		StringBuffer buffer = new StringBuffer();
 		for (int i = 0; i < array.length; i++) {
 			if ( i > 0) buffer.append(sep + " ");
@@ -145,6 +150,11 @@ public class Util {
 	 * @return Text form (string) of the specified collection of objects, in which each object is converted as a word in such text form.
 	 */
 	public static <T extends Object> String toText(Collection<T> list, String sep) {
+		try {
+		    return net.ea.pso.adapter.Util.toText(list, sep);
+		}
+		catch (Throwable e) {}
+
 		StringBuffer buffer = new StringBuffer();
 		int i = 0;
 		for (T value : list) {
@@ -164,6 +174,11 @@ public class Util {
 	 * @return list of words (tokens) from splitting the specified string.
 	 */
 	public static List<String> split(String source, String sep, String remove) {
+		try {
+		    return net.ea.pso.adapter.Util.split(source, sep, remove);
+		}
+		catch (Throwable e) {}
+
 		String[] array = source.split(sep);
 		List<String> result = Util.newList(0);
 		for (String str : array) {
@@ -186,6 +201,11 @@ public class Util {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T extends Object> List<T> parseListByClass(String string, Class<T> type, String sep) {
+		try {
+		    return net.ea.pso.adapter.Util.parseListByClass(string, type, sep);
+		}
+		catch (Throwable e) {}
+
 		string = string.trim();
 		List<String> array = split(string, sep, null);
 		List<T> list = Util.newList(0);
@@ -204,6 +224,11 @@ public class Util {
 	 * @return parsed object.
 	 */
 	public static Object parseObjectByClass(String string, Class<?> type) {
+		try {
+		    return net.ea.pso.adapter.Util.parseObjectByClass(string, type);
+		}
+		catch (Throwable e) {}
+
 		Object v = null;
 		try {
 			if (Boolean.class.isAssignableFrom(type) || boolean.class.isAssignableFrom(type))

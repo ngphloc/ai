@@ -33,6 +33,20 @@
 
 
 	<!--
+	Function: Hudup core provides essential classes of Hudup framework.
+	Affected packages, classes: net.ea.adapter, net.ml.adapter
+	Referred jars:
+	Source: https://github.com/sunflowersoft/hudup-ext/tree/master/3_implementation/src/net/hudup/core
+	Vendor: Loc Nguyen
+	Archive: working/projects/hudup-ext/3_implementation/src/net/hudup/core
+	Version: 13
+	Status: using
+	Note:
+	-->
+	<property name="hudup-core.jar" value="${lib.home}/hudup-core.jar"/>
+
+
+	<!--
 	Function: Parsing mathematical expressions.
 	Affected packages, classes: net.ea.pso.logistic.speqmath.*
 	Referred jars:
@@ -234,6 +248,114 @@
 		
 		<delete quiet="true" includeEmptyDirs="true">
 			<fileset dir="${archive.home}" includes="**" excludes="${product}-${version}-src.zip"/>
+		</delete>
+	</target>
+
+
+	<target name="jar-ml" depends="compile" description="Create machine learning (ML) package">
+		<mkdir dir="${archive.home}"/>
+		<antcall target="clean-archive" />
+
+		<if>
+		<equals arg1="${include-runtime-lib}" arg2="embed" />
+		<then>
+			<jar destfile="${archive.home}/${product}-ml.jar">
+	    		<fileset dir="${bin.home}" includes="net/ml/**"/>
+				<!--
+	    		<restrict>
+	     			<name name="**"/>
+					<archives>
+						<zips>
+							<fileset dir="${lib.home}" includes="${commons-math3.jar}"/>
+						</zips>
+					</archives>
+	    		</restrict>
+				-->
+	    		
+				<manifest>
+					<attribute name="Main-Class" value="net.ml.Starter"/>
+				</manifest>
+			</jar>
+		</then>
+		<else>
+			<if>
+			<equals arg1="${include-runtime-lib}" arg2="normal" />
+			<then>
+				<antcall target="jar-runtime-lib" />
+			</then>
+			</if>
+
+			<jar destfile="${archive.home}/${product}-ml.jar">
+	    		<fileset dir="${bin.home}" includes="net/ml/**"/>
+	    		
+				<manifest>
+					<attribute name="Main-Class" value="net.ml.Starter"/>
+				</manifest>
+			</jar>
+		</else>
+		</if>
+
+		<copy todir="${archive.home}">
+			<fileset dir="." includes="${doctype}, env*.*, ml*.*, *.script"/>
+		</copy>
+
+		<zip destfile="${archive.home}/${product}-${version}-ml.zip" basedir="${archive.home}"/>
+		
+		<delete quiet="true" includeEmptyDirs="true">
+			<fileset dir="${archive.home}" includes="**" excludes="${product}-${version}-ml.zip"/>
+		</delete>
+	</target>
+
+
+	<target name="jar-ea" depends="compile" description="Create evolution algorithm (EA) package">
+		<mkdir dir="${archive.home}"/>
+		<antcall target="clean-archive" />
+
+		<if>
+		<equals arg1="${include-runtime-lib}" arg2="embed" />
+		<then>
+			<jar destfile="${archive.home}/${product}-ea.jar">
+	    		<fileset dir="${bin.home}" includes="net/ea/**"/>
+	    		<restrict>
+	     			<name name="**"/>
+					<archives>
+						<zips>
+							<fileset dir="${lib.home}" includes="${commons-math3.jar}"/>
+						</zips>
+					</archives>
+	    		</restrict>
+	    		
+				<manifest>
+					<attribute name="Main-Class" value="net.ea.Starter"/>
+				</manifest>
+			</jar>
+		</then>
+		<else>
+			<if>
+			<equals arg1="${include-runtime-lib}" arg2="normal" />
+			<then>
+				<antcall target="jar-runtime-lib" />
+			</then>
+			</if>
+
+			<jar destfile="${archive.home}/${product}-ea.jar">
+	    		<fileset dir="${bin.home}" includes="net/ea/**"/>
+	    		
+				<manifest>
+					<attribute name="Main-Class" value="net.ea.Starter"/>
+				</manifest>
+			</jar>
+		</else>
+		</if>
+
+		<copy todir="${archive.home}">
+			<fileset dir="." includes="${doctype}, env*.*, ea*.*, *.script"/>
+		</copy>
+
+		<zip destfile="${archive.home}/${product}-${version}-ea.zip" basedir="${archive.home}"/>
+		
+		<delete quiet="true" includeEmptyDirs="true">
+			<fileset dir="${archive.home}" includes="**" excludes="${product}-${version}-ea.zip"/>
 		</delete>
 	</target>
 
