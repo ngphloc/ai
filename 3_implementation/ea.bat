@@ -1,3 +1,5 @@
+set EXTRA_CLASSPATH=./ea.jar;./sim-ea.jar
+
 call .\env.bat
 
-%JAVA_CMD%;./hudup-core.jar;./hudup.jar;./ai-ea.jar;./sim-ea.jar net.ea.Starter
+%JAVA_CMD% net.ea.Starter

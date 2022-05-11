@@ -1,3 +1,5 @@
+EXTRA_CLASSPATH=./ea.jar:./sim-ea.jar
+
 . env.sh
 
-eval $JAVA_CMD:./hudup-core.jar:./hudup.jar:./ai-ea.jar:./sim-ea.jar net.ea.Starter
+eval $JAVA_CMD net.ea.Starter

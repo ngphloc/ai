@@ -1,3 +1,5 @@
+set EXTRA_CLASSPATH=./ml.jar;./sim-ml.jar
+
 call .\env.bat
 
-%JAVA_CMD%;./hudup-core.jar;./hudup.jar;./ai-ml.jar;./sim-ml.jar net.ml.Starter
+%JAVA_CMD% net.ml.Starter
