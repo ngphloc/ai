@@ -1,0 +1,15 @@
+========== Algorithm "pso_probability_acc2" ==========
+Setup result of algorithm "pso_probability_acc2" (done) are At final iteration 16: final optimizer is best position = {x1=3.1911, x2=3.127}, best value = -0.996
+
+
+
+========== Algorithm "pso_probability_acc2" ==========
+Setup result of algorithm "pso_probability_acc2" on training dataset 'hdp_sample' with assigned ID '1' (done) are Learned models: Function "-cos(x1)*cos(x2)*exp(-((x1-PI)^2)-((x2-PI)^2))" gets optimal at best position = {x1=3.1911, x2=3.127}, best value = -0.996
+
+
+
+========== Algorithm "pso_probability_acc2" ==========
+Setup result of algorithm "pso_probability_acc2" on training dataset with assigned ID '1' (done) are fired
+
+
+
