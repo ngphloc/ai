@@ -41,7 +41,7 @@
 	Archive: working/projects/hudup-ext/3_implementation/src/net/hudup
 	Version: 13
 	Status: using
-	Note:
+	Note: Actually, only hudup core classes (net.hudup.core.*) in this jar lib are used in this AI project.
 	-->
 	<property name="hudup.jar" value="${lib.home}/hudup.jar"/>
 
@@ -92,7 +92,7 @@
 	<!--
 	List of classes and packages which use libraries:
 	
-	net.ea.adapter: hudup.jar
+	net.ea.adapter: hudup.jar (only core classes in net.hudup.core.*)
 	net.ea.pso.ExprFunction: parser.jong
 	net.ea.pso.PSOImpl: commons-math3.jar
 	net.ml.adapter: hudup.jar
