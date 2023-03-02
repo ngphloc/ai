@@ -1,7 +1,7 @@
 /**
  * SIM: MACHINE doing ALGORITHMS FRAMEWORK
  * (C) Copyright by Loc Nguyen's Academic Network
- * Project homepage: sim.locnguyen.net
+ * Project homepage: ai.locnguyen.net
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */

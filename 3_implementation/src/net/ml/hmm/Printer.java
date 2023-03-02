@@ -1,7 +1,7 @@
 /**
- * SIM: MACHINE LEARNING ALGORITHMS FRAMEWORK
+ * AI: Artificial Intelligent Project
  * (C) Copyright by Loc Nguyen's Academic Network
- * Project homepage: sim.locnguyen.net
+ * Project homepage: ai.locnguyen.net
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
@@ -229,13 +229,14 @@ public class Printer implements HMMListener, AutoCloseable {
 	}
 
 
-	@Override
-	protected void finalize() throws Throwable {
-		try {
-			close();
-		} catch (Throwable e) {}
-//		super.finalize();
-	}
+//	@Override
+//	protected void finalize() throws Throwable {
+//		try {
+//			close();
+//		} catch (Throwable e) {}
+//		
+//		//super.finalize();
+//	}
 	
 	
 }

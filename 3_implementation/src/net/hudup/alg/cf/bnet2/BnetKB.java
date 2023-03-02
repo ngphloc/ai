@@ -1,7 +1,7 @@
 /**
- * SIM: MACHINE LEARNING ALGORITHMS FRAMEWORK
+ * AI: Artificial Intelligent Project
  * (C) Copyright by Loc Nguyen's Academic Network
- * Project homepage: sim.locnguyen.net
+ * Project homepage: ai.locnguyen.net
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
@@ -10,12 +10,12 @@ package net.hudup.alg.cf.bnet2;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.rmi.RemoteException;
+import java.util.Collection;
 
 import net.hudup.core.alg.Alg;
 import net.hudup.core.alg.KBaseAbstract;
 import net.hudup.core.data.DataConfig;
 import net.hudup.core.data.Dataset;
-import net.hudup.core.data.Fetcher;
 import net.hudup.core.data.Profile;
 import net.hudup.core.logistic.LogUtil;
 import net.hudup.core.logistic.NextUpdate;
@@ -70,10 +70,9 @@ public class BnetKB extends KBaseAbstract {
 		
 		//Modifying following code to learn Bayesian network from rating matrix.
 		try {
-			Fetcher<Profile> sample = dataset.fetchSample();
-			sample.close();
+			Collection<Profile> sample = dataset.fetchSample2();
 			EMLearning learning = new EMLearning();
-			bnet = learning.learn(sample, null);
+			bnet = learning.learn(sample);
 		}
 		catch (Throwable e) {
 			LogUtil.trace(e);

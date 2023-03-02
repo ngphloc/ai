@@ -1,7 +1,7 @@
 /**
- * SIM: MACHINE LEARNING ALGORITHMS FRAMEWORK
+ * AI: Artificial Intelligent Project
  * (C) Copyright by Loc Nguyen's Academic Network
- * Project homepage: sim.locnguyen.net
+ * Project homepage: ai.locnguyen.net
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
@@ -101,7 +101,7 @@ public interface Layer extends Serializable, Cloneable {
 	
 	
 	/**
-	 * Getting implicit previous layer.
+	 * Getting implicit previous layer. For example, given a rib-out layer, its implicit previous layer is the layer on backbone to which it attaches.
 	 * @return implicit previous layer.
 	 */
 	Layer getPrevLayerImplicit();

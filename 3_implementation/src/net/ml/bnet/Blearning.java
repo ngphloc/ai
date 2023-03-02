@@ -1,13 +1,12 @@
 /**
- * SIM: MACHINE LEARNING ALGORITHMS FRAMEWORK
+ * AI: Artificial Intelligent Project
  * (C) Copyright by Loc Nguyen's Academic Network
- * Project homepage: sim.locnguyen.net
+ * Project homepage: ai.locnguyen.net
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
 package net.ml.bnet;
 
-import net.hudup.core.data.Fetcher;
 import net.hudup.core.data.Profile;
 
 /**
@@ -23,10 +22,10 @@ public interface Blearning {
 	/**
 	 * The main method learns or create Bayesian network from training data.
 	 * @param input specified training data.
-	 * @param param additional parameter.
+	 * @param params additional parameters.
 	 * @return Bayesian network from specified training data.
 	 */
-	Bnet learn(Fetcher<Profile> input, Object param);
+	Bnet learn(Iterable<Profile> input, Object...params);
 	
 	
 }

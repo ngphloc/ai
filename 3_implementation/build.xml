@@ -34,7 +34,7 @@
 
 	<!--
 	Function: Hudup framework provides both essential classes and runtime environment.
-	Affected packages, classes: net.ea.adapter, net.ml.adapter
+	Affected packages, classes: net.ea.adapter, net.ml.bnet.adapter, net.ml.hmm.adapter
 	Referred jars:
 	Source: https://github.com/sunflowersoft/hudup-ext/tree/master/3_implementation/src/net/hudup
 	Vendor: Loc Nguyen
@@ -92,11 +92,12 @@
 	<!--
 	List of classes and packages which use libraries:
 	
-	net.ea.adapter: hudup.jar (only core classes in net.hudup.core.*)
+	net.ea.pso.adapter: hudup.jar (only core classes in net.hudup.core.*)
 	net.ea.pso.ExprFunction: parser.jong
 	net.ea.pso.PSOImpl: commons-math3.jar
-	net.ml.adapter: hudup.jar
+	net.ml.bnet.adapter: hudup.jar (only core classes in net.hudup.core.*)
 	net.ml.bnet.FactoryImpl: jayes.jar, jayes-io.jar
+	net.ml.hmm.adapter: hudup.jar (only core classes in net.hudup.core.*)
 	-->
 	
 	

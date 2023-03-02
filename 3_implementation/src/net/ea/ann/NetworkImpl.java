@@ -1,7 +1,7 @@
 /**
- * SIM: MACHINE LEARNING ALGORITHMS FRAMEWORK
+ * AI: Artificial Intelligent Project
  * (C) Copyright by Loc Nguyen's Academic Network
- * Project homepage: sim.locnguyen.net
+ * Project homepage: ai.locnguyen.net
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
@@ -276,13 +276,13 @@ public class NetworkImpl implements Network {
 
 	
 	/**
-	 * Creating new layer.
+	 * Creating new layer. This method can be called from derived classes.
 	 * @param nNeuron number of neurons.
 	 * @param prevLayer previous layer.
 	 * @param nextLayer next layer.
 	 * @return new layer.
 	 */
-	private Layer newLayer(int nNeuron, Layer prevLayer, Layer nextLayer) {
+	protected Layer newLayer(int nNeuron, Layer prevLayer, Layer nextLayer) {
 		LayerImpl layer = new LayerImpl(activateRef, idRef);
 		nNeuron = nNeuron < 0 ? 0 : nNeuron;
 		for (int i = 0; i < nNeuron; i++) {
@@ -585,17 +585,19 @@ public class NetworkImpl implements Network {
 		for (int i = 0; i < backbone.size(); i++) {
 			Layer layer = backbone.get(i);
 			List<Layer> ribinbone = getRibinbone(layer);
-			if (ribinbone != null && ribinbone.size() > 1) {
+			if (ribinbone != null && ribinbone.size() > 1 && inputRecord.ribInput != null) {
 				int id = ribinbone.get(0).id();
 				if (inputRecord.ribInput.containsKey(id))
 					eval(ribinbone, inputRecord.ribInput.get(id), refresh);
 			}
 			
-			double[] output = eval(backbone, i, inputRecord.input, refresh);
-			
-			List<Layer> riboutbone = getRiboutbone(layer);
-			if (riboutbone != null && riboutbone.size() > 1)
-				eval(riboutbone, output, refresh);
+			if (inputRecord.input != null) {
+				double[] output = eval(backbone, i, inputRecord.input, refresh);
+				
+				List<Layer> riboutbone = getRiboutbone(layer);
+				if (riboutbone != null && riboutbone.size() > 1)
+					eval(riboutbone, output, refresh);
+			}
 		}
 		
 		if (memoryLayer != null) {
@@ -686,7 +688,7 @@ public class NetworkImpl implements Network {
 	/**
 	 * Evaluating neuron.
 	 * @param neuron specified neuron.
-	 * @param refresh refresh mode.
+	 * @param refresh refresh mode. If true, neuron output is not re-evaluated because it was refreshed with initial values. If false, neuron output is re-evaluated.
 	 * @return evaluated output.
 	 */
 	private double eval(Neuron neuron, boolean refresh) {
@@ -746,7 +748,11 @@ public class NetworkImpl implements Network {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	public double[] bpLearn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	protected double[] bpLearn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+		try {
+			if (isDoStarted()) return null;
+		} catch (Throwable e) {Util.trace(e);}
+		
 		List<Layer> backbone = getBackbone();
 		if (backbone.size() < 2) return null;
 		
@@ -872,7 +878,7 @@ public class NetworkImpl implements Network {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	public static double[] bpLearn(List<Layer> bone, double[] input, double[] output, double learningRate, double terminatedThreshold, int maxIteration) {
+	protected static double[] bpLearn(List<Layer> bone, double[] input, double[] output, double learningRate, double terminatedThreshold, int maxIteration) {
 		if (bone == null || bone.size() < 2) return null;
 		output = adjustArray(output, bone.get(bone.size()-1).size());
 		
@@ -1263,14 +1269,14 @@ public class NetworkImpl implements Network {
 	}
 
 
-	@Override
-	protected void finalize() throws Throwable {
-		try {
-			close();
-		} catch (Throwable e) {}
-		
-		//super.finalize();
-	}
+//	@Override
+//	protected void finalize() throws Throwable {
+//		try {
+//			close();
+//		} catch (Throwable e) {}
+//		
+//		//super.finalize();
+//	}
 	
 	
 //	public synchronized double[] learn(double learningRate, double errorThreshold, int maxIteration, Collection<double[]> mainSample, List<Collection<double[]>> auxSamples) throws RemoteException {
