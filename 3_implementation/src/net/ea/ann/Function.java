@@ -20,11 +20,19 @@ public interface Function extends Serializable, Cloneable {
 
 	
 	/**
-	 * Evaluating specified variable.
-	 * @param x specified variable.
+	 * Evaluating specified value.
+	 * @param x specified value.
 	 * @return evaluated value.
 	 */
 	double eval(double x);
+	
+	
+	/**
+	 * Calculate gradient (the first order derivative) at specified value.
+	 * @param x specified value.
+	 * @return gradient (the first order derivative) at specified value.
+	 */
+	double derivative(double x);
 	
 	
 }

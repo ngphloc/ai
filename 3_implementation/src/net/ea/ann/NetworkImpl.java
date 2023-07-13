@@ -938,9 +938,10 @@ public class NetworkImpl implements Network {
 			for (int j = 0; j < layer.size(); j++) {
 				Neuron neuron = layer.get(j);
 				double out = neuron.getOutput();
+				double derivative = neuron.getActivateRef().derivative(out);
 				
 				if (i == bone.size() - 1)
-					error[j] = out * (1-out) * (output[j]-out);
+					error[j] = (output[j]-out) * derivative;
 				else {
 					double rsum = 0;
 					double[] nextError = errors.get(1);
@@ -949,7 +950,7 @@ public class NetworkImpl implements Network {
 						int index = nextLayer.indexOf(target.neuron);
 						rsum += nextError[index] * target.weight.value;
 					}
-					error[j] = out * (1-out) * rsum;
+					error[j] = rsum * derivative;
 				}
 			}
 		}
@@ -1024,6 +1025,7 @@ public class NetworkImpl implements Network {
 		for (int j = 0; j < centerLayer.size(); j++) {
 			Neuron centerNeuron = centerLayer.get(j);
 			double out = centerNeuron.getOutput();
+			double derivative = centerNeuron.getActivateRef().derivative(out);
 
 			double rsum = 0;
 			WeightedNeuron[] targets = centerNeuron.getNextNeurons(nextLayer);
@@ -1031,7 +1033,7 @@ public class NetworkImpl implements Network {
 				int index = nextLayer.indexOf(target.neuron);
 				rsum += nextError[index] * target.weight.value;
 			}
-			centerError[j] = out * (1-out) * rsum;
+			centerError[j] = rsum * derivative;
 		}
 		
 		List<Layer> newBackbone = Util.newList(3);

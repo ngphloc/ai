@@ -37,4 +37,10 @@ public class LogisticFunction implements Function {
 	}
 
 
+	@Override
+	public double derivative(double x) {
+		return x * (1-x);
+	}
+
+
 }
