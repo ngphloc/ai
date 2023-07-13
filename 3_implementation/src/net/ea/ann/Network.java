@@ -46,7 +46,7 @@ public interface Network extends Remote, Serializable, Cloneable, AutoCloseable 
 	 * @return array as output of output layer.
 	 * @throws RemoteException if any error raises.
 	 */
-	double[] eval(Record inputRecord, boolean refresh) throws RemoteException;
+	Value[] eval(Record inputRecord, boolean refresh) throws RemoteException;
 	
 	
 	/**
@@ -55,7 +55,7 @@ public interface Network extends Remote, Serializable, Cloneable, AutoCloseable 
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	double[] learn(Iterable<Record> sample) throws RemoteException;
+	Value[] learn(Iterable<Record> sample) throws RemoteException;
 	
 	
 	/**

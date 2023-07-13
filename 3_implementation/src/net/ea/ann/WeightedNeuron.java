@@ -32,7 +32,7 @@ public class WeightedNeuron implements Serializable, Cloneable {
 	/**
 	 * Associated weight.
 	 */
-	public Weight weight = new Weight(0);
+	public Weight weight = null;
 	
 	
 	/**

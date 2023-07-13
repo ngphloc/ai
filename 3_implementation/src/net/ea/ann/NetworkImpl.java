@@ -174,15 +174,15 @@ public class NetworkImpl implements Network {
 	
 	/**
 	 * Constructor with number of neurons.
-	 * @param activateRef activation function.
 	 * @param nInputNeuron number of input neurons.
 	 * @param nOutputNeuron number of output neurons.
 	 * @param nHiddenLayer number of hidden layers.
 	 * @param nHiddenNeuron number of hidden neurons.
 	 * @param nMemoryNeuron number of memory neurons.
 	 */
-	public NetworkImpl(Function activateRef, int nInputNeuron, int nOutputNeuron, int nHiddenLayer, int nHiddenNeuron, int nMemoryNeuron) {
+	public NetworkImpl(int nInputNeuron, int nOutputNeuron, int nHiddenLayer, int nHiddenNeuron, int nMemoryNeuron) {
 		this();
+		this.activateRef = newFunction();
 		
 		nInputNeuron = nInputNeuron < 1 ? 1 : nInputNeuron;
 		nOutputNeuron = nOutputNeuron < 1 ? 1 : nOutputNeuron;
@@ -191,8 +191,6 @@ public class NetworkImpl implements Network {
 		if (nHiddenNeuron == 0) nHiddenLayer = 0;
 		nHiddenNeuron = nHiddenNeuron < 0 ? 0 : nHiddenNeuron;
 		nMemoryNeuron = nMemoryNeuron < 0 ? 0 : nMemoryNeuron;
-		
-		this.activateRef = activateRef;
 		
 		this.inputLayer = newLayer(nInputNeuron, null, null);
 		
@@ -218,50 +216,13 @@ public class NetworkImpl implements Network {
 	
 	/**
 	 * Constructor with number of neurons.
-	 * @param activateRef activation function.
-	 * @param nInputNeuron number of input neurons.
-	 * @param nOutputNeuron number of output neurons.
-	 * @param nHiddenLayer number of hidden layers.
-	 * @param nHiddenNeuron number of hidden neurons.
-	 */
-	public NetworkImpl(Function activateRef, int nInputNeuron, int nOutputNeuron, int nHiddenLayer, int nHiddenNeuron) {
-		this(activateRef, nInputNeuron, nOutputNeuron, nHiddenLayer, nHiddenNeuron, 0);
-	}
-	
-	
-	/**
-	 * Constructor with number of neurons.
-	 * @param activateRef activation function.
-	 * @param nInputNeuron number of input neurons.
-	 * @param nOutputNeuron number of output neurons.
-	 */
-	public NetworkImpl(Function activateRef, int nInputNeuron, int nOutputNeuron) {
-		this(activateRef, nInputNeuron, nOutputNeuron, 0, 0, 0);
-	}
-
-	
-	/**
-	 * Constructor with number of neurons.
-	 * @param nInputNeuron number of input neurons.
-	 * @param nOutputNeuron number of output neurons.
-	 * @param nHiddenLayer number of hidden layers.
-	 * @param nHiddenNeuron number of hidden neurons.
-	 * @param nMemoryNeuron number of memory neurons.
-	 */
-	public NetworkImpl(int nInputNeuron, int nOutputNeuron, int nHiddenLayer, int nHiddenNeuron, int nMemoryNeuron) {
-		this(new LogisticFunction(), nInputNeuron, nOutputNeuron, nHiddenLayer, nHiddenNeuron, nMemoryNeuron);
-	}
-
-	
-	/**
-	 * Constructor with number of neurons.
 	 * @param nInputNeuron number of input neurons.
 	 * @param nOutputNeuron number of output neurons.
 	 * @param nHiddenLayer number of hidden layers.
 	 * @param nHiddenNeuron number of hidden neurons.
 	 */
 	public NetworkImpl(int nInputNeuron, int nOutputNeuron, int nHiddenLayer, int nHiddenNeuron) {
-		this(new LogisticFunction(), nInputNeuron, nOutputNeuron, nHiddenLayer, nHiddenNeuron, 0);
+		this(nInputNeuron, nOutputNeuron, nHiddenLayer, nHiddenNeuron, 0);
 	}
 	
 	
@@ -271,9 +232,28 @@ public class NetworkImpl implements Network {
 	 * @param nOutputNeuron number of output neurons.
 	 */
 	public NetworkImpl(int nInputNeuron, int nOutputNeuron) {
-		this(new LogisticFunction(), nInputNeuron, nOutputNeuron, 0, 0, 0);
+		this(nInputNeuron, nOutputNeuron, 0, 0, 0);
 	}
 
+	
+	/**
+	 * Create logistic function.
+	 * @return logistic function.
+	 */
+	protected Function newFunction() {
+		return new LogisticFunctionScalar();
+	}
+	
+	
+	/**
+	 * Create layer.
+	 * @return created layer.
+	 */
+	protected Layer newLayer() {
+		activateRef = activateRef != null? activateRef : newFunction();
+		return new LayerImpl(activateRef, idRef);
+	}
+	
 	
 	/**
 	 * Creating new layer. This method can be called from derived classes.
@@ -282,8 +262,8 @@ public class NetworkImpl implements Network {
 	 * @param nextLayer next layer.
 	 * @return new layer.
 	 */
-	protected Layer newLayer(int nNeuron, Layer prevLayer, Layer nextLayer) {
-		LayerImpl layer = new LayerImpl(activateRef, idRef);
+	private Layer newLayer(int nNeuron, Layer prevLayer, Layer nextLayer) {
+		Layer layer = newLayer();
 		nNeuron = nNeuron < 0 ? 0 : nNeuron;
 		for (int i = 0; i < nNeuron; i++) {
 			layer.add(layer.newNeuron());
@@ -566,7 +546,7 @@ public class NetworkImpl implements Network {
 
 	
 	@Override
-	public synchronized double[] eval(Record inputRecord, boolean refresh) throws RemoteException {
+	public synchronized Value[] eval(Record inputRecord, boolean refresh) throws RemoteException {
 		if (inputRecord == null) return null;
 		List<Layer> backbone = getBackbone();
 		if (backbone.size() == 0) return null;
@@ -576,8 +556,8 @@ public class NetworkImpl implements Network {
 			for (Layer layer : nonempty) {
 				for (int j = 0; j < layer.size(); j++) {
 					Neuron neuron = layer.get(j);
-					neuron.setInput(0);
-					neuron.setOutput(0);
+					neuron.setInput(layer.newValue());
+					neuron.setOutput(layer.newValue());
 				}
 			}
 		}
@@ -592,7 +572,7 @@ public class NetworkImpl implements Network {
 			}
 			
 			if (inputRecord.input != null) {
-				double[] output = eval(backbone, i, inputRecord.input, refresh);
+				Value[] output = eval(backbone, i, inputRecord.input, refresh);
 				
 				List<Layer> riboutbone = getRiboutbone(layer);
 				if (riboutbone != null && riboutbone.size() > 1)
@@ -614,19 +594,19 @@ public class NetworkImpl implements Network {
 	 * @param input specified input.
 	 * @return evaluated output.
 	 */
-	public static double[] eval(List<Layer> bone, double[] input) {
+	public static Value[] eval(List<Layer> bone, Value[] input) {
 		if (bone == null || bone.size() == 0) return null;
 		
 		for (Layer layer : bone) {
 			for (int j = 0; j < layer.size(); j++) {
 				Neuron neuron = layer.get(j);
-				neuron.setInput(0);
-				neuron.setOutput(0);
+				neuron.setInput(layer.newValue());
+				neuron.setOutput(layer.newValue());
 			}
 		}
 
 		Layer layer0 = bone.get(0);
-		input = adjustArray(input, layer0.size());
+		input = Value.adjustArray(input, layer0.size(), layer0);
 		for (int j = 0; j < layer0.size(); j++) {
 			Neuron neuron = layer0.get(j);
 			neuron.setInput(input[j]);
@@ -649,7 +629,7 @@ public class NetworkImpl implements Network {
 	 * @param refresh refresh mode.
 	 * @return evaluated output.
 	 */
-	private double[] eval(List<Layer> bone, double[] input, boolean refresh) {
+	private Value[] eval(List<Layer> bone, Value[] input, boolean refresh) {
 		if (bone.size() == 0) return null;
 		for (int i = 0; i < bone.size(); i++) {
 			eval(bone, i, input, refresh);
@@ -666,9 +646,9 @@ public class NetworkImpl implements Network {
 	 * @param refresh refresh mode.
 	 * @return evaluated output.
 	 */
-	private double[] eval(List<Layer> bone, int index, double[] input, boolean refresh) {
+	private Value[] eval(List<Layer> bone, int index, Value[] input, boolean refresh) {
 		Layer layer = bone.get(index);
-		input = adjustArray(input, layer.size());
+		input = Value.adjustArray(input, layer.size(), layer);
 		
 		if (index == 0) {
 			for (int j = 0; j < layer.size(); j++) {
@@ -691,7 +671,7 @@ public class NetworkImpl implements Network {
 	 * @param refresh refresh mode. If true, neuron output is not re-evaluated because it was refreshed with initial values. If false, neuron output is re-evaluated.
 	 * @return evaluated output.
 	 */
-	private double eval(Neuron neuron, boolean refresh) {
+	private Value eval(Neuron neuron, boolean refresh) {
 		if (!refresh) return neuron.eval();
 		
 		List<WeightedNeuron> sources = Util.newList(0);
@@ -701,18 +681,18 @@ public class NetworkImpl implements Network {
 		sources.addAll(Arrays.asList(neuron.getPrevNeuronsImplicit()));
 		
 		if (sources.size() == 0) {
-			double out = neuron.getInput();
+			Value out = neuron.getInput();
 			neuron.setOutput(out);
 			return out;
 		}
 		
-		double in = neuron.getBias();
+		Value in = neuron.getBias();
 		for (WeightedNeuron source : sources) {
-			in += source.weight.value * source.neuron.getOutput();
+			in = in.add(source.weight.value.multiply(source.neuron.getOutput()));
 		}
 		
 		neuron.setInput(in);
-		double out = neuron.getActivateRef().eval(in);
+		Value out = neuron.getActivateRef().eval(in);
 		neuron.setOutput(out);
 		return out;
 	}
@@ -723,7 +703,7 @@ public class NetworkImpl implements Network {
 	 * @param sample sample for learning.
 	 * @return learned error.
 	 */
-	public double[] learn(Record[] sample) {
+	public Value[] learn(Record[] sample) {
 		try {
 			return learn(Arrays.asList(sample));
 		} catch (Throwable e) {Util.trace(e);}
@@ -732,7 +712,7 @@ public class NetworkImpl implements Network {
 	
 	
 	@Override
-	public synchronized double[] learn(Iterable<Record> sample) throws RemoteException {
+	public synchronized Value[] learn(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
 		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
@@ -748,7 +728,7 @@ public class NetworkImpl implements Network {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	protected double[] bpLearn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	protected Value[] bpLearn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -760,19 +740,19 @@ public class NetworkImpl implements Network {
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
-		double[] error = null;
+		Value[] error = null;
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			List<double[]> errors = Util.newList(0);
+			List<Value[]> errors = Util.newList(0);
 			for (Record record : sample) {
 				if (record == null || record.input == null || record.output == null) continue;
-				double[] output = adjustArray(record.output, backbone.get(backbone.size()-1).size());
+				Value[] output = Value.adjustArray(record.output, backbone.get(backbone.size()-1).size(), backbone.get(backbone.size()-1));
 				
 				List<List<Layer>> ribinbones = getRibinbones();
 				List<List<Layer>> riboutbones = getRiboutbones();
-				Map<Integer, List<double[]>> ribinErrorMap = Util.newMap(0);
-				Map<Integer, List<double[]>> riboutErrorMap = Util.newMap(0);
+				Map<Integer, List<Value[]>> ribinErrorMap = Util.newMap(0);
+				Map<Integer, List<Value[]>> riboutErrorMap = Util.newMap(0);
 
 				//Evaluating layers.
 				try {
@@ -784,11 +764,11 @@ public class NetworkImpl implements Network {
 				
 				for (List<Layer> ribinbone : ribinbones) {
 					Layer layer = ribinbone.get(ribinbone.size() - 1);
-					double[] ribOutput = new double[layer.size()];
+					Value[] ribOutput = Value.makeArray(layer.size(), layer);
 					for (int j = 0; j < ribOutput.length; j++)
 						ribOutput[j] = layer.get(j).getOutput();
 					
-					List<double[]> ribinErrors = bpCalcErrors(ribinbone, ribOutput);
+					List<Value[]> ribinErrors = bpCalcErrors(ribinbone, ribOutput);
 					if (ribinErrors != null && ribinErrors.size() > 0)
 						ribinErrorMap.put(layer.id(), ribinErrors);
 				}
@@ -798,7 +778,7 @@ public class NetworkImpl implements Network {
 					int id = riboutbone.get(riboutbone.size() - 1).id();
 					if (!record.ribOutput.containsKey(id)) continue;
 					
-					List<double[]> riboutErrors = bpCalcErrors(riboutbone, record.ribOutput.get(id));
+					List<Value[]> riboutErrors = bpCalcErrors(riboutbone, record.ribOutput.get(id));
 					if (riboutErrors != null && riboutErrors.size() > 0)
 						riboutErrorMap.put(id, riboutErrors);
 				}
@@ -838,7 +818,7 @@ public class NetworkImpl implements Network {
 				doStarted = false;
 			else {
 				double errorMean = 0;
-				for (double r : error) errorMean += Math.abs(r);
+				for (Value r : error) errorMean += Math.abs(r.norm());
 				errorMean = errorMean / error.length;
 				if (errorMean < terminatedThreshold) doStarted = false; 
 			}
@@ -878,18 +858,18 @@ public class NetworkImpl implements Network {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	protected static double[] bpLearn(List<Layer> bone, double[] input, double[] output, double learningRate, double terminatedThreshold, int maxIteration) {
+	protected static Value[] bpLearn(List<Layer> bone, Value[] input, Value[] output, double learningRate, double terminatedThreshold, int maxIteration) {
 		if (bone == null || bone.size() < 2) return null;
-		output = adjustArray(output, bone.get(bone.size()-1).size());
+		output = Value.adjustArray(output, bone.get(bone.size()-1).size(), bone.get(bone.size()-1));
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
-		double[] error = null;
+		Value[] error = null;
 		int iteration = 0;
 		while (maxIteration <= 0 || iteration < maxIteration) {
-			List<double[]> errors = Util.newList(0);
+			List<Value[]> errors = Util.newList(0);
 
 			//Evaluating layers.
 			eval(bone, input);
@@ -908,7 +888,7 @@ public class NetworkImpl implements Network {
 				break;
 			else {
 				double errorMean = 0;
-				for (double r : error) errorMean += Math.abs(r);
+				for (Value r : error) errorMean += Math.abs(r.norm());
 				errorMean = errorMean / error.length;
 				if (errorMean < terminatedThreshold) break; 
 			}
@@ -925,32 +905,32 @@ public class NetworkImpl implements Network {
 	 * @param errors list of errors. Error list excludes input error and so it is 1 less than backbone. 
 	 * @return list of errors.
 	 */
-	private static List<double[]> bpCalcErrors(List<Layer> bone, double[] output) {
-		List<double[]> errors = Util.newList(0);
+	private static List<Value[]> bpCalcErrors(List<Layer> bone, Value[] output) {
+		List<Value[]> errors = Util.newList(0);
 		if (bone.size() < 2) return errors;
 		
 		for (int i = bone.size() - 1; i >= 1; i--) {
 			Layer layer = bone.get(i);
 			Layer nextLayer = i < bone.size() - 1 ? bone.get(i + 1) : null;
-			double[] error = new double[layer.size()];
+			Value[] error = Value.makeArray(layer.size(), layer);
 			errors.add(0, error);
 			
 			for (int j = 0; j < layer.size(); j++) {
 				Neuron neuron = layer.get(j);
-				double out = neuron.getOutput();
-				double derivative = neuron.getActivateRef().derivative(out);
+				Value out = neuron.getOutput();
+				Value derivative = neuron.getActivateRef().derivative(out);
 				
 				if (i == bone.size() - 1)
-					error[j] = (output[j]-out) * derivative;
+					error[j] = output[j].subtract(out).multiply(derivative);
 				else {
-					double rsum = 0;
-					double[] nextError = errors.get(1);
+					Value rsum = layer.newValue();
+					Value[] nextError = errors.get(1);
 					WeightedNeuron[] targets = neuron.getNextNeurons(nextLayer);
 					for (WeightedNeuron target : targets) {
 						int index = nextLayer.indexOf(target.neuron);
-						rsum += nextError[index] * target.weight.value;
+						rsum = rsum.add(nextError[index].multiply(target.weight.value));
 					}
-					error[j] = rsum * derivative;
+					error[j] = rsum.multiply(derivative);
 				}
 			}
 		}
@@ -965,33 +945,38 @@ public class NetworkImpl implements Network {
 	 * @param errors list of errors. Error list excludes input error and so it is 1 less than backbone. 
 	 * @param learningRate learning rate.
 	 */
-	private static void bpUpdateWeightsBiases(List<Layer> bone, List<double[]> errors, double learningRate) {
+	private static void bpUpdateWeightsBiases(List<Layer> bone, List<Value[]> errors, double learningRate) {
 		if (bone.size() < 2) return;
 		
 		for (int i = 0; i < bone.size() - 1; i++) {
 			Layer layer = bone.get(i);
 			Layer nextLayer = bone.get(i + 1);
-			double[] error = i > 0 ? errors.get(i - 1) : null;
-			double[] nextError = errors.get(i);
+			Value[] error = i > 0 ? errors.get(i - 1) : null;
+			Value[] nextError = errors.get(i);
 			
 			for (int j = 0; j < layer.size(); j++) {
 				Neuron neuron = layer.get(j);
-				double out = neuron.getOutput();
+				Value out = neuron.getOutput();
 				
 				WeightedNeuron[] targets = neuron.getNextNeurons(nextLayer);
 				for (WeightedNeuron target : targets) {
 					Weight nw = target.weight;
 					int index = nextLayer.indexOf(target.neuron);
-					nw.value += learningRate*nextError[index]*out;
+					Value delta = nextError[index].multiply(out).multiply(learningRate);
+					nw.value = nw.value.add(delta);
 				}
 				
-				if (i > 0) neuron.setBias(neuron.getBias() + learningRate*error[j]);
+				if (i > 0) {
+					Value delta = error[j].multiply(learningRate);
+					neuron.setBias(neuron.getBias().add(delta));
+				}
 			}
 			
 			if (i == bone.size() - 1) {
 				for (int j = 0; j < nextLayer.size(); j++) {
 					Neuron neuron = nextLayer.get(j);
-					neuron.setBias(neuron.getBias() + learningRate*nextError[j]);
+					Value delta = nextError[j].multiply(learningRate);
+					neuron.setBias(neuron.getBias().add(delta));
 				}
 			}
 		}
@@ -1005,7 +990,7 @@ public class NetworkImpl implements Network {
 	 * @param errors list of errors. Error list excludes input error and so it is 1 less than backbone. 
 	 * @param learningRate learning rate.
 	 */
-	private static void bpUpdateWeightsBiasesAttachedTriple(Layer centerLayer, List<Layer> bone, List<double[]> errors, double learningRate) {
+	private static void bpUpdateWeightsBiasesAttachedTriple(Layer centerLayer, List<Layer> bone, List<Value[]> errors, double learningRate) {
 		if (bone.size() < 2) return;
 
 		Layer prevLayer = centerLayer.getPrevLayer();
@@ -1020,27 +1005,27 @@ public class NetworkImpl implements Network {
 		for (int j = 0; j < centerLayer.size(); j++) centerLayer.get(j).eval();
 		
 		//Updating errors of center layer.
-		double[] centerError = new double[centerLayer.size()];
-		double[] nextError = errors.get(nextErrorIndex);
+		Value[] centerError = Value.makeArray(centerLayer.size(), centerLayer);
+		Value[] nextError = errors.get(nextErrorIndex);
 		for (int j = 0; j < centerLayer.size(); j++) {
 			Neuron centerNeuron = centerLayer.get(j);
-			double out = centerNeuron.getOutput();
-			double derivative = centerNeuron.getActivateRef().derivative(out);
+			Value out = centerNeuron.getOutput();
+			Value derivative = centerNeuron.getActivateRef().derivative(out);
 
-			double rsum = 0;
+			Value rsum = centerLayer.newValue();;
 			WeightedNeuron[] targets = centerNeuron.getNextNeurons(nextLayer);
 			for (WeightedNeuron target : targets) {
 				int index = nextLayer.indexOf(target.neuron);
-				rsum += nextError[index] * target.weight.value;
+				rsum = rsum.add(nextError[index].multiply(target.weight.value));
 			}
-			centerError[j] = rsum * derivative;
+			centerError[j] = rsum.multiply(derivative);
 		}
 		
 		List<Layer> newBackbone = Util.newList(3);
 		newBackbone.add(prevLayer);
 		newBackbone.add(centerLayer);
 		newBackbone.add(nextLayer);
-		List<double[]> newErrors = Util.newList(2);
+		List<Value[]> newErrors = Util.newList(2);
 		newErrors.add(centerError);
 		newErrors.add(nextError);
 		
@@ -1048,26 +1033,6 @@ public class NetworkImpl implements Network {
 	}
 
 
-	/**
-	 * Adjusting array by length.
-	 * @param array specified array.
-	 * @param length specified length.
-	 * @return adjusted array.
-	 */
-	private static double[] adjustArray(double[] array, int length) {
-		if (length <= 0) return array;
-		if (array == null || array.length == 0) {
-			array = new double[length];
-			for (int j = 0; j < array.length; j++) array[j] = 0;
-		}
-		else if (array.length < length) {
-			array = Arrays.copyOfRange(array, 0, length);
-		}
-		
-		return array;
-	}
-	
-	
 	@Override
 	public void addListener(NetworkListener listener) throws RemoteException {
 		synchronized (listenerList) {

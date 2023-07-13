@@ -41,19 +41,19 @@ public class NeuronImpl implements Neuron {
 	/**
 	 * Input value.
 	 */
-	protected double input = 0;
+	protected Value input = null;
 	
 	
 	/**
 	 * Bias.
 	 */
-	protected double bias = 0;
+	protected Value bias = null;
 
 	
 	/**
 	 * Output value.
 	 */
-	protected double output = 0;
+	protected Value output = null;
 			
 	
 	/**
@@ -92,37 +92,37 @@ public class NeuronImpl implements Neuron {
 
 	
 	@Override
-	public double getInput() {
+	public Value getInput() {
 		return input;
 	}
 
 	
 	@Override
-	public void setInput(double value) {
+	public void setInput(Value value) {
 		this.input = value;
 	}
 
 	
 	@Override
-	public double getBias() {
+	public Value getBias() {
 		return bias;
 	}
 
 
 	@Override
-	public void setBias(double bias) {
+	public void setBias(Value bias) {
 		this.bias = bias;
 	}
 
 
 	@Override
-	public double getOutput() {
+	public Value getOutput() {
 		return output;
 	}
 
 	
 	@Override
-	public void setOutput(double value) {
+	public void setOutput(Value value) {
 		this.output = value;
 	}
 
@@ -460,25 +460,26 @@ public class NeuronImpl implements Neuron {
 
 
 	@Override
-	public double eval() {
+	public Value eval() {
 		List<WeightedNeuron> sources = Util.newList(0);
 		sources.addAll(Arrays.asList(getPrevNeurons()));
 		sources.addAll(Arrays.asList(getRibinNeurons()));
 		sources.addAll(Arrays.asList(getPrevNeuronsImplicit()));
 		
 		if (sources.size() == 0) {
-			double out = getInput();
+			Value out = getInput();
 			setOutput(out);
 			return out;
 		}
 		
-		double in = getBias();
+		Value in = getBias();
 		for (WeightedNeuron source : sources) {
-			in += source.weight.value * source.neuron.getOutput();
+			Value element = source.weight.value.multiply(source.neuron.getOutput());
+			in = in.add(element);
 		}
 		
 		setInput(in);
-		double out = getActivateRef().eval(in);
+		Value out = getActivateRef().eval(in);
 		setOutput(out);
 		return out;
 	}

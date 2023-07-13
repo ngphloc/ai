@@ -34,6 +34,13 @@ public interface Layer extends Serializable, Cloneable {
 	
 	
 	/**
+	 * Creating an empty value.
+	 * @return empty value.
+	 */
+	Value newValue();
+
+	
+	/**
 	 * Create neuron.
 	 * @return created neuron.
 	 */
@@ -179,14 +186,14 @@ public interface Layer extends Serializable, Cloneable {
 	 * Getting input values.
 	 * @return input values.
 	 */
-	double[] getInput();
+	Value[] getInput();
 	
 	
 	/**
 	 * Getting output values.
 	 * @return output values.
 	 */
-	double[] getOutput();
+	Value[] getOutput();
 	
 	
 }

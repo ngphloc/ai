@@ -24,7 +24,7 @@ public interface Function extends Serializable, Cloneable {
 	 * @param x specified value.
 	 * @return evaluated value.
 	 */
-	double eval(double x);
+	Value eval(Value x);
 	
 	
 	/**
@@ -32,7 +32,7 @@ public interface Function extends Serializable, Cloneable {
 	 * @param x specified value.
 	 * @return gradient (the first order derivative) at specified value.
 	 */
-	double derivative(double x);
+	Value derivative(Value x);
 	
 	
 }

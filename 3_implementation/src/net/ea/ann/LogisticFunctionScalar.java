@@ -14,7 +14,7 @@ package net.ea.ann;
  * @version 1.0
  *
  */
-public class LogisticFunction implements Function {
+public class LogisticFunctionScalar implements Function {
 
 
 	/**
@@ -26,20 +26,22 @@ public class LogisticFunction implements Function {
 	/**
 	 * Default constructor.
 	 */
-	public LogisticFunction() {
+	public LogisticFunctionScalar() {
 
 	}
 
 	
 	@Override
-	public double eval(double x) {
-		return 1.0 / (1.0 + Math.exp(-x));
+	public Value eval(Value x) {
+		double v = ((ValueScalar)x).get();
+		return new ValueScalar(1.0 / (1.0 + Math.exp(-v)));
 	}
 
 
 	@Override
-	public double derivative(double x) {
-		return x * (1-x);
+	public Value derivative(Value x) {
+		double v = ((ValueScalar)x).get();
+		return new ValueScalar(v * (1-v));
 	}
 
 

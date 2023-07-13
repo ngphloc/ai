@@ -30,42 +30,42 @@ public interface Neuron extends Serializable, Cloneable {
 	 * Getting input value.
 	 * @return input value.
 	 */
-	double getInput();
+	Value getInput();
 	
 	
 	/**
 	 * Setting input value.
 	 * @param value input value.
 	 */
-	void setInput(double value);
+	void setInput(Value value);
 	
 	
 	/**
 	 * Getting bias.
 	 * @return bias.
 	 */
-	double getBias();
+	Value getBias();
 	
 	
 	/**
 	 * Setting bias.
 	 * @param bias specified bias.
 	 */
-	void setBias(double bias);
+	void setBias(Value bias);
 
 	
 	/**
 	 * Getting output value.
 	 * @return output value.
 	 */
-	double getOutput();
+	Value getOutput();
 	
 	
 	/**
 	 * Setting output value.
 	 * @param value output value.
 	 */
-	void setOutput(double value);
+	void setOutput(Value value);
 	
 	
 	/**
@@ -276,7 +276,7 @@ public interface Neuron extends Serializable, Cloneable {
 	 * Evaluating neuron output.
 	 * @return neuron output.
 	 */
-	double eval();
+	Value eval();
 	
 	
 }

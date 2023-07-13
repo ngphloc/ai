@@ -102,12 +102,27 @@ public class LayerImpl implements Layer {
 		return id;
 	}
 	
+
+	@Override
+	public Value newValue() {
+		return new ValueScalar(0.0);
+	}
+
 	
 	@Override
 	public Neuron newNeuron() {
 		return new NeuronImpl(this);
 	}
 
+	
+	/**
+	 * Create a new weight.
+	 * @return new weight.
+	 */
+	private Weight newWeight() {
+		return new Weight(newValue());
+	}
+	
 	
 	@Override
 	public int size() {
@@ -194,7 +209,7 @@ public class LayerImpl implements Layer {
 		for (int i = 0; i < prevLayer.size(); i++) {
 			Neuron neuron = prevLayer.get(i);
 			for (int j = 0; j < size(); j++) {
-				neuron.setNextNeuron(get(j), new Weight(0));
+				neuron.setNextNeuron(get(j), newWeight());
 			}
 		}
 		
@@ -205,7 +220,7 @@ public class LayerImpl implements Layer {
 		for (int i = 0; i < oldPrevPrevLayer.size(); i++) {
 			Neuron neuron = oldPrevPrevLayer.get(i);
 			for (int j = 0; j < prevLayer.size(); j++) {
-				neuron.setNextNeuron(prevLayer.get(j), new Weight(0));
+				neuron.setNextNeuron(prevLayer.get(j), newWeight());
 			}
 		}
 		
@@ -244,7 +259,7 @@ public class LayerImpl implements Layer {
 		for (int i = 0; i < size(); i++) {
 			Neuron neuron = get(i);
 			for (int j = 0; j < nextLayer.size(); j++) {
-				neuron.setNextNeuron(nextLayer.get(j), new Weight(0));
+				neuron.setNextNeuron(nextLayer.get(j), newWeight());
 			}
 		}
 		
@@ -254,7 +269,7 @@ public class LayerImpl implements Layer {
 		for (int i = 0; i < oldNextNextLayer.size(); i++) {
 			Neuron neuron = oldNextNextLayer.get(i);
 			for (int j = 0; j < nextLayer.size(); j++) {
-				neuron.setNextNeuron(nextLayer.get(j), new Weight(0));
+				neuron.setNextNeuron(nextLayer.get(j), newWeight());
 			}
 		}
 		
@@ -299,7 +314,7 @@ public class LayerImpl implements Layer {
 		for (int i = 0; i < ribinLayer.size(); i++) {
 			Neuron ribbinNeuron = ribinLayer.get(i);
 			for (int j = 0; j < size(); j++) {
-				ribbinNeuron.setNextNeuron(get(j), new Weight(0));
+				ribbinNeuron.setNextNeuron(get(j), newWeight());
 			}
 		}
 		
@@ -331,7 +346,7 @@ public class LayerImpl implements Layer {
 		
 		for (Neuron neuron : neurons) {
 			for (int i = 0; i < riboutLayer.size(); i++) {
-				WeightedNeuron wn = new WeightedNeuron(riboutLayer.get(i), new Weight(0));
+				WeightedNeuron wn = new WeightedNeuron(riboutLayer.get(i), newWeight());
 				((NeuronImpl)neuron).riboutNeurons.add(wn);
 			}
 		}
@@ -355,9 +370,9 @@ public class LayerImpl implements Layer {
 
 
 	@Override
-	public double[] getInput() {
+	public Value[] getInput() {
 		if (neurons.size() == 0) return null;
-		double[] array = new double[neurons.size()];
+		Value[] array = new Value[neurons.size()];
 		for (int j = 0; j < array.length; j++) {
 			array[j] = neurons.get(j).getInput();
 		}
@@ -366,9 +381,9 @@ public class LayerImpl implements Layer {
 
 
 	@Override
-	public double[] getOutput() {
+	public Value[] getOutput() {
 		if (neurons.size() == 0) return null;
-		double[] array = new double[neurons.size()];
+		Value[] array = new Value[neurons.size()];
 		for (int j = 0; j < array.length; j++) {
 			array[j] = neurons.get(j).getOutput();
 		}
