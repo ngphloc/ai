@@ -26,7 +26,7 @@ public class ValueScalar implements Value {
 	/**
 	 * Internal value
 	 */
-	protected double v = 0;
+	protected double v = 0.0;
 	
 	
 	/**
@@ -82,5 +82,20 @@ public class ValueScalar implements Value {
 		return Math.abs(this.v);
 	}
 
+	
+	@Override
+	public String toString() {
+		return Util.format(v);
+	}
+
+	
+	/**
+	 * Retrieve zero value.
+	 * @return zero value.
+	 */
+	public static Value zero() {
+		return new ValueScalar(0.0);
+	}
+	
 	
 }

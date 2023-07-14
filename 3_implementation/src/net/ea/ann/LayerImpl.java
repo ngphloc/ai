@@ -105,7 +105,7 @@ public class LayerImpl implements Layer {
 
 	@Override
 	public Value newValue() {
-		return new ValueScalar(0.0);
+		return ValueScalar.zero();
 	}
 
 	
@@ -388,6 +388,45 @@ public class LayerImpl implements Layer {
 			array[j] = neurons.get(j).getOutput();
 		}
 		return array;
+	}
+
+
+	/**
+	 * Verbalize layer.
+	 * @param layer specific layer.
+	 * @param tab tab text.
+	 * @return verbalized text.
+	 */
+	protected static String toText(Layer layer, String tab) {
+		StringBuffer buffer = new StringBuffer();
+		String internalTab = "    ";
+		buffer.append("layer l## (id=" + layer.id() + "):");
+		for (int i = 0; i < layer.size(); i++) {
+			buffer.append("\n");
+
+			String neuronText = NeuronImpl.toText(layer.get(i), internalTab);
+			neuronText = neuronText.replaceAll("n##", "" + (i+1));
+			buffer.append(neuronText);
+		}
+		
+		String text = buffer.toString();
+		if (tab != null && !tab.isEmpty()) {
+			text = tab + text; text = text.replaceAll("\n", "\n" + tab);
+		}
+		return text;
+	}
+
+	
+	@Override
+	public String toString() {
+		try {
+			String text = toText(this, null);
+			text = text.replaceAll("l##", "");
+			return text;
+		}
+		catch (Throwable e) {}
+		
+		return super.toString();
 	}
 
 	

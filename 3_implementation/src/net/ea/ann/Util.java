@@ -24,6 +24,12 @@ public class Util {
 	
 	
 	/**
+	 * Decimal format.
+	 */
+	public static String DECIMAL_FORMAT = "%.12f";;
+	
+	
+	/**
 	 * Default date format.
 	 */
 	public static String  DATE_FORMAT = "yyyy-MM-dd HH-mm-ss";
@@ -88,6 +94,21 @@ public class Util {
 		catch (Throwable e) {}
 		
 	    return new HashMap<K, V>(initialCapacity);
+	}
+
+	
+	/**
+	 * Converting the specified number into a string.
+	 * @param number specified number.
+	 * @return text format of number of the specified number.
+	 */
+	public static String format(double number) {
+		try {
+		    return net.ea.ann.adapter.Util.format(number);
+		}
+		catch (Throwable e) {}
+
+		return String.format(DECIMAL_FORMAT, number);
 	}
 
 	

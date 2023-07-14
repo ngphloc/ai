@@ -13,6 +13,7 @@ import java.util.Map;
 import net.hudup.core.Constants;
 import net.hudup.core.data.Attribute.Type;
 import net.hudup.core.data.Profile;
+import net.hudup.core.logistic.MathUtil;
 
 /**
  * This is utility class to provide static utility methods. It is also adapter to other libraries.
@@ -75,6 +76,17 @@ public class Util {
 	    return net.hudup.core.Util.newMap(initialCapacity);
 	}
 
+	
+	/**
+	 * Converting the specified number into a string. The number of decimal digits is specified by {@link Constants#DECIMAL_PRECISION}.
+	 * @param number specified number.
+	 * @return text format of number of the specified number.
+	 */
+	public static String format(double number) {
+		return MathUtil.format(number);
+	}
+
+	
 	/**
 	 * Tracing error.
 	 * @param e throwable error.

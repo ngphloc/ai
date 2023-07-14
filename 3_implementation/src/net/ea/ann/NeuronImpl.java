@@ -82,6 +82,10 @@ public class NeuronImpl implements Neuron {
 		this.layer = layer;
 		this.id = layer.getIdRef().get();
 		this.activateRef = layer.getActivateRef();
+		
+		this.setInput(layer.newValue());
+		this.setOutput(layer.newValue());
+		this.setBias(layer.newValue());
 	}
 
 	
@@ -482,6 +486,57 @@ public class NeuronImpl implements Neuron {
 		Value out = getActivateRef().eval(in);
 		setOutput(out);
 		return out;
+	}
+
+
+	/**
+	 * Verbalize neuron.
+	 * @param neuron specific neuron.
+	 * @param tab tab text.
+	 * @return verbalized text.
+	 */
+	protected static String toText(Neuron neuron, String tab) {
+		StringBuffer buffer = new StringBuffer();
+		String internalTab = "    ";
+		buffer.append("neuron n## (id=" + neuron.id() + "):");
+		
+		buffer.append("\n" + internalTab);
+		Value input = neuron.getInput();
+		buffer.append("input = " + (input != null ? input.toString() : null));
+
+		buffer.append("\n" + internalTab);
+		Value output = neuron.getOutput();
+		buffer.append("output = " + (output != null ? output.toString() : null));
+
+		buffer.append("\n" + internalTab);
+		Value bias = neuron.getBias();
+		buffer.append("bias = " + (bias != null ? bias.toString() : null));
+
+		WeightedNeuron[] nexts = neuron.getNextNeurons();
+		for (int i = 0; i < nexts.length; i++) {
+			buffer.append("\n" + internalTab);
+			buffer.append(nexts[i].weight + " -> neuron id=" + nexts[i].neuron.id() + " (layer id=" + nexts[i].neuron.getLayer().id() + ")");
+		}
+		
+		String text = buffer.toString();
+		if (tab != null && !tab.isEmpty()) {
+			text = tab + text; text = text.replaceAll("\n", "\n" + tab);
+		}
+		return text;
+		
+	}
+	
+	
+	@Override
+	public String toString() {
+		try {
+			String text = toText(this, null);
+			text = text.replaceAll("n##", "");
+			return text;
+		}
+		catch (Throwable e) {}
+		
+		return super.toString();
 	}
 
 	

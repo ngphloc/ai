@@ -19,7 +19,7 @@ import java.util.Arrays;
  */
 public interface Value extends Serializable, Cloneable {
 
-	
+
 	/**
 	 * Add to other value.
 	 * @param value other value.
@@ -76,7 +76,7 @@ public interface Value extends Serializable, Cloneable {
 	public static Value[] makeArray(int length, Layer layer) {
 		Value[] array = new Value[length];
 		for (int j = 0; j < length; j++)
-			array[j] = layer != null ? layer.newValue() : new ValueScalar(0.0);
+			array[j] = layer != null ? layer.newValue() : ValueScalar.zero();
 		
 		return array;
 	}
@@ -98,7 +98,7 @@ public interface Value extends Serializable, Cloneable {
 			array = Arrays.copyOfRange(array, 0, length);
 			for (int j = originLength; j < length; j++) {
 				if (array[j] == null)
-					array[j] = layer != null ? layer.newValue() : new ValueScalar(0.0);
+					array[j] = layer != null ? layer.newValue() : ValueScalar.zero();
 			}
 		}
 		

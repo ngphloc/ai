@@ -39,5 +39,14 @@ public class Weight implements Serializable, Cloneable {
 		this.value = value;
 	}
 
+
+	@Override
+	public String toString() {
+		if (value == null)
+			return super.toString();
+		else
+			return "weight = " + value.toString();
+	}
+	
 	
 }
