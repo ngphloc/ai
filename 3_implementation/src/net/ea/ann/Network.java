@@ -40,25 +40,6 @@ public interface Network extends Remote, Serializable, Cloneable, AutoCloseable 
 
 	
 	/**
-	 * Evaluating entire network.
-	 * @param inputRecord input record for evaluating.
-	 * @param refresh refresh mode.
-	 * @return array as output of output layer.
-	 * @throws RemoteException if any error raises.
-	 */
-	Value[] eval(Record inputRecord, boolean refresh) throws RemoteException;
-	
-	
-	/**
-	 * Learning the neural network.
-	 * @param sample sample for learning.
-	 * @return learned error.
-	 * @throws RemoteException if any error raises.
-	 */
-	Value[] learn(Iterable<Record> sample) throws RemoteException;
-	
-	
-	/**
 	 * Adding listener.
 	 * @param listener specified listener.
 	 * @throws RemoteException if any error raises.

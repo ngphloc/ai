@@ -104,11 +104,17 @@ public class LayerImpl implements Layer {
 	
 
 	@Override
-	public Value newValue() {
-		return ValueScalar.zero();
+	public NeuronValue newNeuronValue() {
+		return new NeuronValue1(0.0).zero();
 	}
 
 	
+	@Override
+	public WeightValue newWeightValue() {
+		return new WeightValue1(0.0).zero();
+	}
+
+
 	@Override
 	public Neuron newNeuron() {
 		return new NeuronImpl(this);
@@ -120,7 +126,7 @@ public class LayerImpl implements Layer {
 	 * @return new weight.
 	 */
 	private Weight newWeight() {
-		return new Weight(newValue());
+		return new Weight(newWeightValue());
 	}
 	
 	
@@ -370,9 +376,9 @@ public class LayerImpl implements Layer {
 
 
 	@Override
-	public Value[] getInput() {
+	public NeuronValue[] getInput() {
 		if (neurons.size() == 0) return null;
-		Value[] array = new Value[neurons.size()];
+		NeuronValue[] array = new NeuronValue[neurons.size()];
 		for (int j = 0; j < array.length; j++) {
 			array[j] = neurons.get(j).getInput();
 		}
@@ -381,9 +387,9 @@ public class LayerImpl implements Layer {
 
 
 	@Override
-	public Value[] getOutput() {
+	public NeuronValue[] getOutput() {
 		if (neurons.size() == 0) return null;
-		Value[] array = new Value[neurons.size()];
+		NeuronValue[] array = new NeuronValue[neurons.size()];
 		for (int j = 0; j < array.length; j++) {
 			array[j] = neurons.get(j).getOutput();
 		}

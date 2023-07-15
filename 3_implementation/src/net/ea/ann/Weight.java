@@ -28,14 +28,14 @@ public class Weight implements Serializable, Cloneable {
 	/**
 	 * Weight value.
 	 */
-	public Value value = null;
+	public WeightValue value = null;
 	
 	
 	/**
 	 * Constructor with real weight.
 	 * @param value real weight.
 	 */
-	public Weight(Value value) {
+	public Weight(WeightValue value) {
 		this.value = value;
 	}
 

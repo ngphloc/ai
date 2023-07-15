@@ -14,7 +14,7 @@ package net.ea.ann;
  * @version 1.0
  *
  */
-public class LogisticFunctionScalar implements Function {
+public class FunctionLogistic1 implements Function {
 
 
 	/**
@@ -26,22 +26,22 @@ public class LogisticFunctionScalar implements Function {
 	/**
 	 * Default constructor.
 	 */
-	public LogisticFunctionScalar() {
+	public FunctionLogistic1() {
 
 	}
 
 	
 	@Override
-	public Value eval(Value x) {
-		double v = ((ValueScalar)x).get();
-		return new ValueScalar(1.0 / (1.0 + Math.exp(-v)));
+	public NeuronValue eval(NeuronValue x) {
+		double v = ((NeuronValue1)x).get();
+		return new NeuronValue1(1.0 / (1.0 + Math.exp(-v)));
 	}
 
 
 	@Override
-	public Value derivative(Value x) {
-		double v = ((ValueScalar)x).get();
-		return new ValueScalar(v * (1-v));
+	public NeuronValue derivative(NeuronValue x) {
+		double v = ((NeuronValue1)x).get();
+		return new NeuronValue1(v * (1-v));
 	}
 
 

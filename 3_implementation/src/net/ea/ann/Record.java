@@ -29,25 +29,25 @@ public class Record implements Serializable, Cloneable {
 	/**
 	 * Backbone input.
 	 */
-	public Value[] input = null;
+	public NeuronValue[] input = null;
 	
 	
 	/**
-	 * Backbone output.
+	 * Backbone output. It can be null.
 	 */
-	public Value[] output = null;
+	public NeuronValue[] output = null;
 	
 	
 	/**
-	 * Rib input.
+	 * Rib input. It can be null.
 	 */
-	public Map<Integer, Value[]> ribInput = Util.newMap(0);
+	public Map<Integer, NeuronValue[]> ribInput = Util.newMap(0);
 	
 	
 	/**
-	 * Rib output.
+	 * Rib output. It can be null.
 	 */
-	public Map<Integer, Value[]> ribOutput = Util.newMap(0);
+	public Map<Integer, NeuronValue[]> ribOutput = Util.newMap(0);
 
 	
 	/**

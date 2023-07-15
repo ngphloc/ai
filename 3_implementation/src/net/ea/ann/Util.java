@@ -126,4 +126,122 @@ public class Util {
 	}
 	
 	
+	/**
+	 * Multiplying two matrix.
+	 * @param A first matrix.
+	 * @param B second matrix.
+	 * @return multiplied matrix.
+	 */
+	public static double[][] multiply(double[][] A, double[][] B) {
+		int m = A.length;
+		double[][] C = new double[m][];
+		
+		for (int i = 0; i < m; i++) {
+			int n = A[i].length;
+			C[i] = new double[n];
+			
+			for (int j = 0; j < n; j++) {
+				C[i][j] = 0;
+				for (int k = 0; k < n; k++) {
+					C[i][j] += A[i][k] * B[k][j];
+				}
+			}
+		}
+		
+		return C;
+	}
+	
+	
+	/**
+	 * Generate cofactor of matrix, the code is available at https://stackoverflow.com/questions/16602350/calculating-matrix-determinant
+	 * @param A specific squared matrix.
+	 * @param removedRow removed row.
+	 * @param removedColumn removed column.
+	 * @return cofactor of matrix.
+	 */
+	private static double[][] genCofactor(double A[][], int removedRow, int removedColumn) {
+		int n = A.length;
+		double[][] sub = new double[n-1][];
+		for (int k = 0; k < n-1; k++) sub[k] = new double[n-1];
+
+		int k = 0;
+		for (int i = 0; i < n; i++) {
+			if (i == removedRow) continue;
+			
+			int l = 0;
+			for (int j = 0; j < n; j++){
+				if(j != removedColumn) {
+					sub[k][l] = A[i][j];
+					l++;
+				}
+			}
+			k++;
+		}
+		
+		return sub;
+	}
+	
+	
+	/**
+	 * Calculate determinant recursively, the code is available at https://stackoverflow.com/questions/16602350/calculating-matrix-determinant
+	 * @param A specific squared matrix.
+	 * @return determinant of specific matrix.
+	 */
+	private static double det0(double[][] A) {
+		int n = A.length;
+		if (n == 1) return A[0][0];
+		if (n == 2) return A[0][0]*A[1][1] - A[1][0]*A[0][1];
+		
+		double det = 0;
+		for (int j = 0; j < n; j++){
+			double[][] co = genCofactor(A, 0, j);
+			det += Math.pow(-1.0, j) * A[0][j] * det0(co);
+		}
+		
+		return det;
+	}
+	
+	
+	/**
+	 * Calculate determinant recursively, the code is available at https://stackoverflow.com/questions/16602350/calculating-matrix-determinant
+	 * @param A specific squared matrix.
+	 * @return determinant of specific matrix.
+	 */
+	public static double det(double[][] A) {
+		if (A == null) return Double.NaN;
+		int n = A.length;
+		if (n == 0) return Double.NaN;
+		
+		return det0(A);
+	}
+
+
+	/**
+	 * Calculating the inverse of specific matrix.
+	 * @param A specific matrix.
+	 * @return the inverse of specific matrix.
+	 */
+	public static double[][] inverse(double[][] A) {
+		if (A == null) return null;
+		int n = A.length;
+		if (n == 0) return null;
+		
+		if (A.length == 1) return new double[][] {{1.0/A[0][0]}};
+		
+		double[][] B = new double[n][];
+		for (int i = 0; i < n; i++) B[i] = new double[n];
+		
+		double det = det(A);
+		if (det == 0) return null;
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				double[][] co = genCofactor(A, i, j);
+				B[j][i] = Math.pow(-1.0, i+j) * det(co) / det;
+			}
+		}
+		
+		return B;
+	}
+	
+	
 }
