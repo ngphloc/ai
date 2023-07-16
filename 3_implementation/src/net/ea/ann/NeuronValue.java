@@ -34,6 +34,13 @@ public interface NeuronValue extends Value {
 	
 	
 	/**
+	 * Create weight value.
+	 * @return weight value.
+	 */
+	WeightValue newWeightValue();
+	
+	
+	/**
 	 * Getting negative inverse.
 	 * @return negative inverse.
 	 */

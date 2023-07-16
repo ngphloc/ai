@@ -41,13 +41,6 @@ public interface Layer extends Serializable, Cloneable {
 
 	
 	/**
-	 * Creating an empty weight value.
-	 * @return empty weight value.
-	 */
-	WeightValue newWeightValue();
-
-	
-	/**
 	 * Create neuron.
 	 * @return created neuron.
 	 */

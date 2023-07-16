@@ -73,7 +73,7 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 	
 	
 	/**
-	 * Inverse of matrix of encoding variance.
+	 * Inverse of matrix of encoded variance.
 	 */
 	private NeuronValue[][] varEncodeInverse = null;
 	
@@ -107,8 +107,8 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 	 * Initialize with X dimension and Z dimension as well as hidden neurons.
 	 * @param xDim X dimension.
 	 * @param zDim Z dimension
-	 * @param nHiddenNeuronEncode number of encoding hidden neurons.
-	 * @param nHiddenNeuronDecode number of decoding hidden neurons.
+	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
+	 * @param nHiddenNeuronDecode number of decoded hidden neurons.
 	 */
 	public void initialize(int xDim, int zDim, int[] nHiddenNeuronEncode, int[] nHiddenNeuronDecode) {
 		this.encoder = new NetworkStandardImpl(idRef, activateRef) {
@@ -143,7 +143,7 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 		this.decoder = new NetworkStandardImpl(idRef, activateRef);
 		this.decoder.initialize(zDim, xDim, nHiddenNeuronDecode);
 		
-		//Updating invertible encoding variance.
+		//Updating invertible encoded variance.
 		updateVarEncodeInverse();
 	}
 	
@@ -152,25 +152,10 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 	 * Initialize with X dimension and Z dimension as well as hidden neurons.
 	 * @param xDim X dimension.
 	 * @param zDim Z dimension
-	 * @param nHiddenNeuronEncode number of encoding hidden neurons.
+	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 */
 	public void initialize(int xDim, int zDim, int[] nHiddenNeuronEncode) {
 		initialize(xDim, zDim, nHiddenNeuronEncode, nHiddenNeuronEncode != null && nHiddenNeuronEncode.length > 0? reverse(nHiddenNeuronEncode) : null);
-	}
-	
-	
-	/**
-	 * Reversing an array.
-	 * @param array specific array.
-	 * @return reversed array.
-	 */
-	private static int[] reverse(int[] array) {
-		if (array == null) return null;
-		int[] r = new int[array.length];
-		
-		for (int i = 0; i < array.length; i++) r[i] = array[array.length - i - 1];
-		
-		return r;
 	}
 	
 	
@@ -218,19 +203,8 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 				
 				//Evaluating decoder.
 				try {
-					NeuronValue[] rNumbers = new NeuronValue[muEncode.length];
-					for (int i = 0; i < muEncode.length; i++) {
-						rNumbers[i] = muEncode[0].getOutput().identity().multiply(rnd.nextGaussian());
-					}
-					
-					NeuronValue[][] varEncodeValues = getVarEncodeValues();
-					varEncodeValues = NeuronValue.matrixSqrt(varEncodeValues);
-					NeuronValue[] encodeValues = NeuronValue.matrixMultiply(varEncodeValues, rNumbers);
-					NeuronValue[] muEncodeValues = getMuEncodeValues();
-					for (int i = 0; i < encodeValues.length; i++) encodeValues[i] = encodeValues[i].add(muEncodeValues[i]);
-					
 					Record decodeRecord = new Record();
-					decodeRecord.input = encodeValues;
+					decodeRecord.input = randomizeEncodeValue(rnd);
 					decodeRecord.output = record.input;
 					decoder.eval(decodeRecord, true);
 				} catch (Throwable e) {Util.trace(e);}
@@ -288,9 +262,67 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 	}
 
 	
+	
+	@Override
+	public NeuronValue[] generate() throws RemoteException {
+		NeuronValue[] encodedValues = randomizeEncodeValue(new Random());
+		return generate(encodedValues);
+	}
+
+
 	/**
-	 * Calculate error of an encoding neuron.
-	 * @param neuron specific encoding neuron.
+	 * Generate values (X values).
+	 * @param encodedValues encoded values are Z values.
+	 * @return generated values (X values).
+	 */
+	private NeuronValue[] generate(NeuronValue[] encodedValues) {
+		if (!isValid()) return null;
+		if (encodedValues == null || encodedValues.length != muEncode.length) return null;
+		
+		Record record = new Record();
+		record.input = encodedValues;
+		try {
+			return decoder.eval(record, true);
+		} catch (Throwable e) {}
+		
+		return null;
+	}
+	
+
+	/**
+	 * Checking whether this VAE is valid.
+	 * @return whether this VAE is valid.
+	 */
+	public boolean isValid() {
+		return (encoder != null && decoder != null && muEncode != null && varEncode != null);
+	}
+	
+	
+	/**
+	 * Randomize encoded values
+	 * @param rnd specific randomizer.
+	 * @return randomized encoded values which are randomized Z values.
+	 */
+	protected NeuronValue[] randomizeEncodeValue(Random rnd) {
+		rnd = rnd != null ? rnd : new Random();
+		NeuronValue[] rNumbers = new NeuronValue[muEncode.length];
+		for (int i = 0; i < muEncode.length; i++) {
+			rNumbers[i] = muEncode[0].getOutput().identity().multiply(rnd.nextGaussian());
+		}
+		
+		NeuronValue[][] varEncodeValues = getVarEncodeValues();
+		varEncodeValues = NeuronValue.matrixSqrt(varEncodeValues);
+		NeuronValue[] encodeValues = NeuronValue.matrixMultiply(varEncodeValues, rNumbers);
+		NeuronValue[] muEncodeValues = getMuEncodeValues();
+		for (int i = 0; i < encodeValues.length; i++) encodeValues[i] = encodeValues[i].add(muEncodeValues[i]);
+		
+		return encodeValues;
+	}
+	
+	
+	/**
+	 * Calculate error of an encoded neuron.
+	 * @param neuron specific encoded neuron.
 	 * @return error or loss of the encode neuron.
 	 */
 	protected NeuronValue calcEncodeError(Neuron neuron) {
@@ -319,12 +351,10 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 			}
 			if (isVar) break;
 		}
-		if (!isVar)
-			return null;
+		if (!isVar) return null;
 		
 		NeuronValue[][] varEncodeValues = getVarEncodeValues();
-		if (varEncodeValues.length == 0)
-			return null;
+		if (varEncodeValues.length == 0) return null;
 		
 		if (neuron == varEncode[0][0] || varEncodeInverse == null)
 			updateVarEncodeInverse();
@@ -335,8 +365,8 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 
 	
 	/**
-	 * Getting encoding means.
-	 * @return encoding means.
+	 * Getting encoded means.
+	 * @return encoded means.
 	 */
 	private NeuronValue[] getMuEncodeValues() {
 		NeuronValue[] muEncodeValues = new NeuronValue[muEncode.length];
@@ -349,8 +379,8 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 	
 	
 	/**
-	 * Getting encoding variances.
-	 * @return encoding variances.
+	 * Getting encoded variances.
+	 * @return encoded variances.
 	 */
 	private NeuronValue[][] getVarEncodeValues() {
 		NeuronValue[][] varEncodeValues = new NeuronValue[varEncode.length][];
@@ -366,8 +396,8 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 	
 	
 	/**
-	 * Updating inverse of matrix of encoding variance.
-	 * @return inverse of matrix of encoding variance.
+	 * Updating inverse of matrix of encoded variance.
+	 * @return inverse of matrix of encoded variance.
 	 */
 	protected NeuronValue[][] updateVarEncodeInverse() {
 		if (varEncode == null || varEncode.length == 0) return null;
@@ -389,7 +419,7 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 	
 	
 	/**
-	 * Resetting encoding variance as identity.
+	 * Resetting encoded variance as identity.
 	 */
 	private void resetVarEncodeIdentity() {
 		int zDim = varEncode.length; 
@@ -403,6 +433,21 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 			}
 		}
 
+	}
+	
+	
+	/**
+	 * Reversing an array.
+	 * @param array specific array.
+	 * @return reversed array.
+	 */
+	private static int[] reverse(int[] array) {
+		if (array == null) return null;
+		int[] r = new int[array.length];
+		
+		for (int i = 0; i < array.length; i++) r[i] = array[array.length - i - 1];
+		
+		return r;
 	}
 	
 	
@@ -433,11 +478,14 @@ public class VAEImpl extends NetworkAbstract implements VAE {
 			System.out.println(vae.toString());
 			
 			Record record = new Record();
-			record.input = new NeuronValue[] {new NeuronValue1(1), new NeuronValue1(2), new NeuronValue1(3)};
+			record.input = new NeuronValue[] {new NeuronValue1(4), new NeuronValue1(3), new NeuronValue1(2), new NeuronValue1(1)};
 			record.output = null;
 			vae.learn(Arrays.asList(record));
 			
 			System.out.println(vae.toString());
+			
+			NeuronValue[] x = vae.generate();
+			System.out.println(x);
 		}
 		catch (Exception e) {
 			

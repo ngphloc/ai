@@ -110,12 +110,6 @@ public class LayerImpl implements Layer {
 
 	
 	@Override
-	public WeightValue newWeightValue() {
-		return new WeightValue1(0.0).zero();
-	}
-
-
-	@Override
 	public Neuron newNeuron() {
 		return new NeuronImpl(this);
 	}
@@ -126,7 +120,7 @@ public class LayerImpl implements Layer {
 	 * @return new weight.
 	 */
 	private Weight newWeight() {
-		return new Weight(newWeightValue());
+		return new Weight(newNeuronValue().newWeightValue());
 	}
 	
 	

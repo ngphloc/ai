@@ -32,4 +32,12 @@ public interface VAE extends Network {
 	NeuronValue[] learn(Iterable<Record> sample) throws RemoteException;
 
 
+	/**
+	 * Generate values (X values).
+	 * @return generated values.
+	 * @throws RemoteException if any error raises.
+	 */
+	NeuronValue[] generate() throws RemoteException;
+	
+	
 }

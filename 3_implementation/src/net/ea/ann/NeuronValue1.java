@@ -60,6 +60,12 @@ public class NeuronValue1 implements NeuronValue {
 
 
 	@Override
+	public WeightValue newWeightValue() {
+		return new WeightValue1(0.0).zero();
+	}
+
+
+	@Override
 	public NeuronValue negative() {
 		return new NeuronValue1(-this.v);
 	}
@@ -113,6 +119,7 @@ public class NeuronValue1 implements NeuronValue {
 		if (result == null) return null;
 		
 		result = Util.inverse(result);
+		
 		return fromDouble(result);
 	}
 
