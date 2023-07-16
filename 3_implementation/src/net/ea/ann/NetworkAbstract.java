@@ -76,13 +76,28 @@ public abstract class NetworkAbstract implements Network {
 	protected boolean exported = false;
 
 	
-	/**
-	 * Default constructor.
+    /**
+	 * Internal identifier.
 	 */
-	protected NetworkAbstract() {
+	protected Id idRef = null;
+	
+	
+	/**
+	 * Constructor with ID reference.
+	 */
+	public NetworkAbstract(Id idRef) {
 		config.put(LEARN_MAX_ITERATION_FIELD, LEARN_MAX_ITERATION_DEFAULT);
 		config.put(LEARN_TERMINATED_THRESHOLD_FIELD, LEARN_TERMINATED_THRESHOLD_DEFAULT);
 		config.put(LEARN_RATE_FIELD, LEARN_RATE_DEFAULT);
+
+		this.idRef = idRef != null? idRef : new Id();
+	}
+
+	/**
+	 * Default constructor.
+	 */
+	public NetworkAbstract() {
+		this(new Id());
 	}
 
 	

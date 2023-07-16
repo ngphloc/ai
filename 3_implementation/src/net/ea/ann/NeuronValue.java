@@ -117,7 +117,17 @@ public interface NeuronValue extends Value {
 	 * @return applied vector.
 	 */
 	static NeuronValue[] matrixMultiply(NeuronValue[][] matrix, NeuronValue[] vector) {
-		throw new RuntimeException("Not implemented yet");
+		if (matrix == null || vector == null) return null;
+		
+		NeuronValue[] result = new NeuronValue[matrix.length];
+		for (int i = 0; i < matrix.length; i++) {
+			result[i] = vector[0].zero();
+			for (int j = 0; j < matrix[i].length; j++) {
+				result[i] = result[i].add(matrix[i][j].multiply(vector[j]));
+			}
+		}
+		
+		return result;
 	}
 
 	
@@ -127,7 +137,17 @@ public interface NeuronValue extends Value {
 	 * @return squared root matrix.
 	 */
 	static NeuronValue[][] matrixSqrt(NeuronValue[][] matrix) {
-		throw new RuntimeException("Not implemented yet");
+		if (matrix == null) return null;
+		
+		NeuronValue[][] result = new NeuronValue[matrix.length][];
+		for (int i = 0; i < matrix.length; i++) {
+			result[i] = new NeuronValue[matrix[i].length];
+			for (int j = 0; j < matrix[i].length; j++) {
+				result[i][j] = matrix[i][j].sqrt();
+			}
+		}
+		
+		return result;
 	}
 
 	

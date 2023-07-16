@@ -30,53 +30,68 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 
 
 	/**
-	 * Constructor with number of neurons.
+	 * Constructor with ID reference and activation reference.
+	 */
+	public NetworkStandardImpl(Id idRef, Function activateRef) {
+		super(idRef, activateRef);
+	}
+
+	
+	/**
+	 * Constructor with ID reference.
+	 */
+	public NetworkStandardImpl(Id idRef) {
+		super(idRef, null);
+	}
+
+	
+	/**
+	 * Default constructor.
+	 */
+	public NetworkStandardImpl() {
+		super(null, null);
+	}
+	
+	
+	/**
+	 * Initialize with number of neurons.
 	 * @param nInputNeuron number of input neurons.
 	 * @param nOutputNeuron number of output neurons.
-	 * @param nHiddenLayer number of hidden layers.
 	 * @param nHiddenNeuron number of hidden neurons.
 	 * @param nMemoryNeuron number of memory neurons.
 	 */
-	public NetworkStandardImpl(int nInputNeuron, int nOutputNeuron, int nHiddenLayer, int nHiddenNeuron, int nMemoryNeuron) {
-		super(nInputNeuron, nOutputNeuron, nHiddenLayer, nHiddenNeuron, nMemoryNeuron);
+	public void initialize(int nInputNeuron, int nOutputNeuron, int[] nHiddenNeuron, int nMemoryNeuron) {
+		super.initialize(nInputNeuron, nOutputNeuron, nHiddenNeuron, nMemoryNeuron);
 	}
 
 	
 	/**
-	 * Constructor with number of neurons.
+	 * Initialize with number of neurons.
 	 * @param nInputNeuron number of input neurons.
 	 * @param nOutputNeuron number of output neurons.
-	 * @param nHiddenLayer number of hidden layers.
 	 * @param nHiddenNeuron number of hidden neurons.
 	 */
-	public NetworkStandardImpl(int nInputNeuron, int nOutputNeuron, int nHiddenLayer, int nHiddenNeuron) {
-		super(nInputNeuron, nOutputNeuron, nHiddenLayer, nHiddenNeuron);
+	public void initialize(int nInputNeuron, int nOutputNeuron, int[] nHiddenNeuron) {
+		super.initialize(nInputNeuron, nOutputNeuron, nHiddenNeuron);
 	}
 
 	
 	/**
-	 * Constructor with number of neurons.
+	 * Initialize with number of neurons.
 	 * @param nInputNeuron number of input neurons.
 	 * @param nOutputNeuron number of output neurons.
 	 */
-	public NetworkStandardImpl(int nInputNeuron, int nOutputNeuron) {
-		super(nInputNeuron, nOutputNeuron);
+	public void initialize(int nInputNeuron, int nOutputNeuron) {
+		super.initialize(nInputNeuron, nOutputNeuron);
 	}
 
-
-	@Override
-	protected Function newFunction() {
-		return new FunctionLogistic1();
-	}
-	
 
 	@Override
 	protected Layer newLayer() {
-		activateRef = activateRef != null? activateRef : newFunction();
 		return new LayerImpl(activateRef, idRef);
 	}
 	
-	
+
 	@Override
 	public synchronized NeuronValue[] learn(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
@@ -94,7 +109,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	protected synchronized NeuronValue[] bpLearn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	public synchronized NeuronValue[] bpLearn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -200,7 +215,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	protected NeuronValue[] bpLearn(List<Layer> bone, NeuronValue[] input, NeuronValue[] output, double learningRate, double terminatedThreshold, int maxIteration) {
+	public NeuronValue[] bpLearn(List<Layer> bone, NeuronValue[] input, NeuronValue[] output, double learningRate, double terminatedThreshold, int maxIteration) {
 		if (bone == null || bone.size() < 2) return null;
 		if (output != null)
 			output = NeuronValue.adjustArray(output, bone.get(bone.size()-1).size(), bone.get(bone.size()-1));
@@ -318,15 +333,8 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	 * @param args arguments.
 	 */
 	public static void main(String[] args) {
-		try (NetworkStandardImpl network = new NetworkStandardImpl(3, 3, 1, 3)) {
-			double[][] a = new double[][] {{1, 2, 3, 7}, {3, 2, 1, 11}, {5, 9, 11, 13}, {17, 23, 11, 13}};
-			double[][] b = Util.inverse(a);
-			double[][] c = Util.multiply(a, b);
-			System.out.println(Util.format(c[0][0]) + ", " + Util.format(c[0][1]) + ", " + Util.format(c[0][2]) + ", " + Util.format(c[0][3]));
-			System.out.println(Util.format(c[1][0]) + ", " + Util.format(c[1][1]) + ", " + Util.format(c[1][2]) + ", " + Util.format(c[1][3]));
-			System.out.println(Util.format(c[2][0]) + ", " + Util.format(c[2][1]) + ", " + Util.format(c[2][2]) + ", " + Util.format(c[2][3]));
-			System.out.println(Util.format(c[3][0]) + ", " + Util.format(c[3][1]) + ", " + Util.format(c[3][2]) + ", " + Util.format(c[3][3]));
-			
+		try (NetworkStandardImpl network = new NetworkStandardImpl()) {
+			network.initialize(3, 3, new int[] {3});
 			System.out.println(network.toString());
 			
 			Record record = new Record();

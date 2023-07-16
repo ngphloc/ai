@@ -109,7 +109,11 @@ public class NeuronValue1 implements NeuronValue {
 	
 	@Override
 	public NeuronValue[][] matrixInverse(NeuronValue[][] matrix) {
-		throw new RuntimeException("Not implemented yet");
+		double[][] result = toDouble(matrix);
+		if (result == null) return null;
+		
+		result = Util.inverse(result);
+		return fromDouble(result);
 	}
 
 
@@ -124,5 +128,45 @@ public class NeuronValue1 implements NeuronValue {
 		return Util.format(v);
 	}
 
+	
+	/**
+	 * Converting double matrix to value matrix.
+	 * @param matrix double matrix.
+	 * @return value matrix.
+	 */
+	private static NeuronValue[][] fromDouble(double[][] matrix) {
+		if (matrix == null) return null;
+		
+		NeuronValue[][] result = new NeuronValue[matrix.length][];
+		for (int i = 0; i < matrix.length; i++) {
+			result[i] = new NeuronValue1[matrix[i].length];
+			for (int j = 0; j < matrix[i].length; j++) {
+				result[i][j] = new NeuronValue1(matrix[i][j]);
+			}
+		}
+		
+		return result;
+	}
+
+
+	/**
+	 * Converting value matrix to double matrix.
+	 * @param matrix value matrix.
+	 * @return double matrix.
+	 */
+	private static double[][] toDouble(NeuronValue[][] matrix) {
+		if (matrix == null) return null;
+		
+		double[][] result = new double[matrix.length][];
+		for (int i = 0; i < matrix.length; i++) {
+			result[i] = new double[matrix[i].length];
+			for (int j = 0; j < matrix[i].length; j++) {
+				result[i][j] = ((NeuronValue1)(matrix[i][j])).get();
+			}
+		}
+		
+		return result;
+	}
+	
 
 }

@@ -72,12 +72,6 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	}
 	
 	
-    /**
-	 * Internal identifier.
-	 */
-	protected Id idRef = new Id();
-	
-	
 	/**
 	 * Activation function reference.
 	 */
@@ -109,40 +103,49 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	
 	
 	/**
+	 * Constructor with ID reference and activation reference.
+	 */
+	public NetworkStandardAbstract(Id idRef, Function activateRef) {
+		super(idRef);
+		this.activateRef = activateRef != null? activateRef : new FunctionLogistic1();
+	}
+
+	
+	/**
+	 * Constructor with ID reference.
+	 */
+	public NetworkStandardAbstract(Id idRef) {
+		this(idRef, null);
+	}
+
+	
+	/**
 	 * Default constructor.
 	 */
-	protected NetworkStandardAbstract() {
-		super();
+	public NetworkStandardAbstract() {
+		this(null, null);
 	}
 	
 	
 	/**
-	 * Constructor with number of neurons.
+	 * Initialize with number of neurons.
 	 * @param nInputNeuron number of input neurons.
 	 * @param nOutputNeuron number of output neurons.
-	 * @param nHiddenLayer number of hidden layers.
-	 * @param nHiddenNeuron number of hidden neurons.
+	 * @param nHiddenNeuron number of hidden neurons as well as number of hidden layers.
 	 * @param nMemoryNeuron number of memory neurons.
 	 */
-	public NetworkStandardAbstract(int nInputNeuron, int nOutputNeuron, int nHiddenLayer, int nHiddenNeuron, int nMemoryNeuron) {
-		this();
-		this.activateRef = newFunction();
-		
+	public void initialize(int nInputNeuron, int nOutputNeuron, int[] nHiddenNeuron, int nMemoryNeuron) {
 		nInputNeuron = nInputNeuron < 1 ? 1 : nInputNeuron;
 		nOutputNeuron = nOutputNeuron < 1 ? 1 : nOutputNeuron;
-		nHiddenLayer = nHiddenLayer < 0 ? 0 : nHiddenLayer;
-		if (nHiddenLayer == 0) nHiddenNeuron = 0;
-		if (nHiddenNeuron == 0) nHiddenLayer = 0;
-		nHiddenNeuron = nHiddenNeuron < 0 ? 0 : nHiddenNeuron;
 		nMemoryNeuron = nMemoryNeuron < 0 ? 0 : nMemoryNeuron;
 		
 		this.inputLayer = newLayer(nInputNeuron, null, null);
 		
-		if (nHiddenNeuron > 0) {
-			this.hiddenLayers = Util.newList(nHiddenLayer);
-			for (int l = 0; l < nHiddenLayer; l++) {
-				Layer prevHiddenLayer = l == 0 ? this.inputLayer : this.hiddenLayers.get(l - 1);
-				Layer hiddenLayer = newLayer(nHiddenNeuron, prevHiddenLayer, null);
+		if (nHiddenNeuron != null && nHiddenNeuron.length > 0) {
+			this.hiddenLayers = Util.newList(nHiddenNeuron.length);
+			for (int i = 0; i < nHiddenNeuron.length; i++) {
+				Layer prevHiddenLayer = i == 0 ? this.inputLayer : this.hiddenLayers.get(i - 1);
+				Layer hiddenLayer = newLayer(nHiddenNeuron[i] < 1 ? 1 : nHiddenNeuron[i], prevHiddenLayer, null);
 				this.hiddenLayers.add(hiddenLayer);
 			}
 		}
@@ -150,7 +153,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 		Layer preOutputLayer = this.hiddenLayers.size() > 0 ? this.hiddenLayers.get(this.hiddenLayers.size() - 1) : this.inputLayer;
 		this.outputLayer = newLayer(nOutputNeuron, preOutputLayer, null);
 		
-		if (nMemoryNeuron > 0 && nHiddenNeuron > 0) {
+		if (nMemoryNeuron > 0 && nHiddenNeuron != null && nHiddenNeuron.length > 0) {
 			this.memoryLayer = newLayer(nMemoryNeuron, null, null);
 			this.outputLayer.setRiboutLayer(this.memoryLayer); //this.outputLayer.setRiboutLayer(this.hiddenLayers.get(this.hiddenLayers.size() - 1))
 			this.memoryLayer.setRibinLayer(this.hiddenLayers.get(0));
@@ -159,33 +162,25 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 
 	
 	/**
-	 * Constructor with number of neurons.
+	 * Initialize with number of neurons.
 	 * @param nInputNeuron number of input neurons.
 	 * @param nOutputNeuron number of output neurons.
-	 * @param nHiddenLayer number of hidden layers.
 	 * @param nHiddenNeuron number of hidden neurons.
 	 */
-	public NetworkStandardAbstract(int nInputNeuron, int nOutputNeuron, int nHiddenLayer, int nHiddenNeuron) {
-		this(nInputNeuron, nOutputNeuron, nHiddenLayer, nHiddenNeuron, 0);
+	public void initialize(int nInputNeuron, int nOutputNeuron, int[] nHiddenNeuron) {
+		initialize(nInputNeuron, nOutputNeuron, nHiddenNeuron, 0);
 	}
 	
 	
 	/**
-	 * Constructor with number of neurons.
+	 * Initialize with number of neurons.
 	 * @param nInputNeuron number of input neurons.
 	 * @param nOutputNeuron number of output neurons.
 	 */
-	public NetworkStandardAbstract(int nInputNeuron, int nOutputNeuron) {
-		this(nInputNeuron, nOutputNeuron, 0, 0, 0);
+	public void initialize(int nInputNeuron, int nOutputNeuron) {
+		initialize(nInputNeuron, nOutputNeuron, null, 0);
 	}
 
-	
-	/**
-	 * Create logistic function.
-	 * @return logistic function.
-	 */
-	protected abstract Function newFunction();
-	
 	
 	/**
 	 * Create layer.
@@ -638,18 +633,82 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	
 	
 	/**
-	 * Learning the neural network.
-	 * @param sample sample for learning.
-	 * @return learned error.
+	 * Verbalize a list of layers.
+	 * @param layers list of layers.
+	 * @param tab tab text.
+	 * @return verbalized text.
 	 */
-	public NeuronValue[] learn(Record[] sample) {
-		try {
-			return learn(Arrays.asList(sample));
-		} catch (Throwable e) {Util.trace(e);}
-		return null;
+	private static String toText(List<Layer> layers, String tab) {
+		StringBuffer buffer = new StringBuffer();
+		for (int i = 0; i < layers.size(); i++) {
+			if (i > 0) buffer.append("\n");
+
+			String layerText = LayerImpl.toText(layers.get(i), null);
+			layerText = layerText.replaceAll("l##", "" + (i+1));
+			buffer.append(layerText);
+		}
+		
+		String text = buffer.toString();
+		if (tab != null && !tab.isEmpty()) {
+			text = tab + text; text = text.replaceAll("\n", "\n" + tab);
+		}
+		return text;
 	}
 	
 	
+	/**
+	 * Verbalize network.
+	 * @param network specific network.
+	 * @param tab tab text.
+	 * @return verbalized text.
+	 */
+	protected static String toText(NetworkStandardAbstract network, String tab) {
+		StringBuffer buffer = new StringBuffer();
+		String internalTab = "    ";
+		
+		List<Layer> backbone = network.getBackbone();
+		if (backbone.size() > 0) {
+			buffer.append("BACKBONE:\n");
+			buffer.append(toText(backbone, internalTab));
+		}
+		
+		Layer memory = network.getMemoryLayer();
+		if (memory != null) {
+			buffer.append("MEMORY:\n");
+			buffer.append(toText(Arrays.asList(memory), internalTab));
+		}
+		
+		List<List<Layer>> ribinBones = network.getRibinbones();
+		for (List<Layer> ribinBone : ribinBones) {
+			if (ribinBone.size() > 0) {
+				buffer.append("RIBIN BONE:\n");
+				buffer.append(toText(ribinBone, internalTab));
+			}
+		}
+		
+		List<List<Layer>> riboutBones = network.getRiboutbones();
+		for (List<Layer> riboutBone : riboutBones) {
+			if (riboutBone.size() > 0) {
+				buffer.append("RIBOUT BONE:\n");
+				buffer.append(toText(riboutBone, internalTab));
+			}
+		}
+
+		return buffer.toString();
+	}
+
+	
+	@Override
+	public String toString() {
+		try {
+			return toText(this, null);
+		}
+		catch (Throwable e) {}
+		
+		return super.toString();
+	}
+
+
 	/**
 	 * Calculating errors.
 	 * @param bone list of layers including input layer.
@@ -786,83 +845,6 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 		newErrors.add(nextError);
 		
 		bpUpdateWeightsBiases(newBackbone, newErrors, learningRate);
-	}
-
-
-	/**
-	 * Verbalize a list of layers.
-	 * @param layers list of layers.
-	 * @param tab tab text.
-	 * @return verbalized text.
-	 */
-	private static String toText(List<Layer> layers, String tab) {
-		StringBuffer buffer = new StringBuffer();
-		for (int i = 0; i < layers.size(); i++) {
-			if (i > 0) buffer.append("\n");
-
-			String layerText = LayerImpl.toText(layers.get(i), null);
-			layerText = layerText.replaceAll("l##", "" + (i+1));
-			buffer.append(layerText);
-		}
-		
-		String text = buffer.toString();
-		if (tab != null && !tab.isEmpty()) {
-			text = tab + text; text = text.replaceAll("\n", "\n" + tab);
-		}
-		return text;
-	}
-	
-	
-	/**
-	 * Verbalize network.
-	 * @param network specific network.
-	 * @param tab tab text.
-	 * @return verbalized text.
-	 */
-	protected static String toText(NetworkStandardAbstract network, String tab) {
-		StringBuffer buffer = new StringBuffer();
-		String internalTab = "    ";
-		
-		List<Layer> backbone = network.getBackbone();
-		if (backbone.size() > 0) {
-			buffer.append("BACKBONE:\n");
-			buffer.append(toText(backbone, internalTab));
-		}
-		
-		Layer memory = network.getMemoryLayer();
-		if (memory != null) {
-			buffer.append("MEMORY:\n");
-			buffer.append(toText(Arrays.asList(memory), internalTab));
-		}
-		
-		List<List<Layer>> ribinBones = network.getRibinbones();
-		for (List<Layer> ribinBone : ribinBones) {
-			if (ribinBone.size() > 0) {
-				buffer.append("RIBIN BONE:\n");
-				buffer.append(toText(ribinBone, internalTab));
-			}
-		}
-		
-		List<List<Layer>> riboutBones = network.getRiboutbones();
-		for (List<Layer> riboutBone : riboutBones) {
-			if (riboutBone.size() > 0) {
-				buffer.append("RIBOUT BONE:\n");
-				buffer.append(toText(riboutBone, internalTab));
-			}
-		}
-
-		return buffer.toString();
-	}
-
-	
-	@Override
-	public String toString() {
-		try {
-			return toText(this, null);
-		}
-		catch (Throwable e) {}
-		
-		return super.toString();
 	}
 
 
