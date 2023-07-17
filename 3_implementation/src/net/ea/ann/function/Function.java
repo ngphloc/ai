@@ -5,9 +5,11 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann;
+package net.ea.ann.function;
 
 import java.io.Serializable;
+
+import net.ea.ann.NeuronValue;
 
 /**
  * This interface represents activation function for each neuron.

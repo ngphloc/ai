@@ -5,16 +5,19 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann;
+package net.ea.ann.function;
+
+import net.ea.ann.NeuronValue;
+import net.ea.ann.NeuronValue1;
 
 /**
- * Logistic function
+ * This class represents simple activation function with scalar variable.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class FunctionLogistic1 implements Function {
+public class Function1 implements Function {
 
 
 	/**
@@ -26,7 +29,7 @@ public class FunctionLogistic1 implements Function {
 	/**
 	 * Default constructor.
 	 */
-	public FunctionLogistic1() {
+	public Function1() {
 
 	}
 
@@ -34,14 +37,13 @@ public class FunctionLogistic1 implements Function {
 	@Override
 	public NeuronValue eval(NeuronValue x) {
 		double v = ((NeuronValue1)x).get();
-		return new NeuronValue1(1.0 / (1.0 + Math.exp(-v)));
+		return new NeuronValue1(v);
 	}
 
 
 	@Override
 	public NeuronValue derivative(NeuronValue x) {
-		double v = ((NeuronValue1)x).get();
-		return new NeuronValue1(v * (1-v));
+		return new NeuronValue1(1);
 	}
 
 

@@ -79,7 +79,7 @@ public abstract class NetworkAbstract implements Network {
     /**
 	 * Internal identifier.
 	 */
-	protected Id idRef = null;
+	protected Id idRef = new Id();
 	
 	
 	/**
@@ -90,7 +90,7 @@ public abstract class NetworkAbstract implements Network {
 		config.put(LEARN_TERMINATED_THRESHOLD_FIELD, LEARN_TERMINATED_THRESHOLD_DEFAULT);
 		config.put(LEARN_RATE_FIELD, LEARN_RATE_DEFAULT);
 
-		this.idRef = idRef != null? idRef : new Id();
+		if (idRef != null) this.idRef = idRef;
 	}
 
 	/**

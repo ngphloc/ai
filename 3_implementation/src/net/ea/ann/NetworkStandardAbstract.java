@@ -28,94 +28,34 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 
 	
 	/**
-	 * Layer type.
-	 * @author Loc Nguyen
-	 * @version 1.0
-	 */
-	public static enum LayerType {
-		
-		/**
-		 * Input layer.
-		 */
-		input,
-		
-		/**
-		 * Hidden layer.
-		 */
-		hidden,
-		
-		/**
-		 * Output layer.
-		 */
-		output,
-		
-		/**
-		 * Memory layer.
-		 */
-		memory,
-		
-		/**
-		 * Input rib layer.
-		 */
-		ribin,
-		
-		/**
-		 * Memory layer.
-		 */
-		ribout,
-		
-		/**
-		 * Unknown layer.
-		 */
-		unknown,
-		
-	}
-	
-	
-	/**
-	 * Activation function reference.
-	 */
-	protected Function activateRef = null;
-
-	
-	/**
 	 * Input layer.
 	 */
-	protected Layer inputLayer = null;
+	protected LayerStandard inputLayer = null;
 
 	
 	/**
 	 * Memory layer.
 	 */
-	protected List<Layer> hiddenLayers = Util.newList(0);
+	protected List<LayerStandard> hiddenLayers = Util.newList(0);
 
 	
 	/**
 	 * Output layer.
 	 */
-	protected Layer outputLayer = null;
+	protected LayerStandard outputLayer = null;
 	
 
 	/**
 	 * Memory layer.
 	 */
-	protected Layer memoryLayer = null;
+	protected LayerStandard memoryLayer = null;
 	
-	
-	/**
-	 * Constructor with ID reference and activation reference.
-	 */
-	public NetworkStandardAbstract(Id idRef, Function activateRef) {
-		super(idRef);
-		this.activateRef = activateRef != null? activateRef : new FunctionLogistic1();
-	}
-
 	
 	/**
 	 * Constructor with ID reference.
 	 */
 	public NetworkStandardAbstract(Id idRef) {
-		this(idRef, null);
+		super(idRef);
 	}
 
 	
@@ -123,7 +63,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Default constructor.
 	 */
 	public NetworkStandardAbstract() {
-		this(null, null);
+		this(null);
 	}
 	
 	
@@ -144,13 +84,13 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 		if (nHiddenNeuron != null && nHiddenNeuron.length > 0) {
 			this.hiddenLayers = Util.newList(nHiddenNeuron.length);
 			for (int i = 0; i < nHiddenNeuron.length; i++) {
-				Layer prevHiddenLayer = i == 0 ? this.inputLayer : this.hiddenLayers.get(i - 1);
-				Layer hiddenLayer = newLayer(nHiddenNeuron[i] < 1 ? 1 : nHiddenNeuron[i], prevHiddenLayer, null);
+				LayerStandard prevHiddenLayer = i == 0 ? this.inputLayer : this.hiddenLayers.get(i - 1);
+				LayerStandard hiddenLayer = newLayer(nHiddenNeuron[i] < 1 ? 1 : nHiddenNeuron[i], prevHiddenLayer, null);
 				this.hiddenLayers.add(hiddenLayer);
 			}
 		}
 		
-		Layer preOutputLayer = this.hiddenLayers.size() > 0 ? this.hiddenLayers.get(this.hiddenLayers.size() - 1) : this.inputLayer;
+		LayerStandard preOutputLayer = this.hiddenLayers.size() > 0 ? this.hiddenLayers.get(this.hiddenLayers.size() - 1) : this.inputLayer;
 		this.outputLayer = newLayer(nOutputNeuron, preOutputLayer, null);
 		
 		if (nMemoryNeuron > 0 && nHiddenNeuron != null && nHiddenNeuron.length > 0) {
@@ -186,7 +126,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Create layer.
 	 * @return created layer.
 	 */
-	protected abstract Layer newLayer();
+	protected abstract LayerStandard newLayer();
 	
 	
 	/**
@@ -196,8 +136,8 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param nextLayer next layer.
 	 * @return new layer.
 	 */
-	private Layer newLayer(int nNeuron, Layer prevLayer, Layer nextLayer) {
-		Layer layer = newLayer();
+	private LayerStandard newLayer(int nNeuron, LayerStandard prevLayer, LayerStandard nextLayer) {
+		LayerStandard layer = newLayer();
 		nNeuron = nNeuron < 0 ? 0 : nNeuron;
 		for (int i = 0; i < nNeuron; i++) {
 			layer.add(layer.newNeuron());
@@ -215,21 +155,21 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param layer specified layer.
 	 * @return type of specified layer.
 	 */
-	public LayerType typeOf(Layer layer) {
+	public LayerType typeOf(LayerStandard layer) {
 		if (layer == null) return LayerType.unknown;
 		
 		if (inputLayer != null && layer == inputLayer) return LayerType.input;
 		if (outputLayer != null && layer == outputLayer) return LayerType.output;
-		for (Layer hiddenLayer : hiddenLayers) {
+		for (LayerStandard hiddenLayer : hiddenLayers) {
 			if (layer == hiddenLayer) return LayerType.hidden;
 		}
 		if (memoryLayer != null && layer == memoryLayer) return LayerType.memory;
 		
-		List<Layer> backbone = getBackbone();
-		for (Layer l : backbone) {
-			List<Layer> ribin = getRibinbone(l);
+		List<LayerStandard> backbone = getBackbone();
+		for (LayerStandard l : backbone) {
+			List<LayerStandard> ribin = getRibinbone(l);
 			if (findLayer(ribin, layer) >= 0) return LayerType.ribin;
-			List<Layer> ribout = getRiboutbone(l);
+			List<LayerStandard> ribout = getRiboutbone(l);
 			if (findLayer(ribout, layer) >= 0) return LayerType.ribout;
 		}
 
@@ -241,7 +181,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Getting input layer.
 	 * @return input layer.
 	 */
-	public Layer getInputLayer() {
+	public LayerStandard getInputLayer() {
 		return inputLayer;
 	}
 
@@ -250,8 +190,8 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Getting hidden layers.
 	 * @return array of hidden layers.
 	 */
-	public Layer[] getHiddenLayers() {
-		return hiddenLayers.toArray(new Layer[] {});
+	public LayerStandard[] getHiddenLayers() {
+		return hiddenLayers.toArray(new LayerStandard[] {});
 	}
 
 	
@@ -260,11 +200,11 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param layer hidden layer.
 	 * @return index of hidden layer.
 	 */
-	public int hiddenIndexOf(Layer layer) {
+	public int hiddenIndexOf(LayerStandard layer) {
 		if (layer == null) return -1;
 		
 		for (int i = 0; i < hiddenLayers.size(); i++) {
-			Layer hiddenLayer = hiddenLayers.get(i);
+			LayerStandard hiddenLayer = hiddenLayers.get(i);
 			if (layer == hiddenLayer) return i;
 		}
 		
@@ -276,7 +216,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Getting output layer.
 	 * @return output layer.
 	 */
-	public Layer getOutputLayer() {
+	public LayerStandard getOutputLayer() {
 		return outputLayer;
 	}
 
@@ -285,7 +225,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Getting memory layer.
 	 * @return memory layer.
 	 */
-	public Layer getMemoryLayer() {
+	public LayerStandard getMemoryLayer() {
 		return memoryLayer;
 	}
 
@@ -294,8 +234,8 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Getting backbone which is chain of main layers.
 	 * @return backbone which is chain of main layers.
 	 */
-	public List<Layer> getBackbone() {
-		List<Layer> backbone = Util.newList(2);
+	public List<LayerStandard> getBackbone() {
+		List<LayerStandard> backbone = Util.newList(2);
 		if (inputLayer == null || outputLayer == null)
 			return backbone;
 		
@@ -311,12 +251,12 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Getting list of input rib bones.
 	 * @return list of input rib bones.
 	 */
-	public List<List<Layer>> getRibinbones() {
-		List<List<Layer>> ribbones = Util.newList(0);
+	public List<List<LayerStandard>> getRibinbones() {
+		List<List<LayerStandard>> ribbones = Util.newList(0);
 		
-		List<Layer> backbone = getBackbone();
-		for (Layer layer : backbone) {
-			List<Layer> ribbone = getRibinbone(layer);
+		List<LayerStandard> backbone = getBackbone();
+		for (LayerStandard layer : backbone) {
+			List<LayerStandard> ribbone = getRibinbone(layer);
 			if (ribbone.size() > 0) ribbones.add(ribbone);
 		}
 		
@@ -329,10 +269,10 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param layer specified layer.
 	 * @return input rib bone of specified layer.
 	 */
-	public List<Layer> getRibinbone(Layer layer) {
-		List<Layer> ribbone = Util.newList(0);
+	public List<LayerStandard> getRibinbone(LayerStandard layer) {
+		List<LayerStandard> ribbone = Util.newList(0);
 		if (layer == null) return ribbone;
-		Layer ribLayer = layer.getRibinLayer();
+		LayerStandard ribLayer = layer.getRibinLayer();
 		if (ribLayer == null || ribLayer == memoryLayer) return ribbone;
 		
 		ribbone.add(0, layer);
@@ -349,12 +289,12 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Getting list of output rib bones.
 	 * @return list of output rib bones.
 	 */
-	public List<List<Layer>> getRiboutbones() {
-		List<List<Layer>> ribbones = Util.newList(0);
+	public List<List<LayerStandard>> getRiboutbones() {
+		List<List<LayerStandard>> ribbones = Util.newList(0);
 		
-		List<Layer> backbone = getBackbone();
-		for (Layer layer : backbone) {
-			List<Layer> ribbone = getRiboutbone(layer);
+		List<LayerStandard> backbone = getBackbone();
+		for (LayerStandard layer : backbone) {
+			List<LayerStandard> ribbone = getRiboutbone(layer);
 			if (ribbone.size() > 0) ribbones.add(ribbone);
 		}
 		
@@ -367,16 +307,16 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param layer specified layer.
 	 * @return output rib bone of specified layer.
 	 */
-	public List<Layer> getRiboutbone(Layer layer) {
-		List<Layer> ribbone = Util.newList(0);
+	public List<LayerStandard> getRiboutbone(LayerStandard layer) {
+		List<LayerStandard> ribbone = Util.newList(0);
 		if (layer == null) return ribbone;
-		Layer ribLayer = layer.getRiboutLayer();
+		LayerStandard ribLayer = layer.getRiboutLayer();
 		if (ribLayer == null || ribLayer == memoryLayer) return ribbone;
 		
 		ribbone.add(layer);
 		while (ribLayer != null) {
 			ribbone.add(ribLayer);
-			Layer nextLayer = ribLayer.getNextLayer();
+			LayerStandard nextLayer = ribLayer.getNextLayer();
 			if (nextLayer == null || nextLayer.getRibinLayer() != ribLayer)
 				ribLayer = nextLayer;
 			else
@@ -392,19 +332,19 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param layerId specified identifier.
 	 * @return found layer.
 	 */
-	public Layer findLayer(int layerId) {
-		List<Layer> all = Util.newList(0);
+	public LayerStandard findLayer(int layerId) {
+		List<LayerStandard> all = Util.newList(0);
 		if (inputLayer != null) all.add(inputLayer);
 		all.addAll(hiddenLayers);
 		if (outputLayer != null) all.add(outputLayer);
 		if (memoryLayer != null) all.add(memoryLayer);
 		
-		List<List<Layer>> bones = getRibinbones();
-		for (List<Layer> bone : bones) all.addAll(bone);
+		List<List<LayerStandard>> bones = getRibinbones();
+		for (List<LayerStandard> bone : bones) all.addAll(bone);
 		bones = getRiboutbones();
-		for (List<Layer> bone : bones) all.addAll(bone);
+		for (List<LayerStandard> bone : bones) all.addAll(bone);
 		
-		for (Layer layer : all) {
+		for (LayerStandard layer : all) {
 			if (layer != null && layer.id() == layerId) return layer;
 		}
 		
@@ -418,7 +358,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param layer specified layer.
 	 * @return index of specified layer in specified bone.
 	 */
-	protected static int findLayer(List<Layer> bone, Layer layer) {
+	protected static int findLayer(List<LayerStandard> bone, LayerStandard layer) {
 		if (layer == null || bone.size() == 0) return -1;
 		for (int i = 0; i < bone.size(); i++) {
 			if (bone.get(i) == layer) return i;
@@ -434,8 +374,8 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @return found neuron.
 	 */
 	public Neuron findNeuron(int neuronId) {
-		List<Layer> layers = getNonemptyLayers();
-		for (Layer layer : layers) {
+		List<LayerStandard> layers = getNonemptyLayers();
+		for (LayerStandard layer : layers) {
 			int index = layer.indexOf(neuronId);
 			if (index >= 0) return layer.get(index);
 		}
@@ -448,21 +388,21 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * Getting non-empty layers.
 	 * @return list of non-empty layers.
 	 */
-	private List<Layer> getNonemptyLayers() {
-		List<Layer> nonempty = Util.newList(0);
+	private List<LayerStandard> getNonemptyLayers() {
+		List<LayerStandard> nonempty = Util.newList(0);
 		
-		List<Layer> all = Util.newList(0);
+		List<LayerStandard> all = Util.newList(0);
 		if (inputLayer != null) all.add(inputLayer);
 		all.addAll(hiddenLayers);
 		if (outputLayer != null) all.add(outputLayer);
 		if (memoryLayer != null) all.add(memoryLayer);
 		
-		for (Layer layer : all) {
+		for (LayerStandard layer : all) {
 			if (layer == null || layer.size() == 0) continue;
 			
 			nonempty.add(layer);
 			
-			Layer ribLayer = layer.getRibinLayer();
+			LayerStandard ribLayer = layer.getRibinLayer();
 			while (ribLayer != null && ribLayer != memoryLayer) {
 				if (ribLayer.size() > 0) nonempty.add(ribLayer);
 				ribLayer = ribLayer.getPrevLayer();
@@ -482,12 +422,12 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	@Override
 	public synchronized NeuronValue[] eval(Record inputRecord, boolean refresh) throws RemoteException {
 		if (inputRecord == null) return null;
-		List<Layer> backbone = getBackbone();
+		List<LayerStandard> backbone = getBackbone();
 		if (backbone.size() == 0) return null;
 		
 		if (refresh) {
-			List<Layer> nonempty = getNonemptyLayers();
-			for (Layer layer : nonempty) {
+			List<LayerStandard> nonempty = getNonemptyLayers();
+			for (LayerStandard layer : nonempty) {
 				for (int j = 0; j < layer.size(); j++) {
 					Neuron neuron = layer.get(j);
 					neuron.setInput(layer.newNeuronValue());
@@ -497,8 +437,8 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 		}
 		
 		for (int i = 0; i < backbone.size(); i++) {
-			Layer layer = backbone.get(i);
-			List<Layer> ribinbone = getRibinbone(layer);
+			LayerStandard layer = backbone.get(i);
+			List<LayerStandard> ribinbone = getRibinbone(layer);
 			if (ribinbone != null && ribinbone.size() > 1 && inputRecord.ribInput != null) {
 				int id = ribinbone.get(0).id();
 				if (inputRecord.ribInput.containsKey(id))
@@ -508,7 +448,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 			if (inputRecord.input != null) {
 				NeuronValue[] output = eval(backbone, i, inputRecord.input, refresh);
 				
-				List<Layer> riboutbone = getRiboutbone(layer);
+				List<LayerStandard> riboutbone = getRiboutbone(layer);
 				if (riboutbone != null && riboutbone.size() > 1)
 					eval(riboutbone, output, refresh);
 			}
@@ -528,10 +468,10 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param input specified input.
 	 * @return evaluated output.
 	 */
-	protected static NeuronValue[] eval(List<Layer> bone, NeuronValue[] input) {
+	protected static NeuronValue[] eval(List<LayerStandard> bone, NeuronValue[] input) {
 		if (bone == null || bone.size() == 0) return null;
 		
-		for (Layer layer : bone) {
+		for (LayerStandard layer : bone) {
 			for (int j = 0; j < layer.size(); j++) {
 				Neuron neuron = layer.get(j);
 				neuron.setInput(layer.newNeuronValue());
@@ -539,7 +479,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 			}
 		}
 
-		Layer layer0 = bone.get(0);
+		LayerStandard layer0 = bone.get(0);
 		input = NeuronValue.adjustArray(input, layer0.size(), layer0);
 		for (int j = 0; j < layer0.size(); j++) {
 			Neuron neuron = layer0.get(j);
@@ -548,7 +488,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 		}
 		
 		for (int i = 1;  i < bone.size(); i++) {
-			Layer layer = bone.get(i);
+			LayerStandard layer = bone.get(i);
 			for (int j = 0; j < layer.size(); j++) layer.get(j).eval();
 		}
 		
@@ -563,7 +503,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param refresh refresh mode.
 	 * @return evaluated output.
 	 */
-	private NeuronValue[] eval(List<Layer> bone, NeuronValue[] input, boolean refresh) {
+	private NeuronValue[] eval(List<LayerStandard> bone, NeuronValue[] input, boolean refresh) {
 		if (bone.size() == 0) return null;
 		for (int i = 0; i < bone.size(); i++) {
 			eval(bone, i, input, refresh);
@@ -580,8 +520,8 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param refresh refresh mode.
 	 * @return evaluated output.
 	 */
-	private NeuronValue[] eval(List<Layer> bone, int index, NeuronValue[] input, boolean refresh) {
-		Layer layer = bone.get(index);
+	private NeuronValue[] eval(List<LayerStandard> bone, int index, NeuronValue[] input, boolean refresh) {
+		LayerStandard layer = bone.get(index);
 		input = NeuronValue.adjustArray(input, layer.size(), layer);
 		
 		if (index == 0) {
@@ -638,12 +578,12 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param tab tab text.
 	 * @return verbalized text.
 	 */
-	private static String toText(List<Layer> layers, String tab) {
+	private static String toText(List<LayerStandard> layers, String tab) {
 		StringBuffer buffer = new StringBuffer();
 		for (int i = 0; i < layers.size(); i++) {
 			if (i > 0) buffer.append("\n");
 
-			String layerText = LayerImpl.toText(layers.get(i), null);
+			String layerText = LayerStandardImpl.toText(layers.get(i), null);
 			layerText = layerText.replaceAll("l##", "" + (i+1));
 			buffer.append(layerText);
 		}
@@ -666,28 +606,28 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 		StringBuffer buffer = new StringBuffer();
 		String internalTab = "    ";
 		
-		List<Layer> backbone = network.getBackbone();
+		List<LayerStandard> backbone = network.getBackbone();
 		if (backbone.size() > 0) {
 			buffer.append("BACKBONE:\n");
 			buffer.append(toText(backbone, internalTab));
 		}
 		
-		Layer memory = network.getMemoryLayer();
+		LayerStandard memory = network.getMemoryLayer();
 		if (memory != null) {
 			buffer.append("MEMORY:\n");
 			buffer.append(toText(Arrays.asList(memory), internalTab));
 		}
 		
-		List<List<Layer>> ribinBones = network.getRibinbones();
-		for (List<Layer> ribinBone : ribinBones) {
+		List<List<LayerStandard>> ribinBones = network.getRibinbones();
+		for (List<LayerStandard> ribinBone : ribinBones) {
 			if (ribinBone.size() > 0) {
 				buffer.append("RIBIN BONE:\n");
 				buffer.append(toText(ribinBone, internalTab));
 			}
 		}
 		
-		List<List<Layer>> riboutBones = network.getRiboutbones();
-		for (List<Layer> riboutBone : riboutBones) {
+		List<List<LayerStandard>> riboutBones = network.getRiboutbones();
+		for (List<LayerStandard> riboutBone : riboutBones) {
 			if (riboutBone.size() > 0) {
 				buffer.append("RIBOUT BONE:\n");
 				buffer.append(toText(riboutBone, internalTab));
@@ -717,13 +657,13 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 */
 	@SuppressWarnings("unused")
 	@Deprecated
-	private static List<NeuronValue[]> bpCalcErrors(List<Layer> bone, NeuronValue[] output) {
+	private static List<NeuronValue[]> bpCalcErrors(List<LayerStandard> bone, NeuronValue[] output) {
 		List<NeuronValue[]> errors = Util.newList(0);
 		if (bone.size() < 2) return errors;
 		
 		for (int i = bone.size() - 1; i >= 1; i--) {
-			Layer layer = bone.get(i);
-			Layer nextLayer = i < bone.size() - 1 ? bone.get(i + 1) : null;
+			LayerStandard layer = bone.get(i);
+			LayerStandard nextLayer = i < bone.size() - 1 ? bone.get(i + 1) : null;
 			NeuronValue[] error = NeuronValue.makeArray(layer.size(), layer);
 			errors.add(0, error);
 			
@@ -758,12 +698,12 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param learningRate learning rate.
 	 */
 	@Deprecated
-	private static void bpUpdateWeightsBiases(List<Layer> bone, List<NeuronValue[]> errors, double learningRate) {
+	private static void bpUpdateWeightsBiases(List<LayerStandard> bone, List<NeuronValue[]> errors, double learningRate) {
 		if (bone.size() < 2) return;
 		
 		for (int i = 0; i < bone.size() - 1; i++) {
-			Layer layer = bone.get(i);
-			Layer nextLayer = bone.get(i + 1);
+			LayerStandard layer = bone.get(i);
+			LayerStandard nextLayer = bone.get(i + 1);
 			NeuronValue[] error = i > 0 ? errors.get(i - 1) : null;
 			NeuronValue[] nextError = errors.get(i);
 			
@@ -805,12 +745,12 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 */
 	@SuppressWarnings("unused")
 	@Deprecated
-	private static void bpUpdateWeightsBiasesAttachedTriple(Layer centerLayer, List<Layer> bone, List<NeuronValue[]> errors, double learningRate) {
+	private static void bpUpdateWeightsBiasesAttachedTriple(LayerStandard centerLayer, List<LayerStandard> bone, List<NeuronValue[]> errors, double learningRate) {
 		if (bone.size() < 2) return;
 
-		Layer prevLayer = centerLayer.getPrevLayer();
+		LayerStandard prevLayer = centerLayer.getPrevLayer();
 		if (prevLayer == null) return;
-		Layer nextLayer = centerLayer.getNextLayer();
+		LayerStandard nextLayer = centerLayer.getNextLayer();
 		if (nextLayer == null) return;
 		
 		int nextErrorIndex = findLayer(bone, nextLayer) - 1;
@@ -836,7 +776,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 			centerError[j] = rsum.multiplyDerivative(derivative);
 		}
 		
-		List<Layer> newBackbone = Util.newList(3);
+		List<LayerStandard> newBackbone = Util.newList(3);
 		newBackbone.add(prevLayer);
 		newBackbone.add(centerLayer);
 		newBackbone.add(nextLayer);

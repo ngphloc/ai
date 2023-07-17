@@ -24,7 +24,8 @@ public interface Network extends Remote, Serializable, Cloneable, AutoCloseable 
 	/**
 	 * Default value for maximum iteration of learning neural network.
 	 */
-	final static int LEARN_MAX_ITERATION_DEFAULT = 1000;
+//	final static int LEARN_MAX_ITERATION_DEFAULT = 1000;
+	final static int LEARN_MAX_ITERATION_DEFAULT = 1;
 
 	
 	/**

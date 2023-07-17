@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.vae;
+package net.ea.ann.gen.vae;
 
 import java.rmi.RemoteException;
 

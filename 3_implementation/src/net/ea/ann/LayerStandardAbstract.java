@@ -9,14 +9,17 @@ package net.ea.ann;
 
 import java.util.List;
 
+import net.ea.ann.function.IdentityFunction1;
+import net.ea.ann.function.Function;
+
 /**
- * This class is default implementation of neuron.
+ * This class is abstract implementation of standard layer.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class LayerImpl implements Layer {
+public abstract class LayerStandardAbstract extends LayerAbstract implements LayerStandard {
 
 
 	/**
@@ -26,15 +29,9 @@ public class LayerImpl implements Layer {
 
 	
 	/**
-	 * Internal identifier reference.
+	 * Neuron channel.
 	 */
-	protected Id idRef = new Id();
-	
-	
-	/**
-	 * Identifier.
-	 */
-	protected int id = -1;
+	protected int neuronChannel = 1;
 	
 	
 	/**
@@ -42,7 +39,7 @@ public class LayerImpl implements Layer {
 	 */
 	protected Function activateRef = null;
 
-	
+
 	/**
 	 * Internal neurons.
 	 */
@@ -52,60 +49,68 @@ public class LayerImpl implements Layer {
 	/**
 	 * Previous layer.
 	 */
-	protected Layer prevLayer = null;
+	protected LayerStandard prevLayer = null;
 	
 	
 	/**
 	 * Implicit previous layer.
 	 */
-	protected Layer prevLayerImplicit = null;
+	protected LayerStandard prevLayerImplicit = null;
 
 	
 	/**
 	 * Next layer.
 	 */
-	protected Layer nextLayer = null;
+	protected LayerStandard nextLayer = null;
 	
 	
 	/**
 	 * Input rib layer.
 	 */
-	protected Layer ribinLayer = null;
+	protected LayerStandard ribinLayer = null;
 
 	
 	/**
 	 * Output rib layer.
 	 */
-	protected Layer riboutLayer = null;
+	protected LayerStandard riboutLayer = null;
 	
 	
 	/**
-	 * Constructor with activation function.
+	 * Constructor with neuron channel, activation function, and identifier reference.
+	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 * @param idRef identifier reference.
 	 */
-	public LayerImpl(Function activateRef, Id idRef) {
-		this.activateRef = activateRef;
-		if (idRef != null) this.idRef = idRef;
-		this.id = this.idRef.get();
+	public LayerStandardAbstract(int neuronChannel, Function activateRef, Id idRef) {
+		super(idRef);
+		
+		if (neuronChannel <= 1 && activateRef == null) {
+			this.neuronChannel = 1;
+			this.activateRef = new IdentityFunction1();
+		}
+		else {
+			this.neuronChannel = neuronChannel;
+			this.activateRef = activateRef;
+		}
 	}
 
 
-	@Override
-	public Id getIdRef() {
-		return idRef;
+	/**
+	 * Constructor with neuron channel and activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 */
+	public LayerStandardAbstract(int neuronChannel, Function activateRef) {
+		this(neuronChannel, activateRef, null);
 	}
 
-
-	@Override
-	public int id() {
-		return id;
-	}
 	
-
-	@Override
-	public NeuronValue newNeuronValue() {
-		return new NeuronValue1(0.0).zero();
+	/**
+	 * Default constructor.
+	 */
+	public LayerStandardAbstract() {
+		this(1, null, null);
 	}
 
 	
@@ -177,25 +182,25 @@ public class LayerImpl implements Layer {
 
 
 	@Override
-	public Layer getPrevLayer() {
+	public LayerStandard getPrevLayer() {
 		return prevLayer;
 	}
 
 	
 	@Override
-	public Layer getPrevLayerImplicit() {
+	public LayerStandard getPrevLayerImplicit() {
 		return prevLayerImplicit;
 	}
 	
 	
 	@Override
-	public boolean setPrevLayer(Layer prevLayer) {
+	public boolean setPrevLayer(LayerStandard prevLayer) {
 		if (prevLayer == this.prevLayer) return false;
 		if (this.prevLayer == null && this.prevLayerImplicit != null) return false;
 		if (prevLayer != null && prevLayer == getRibinLayer()) return false;
 
-		Layer oldPrevLayer = this.prevLayer;
-		Layer oldPrevPrevLayer = null;
+		LayerStandard oldPrevLayer = this.prevLayer;
+		LayerStandard oldPrevPrevLayer = null;
 		if (oldPrevLayer != null) {
 			oldPrevPrevLayer = oldPrevLayer.getPrevLayer();
 			clearNextNeurons(oldPrevLayer);
@@ -205,7 +210,7 @@ public class LayerImpl implements Layer {
 		if (prevLayer == null) return true;
 
 		clearNextNeurons(prevLayer);
-		((LayerImpl)prevLayer).nextLayer = this;
+		((LayerStandardImpl)prevLayer).nextLayer = this;
 		for (int i = 0; i < prevLayer.size(); i++) {
 			Neuron neuron = prevLayer.get(i);
 			for (int j = 0; j < size(); j++) {
@@ -215,8 +220,8 @@ public class LayerImpl implements Layer {
 		
 		if (oldPrevPrevLayer == null) return true;
 		clearNextNeurons(oldPrevPrevLayer);
-		((LayerImpl)oldPrevPrevLayer).nextLayer = prevLayer;
-		((LayerImpl)prevLayer).prevLayer = oldPrevPrevLayer;
+		((LayerStandardImpl)oldPrevPrevLayer).nextLayer = prevLayer;
+		((LayerStandardImpl)prevLayer).prevLayer = oldPrevPrevLayer;
 		for (int i = 0; i < oldPrevPrevLayer.size(); i++) {
 			Neuron neuron = oldPrevPrevLayer.get(i);
 			for (int j = 0; j < prevLayer.size(); j++) {
@@ -229,13 +234,13 @@ public class LayerImpl implements Layer {
 
 
 	@Override
-	public Layer getNextLayer() {
+	public LayerStandard getNextLayer() {
 		return nextLayer;
 	}
 
 	
 	@Override
-	public boolean setNextLayer(Layer nextLayer) {
+	public boolean setNextLayer(LayerStandard nextLayer) {
 		if (nextLayer == this.nextLayer) return false;
 		if (nextLayer != null) {
 			if (nextLayer == getRiboutLayer()) return false;
@@ -244,8 +249,8 @@ public class LayerImpl implements Layer {
 		
 		clearNextNeurons(this);
 		
-		Layer oldNextLayer = this.nextLayer;
-		Layer oldNextNextLayer = null;
+		LayerStandard oldNextLayer = this.nextLayer;
+		LayerStandard oldNextNextLayer = null;
 		if (oldNextLayer != null) {
 			oldNextNextLayer = oldNextLayer.getNextLayer();
 			clearNextNeurons(oldNextLayer);
@@ -255,7 +260,7 @@ public class LayerImpl implements Layer {
 		if (nextLayer == null) return true;
 
 		clearNextNeurons(nextLayer);
-		((LayerImpl)nextLayer).prevLayer = this;
+		((LayerStandardImpl)nextLayer).prevLayer = this;
 		for (int i = 0; i < size(); i++) {
 			Neuron neuron = get(i);
 			for (int j = 0; j < nextLayer.size(); j++) {
@@ -264,8 +269,8 @@ public class LayerImpl implements Layer {
 		}
 		
 		if (oldNextNextLayer == null) return true;
-		((LayerImpl)oldNextNextLayer).prevLayer = nextLayer;
-		((LayerImpl)nextLayer).nextLayer = oldNextNextLayer;
+		((LayerStandardImpl)oldNextNextLayer).prevLayer = nextLayer;
+		((LayerStandardImpl)nextLayer).nextLayer = oldNextNextLayer;
 		for (int i = 0; i < oldNextNextLayer.size(); i++) {
 			Neuron neuron = oldNextNextLayer.get(i);
 			for (int j = 0; j < nextLayer.size(); j++) {
@@ -281,7 +286,7 @@ public class LayerImpl implements Layer {
 	 * Clearing next neurons of specified layer.
 	 * @param layer specified layer.
 	 */
-	private static void clearNextNeurons(Layer layer) {
+	private static void clearNextNeurons(LayerStandard layer) {
 		if (layer == null) return;
 		for (int i = 0; i < layer.size(); i++) {
 			layer.get(i).clearNextNeurons();
@@ -290,13 +295,13 @@ public class LayerImpl implements Layer {
 	
 	
 	@Override
-	public Layer getRibinLayer() {
+	public LayerStandard getRibinLayer() {
 		return ribinLayer;
 	}
 
 
 	@Override
-	public boolean setRibinLayer(Layer ribinLayer) {
+	public boolean setRibinLayer(LayerStandard ribinLayer) {
 		if (this.ribinLayer == ribinLayer) return false;
 		if (ribinLayer != null) {
 			if (ribinLayer.getNextLayer() != null) return false;
@@ -307,10 +312,10 @@ public class LayerImpl implements Layer {
 		if (ribinLayer == null) return true;
 			
 		clearNextNeurons(ribinLayer);
-		Layer oldNextLayer = ribinLayer.getNextLayer();
+		LayerStandard oldNextLayer = ribinLayer.getNextLayer();
 		if (oldNextLayer != null) clearNextNeurons(oldNextLayer);
 
-		((LayerImpl)ribinLayer).nextLayer = this;
+		((LayerStandardImpl)ribinLayer).nextLayer = this;
 		for (int i = 0; i < ribinLayer.size(); i++) {
 			Neuron ribbinNeuron = ribinLayer.get(i);
 			for (int j = 0; j < size(); j++) {
@@ -323,13 +328,13 @@ public class LayerImpl implements Layer {
 
 	
 	@Override
-	public Layer getRiboutLayer() {
+	public LayerStandard getRiboutLayer() {
 		return riboutLayer;
 	}
 
 
 	@Override
-	public boolean setRiboutLayer(Layer riboutLayer) {
+	public boolean setRiboutLayer(LayerStandard riboutLayer) {
 		if (this.riboutLayer == riboutLayer) return false;
 		if (riboutLayer != null && riboutLayer.getPrevLayer() != null) return false;
 		if (riboutLayer != null) {
@@ -337,11 +342,11 @@ public class LayerImpl implements Layer {
 			if (riboutLayer == getNextLayer()) return false;
 		}
 		
-		Layer oldRiboutLayer = this.riboutLayer;
+		LayerStandard oldRiboutLayer = this.riboutLayer;
 		this.riboutLayer = riboutLayer;
 		for (Neuron neuron : neurons) ((NeuronImpl)neuron).riboutNeurons.clear();
 		
-		if (oldRiboutLayer != null) ((LayerImpl)oldRiboutLayer).prevLayerImplicit = null;
+		if (oldRiboutLayer != null) ((LayerStandardImpl)oldRiboutLayer).prevLayerImplicit = null;
 		if (riboutLayer == null) return true;
 		
 		for (Neuron neuron : neurons) {
@@ -351,7 +356,7 @@ public class LayerImpl implements Layer {
 			}
 		}
 		
-		((LayerImpl)riboutLayer).prevLayerImplicit = this;
+		((LayerStandardImpl)riboutLayer).prevLayerImplicit = this;
 		
 		return true;
 	}
@@ -397,7 +402,7 @@ public class LayerImpl implements Layer {
 	 * @param tab tab text.
 	 * @return verbalized text.
 	 */
-	protected static String toText(Layer layer, String tab) {
+	protected static String toText(LayerStandard layer, String tab) {
 		StringBuffer buffer = new StringBuffer();
 		String internalTab = "    ";
 		buffer.append("layer l## (id=" + layer.id() + "):");

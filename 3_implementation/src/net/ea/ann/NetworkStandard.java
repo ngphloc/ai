@@ -20,6 +20,51 @@ public interface NetworkStandard extends Network {
 
 
 	/**
+	 * Layer type.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 */
+	enum LayerType {
+		
+		/**
+		 * Input layer.
+		 */
+		input,
+		
+		/**
+		 * Hidden layer.
+		 */
+		hidden,
+		
+		/**
+		 * Output layer.
+		 */
+		output,
+		
+		/**
+		 * Memory layer.
+		 */
+		memory,
+		
+		/**
+		 * Input rib layer.
+		 */
+		ribin,
+		
+		/**
+		 * Memory layer.
+		 */
+		ribout,
+		
+		/**
+		 * Unknown layer.
+		 */
+		unknown,
+		
+	}
+	
+	
+	/**
 	 * Evaluating entire network.
 	 * @param inputRecord input record for evaluating.
 	 * @param refresh refresh mode.

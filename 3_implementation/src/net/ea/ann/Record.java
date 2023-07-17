@@ -51,6 +51,18 @@ public class Record implements Serializable, Cloneable {
 
 	
 	/**
+	 * Undefined input.
+	 */
+	public Object undefinedInput = null;
+
+	
+	/**
+	 * Undefined output.
+	 */
+	public Object undefinedOutput = null;
+
+	
+	/**
 	 * Default constructor.
 	 */
 	public Record() {

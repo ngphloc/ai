@@ -10,6 +10,8 @@ package net.ea.ann;
 import java.util.Arrays;
 import java.util.List;
 
+import net.ea.ann.function.Function;
+
 /**
  * This class is default implementation of neuron.
  * 
@@ -35,7 +37,7 @@ public class NeuronImpl implements Neuron {
 	/**
 	 * Main layer.
 	 */
-	protected Layer layer = null;
+	protected LayerStandard layer = null;
 	
 	
 	/**
@@ -78,7 +80,7 @@ public class NeuronImpl implements Neuron {
 	 * Default constructor.
 	 * @param layer this layer.
 	 */
-	public NeuronImpl(Layer layer) {
+	public NeuronImpl(LayerStandard layer) {
 		this.layer = layer;
 		this.id = layer.getIdRef().get();
 		this.activateRef = layer.getActivateRef();
@@ -148,7 +150,7 @@ public class NeuronImpl implements Neuron {
 		List<WeightedNeuron> sources = Util.newList(0);
 		if (layer == null) return sources.toArray(new WeightedNeuron[] {});
 		
-		Layer prevLayer = layer.getPrevLayer();
+		LayerStandard prevLayer = layer.getPrevLayer();
 		if (prevLayer == null) return sources.toArray(new WeightedNeuron[] {});
 		
 		for (int i = 0; i < prevLayer.size(); i++) {
@@ -165,12 +167,12 @@ public class NeuronImpl implements Neuron {
 	
 
 	@Override
-	public WeightedNeuron[] getPrevNeurons(Layer prevLayer) {
+	public WeightedNeuron[] getPrevNeurons(LayerStandard prevLayer) {
 		if (layer == null || prevLayer == null || prevLayer == layer.getPrevLayer())
 			return getPrevNeurons();
 		
-		if (!(layer instanceof LayerImpl)) return new WeightedNeuron[] {};
-		Layer prevLayerImplicit = layer.getPrevLayerImplicit();
+		if (!(layer instanceof LayerStandardImpl)) return new WeightedNeuron[] {};
+		LayerStandard prevLayerImplicit = layer.getPrevLayerImplicit();
 		if (prevLayer == prevLayerImplicit)
 			return getPrevNeuronsImplicit();
 		else
@@ -180,9 +182,9 @@ public class NeuronImpl implements Neuron {
 
 	@Override
 	public WeightedNeuron[] getPrevNeuronsImplicit() {
-		if (layer == null || !(layer instanceof LayerImpl)) return new WeightedNeuron[] {};
+		if (layer == null || !(layer instanceof LayerStandardImpl)) return new WeightedNeuron[] {};
 		
-		Layer prevLayerImplicit = layer.getPrevLayerImplicit();
+		LayerStandard prevLayerImplicit = layer.getPrevLayerImplicit();
 		if (prevLayerImplicit == null || prevLayerImplicit.getRiboutLayer() != this)
 			return new WeightedNeuron[] {};
 		
@@ -206,7 +208,7 @@ public class NeuronImpl implements Neuron {
 
 
 	@Override
-	public WeightedNeuron[] getNextNeurons(Layer nextLayer) {
+	public WeightedNeuron[] getNextNeurons(LayerStandard nextLayer) {
 		if (nextLayer == null || layer == null || layer.getNextLayer() == nextLayer)
 			return getNextNeurons();
 		else if (nextLayer == layer.getRiboutLayer())
@@ -218,7 +220,7 @@ public class NeuronImpl implements Neuron {
 
 	@Override
 	public boolean setNextNeuron(Neuron neuron, Weight weight) {
-		Layer nextLayer = layer != null ? layer.getNextLayer() : null;
+		LayerStandard nextLayer = layer != null ? layer.getNextLayer() : null;
 		if (nextLayer == null || neuron == null || weight == null)
 			return false;
 		if (nextLayer.indexOf(neuron) < 0) return false;
@@ -287,7 +289,7 @@ public class NeuronImpl implements Neuron {
 
 	@Override
 	public WeightedNeuron[] getRibinNeurons() {
-		Layer ribinLayer = layer != null ? layer.getRibinLayer() : null;
+		LayerStandard ribinLayer = layer != null ? layer.getRibinLayer() : null;
 		if (ribinLayer == null) return new WeightedNeuron[] {};
 
 		List<WeightedNeuron> ribinNeurons = Util.newList(0);
@@ -307,7 +309,7 @@ public class NeuronImpl implements Neuron {
 
 	@Override
 	public boolean setRibinNeuron(Neuron ribinNeuron, Weight weight) {
-		Layer ribinLayer = layer != null ? layer.getRibinLayer() : null;
+		LayerStandard ribinLayer = layer != null ? layer.getRibinLayer() : null;
 		if (ribinLayer == null || ribinNeuron == null || weight == null) return false;
 		if (ribinLayer.indexOf(ribinNeuron) < 0) return false;
 		
@@ -317,7 +319,7 @@ public class NeuronImpl implements Neuron {
 
 	@Override
 	public boolean removeRibinNeuron(Neuron ribinNeuron) {
-		Layer ribinLayer = layer != null ? layer.getRibinLayer() : null;
+		LayerStandard ribinLayer = layer != null ? layer.getRibinLayer() : null;
 		if (ribinLayer == null || ribinNeuron == null) return false;
 		if (ribinLayer.indexOf(ribinNeuron) < 0) return false;
 
@@ -327,7 +329,7 @@ public class NeuronImpl implements Neuron {
 
 	@Override
 	public WeightedNeuron findRibinNeuron(Neuron ribinNeuron) {
-		Layer ribinLayer = layer != null ? layer.getRibinLayer() : null;
+		LayerStandard ribinLayer = layer != null ? layer.getRibinLayer() : null;
 		if (ribinLayer == null || ribinNeuron == null) return null;
 		if (ribinLayer.indexOf(ribinNeuron) < 0) return null;
 
@@ -341,7 +343,7 @@ public class NeuronImpl implements Neuron {
 
 	@Override
 	public WeightedNeuron findRibinNeuron(int ribinNeuronId) {
-		Layer ribinLayer = layer != null ? layer.getRibinLayer() : null;
+		LayerStandard ribinLayer = layer != null ? layer.getRibinLayer() : null;
 		if (ribinLayer == null) return null;
 		int index = ribinLayer.indexOf(ribinNeuronId);
 		if (index < 0) return null;
@@ -357,7 +359,7 @@ public class NeuronImpl implements Neuron {
 
 	@Override
 	public void clearRibinNeurons() {
-		Layer ribinLayer = layer != null ? layer.getRibinLayer() : null;
+		LayerStandard ribinLayer = layer != null ? layer.getRibinLayer() : null;
 		if (ribinLayer == null) return;
 		for (int i = 0; i < ribinLayer.size(); i++) {
 			ribinLayer.get(i).removeNextNeuron(this);
@@ -373,7 +375,7 @@ public class NeuronImpl implements Neuron {
 
 	@Override
 	public boolean setRiboutNeuron(Neuron riboutNeuron, Weight weight) {
-		Layer ribinLayer = layer != null ? layer.getRiboutLayer() : null;
+		LayerStandard ribinLayer = layer != null ? layer.getRiboutLayer() : null;
 		if (ribinLayer == null || riboutNeuron == null || weight == null)
 			return false;
 		if (ribinLayer.indexOf(riboutNeuron) < 0) return false;
@@ -458,7 +460,7 @@ public class NeuronImpl implements Neuron {
 
 	
 	@Override
-	public Layer getLayer() {
+	public LayerStandard getLayer() {
 		return layer;
 	}
 

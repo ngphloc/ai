@@ -44,6 +44,16 @@ public class NeuronValueV implements NeuronValue {
 
 	
 	/**
+	 * Constructor with double array.
+	 * @param array double array.
+	 */
+	public NeuronValueV(double...array) {
+		this.v = new double[array.length];
+		for (int i = 0; i < array.length; i++) this.v[i] = array[i];
+	}
+	
+	
+	/**
 	 * Constructor with dimension.
 	 * @param dim vector dimension.
 	 */
@@ -63,6 +73,35 @@ public class NeuronValueV implements NeuronValue {
 		return new NeuronValueV(v.length, 1);
 	}
 
+	
+	/**
+	 * Getting length of this vector.
+	 * @return length of this vector.
+	 */
+	public int length() {
+		return this.v.length;
+	}
+	
+	
+	/**
+	 * Getting value at specific index.
+	 * @param index specific index.
+	 * @return value at specific index.
+	 */
+	public double get(int index) {
+		return this.v[index];
+	}
+	
+
+	/**
+	 * Getting value at specific index.
+	 * @param index specific index.
+	 * @param value specific value.
+	 */
+	public void set(int index, double value) {
+		this.v[index] = value;
+	}
+	
 	
 	@Override
 	public WeightValue newWeightValue() {

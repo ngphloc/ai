@@ -9,6 +9,8 @@ package net.ea.ann;
 
 import java.io.Serializable;
 
+import net.ea.ann.function.Function;
+
 /**
  * This interface represents neuron.
  * 
@@ -95,7 +97,7 @@ public interface Neuron extends Serializable, Cloneable {
 	 * @param prevLayer previous layer.
 	 * @return previous neurons.
 	 */
-	WeightedNeuron[] getPrevNeurons(Layer prevLayer);
+	WeightedNeuron[] getPrevNeurons(LayerStandard prevLayer);
 
 		
 	/**
@@ -117,7 +119,7 @@ public interface Neuron extends Serializable, Cloneable {
 	 * @param nextLayer next layer.
 	 * @return next neurons.
 	 */
-	WeightedNeuron[] getNextNeurons(Layer nextLayer);
+	WeightedNeuron[] getNextNeurons(LayerStandard nextLayer);
 
 	
 	/**
@@ -269,7 +271,7 @@ public interface Neuron extends Serializable, Cloneable {
 	 * Getting main layer.
 	 * @return main layer.
 	 */
-	Layer getLayer();
+	LayerStandard getLayer();
 	
 	
 	/**

@@ -12,6 +12,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import net.ea.ann.NetworkDoEvent.Type;
+import net.ea.ann.function.IdentityFunction1;
+import net.ea.ann.function.Function;
+import net.ea.ann.function.LogisticFunction1;
 
 /**
  * This class is default implementation of standard neural network.
@@ -30,18 +33,44 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 
 
 	/**
-	 * Constructor with ID reference and activation reference.
+	 * Neuron channel.
 	 */
-	public NetworkStandardImpl(Id idRef, Function activateRef) {
-		super(idRef, activateRef);
+	protected int neuronChannel = 1;
+
+	
+	/**
+	 * Activation function reference.
+	 */
+	protected Function activateRef = null;
+
+	
+	/**
+	 * Constructor with neuron channel, activation function, and identifier reference.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param idRef identifier reference.
+	 */
+	public NetworkStandardImpl(int neuronChannel, Function activateRef, Id idRef) {
+		super(idRef);
+		
+		if (neuronChannel <= 1 && activateRef == null) {
+			this.neuronChannel = 1;
+			this.activateRef = new IdentityFunction1();
+		}
+		else {
+			this.neuronChannel = neuronChannel;
+			this.activateRef = activateRef;
+		}
 	}
 
 	
 	/**
-	 * Constructor with ID reference.
+	 * Constructor with neuron channel and activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
 	 */
-	public NetworkStandardImpl(Id idRef) {
-		super(idRef, null);
+	public NetworkStandardImpl(int neuronChannel, Function activateRef) {
+		this(neuronChannel, activateRef, null);
 	}
 
 	
@@ -49,7 +78,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	 * Default constructor.
 	 */
 	public NetworkStandardImpl() {
-		super(null, null);
+		this(1, null, null);
 	}
 	
 	
@@ -72,7 +101,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	 * @param nHiddenNeuron number of hidden neurons.
 	 */
 	public void initialize(int nInputNeuron, int nOutputNeuron, int[] nHiddenNeuron) {
-		super.initialize(nInputNeuron, nOutputNeuron, nHiddenNeuron);
+		initialize(nInputNeuron, nOutputNeuron, nHiddenNeuron, 0);
 	}
 
 	
@@ -82,13 +111,13 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	 * @param nOutputNeuron number of output neurons.
 	 */
 	public void initialize(int nInputNeuron, int nOutputNeuron) {
-		super.initialize(nInputNeuron, nOutputNeuron);
+		initialize(nInputNeuron, nOutputNeuron, null, 0);
 	}
 
 
 	@Override
-	protected Layer newLayer() {
-		return new LayerImpl(activateRef, idRef);
+	protected LayerStandard newLayer() {
+		return new LayerStandardImpl(neuronChannel, activateRef, idRef);
 	}
 	
 
@@ -114,7 +143,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
 		
-		List<Layer> backbone = getBackbone();
+		List<LayerStandard> backbone = getBackbone();
 		if (backbone.size() < 2) return null;
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
@@ -137,8 +166,8 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 				//Updating weights and biases of backbone.
 				error = bpUpdateWeightsBiases(backbone, output, learningRate);
 				
-				List<List<Layer>> ribinbones = getRibinbones();
-				for (List<Layer> ribinbone : ribinbones) {
+				List<List<LayerStandard>> ribinbones = getRibinbones();
+				for (List<LayerStandard> ribinbone : ribinbones) {
 					if (ribinbone.size() < 2) continue;
 					
 					//Updating weights and biases of rib-in bone.
@@ -147,8 +176,8 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 					} catch (Throwable e) {Util.trace(e);}
 				}
 				
-				List<List<Layer>> riboutbones = getRiboutbones();
-				for (List<Layer> riboutbone : riboutbones) {
+				List<List<LayerStandard>> riboutbones = getRiboutbones();
+				for (List<LayerStandard> riboutbone : riboutbones) {
 					if (riboutbone.size() < 2) continue;
 					
 					//Updating weights and biases of rib-out bone.
@@ -160,7 +189,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 				//Updating weights and biases of memory layer.
 				if (memoryLayer != null && memoryLayer.size() > 0) {
 					try {
-						List<Layer> memoryBone = Arrays.asList(memoryLayer.getPrevLayer(), memoryLayer, memoryLayer.getNextLayer());
+						List<LayerStandard> memoryBone = Arrays.asList(memoryLayer.getPrevLayer(), memoryLayer, memoryLayer.getNextLayer());
 						bpUpdateWeightsBiases(memoryBone, memoryLayer.getNextLayer().getOutput(), learningRate);
 					} catch (Throwable e) {Util.trace(e);}
 				}
@@ -215,7 +244,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	public NeuronValue[] bpLearn(List<Layer> bone, NeuronValue[] input, NeuronValue[] output, double learningRate, double terminatedThreshold, int maxIteration) {
+	public NeuronValue[] bpLearn(List<LayerStandard> bone, NeuronValue[] input, NeuronValue[] output, double learningRate, double terminatedThreshold, int maxIteration) {
 		if (bone == null || bone.size() < 2) return null;
 		if (output != null)
 			output = NeuronValue.adjustArray(output, bone.get(bone.size()-1).size(), bone.get(bone.size()-1));
@@ -257,13 +286,13 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	 * @param learningRate learning rate.
 	 * @return errors of output errors. Return null if errors occur.
 	 */
-	protected NeuronValue[] bpUpdateWeightsBiases(List<Layer> bone, NeuronValue[] output, double learningRate) {
+	protected NeuronValue[] bpUpdateWeightsBiases(List<LayerStandard> bone, NeuronValue[] output, double learningRate) {
 		if (bone.size() < 2) return null;
 		NeuronValue[] outputError = null;
 		
 		NeuronValue[] nextError = null;
 		for (int i = bone.size() - 1; i >= 1; i--) {
-			Layer layer = bone.get(i);
+			LayerStandard layer = bone.get(i);
 			NeuronValue[] error = NeuronValue.makeArray(layer.size(), layer);
 			
 			for (int j = 0; j < layer.size(); j++) {
@@ -274,7 +303,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 					error[j] = calcError(neuron, output != null? output[j] : null);
 				}
 				else {
-					Layer nextLayer = bone.get(i + 1);
+					LayerStandard nextLayer = bone.get(i + 1);
 					NeuronValue rsum = layer.newNeuronValue();
 					WeightedNeuron[] targets = neuron.getNextNeurons(nextLayer);
 					for (WeightedNeuron target : targets) {
@@ -293,7 +322,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 			}
 			
 			//Update weights of previous layer.
-			Layer prevLayer = bone.get(i - 1);
+			LayerStandard prevLayer = bone.get(i - 1);
 			for (int j = 0; j < prevLayer.size(); j++) {
 				Neuron prevNeuron = prevLayer.get(j);
 				NeuronValue prevOut = prevNeuron.getOutput();
@@ -333,14 +362,19 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	 * @param args arguments.
 	 */
 	public static void main(String[] args) {
-		try (NetworkStandardImpl network = new NetworkStandardImpl()) {
-			network.initialize(3, 3, new int[] {3});
-			System.out.println(network.toString());
+		try (NetworkStandardImpl network = new NetworkStandardImpl(1, new LogisticFunction1())) {
+			network.initialize(3, 3, new int[] {3, 3, 3});
+			//System.out.println(network.toString());
 			
-			Record record = new Record();
-			record.input = new NeuronValue[] {new NeuronValue1(1), new NeuronValue1(2), new NeuronValue1(3)};
-			record.output = new NeuronValue[] {new NeuronValue1(4), new NeuronValue1(5), new NeuronValue1(6)};
-			network.learn(Arrays.asList(record));
+			Record record1 = new Record();
+			record1.input = new NeuronValue[] {new NeuronValue1(1), new NeuronValue1(2), new NeuronValue1(3)};
+			record1.output = new NeuronValue[] {new NeuronValue1(4), new NeuronValue1(5), new NeuronValue1(6)};
+
+			Record record2 = new Record();
+			record2.input = new NeuronValue[] {new NeuronValue1(99), new NeuronValue1(88), new NeuronValue1(77)};
+			record2.output = new NeuronValue[] {new NeuronValue1(66), new NeuronValue1(55), new NeuronValue1(44)};
+
+			network.learn(Arrays.asList(record1, record2));
 			
 			System.out.println(network.toString());
 		}
