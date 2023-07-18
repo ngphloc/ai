@@ -12,18 +12,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import net.ea.ann.Id;
-import net.ea.ann.LayerStandard;
-import net.ea.ann.NetworkDoEvent.Type;
-import net.ea.ann.NetworkDoEventImpl;
-import net.ea.ann.NetworkStandardImpl;
-import net.ea.ann.Neuron;
-import net.ea.ann.NeuronValue;
-import net.ea.ann.NeuronValue1;
-import net.ea.ann.Record;
-import net.ea.ann.Util;
-import net.ea.ann.function.Function;
-import net.ea.ann.function.LogisticFunction1;
+import net.ea.ann.core.Id;
+import net.ea.ann.core.LayerStandard;
+import net.ea.ann.core.NetworkDoEventImpl;
+import net.ea.ann.core.NetworkStandardImpl;
+import net.ea.ann.core.NeuronStandard;
+import net.ea.ann.core.NeuronValue;
+import net.ea.ann.core.NeuronValue1;
+import net.ea.ann.core.Record;
+import net.ea.ann.core.Util;
+import net.ea.ann.core.NetworkDoEvent.Type;
+import net.ea.ann.core.function.Function;
+import net.ea.ann.core.function.LogisticFunction1;
 
 /**
  * This class is the default implementation of Variational Autoencoders.
@@ -56,13 +56,13 @@ public class VAEImpl extends VAEAbstract {
 	/**
 	 * Z1 = Mean of original data X encoded
 	 */
-	protected Neuron[] muX = null;
+	protected NeuronStandard[] muX = null;
 	
 	
 	/**
 	 * Z2 = Variance of original data X encoded
 	 */
-	protected Neuron[][] varX = null;
+	protected NeuronStandard[][] varX = null;
 	
 	
 	/**
@@ -100,6 +100,18 @@ public class VAEImpl extends VAEAbstract {
 	}
 
 	
+//	/**
+//	 * Resetting data structures for initialization.
+//	 */
+//	protected void reset() {
+//		encoder = null;
+//		decoder = null;
+//		muX = null;
+//		varX = null;
+//		varXInverse = null;
+//	}
+	
+	
 	/**
 	 * Initialize with X dimension and Z dimension as well as hidden neurons.
 	 * @param xDim X dimension.
@@ -109,6 +121,8 @@ public class VAEImpl extends VAEAbstract {
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int xDim, int zDim, int[] nHiddenNeuronEncode, int[] nHiddenNeuronDecode) {
+//		reset();
+		
 		if (xDim <= 0 || zDim <= 0) return false;
 		
 		this.encoder = new NetworkStandardImpl(neuronChannel, activateRef, idRef) {
@@ -119,7 +133,7 @@ public class VAEImpl extends VAEAbstract {
 			private static final long serialVersionUID = 1L;
 
 			@Override
-			protected NeuronValue calcError(Neuron neuron, NeuronValue output) {
+			protected NeuronValue calcError(NeuronStandard neuron, NeuronValue output) {
 				return calcEncodedError(neuron);
 			}
 			
@@ -127,14 +141,14 @@ public class VAEImpl extends VAEAbstract {
 		this.encoder.initialize(xDim, zDim * (zDim + 1), nHiddenNeuronEncode);
 		
 		LayerStandard encodeLayer = this.encoder.getOutputLayer();
-		this.muX = new Neuron[zDim];
+		this.muX = new NeuronStandard[zDim];
 		for (int i = 0; i < zDim; i++) {
 			this.muX[i] = encodeLayer.get(i);
 		}
 		
-		this.varX = new Neuron[zDim][];
+		this.varX = new NeuronStandard[zDim][];
 		for (int i = 0; i < zDim; i++) {
-			this.varX[i] = new Neuron[zDim];
+			this.varX[i] = new NeuronStandard[zDim];
 			for (int j = 0; j < zDim; j++) {
 				this.varX[i][j] = encodeLayer.get(zDim + i*zDim + j);
 			}
@@ -217,13 +231,13 @@ public class VAEImpl extends VAEAbstract {
 				try {
 					//Updating weights and biases of encoder.
 					List<LayerStandard> encoderBackbone = encoder.getBackbone();
-					encoder.bpLearn(encoderBackbone, record.input, null, learningRate, terminatedThreshold, maxIteration);
+					encoder.bpLearn(encoderBackbone, record.input, null, learningRate, terminatedThreshold, 1);
 				} catch (Throwable e) {Util.trace(e);}
 				
 				try {
 					//Updating weights and biases of encoder.
 					List<LayerStandard> decoderBackbone = decoder.getBackbone();
-					error = decoder.bpLearn(decoderBackbone, encoder.getOutputLayer().getOutput(), record.input, learningRate, terminatedThreshold, maxIteration);
+					error = decoder.bpLearn(decoderBackbone, encoder.getOutputLayer().getOutput(), record.input, learningRate, terminatedThreshold, 1);
 				} catch (Throwable e) {Util.trace(e);}
 			}
 			
@@ -268,7 +282,7 @@ public class VAEImpl extends VAEAbstract {
 	
 	
 	@Override
-	public NeuronValue[] generate() throws RemoteException {
+	public synchronized NeuronValue[] generate() throws RemoteException {
 		NeuronValue[] dataZ = randomizeDataZ(new Random());
 		return generate(dataZ);
 	}
@@ -329,12 +343,12 @@ public class VAEImpl extends VAEAbstract {
 	 * @param neuron specific encoded neuron.
 	 * @return error or loss of the encode neuron.
 	 */
-	protected NeuronValue calcEncodedError(Neuron neuron) {
+	protected NeuronValue calcEncodedError(NeuronStandard neuron) {
 		NeuronValue out = neuron.getOutput();
 		NeuronValue derivative = neuron.getActivateRef().derivative(out);
 		
 		boolean isMu = false;
-		for (Neuron nr : muX) {
+		for (NeuronStandard nr : muX) {
 			if (nr == neuron) {
 				isMu = true;
 				break;
@@ -346,7 +360,7 @@ public class VAEImpl extends VAEAbstract {
 		int row = 0, column = 0;
 		for (int i = 0; i < varX.length; i++) {
 			for (int j = 0; j < varX[i].length; j++) {
-				Neuron nr = varX[i][j];
+				NeuronStandard nr = varX[i][j];
 				if (nr == neuron) {
 					isVar = true;
 					row = i; column = j;

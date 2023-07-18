@@ -9,9 +9,9 @@ package net.ea.ann.gen.vae;
 
 import java.rmi.RemoteException;
 
-import net.ea.ann.Network;
-import net.ea.ann.NeuronValue;
-import net.ea.ann.Record;
+import net.ea.ann.core.Network;
+import net.ea.ann.core.NeuronValue;
+import net.ea.ann.core.Record;
 
 /**
  * This class represents an interface of Variational Autoencoders.

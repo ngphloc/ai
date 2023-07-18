@@ -102,10 +102,10 @@ public class Util {
 	 * @param profile Hudup profile.
 	 * @return ANN profile.
 	 */
-	public static net.ea.ann.Profile toANNProfile(net.ea.ann.AttributeList newAttRef, Profile profile) {
+	public static net.ea.ann.core.Profile toANNProfile(net.ea.ann.core.AttributeList newAttRef, Profile profile) {
 		if (newAttRef == null || profile == null) return null;
 		
-		net.ea.ann.Profile newProfile = new net.ea.ann.Profile(newAttRef);
+		net.ea.ann.core.Profile newProfile = new net.ea.ann.core.Profile(newAttRef);
 		int n = Math.min(newProfile.getAttCount(), profile.getAttCount());
 		for (int i = 0; i < n; i++) {
 			newProfile.setValue(i, profile.getValue(i));
@@ -120,8 +120,8 @@ public class Util {
 	 * @param profile Hudup profile.
 	 * @return ANN profile.
 	 */
-	public static net.ea.ann.Profile toANNProfile(Profile profile) {
-		net.ea.ann.AttributeList newAttRef = extractANNAttributes(profile);
+	public static net.ea.ann.core.Profile toANNProfile(Profile profile) {
+		net.ea.ann.core.AttributeList newAttRef = extractANNAttributes(profile);
 		return toANNProfile(newAttRef, profile);
 	}
 
@@ -131,42 +131,42 @@ public class Util {
 	 * @param profile Hudup profile.
 	 * @return list of ANN attributes.
 	 */
-	public static net.ea.ann.AttributeList extractANNAttributes(Profile profile) {
-		if (profile == null) return new net.ea.ann.AttributeList();
+	public static net.ea.ann.core.AttributeList extractANNAttributes(Profile profile) {
+		if (profile == null) return new net.ea.ann.core.AttributeList();
 		
-		net.ea.ann.AttributeList newAttRef = new net.ea.ann.AttributeList();
+		net.ea.ann.core.AttributeList newAttRef = new net.ea.ann.core.AttributeList();
 		for (int i = 0; i < profile.getAttCount(); i++) {
 			Type type = profile.getAtt(i).getType();
 			String name = profile.getAtt(i).getName();
-			net.ea.ann.Attribute.Type newType = net.ea.ann.Attribute.Type.real;
+			net.ea.ann.core.Attribute.Type newType = net.ea.ann.core.Attribute.Type.real;
 			switch (type) {
 			case bit:
-				newType = net.ea.ann.Attribute.Type.bit;
+				newType = net.ea.ann.core.Attribute.Type.bit;
 				break;
 			case nominal:
-				newType = net.ea.ann.Attribute.Type.integer;
+				newType = net.ea.ann.core.Attribute.Type.integer;
 				break;
 			case integer:
-				newType = net.ea.ann.Attribute.Type.integer;
+				newType = net.ea.ann.core.Attribute.Type.integer;
 				break;
 			case real:
-				newType = net.ea.ann.Attribute.Type.real;
+				newType = net.ea.ann.core.Attribute.Type.real;
 				break;
 			case string:
-				newType = net.ea.ann.Attribute.Type.string;
+				newType = net.ea.ann.core.Attribute.Type.string;
 				break;
 			case date:
-				newType = net.ea.ann.Attribute.Type.date;
+				newType = net.ea.ann.core.Attribute.Type.date;
 				break;
 			case time:
-				newType = net.ea.ann.Attribute.Type.time;
+				newType = net.ea.ann.core.Attribute.Type.time;
 				break;
 			case object:
-				newType = net.ea.ann.Attribute.Type.object;
+				newType = net.ea.ann.core.Attribute.Type.object;
 				break;
 			}
 			
-			newAttRef.add(new net.ea.ann.Attribute(name, newType));
+			newAttRef.add(new net.ea.ann.core.Attribute(name, newType));
 		}
 		
 		return newAttRef;

@@ -7,10 +7,10 @@
  */
 package net.ea.ann.gen.vae;
 
-import net.ea.ann.Id;
-import net.ea.ann.NetworkAbstract;
-import net.ea.ann.function.IdentityFunction1;
-import net.ea.ann.function.Function;
+import net.ea.ann.core.Id;
+import net.ea.ann.core.NetworkAbstract;
+import net.ea.ann.core.function.Function;
+import net.ea.ann.core.function.IdentityFunction1;
 
 /**
  * This class is the default implementation of Variational Autoencoders.
