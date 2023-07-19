@@ -192,6 +192,15 @@ public class NeuronValueV implements NeuronValue {
 
 	
 	@Override
+	public NeuronValue valueOf(double value) {
+		NeuronValueV result = new NeuronValueV(this.v.length);
+		for (int i = 0; i < this.v.length; i++) result.v[i] = value;
+		
+		return result;
+	}
+
+
+	@Override
 	public NeuronValue max(NeuronValue value) {
 		WeightValueV other = (WeightValueV)value;
 		NeuronValueV result = new NeuronValueV(this.v.length); 

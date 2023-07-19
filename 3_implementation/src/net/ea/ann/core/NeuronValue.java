@@ -110,6 +110,14 @@ public interface NeuronValue extends Value {
 	
 	
 	/**
+	 * Converting double value to neuron value.
+	 * @param value specific double value.
+	 * @return neuron value.
+	 */
+	NeuronValue valueOf(double value);
+	
+	
+	/**
 	 * Maximum comparison with other value.
 	 * @param value other value.
 	 * @return maximum one.
@@ -172,7 +180,7 @@ public interface NeuronValue extends Value {
 	 * @param layer referred layer.
 	 * @return array of values.
 	 */
-	static NeuronValue[] makeArray(int length, LayerStandard layer) {
+	static NeuronValue[] makeArray(int length, Layer layer) {
 		NeuronValue[] array = new NeuronValue[length];
 		for (int j = 0; j < length; j++)
 			array[j] = layer.newNeuronValue();
@@ -187,7 +195,7 @@ public interface NeuronValue extends Value {
 	 * @param length specified length.
 	 * @return adjusted array.
 	 */
-	static NeuronValue[] adjustArray(NeuronValue[] array, int length, LayerStandard layer) {
+	static NeuronValue[] adjustArray(NeuronValue[] array, int length, Layer layer) {
 		if (length <= 0) return array;
 		if (array == null || array.length == 0) {
 			array = NeuronValue.makeArray(length, layer);

@@ -36,6 +36,13 @@ public interface Filter extends Serializable, Cloneable {
 	
 	
 	/**
+	 * Checking whether to slide according to block when filtering.
+	 * @return whether to slide according to block when filtering.
+	 */
+	boolean isBlockSlide();
+	
+	
+	/**
 	 * Applying this filter to specific layer. Please attention to this important method.
 	 * @param x x coordinator.
 	 * @param y y coordinator.

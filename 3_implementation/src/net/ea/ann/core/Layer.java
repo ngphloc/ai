@@ -33,4 +33,11 @@ public interface Layer extends Serializable, Cloneable {
 	int id();
 
 	
+	/**
+	 * Creating an empty neuron value.
+	 * @return empty neuron value.
+	 */
+	NeuronValue newNeuronValue();
+
+	
 }

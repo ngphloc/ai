@@ -71,7 +71,7 @@ public interface NetworkStandard extends Network {
 	 * @return array as output of output layer.
 	 * @throws RemoteException if any error raises.
 	 */
-	NeuronValue[] eval(Record inputRecord, boolean refresh) throws RemoteException;
+	NeuronValue[] evaluate(Record inputRecord, boolean refresh) throws RemoteException;
 	
 	
 	/**

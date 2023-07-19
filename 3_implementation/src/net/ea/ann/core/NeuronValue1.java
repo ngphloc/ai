@@ -120,6 +120,12 @@ public class NeuronValue1 implements NeuronValue {
 
 	
 	@Override
+	public NeuronValue valueOf(double value) {
+		return new NeuronValue1(1);
+	}
+
+
+	@Override
 	public NeuronValue max(NeuronValue value) {
 		return new NeuronValue1(Math.max(this.v, ((WeightValue1)value).get()));
 	}

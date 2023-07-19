@@ -90,42 +90,6 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 //	}
 
 	
-	/**
-	 * Initialize with number of neurons.
-	 * @param nInputNeuron number of input neurons.
-	 * @param nOutputNeuron number of output neurons.
-	 * @param nHiddenNeuron number of hidden neurons.
-	 * @param nMemoryNeuron number of memory neurons.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(int nInputNeuron, int nOutputNeuron, int[] nHiddenNeuron, int nMemoryNeuron) {
-		return super.initialize(nInputNeuron, nOutputNeuron, nHiddenNeuron, nMemoryNeuron);
-	}
-
-	
-	/**
-	 * Initialize with number of neurons.
-	 * @param nInputNeuron number of input neurons.
-	 * @param nOutputNeuron number of output neurons.
-	 * @param nHiddenNeuron number of hidden neurons.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(int nInputNeuron, int nOutputNeuron, int[] nHiddenNeuron) {
-		return initialize(nInputNeuron, nOutputNeuron, nHiddenNeuron, 0);
-	}
-
-	
-	/**
-	 * Initialize with number of neurons.
-	 * @param nInputNeuron number of input neurons.
-	 * @param nOutputNeuron number of output neurons.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(int nInputNeuron, int nOutputNeuron) {
-		return initialize(nInputNeuron, nOutputNeuron, null, 0);
-	}
-
-
 	@Override
 	protected LayerStandard newLayer() {
 		return new LayerStandardImpl(neuronChannel, activateRef, idRef);
@@ -171,7 +135,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 				
 				//Evaluating layers.
 				try {
-					eval(record, true);
+					evaluate(record, true);
 				} catch (Throwable e) {Util.trace(e);}
 				
 				//Updating weights and biases of backbone.
@@ -268,7 +232,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 		int iteration = 0;
 		while (maxIteration <= 0 || iteration < maxIteration) {
 			//Evaluating layers.
-			eval(bone, input);
+			evaluate(bone, input);
 			
 			//Updating weights and biases of backbone.
 			error = bpUpdateWeightsBiases(bone, output, learningRate);

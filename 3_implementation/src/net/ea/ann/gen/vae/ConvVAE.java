@@ -9,7 +9,7 @@ package net.ea.ann.gen.vae;
 
 import java.rmi.RemoteException;
 
-import net.ea.ann.conv.SerializableImage;
+import net.ea.ann.conv.ImageSpec;
 import net.ea.ann.core.NeuronValue;
 
 /**
@@ -28,7 +28,7 @@ public interface ConvVAE extends VAE {
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	NeuronValue[] learnByImages(Iterable<SerializableImage> sample) throws RemoteException;
+	NeuronValue[] learnByImages(Iterable<ImageSpec> sample) throws RemoteException;
 
 	
 	/**
@@ -36,7 +36,7 @@ public interface ConvVAE extends VAE {
 	 * @return generated image.
 	 * @throws RemoteException if any error raises.
 	 */
-	SerializableImage generateImage() throws RemoteException;
+	ImageSpec generateImage() throws RemoteException;
 
 	
 }

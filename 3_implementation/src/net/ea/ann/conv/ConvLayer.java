@@ -14,19 +14,12 @@ import net.ea.ann.core.NeuronValue;
  * This interface represents a convolutional layer.
  * 
  * @author Loc Nguyen
+ * @version 1.0
  *
  */
 public interface ConvLayer extends Layer {
 
 
-	
-	/**
-	 * Creating an empty neuron value.
-	 * @return empty neuron value.
-	 */
-	NeuronValue newNeuronValue();
-
-	
 	/**
 	 * Create neuron.
 	 * @return created neuron.
@@ -51,6 +44,16 @@ public interface ConvLayer extends Layer {
 	
 	
 	/**
+	 * Setting neuron value at specific coordination.
+	 * @param x horizontal coordination.
+	 * @param y vertical coordination.
+	 * @param value neuron value.
+	 * @return previous neuron value.
+	 */
+	NeuronValue set(int x, int y, NeuronValue value);
+	
+	
+	/**
 	 * Getting raster width.
 	 * @return raster width.
 	 */
@@ -65,11 +68,25 @@ public interface ConvLayer extends Layer {
 	
 	
 	/**
+	 * Getting size of neurons.
+	 * @return size of neurons.
+	 */
+	int size();
+	
+	
+	/**
 	 * Getting data as array of neurons.
 	 * @return data as array of neurons.
 	 */
-	ConvNeuron[][] getData();
+	ConvNeuron[] getNeurons();
 	
+	
+	/**
+	 * Getting data as array of neuron value.
+	 * @return data as array of neuron value.
+	 */
+	NeuronValue[] getData();
+
 	
 	/**
 	 * Getting previous layer.
@@ -97,7 +114,7 @@ public interface ConvLayer extends Layer {
 	 * Forwarding to evaluate the next layer.
 	 * @return the data of the next layer.
 	 */
-	ConvNeuron[][] forward();
+	ConvNeuron[] forward();
 	
 	
 }

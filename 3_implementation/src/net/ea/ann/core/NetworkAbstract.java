@@ -31,19 +31,19 @@ public abstract class NetworkAbstract implements Network {
 	/**
 	 * Maximum iteration of learning neural network.
 	 */
-	public final static String LEARN_MAX_ITERATION_FIELD = "learn_max_iteration";
+	public final static String LEARN_MAX_ITERATION_FIELD = "ann_learn_max_iteration";
 	
 	
 	/**
 	 * Terminated threshold of learning neural network.
 	 */
-	public final static String LEARN_TERMINATED_THRESHOLD_FIELD = "learn_terminated_threshold";
+	public final static String LEARN_TERMINATED_THRESHOLD_FIELD = "ann_learn_terminated_threshold";
 
 	
 	/**
 	 * Learning rate.
 	 */
-	public final static String LEARN_RATE_FIELD = "learn_rate";
+	public final static String LEARN_RATE_FIELD = "ann_learn_rate";
 
 	
 	/**

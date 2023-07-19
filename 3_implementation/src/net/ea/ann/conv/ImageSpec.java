@@ -37,7 +37,7 @@ import net.ea.ann.core.function.LogisticFunctionV;
  * @version 1.0
  *
  */
-public class SerializableImage implements Serializable {
+public class ImageSpec implements Serializable {
 
 
 	/**
@@ -49,7 +49,7 @@ public class SerializableImage implements Serializable {
 	/**
 	 * Name of default source image type.
 	 */
-	public static final String SOURCE_IMAGE_TYPE_FIELD = "convvae_image_type";
+	public static final String SOURCE_IMAGE_TYPE_FIELD = "conv_image_type";
 	
 
 	/**
@@ -61,7 +61,7 @@ public class SerializableImage implements Serializable {
 	/**
 	 * Name of flag to normalize pixel in rang [0, 1].
 	 */
-	public static final String NORM_FIELD = "convvae_norm";
+	public static final String NORM_FIELD = "conv_norm";
 
 	
 	/**
@@ -73,7 +73,7 @@ public class SerializableImage implements Serializable {
 	/**
 	 * Name of resizing source image flag.
 	 */
-	public static final String SOURCE_IMAGE_RESIZE_FIELD = "convvae_image_resize";
+	public static final String SOURCE_IMAGE_RESIZE_FIELD = "conv_image_resize";
 
 	
 	/**
@@ -85,7 +85,7 @@ public class SerializableImage implements Serializable {
 	/**
 	 * Name of default alpha value.
 	 */
-	public static final String ALPHA_FIELD = "convvae_alpha";
+	public static final String ALPHA_FIELD = "conv_alpha";
 
 	
 	/**
@@ -135,7 +135,7 @@ public class SerializableImage implements Serializable {
 	 * Constructor with image. 
 	 * @param image specific image.
 	 */
-	public SerializableImage(BufferedImage image) {
+	public ImageSpec(BufferedImage image) {
 		this.image = image;
 	}
 
@@ -211,7 +211,7 @@ public class SerializableImage implements Serializable {
 	 * @param imagePath specific path.
 	 * @return image loaded from path.
 	 */
-	public static SerializableImage load(Path imagePath) {
+	public static ImageSpec load(Path imagePath) {
 		try {
 			InputStream is = Files.newInputStream(imagePath);
 			BufferedImage image = ImageIO.read(is);
@@ -220,7 +220,7 @@ public class SerializableImage implements Serializable {
 			if (image == null)
 				return null;
 			else
-				return new SerializableImage(image);
+				return new ImageSpec(image);
 		}
 		catch (Throwable e) {
 			Util.trace(e);
@@ -231,30 +231,30 @@ public class SerializableImage implements Serializable {
 	}
 	
 	
-	/**
-	 * Converting image type to neuron channel. 
-	 * @param imageType image type.
-	 * @return neuron channel
-	 */
-	public static int toNeuronChannel(ImageType imageType) {
-		int channel = 1;
-        switch (imageType) {
-        case GRAY:
-        	channel = 1;
-        	break;
-        case RGB:
-        	channel = 3;
-        	break;
-        case ARGB:
-        	channel = 4;
-        	break;
-        default:
-        	channel = 1;
-        	break;
-        }
-        
-        return channel;
-	}
+//	/**
+//	 * Converting image type to neuron channel. 
+//	 * @param imageType image type.
+//	 * @return neuron channel
+//	 */
+//	private static int toNeuronChannel(ImageType imageType) {
+//		int channel = 1;
+//        switch (imageType) {
+//        case GRAY:
+//        	channel = 1;
+//        	break;
+//        case RGB:
+//        	channel = 3;
+//        	break;
+//        case ARGB:
+//        	channel = 4;
+//        	break;
+//        default:
+//        	channel = 1;
+//        	break;
+//        }
+//        
+//        return channel;
+//	}
 	
 	
 	/**
@@ -262,7 +262,7 @@ public class SerializableImage implements Serializable {
 	 * @param neuronChannel neuron channel.
 	 * @return image type.
 	 */
-	public static ImageType toImageType(int neuronChannel) {
+	private static ImageType toImageType(int neuronChannel) {
 		ImageType imageType = ImageType.GRAY;
         switch (neuronChannel) {
         case 1:
@@ -289,7 +289,7 @@ public class SerializableImage implements Serializable {
 	 * @param isNorm checking whether to normalized pixels value in range [0, 1].
 	 * @return neuron channel
 	 */
-	public static Function toActivationRef(ImageType imageType, boolean isNorm) {
+	private static Function toActivationRef(ImageType imageType, boolean isNorm) {
 		Function f = null;
 		
         switch (imageType) {
@@ -340,14 +340,14 @@ public class SerializableImage implements Serializable {
 	 * @param sourceImageType source image type.
 	 * @return resized image.
 	 */
-	public static BufferedImage resizeImage(BufferedImage image, int newWidth, int newHeight, int sourceImageType) {
+	private static BufferedImage resizeImage(BufferedImage image, int newWidth, int newHeight, int sourceImageType) {
 		if (image == null || newWidth <= 0 || newHeight <= 0)
 			return null;
 		else if (image.getWidth() != newWidth || image.getHeight() != newHeight) {
 			Image resizedImage = image.getScaledInstance(newWidth, newHeight, Image.SCALE_DEFAULT);
 			if (resizedImage == null) return null;
 			
-			image = SerializableImage.convertToSourceTypeImage(resizedImage, sourceImageType);
+			image = ImageSpec.convertToSourceTypeImage(resizedImage, sourceImageType);
 			if (image == null)
 				return null;
 			//else if (image.getWidth() != newWidth || image.getHeight() != newHeight)
@@ -366,7 +366,7 @@ public class SerializableImage implements Serializable {
 	 * @param sourceImageType source image type.
 	 * @return buffered image.
 	 */
-	public static BufferedImage convertToSourceTypeImage(Image image, int sourceImageType) {
+	private static BufferedImage convertToSourceTypeImage(Image image, int sourceImageType) {
 		if (image == null) return null;
 		
 		if (image instanceof BufferedImage) {
@@ -387,24 +387,24 @@ public class SerializableImage implements Serializable {
 	 * Converting neuron values to image.
 	 * @param values neuron values.
 	 * @param imageType image type.
-	 * @param imageWidth image width.
-	 * @param imageHeight image height.
+	 * @param width raster width.
+	 * @param height raster height.
 	 * @param sourceImageType source image type.
 	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
 	 * @return converted image.
 	 */
-	public static BufferedImage convertFromNeuronValuesToImage(NeuronValue[] values, ImageType imageType, int imageWidth, int imageHeight,
+	private static BufferedImage convertFromNeuronValuesToImage(NeuronValue[] values, ImageType imageType, int width, int height,
 			int sourceImageType, boolean isNorm, int defaultAlpha) {
-		if (values == null || values.length == 0 || imageWidth <= 0 || imageHeight <= 0) return null;
+		if (values == null || values.length == 0 || width <= 0 || height <= 0) return null;
 		
-		BufferedImage image = new BufferedImage(imageWidth, imageHeight, sourceImageType);
+		BufferedImage image = new BufferedImage(width, height, sourceImageType);
 		
 		double factor = isNorm ? 255 : 1;
-		for (int y = 0; y < imageHeight; y++) {
-			for (int x = 0; x < imageWidth; x++) {
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
 				int a = defaultAlpha, r = 0, g = 0, b = 0, gray = 0;
 				
-				int index = y*imageWidth + x;
+				int index = y*width + x;
 				if (index < values.length) {
 	                switch (imageType) {
 	                case GRAY:
@@ -448,36 +448,37 @@ public class SerializableImage implements Serializable {
 	 * Converting neuron values to image.
 	 * @param values neuron values.
 	 * @param neuronChannel neuron channel.
-	 * @param imageWidth image width.
-	 * @param imageHeight image height.
+	 * @param width raster width.
+	 * @param height raster height.
 	 * @param sourceImageType source image type.
 	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
-	 * @return converted image.
+	 * @return converted image specification.
 	 */
-	public static BufferedImage convertFromNeuronValuesToImage(NeuronValue[] values, int neuronChannel, int imageWidth, int imageHeight,
+	public static ImageSpec convertFromNeuronValuesToImage(NeuronValue[] values, int neuronChannel, int width, int height,
 			int sourceImageType, boolean isNorm, int defaultAlpha) {
-		return convertFromNeuronValuesToImage(values, toImageType(neuronChannel), imageWidth, imageHeight,
+		BufferedImage image = convertFromNeuronValuesToImage(values, toImageType(neuronChannel), width, height,
 				sourceImageType, isNorm, defaultAlpha);
+		return image != null ? new ImageSpec(image) : null;
 	}
 	
 	
 	/**
 	 * Extracting image into neuron value array.
 	 * @param imageType image type.
-	 * @param imageWidth image width.
-	 * @param imageHeight image height.
+	 * @param width raster width.
+	 * @param height raster height.
 	 * @param image specific image.
 	 * @param sourceImageType source image type.
 	 * @param isResize flag to indicate whether image is resized.
 	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
 	 * @return neuron value array.
 	 */
-	public static NeuronValue[] convertFromImageToNeuronValues(ImageType imageType, int imageWidth, int imageHeight,
+	private static NeuronValue[] convertFromImageToNeuronValues(ImageType imageType, int width, int height,
 			BufferedImage image, int sourceImageType, boolean isResize, boolean isNorm) {
-		if (image == null || imageWidth <= 0 || imageHeight <= 0) return null;
+		if (image == null || width <= 0 || height <= 0) return null;
 		
-		if (isResize && image.getWidth() != imageWidth && image.getHeight() != imageHeight) {
-			image = resizeImage(image, imageWidth, imageHeight, sourceImageType);
+		if (isResize && image.getWidth() != width && image.getHeight() != height) {
+			image = resizeImage(image, width, height, sourceImageType);
 			if (image == null) return null;
 		}
 		
@@ -488,11 +489,11 @@ public class SerializableImage implements Serializable {
 		
 		if (image.getWidth() <= 0 && image.getHeight() <= 0) return null;
 	
-		NeuronValue[] values = new NeuronValue[imageWidth*imageHeight];
+		NeuronValue[] values = new NeuronValue[width*height];
 	
 		double factor = isNorm ? 255 : 1;
-		int minWidth = Math.min(imageWidth, image.getWidth());
-		int minHeight = Math.min(imageHeight, image.getHeight());
+		int minWidth = Math.min(width, image.getWidth());
+		int minHeight = Math.min(height, image.getHeight());
 		for (int y = 0; y < minHeight; y++) {
 			for (int x = 0; x < minWidth; x++) {
 				int p = image.getRGB(x, y);
@@ -521,14 +522,14 @@ public class SerializableImage implements Serializable {
 	            	break;
 	            }
 	
-	            values[y*imageWidth + x] = value;
+	            values[y*width + x] = value;
 			}
 			
 		}
 		
 		//Fill zero.
-		for (int y = minHeight; y < imageHeight; y++) {
-			for (int x = minWidth; x < imageWidth; x++) {
+		for (int y = minHeight; y < height; y++) {
+			for (int x = minWidth; x < width; x++) {
 	            NeuronValue value = null;
 	            switch (imageType) {
 	            case GRAY:
@@ -545,7 +546,7 @@ public class SerializableImage implements Serializable {
 	            	break;
 	            }
 	            
-	            values[y*imageWidth + x] = value;
+	            values[y*width + x] = value;
 			}
 		}
 		
@@ -558,16 +559,19 @@ public class SerializableImage implements Serializable {
 	 * @param neuronChannel neuron channel.
 	 * @param imageWidth image width.
 	 * @param imageHeight image height.
-	 * @param image specific image.
+	 * @param imageSpec image specification.
 	 * @param sourceImageType source image type.
 	 * @param isResize flag to indicate whether image is resized.
 	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
 	 * @return neuron value array.
 	 */
 	public static NeuronValue[] convertFromImageToNeuronValues(int neuronChannel, int imageWidth, int imageHeight,
-			BufferedImage image, int sourceImageType, boolean isResize, boolean isNorm) {
-		return convertFromImageToNeuronValues(toImageType(neuronChannel), imageWidth, imageHeight,
-				image, sourceImageType, isResize, isNorm);
+			ImageSpec imageSpec, int sourceImageType, boolean isResize, boolean isNorm) {
+		if (imageSpec != null)
+			return convertFromImageToNeuronValues(toImageType(neuronChannel), imageWidth, imageHeight,
+				imageSpec.getImage(), sourceImageType, isResize, isNorm);
+		else
+			return null;
 	}
 	
 	

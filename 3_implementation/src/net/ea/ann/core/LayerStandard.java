@@ -20,13 +20,6 @@ public interface LayerStandard extends Layer {
 
 	
 	/**
-	 * Creating an empty neuron value.
-	 * @return empty neuron value.
-	 */
-	NeuronValue newNeuronValue();
-
-	
-	/**
 	 * Create neuron.
 	 * @return created neuron.
 	 */

@@ -24,11 +24,24 @@ public abstract class AbstractFilter implements Filter {
 
 	
 	/**
+	 * Flag to indicate whether to slide according to block when filtering.
+	 */
+	protected boolean blockSlide = true;
+	
+	
+	/**
 	 * Default constructor.
 	 */
 	protected AbstractFilter() {
 		super();
 	}
 
+
+	@Override
+	public boolean isBlockSlide() {
+		return blockSlide;
+	}
+
+	
 	
 }

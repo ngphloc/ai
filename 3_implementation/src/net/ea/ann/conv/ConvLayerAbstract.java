@@ -15,6 +15,7 @@ import net.ea.ann.core.NeuronValue;
  * This class is an abstract implementation of convolutional layer.
  * 
  * @author Loc Nguyen
+ * @version 1.0
  *
  */
 public abstract class ConvLayerAbstract extends LayerAbstract implements ConvLayer {
@@ -27,40 +28,204 @@ public abstract class ConvLayerAbstract extends LayerAbstract implements ConvLay
 
 
 	/**
-	 * Internal data as array of neurons.
+	 * Neuron channel or depth.
 	 */
-	protected ConvNeuron[][] data = null;
+	protected int neuronChannel = 1;
+	
+	
+	/**
+	 * Raster width.
+	 */
+	protected int width = 0;
+	
+	
+	/**
+	 * Raster height.
+	 */
+	protected int height = 0;
+	
+	
+	/**
+	 * Internal filter.
+	 */
+	protected Filter filter = null;
+	
+	
+	/**
+	 * Internal array of neurons.
+	 */
+	protected ConvNeuron[] neurons = null;
 	
 
 	/**
-	 * Constructor with ID reference.
+	 * Previous layer.
+	 */
+	protected ConvLayer prevLayer = null;
+	
+	
+	/**
+	 * Next layer.
+	 */
+	protected ConvLayer nextLayer = null;
+
+	
+	/**
+	 * Constructor with neuron channel, width, height, filter, and ID reference.
+	 * @param neuronChannel neuron channel or depth.
+	 * @param width layer width.
+	 * @param height layer height.
+	 * @param filter kernel filter.
 	 * @param idRef ID reference.
 	 */
-	protected ConvLayerAbstract(Id idRef) {
+	protected ConvLayerAbstract(int neuronChannel, int width, int height, Filter filter, Id idRef) {
 		super(idRef);
+
+		this.neuronChannel = neuronChannel;
+		this.width = width;
+		this.height = height;
+		this.filter = filter;
+		
+		this.neurons = new ConvNeuron[width*height];
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int index = y*width + x;
+				ConvNeuron neuron = this.newNeuron();
+				neuron.setValue(this.newNeuronValue());
+				
+				this.neurons[index] = neuron;
+			}
+		}
 	}
 
 
 	/**
-	 * Default constructor.
+	 * Constructor with neuron channel, width, height, and filter.
+	 * @param neuronChannel neuron channel or depth.
+	 * @param width layer width.
+	 * @param height layer height.
+	 * @param filter kernel filter.
 	 */
-	public ConvLayerAbstract() {
-		this(null);
+	public ConvLayerAbstract(int neuronChannel, int width, int height, Filter filter) {
+		this(neuronChannel, width, height, filter, null);
 	}
 
 
 	@Override
-	public ConvNeuron[][] forward() {
+	public ConvNeuron newNeuron() {
+		return new ConvNeuronImpl(this);
+	}
+
+
+	@Override
+	public int getWidth() {
+		return width;
+	}
+
+
+	@Override
+	public int getHeight() {
+		return height;
+	}
+
+
+	@Override
+	public Filter getFilter() {
+		return filter;
+	}
+
+
+	@Override
+	public ConvNeuron get(int x, int y) {
+		return neurons[y*width + x];
+	}
+
+
+	@Override
+	public NeuronValue set(int x, int y, NeuronValue value) {
+		ConvNeuron neuron = neurons[y*width + x];
+		if (neuron == null)
+			return null;
+		else {
+			NeuronValue prevValue = neuron.getValue();
+			neuron.setValue(value);
+			return prevValue;
+		}
+	}
+
+
+	@Override
+	public int size() {
+		return neurons.length;
+	}
+
+
+	@Override
+	public ConvNeuron[] getNeurons() {
+		return neurons;
+	}
+
+
+	@Override
+	public NeuronValue[] getData() {
+		if (neurons == null || neurons.length <= 0) return null;
+		
+		NeuronValue[] data = new NeuronValue[neurons.length];
+		for (int i = 0; i < neurons.length; i++) {
+			NeuronValue value = neurons[i].getValue();
+			data[i] = value;
+		}
+		
+		return data;
+	}
+
+
+	@Override
+	public ConvLayer getPrevLayer() {
+		return prevLayer;
+	}
+
+
+	@Override
+	public ConvLayer getNextLayer() {
+		return nextLayer;
+	}
+
+
+	@Override
+	public boolean setNextLayer(ConvLayer nextLayer) {
+		if (nextLayer == this.nextLayer) return false;
+
+		ConvLayer oldNextLayer = this.nextLayer;
+		ConvLayer oldNextNextLayer = null;
+		if (oldNextLayer != null) oldNextNextLayer = oldNextLayer.getNextLayer();
+
+		this.nextLayer = nextLayer;
+		if (nextLayer == null) return true;
+
+		((ConvLayerAbstract)nextLayer).prevLayer = this;
+		
+		if (oldNextNextLayer == null) return true;
+		((ConvLayerAbstract)oldNextNextLayer).prevLayer = nextLayer;
+		((ConvLayerAbstract)nextLayer).nextLayer = oldNextNextLayer;
+
+		return true;
+	}
+
+
+	@Override
+	public ConvNeuron[] forward() {
 		ConvLayer nextLayer = getNextLayer();
 		if (nextLayer == null) return null;
-		ConvNeuron[][] data = nextLayer.getData();
-		if (data == null || data.length == 0) return null;
+		ConvNeuron[] nextNeurons = nextLayer.getNeurons();
+		if (nextNeurons == null || nextNeurons.length == 0) return null;
 		
 		Filter filter = getFilter();
+		if (filter == null) return null;
+		
 		int filterWidth = filter.width();
 		int filterHeight = filter.height();
-		int widthBlock = this.getWidth() / filterWidth;
-		int heightBlock = this.getHeight() / filterHeight;
+		int widthBlock = filter.isBlockSlide() ? this.getWidth() / filterWidth : 1;
+		int heightBlock = filter.isBlockSlide() ? this.getHeight() / filterHeight : 1;
 		
 		int width = nextLayer.getWidth();
 		int height = nextLayer.getHeight();
@@ -72,14 +237,15 @@ public abstract class ConvLayerAbstract extends LayerAbstract implements ConvLay
 				int X = xBlock*filterWidth;
 				
 				NeuronValue value = filter.apply(X, Y, this);
+				int index = y*width + x;
 				if (value != null)
-					data[y][x].setValue(value);
+					nextNeurons[index].setValue(value);
 				else
-					data[y][x].setValue(newNeuronValue().zero());
+					nextNeurons[index].setValue(newNeuronValue().zero());
 			}
 		}
 		
-		return data;
+		return nextNeurons;
 	}
 
 	

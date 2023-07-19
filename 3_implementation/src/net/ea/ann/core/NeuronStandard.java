@@ -100,6 +100,8 @@ public interface NeuronStandard extends Neuron {
 		
 	/**
 	 * Getting implicit previous neurons.
+	 * Previous implicit neurons are neither memory neurons nor rib-in neurons because
+	 * memory neurons and rib-in neurons can be included as explicit previous neurons.
 	 * @return implicit previous neurons.
 	 */
 	WeightedNeuron[] getPrevNeuronsImplicit();
@@ -276,7 +278,7 @@ public interface NeuronStandard extends Neuron {
 	 * Evaluating neuron output.
 	 * @return neuron output.
 	 */
-	NeuronValue eval();
+	NeuronValue evaluate();
 	
 	
 }

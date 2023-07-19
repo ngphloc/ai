@@ -438,7 +438,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 
 	
 	@Override
-	public synchronized NeuronValue[] eval(Record inputRecord, boolean refresh) throws RemoteException {
+	public synchronized NeuronValue[] evaluate(Record inputRecord, boolean refresh) throws RemoteException {
 		if (inputRecord == null) return null;
 		List<LayerStandard> backbone = getBackbone();
 		if (backbone.size() == 0) return null;
@@ -460,20 +460,20 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 			if (ribinbone != null && ribinbone.size() > 1 && inputRecord.ribInput != null) {
 				int id = ribinbone.get(0).id();
 				if (inputRecord.ribInput.containsKey(id))
-					eval(ribinbone, inputRecord.ribInput.get(id), refresh);
+					evaluate(ribinbone, inputRecord.ribInput.get(id), refresh);
 			}
 			
 			if (inputRecord.input != null) {
-				NeuronValue[] output = eval(backbone, i, inputRecord.input, refresh);
+				NeuronValue[] output = evaluate(backbone, i, inputRecord.input, refresh);
 				
 				List<LayerStandard> riboutbone = getRiboutbone(layer);
 				if (riboutbone != null && riboutbone.size() > 1)
-					eval(riboutbone, output, refresh);
+					evaluate(riboutbone, output, refresh);
 			}
 		}
 		
 		if (memoryLayer != null) {
-			for (int j = 0; j < memoryLayer.size(); j++) eval(memoryLayer.get(j), refresh);
+			for (int j = 0; j < memoryLayer.size(); j++) evaluate(memoryLayer.get(j), refresh);
 		}
 		
 		return backbone.get(backbone.size() - 1).getOutput();
@@ -486,7 +486,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param input specified input.
 	 * @return evaluated output.
 	 */
-	protected static NeuronValue[] eval(List<LayerStandard> bone, NeuronValue[] input) {
+	protected static NeuronValue[] evaluate(List<LayerStandard> bone, NeuronValue[] input) {
 		if (bone == null || bone.size() == 0) return null;
 		
 		for (LayerStandard layer : bone) {
@@ -507,7 +507,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 		
 		for (int i = 1;  i < bone.size(); i++) {
 			LayerStandard layer = bone.get(i);
-			for (int j = 0; j < layer.size(); j++) layer.get(j).eval();
+			for (int j = 0; j < layer.size(); j++) layer.get(j).evaluate();
 		}
 		
 		return bone.get(bone.size() - 1).getOutput();
@@ -521,10 +521,10 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param refresh refresh mode.
 	 * @return evaluated output.
 	 */
-	private NeuronValue[] eval(List<LayerStandard> bone, NeuronValue[] input, boolean refresh) {
+	private NeuronValue[] evaluate(List<LayerStandard> bone, NeuronValue[] input, boolean refresh) {
 		if (bone.size() == 0) return null;
 		for (int i = 0; i < bone.size(); i++) {
-			eval(bone, i, input, refresh);
+			evaluate(bone, i, input, refresh);
 		}
 		return bone.get(bone.size() - 1).getOutput();
 	}
@@ -538,7 +538,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param refresh refresh mode.
 	 * @return evaluated output.
 	 */
-	private NeuronValue[] eval(List<LayerStandard> bone, int index, NeuronValue[] input, boolean refresh) {
+	private NeuronValue[] evaluate(List<LayerStandard> bone, int index, NeuronValue[] input, boolean refresh) {
 		LayerStandard layer = bone.get(index);
 		input = NeuronValue.adjustArray(input, layer.size(), layer);
 		
@@ -550,7 +550,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 			}
 		}
 		else {
-			for (int j = 0; j < layer.size(); j++) eval(layer.get(j), refresh);
+			for (int j = 0; j < layer.size(); j++) evaluate(layer.get(j), refresh);
 		}
 		
 		return layer.getOutput();
@@ -563,12 +563,12 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @param refresh refresh mode. If true, neuron output is not re-evaluated because it was refreshed with initial values. If false, neuron output is re-evaluated.
 	 * @return evaluated output.
 	 */
-	private NeuronValue eval(NeuronStandard neuron, boolean refresh) {
-		if (!refresh) return neuron.eval();
+	private NeuronValue evaluate(NeuronStandard neuron, boolean refresh) {
+		if (!refresh) return neuron.evaluate();
 		
 		List<WeightedNeuron> sources = Util.newList(0);
 		sources.addAll(Arrays.asList(neuron.getPrevNeurons()));
-		if (neuron.getLayer() != null && neuron.getLayer().getRibinLayer() != memoryLayer)
+		if (neuron.getLayer() != null && neuron.getLayer().getRibinLayer() != memoryLayer) //Only memory neurons are not refreshed.
 			sources.addAll(Arrays.asList(neuron.getRibinNeurons()));
 		sources.addAll(Arrays.asList(neuron.getPrevNeuronsImplicit()));
 		
@@ -775,7 +775,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 		if (nextErrorIndex < 0) return;
 		
 		//Evaluating center neurons.
-		for (int j = 0; j < centerLayer.size(); j++) centerLayer.get(j).eval();
+		for (int j = 0; j < centerLayer.size(); j++) centerLayer.get(j).evaluate();
 		
 		//Updating errors of center layer.
 		NeuronValue[] centerError = NeuronValue.makeArray(centerLayer.size(), centerLayer);

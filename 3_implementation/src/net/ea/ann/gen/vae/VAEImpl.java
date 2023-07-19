@@ -70,6 +70,12 @@ public class VAEImpl extends VAEAbstract {
 	 */
 	private NeuronValue[][] varXInverse = null;
 	
+
+	/**
+	 * Internal randomizer.
+	 */
+	protected Random learnRnd = new Random();
+	
 	
 	/**
 	 * Constructor with neuron channel, activation function, and identifier reference.
@@ -194,7 +200,7 @@ public class VAEImpl extends VAEAbstract {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	protected synchronized NeuronValue[] bpLearn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	protected NeuronValue[] bpLearn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -207,7 +213,6 @@ public class VAEImpl extends VAEAbstract {
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
 		NeuronValue[] error = null;
-		Random rnd = new Random();
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
@@ -216,15 +221,15 @@ public class VAEImpl extends VAEAbstract {
 				
 				//Evaluating encoder.
 				try {
-					encoder.eval(record, true);
+					encoder.evaluate(record, true);
 				} catch (Throwable e) {Util.trace(e);}
 				
 				//Evaluating decoder.
 				try {
 					Record decodeRecord = new Record();
-					decodeRecord.input = randomizeDataZ(rnd);
+					decodeRecord.input = randomizeDataZ(learnRnd);
 					decodeRecord.output = record.input;
-					decoder.eval(decodeRecord, true);
+					decoder.evaluate(decodeRecord, true);
 				} catch (Throwable e) {Util.trace(e);}
 
 				
@@ -243,7 +248,7 @@ public class VAEImpl extends VAEAbstract {
 			
 			iteration ++;
 			
-			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "ann_backpropogate",
+			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "vae_backpropogate",
 				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
 
 			if (error == null || error.length == 0)
@@ -270,7 +275,7 @@ public class VAEImpl extends VAEAbstract {
 			doStarted = false;
 			doPaused = false;
 			
-			fireDoEvent(new NetworkDoEventImpl(this, Type.done, "ann_backpropogate",
+			fireDoEvent(new NetworkDoEventImpl(this, Type.done, "vae_backpropogate",
 				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
 			
 			notifyAll();
@@ -280,10 +285,9 @@ public class VAEImpl extends VAEAbstract {
 	}
 
 	
-	
 	@Override
 	public synchronized NeuronValue[] generate() throws RemoteException {
-		NeuronValue[] dataZ = randomizeDataZ(new Random());
+		NeuronValue[] dataZ = randomizeDataZ(learnRnd);
 		return generate(dataZ);
 	}
 
@@ -300,7 +304,7 @@ public class VAEImpl extends VAEAbstract {
 		Record record = new Record();
 		record.input = dataZ;
 		try {
-			return decoder.eval(record, true);
+			return decoder.evaluate(record, true);
 		} catch (Throwable e) {}
 		
 		return null;
@@ -322,7 +326,6 @@ public class VAEImpl extends VAEAbstract {
 	 * @return Z data which is encoded data.
 	 */
 	protected NeuronValue[] randomizeDataZ(Random rnd) {
-		rnd = rnd != null ? rnd : new Random();
 		NeuronValue[] rNumbers = new NeuronValue[muX.length];
 		for (int i = 0; i < muX.length; i++) {
 			rNumbers[i] = muX[0].getOutput().identity().multiply(rnd.nextGaussian());

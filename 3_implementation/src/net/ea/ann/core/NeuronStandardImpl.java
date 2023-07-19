@@ -472,7 +472,7 @@ public class NeuronStandardImpl implements NeuronStandard {
 
 
 	@Override
-	public NeuronValue eval() {
+	public NeuronValue evaluate() {
 		List<WeightedNeuron> sources = Util.newList(0);
 		sources.addAll(Arrays.asList(getPrevNeurons()));
 		sources.addAll(Arrays.asList(getRibinNeurons()));

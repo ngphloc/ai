@@ -14,7 +14,7 @@ package net.ea.ann.core;
  * @version 1.0
  *
  */
-public class LayerAbstract implements Layer {
+public abstract class LayerAbstract implements Layer {
 
 
 	/**
