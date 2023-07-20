@@ -216,13 +216,13 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	
 	
 	@Override
-	public synchronized NeuronValue[] evaluateByRaster(Raster inputImage) throws RemoteException {
-		if (inputImage == null) return null;
+	public synchronized NeuronValue[] evaluateByRaster(Raster inputRaster) throws RemoteException {
+		if (inputRaster == null) return null;
 		ConvLayer inputLayer = convLayers.get(0);
 		if (inputLayer == null) return null;
 		
-		NeuronValue[] input = Raster.convertFromRasterToNeuronValues(neuronChannel, inputLayer.getWidth(), inputLayer.getHeight(),
-				inputImage, getSourceImageType(), isSourceRasterResize(), isNorm());
+		NeuronValue[] input = inputRaster.convertFromRasterToNeuronValues(neuronChannel, inputLayer.getWidth(), inputLayer.getHeight(),
+				getSourceImageType(), isSourceRasterResize(), isNorm());
 		return evaluate(input);
 	}
 
@@ -238,7 +238,9 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		ConvLayer inputLayer = convLayers.get(0);
 		if (inputLayer == null) return null;
 		input = NeuronValue.adjustArray(input, inputLayer.size(), inputLayer);
-		for (int i = 0; i < input.length; i++) inputLayer.getNeurons()[i].setValue(input[i]);
+		for (int i = 0; i < input.length; i++) {
+			inputLayer.getNeurons()[i].setValue(input[i]);
+		}
 		if (convLayers.size() == 1) return inputLayer.getData();
 		
 		for (int i = 0; i < convLayers.size() -  1; i++) convLayers.get(i).forward();
@@ -289,15 +291,14 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 			if (!doStarted) break;
 			
 			if (record == null || record.output == null) continue;
-			if ((record.undefinedInput == null) || !(record.undefinedInput instanceof Raster)) continue;
 			
 			try {
-				Raster imageSpec = (Raster)record.undefinedInput;
-				NeuronValue[] input = Raster.convertFromRasterToNeuronValues(neuronChannel, convInputLayer.getWidth(), convInputLayer.getHeight(),
-						imageSpec, getSourceImageType(), isSourceRasterResize(), isNorm());
-				if (input == null) continue;
-
-				NeuronValue[] evaluated = evaluateByRaster(imageSpec);
+				NeuronValue[] evaluated = null;
+				if (record.input != null)
+					evaluated = evaluate(record.input);
+				else if ((record.undefinedInput != null) && (record.undefinedInput instanceof Raster))
+					evaluated = evaluateByRaster((Raster)record.undefinedInput);
+				
 				if (evaluated == null) continue;
 			} catch (Throwable e) {Util.trace(e);}
 			

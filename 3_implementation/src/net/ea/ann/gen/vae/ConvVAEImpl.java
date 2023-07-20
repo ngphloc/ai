@@ -8,6 +8,8 @@
 package net.ea.ann.gen.vae;
 
 import java.awt.Dimension;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.rmi.RemoteException;
 import java.util.List;
@@ -175,6 +177,19 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	/**
 	 * Initialize with Z dimension as well as other specifications.
 	 * @param zDim Z dimension
+	 * @param convFilters convolutional filters.
+	 * @param deconvFilters deconvolutional filters.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initialize(int zDim,
+			Filter[] convFilters, Filter[] deconvFilters) {
+		return this.initialize(zDim, createHiddenNeuron(width*height, zDim), null, convFilters, deconvFilters);
+	}
+	
+	
+	/**
+	 * Initialize with Z dimension as well as other specifications.
+	 * @param zDim Z dimension
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param convFilters convolutional filters.
 	 * @return true if initialization is successful.
@@ -237,10 +252,8 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 				if ((record.undefinedInput == null) || !(record.undefinedInput instanceof Raster)) continue;
 				
 				Raster raster = (Raster)record.undefinedInput;
-				if (raster == null) continue;
-				
-				NeuronValue[] input = Raster.convertFromRasterToNeuronValues(neuronChannel, width, height,
-						raster, getSourceImageType(), isSourceRasterResize(), isNorm());
+				NeuronValue[] input = raster.convertFromRasterToNeuronValues(neuronChannel, width, height,
+					getSourceImageType(), isSourceRasterResize(), isNorm());
 				if (input != null) record.input = input;
 			}
 			catch (Throwable e) {
@@ -297,8 +310,8 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 					} catch (Throwable e) {Util.trace(e);}
 				}
 				else
-					input = Raster.convertFromRasterToNeuronValues(neuronChannel, width, height,
-						raster, getSourceImageType(), isSourceRasterResize(), isNorm());
+					input = raster.convertFromRasterToNeuronValues(neuronChannel, width, height,
+						getSourceImageType(), isSourceRasterResize(), isNorm());
 				
 				if (input == null) continue;
 					
@@ -377,7 +390,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 			if (dataX == null) return null;
 			
 			if (deconv == null) {
-				Dimension size = getConvRasterSize();
+				Dimension size = getOutputConvRasterSize();
 				Raster raster = Raster.convertFromNeuronValuesToRaster(dataX, neuronChannel, size.width, size.height,
 					getSourceImageType(), isNorm(), getDefaultAlpha());
 				
@@ -387,7 +400,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 			dataX = deconv.evaluate(dataX);
 			if (dataX == null) return null;
 			
-			Dimension size = getDeconvRasterSize();
+			Dimension size = getOutputDeconvRasterSize();
 			return Raster.convertFromNeuronValuesToRaster(dataX, neuronChannel, size.width, size.height,
 				getSourceImageType(), isNorm(), getDefaultAlpha());
 		}
@@ -400,10 +413,10 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	
 	
 	/**
-	 * Getting convolutional raster size.
-	 * @return convolutional raster size.
+	 * Getting output convolutional raster size.
+	 * @return output convolutional raster size.
 	 */
-	protected Dimension getConvRasterSize() {
+	protected Dimension getOutputConvRasterSize() {
 		if (conv == null) return new Dimension(width, height);
 		
 		ConvLayer convOutputLayer = conv.getConvOutputLayer();
@@ -415,17 +428,216 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	
 	
 	/**
-	 * Getting deconvolutional raster size.
-	 * @return deconvolutional raster size.
+	 * Getting output deconvolutional raster size.
+	 * @return output deconvolutional raster size.
 	 */
-	protected Dimension getDeconvRasterSize() {
-		if (deconv == null) return getConvRasterSize();
+	protected Dimension getOutputDeconvRasterSize() {
+		if (deconv == null) return getOutputConvRasterSize();
 		
 		ConvLayer deconvOutputLayer = deconv.getConvOutputLayer();
 		if (deconvOutputLayer == null)
-			return getConvRasterSize();
+			return getOutputConvRasterSize();
 		else
 			return new Dimension(deconvOutputLayer.getWidth(), deconvOutputLayer.getHeight());
+	}
+
+	
+	/**
+	 * Generating rasters from sample.
+	 * @param sample raster sample.
+	 * @param nGens number of generated raster.
+	 * @param depth raster depth.
+	 * @param zDim Z dimension.
+	 * @param convFilters convolutional filters.
+	 * @param deconvFilters convolutional filters.
+	 * @return list of generated rasters.
+	 */
+	public static List<Raster> generateRasters(Iterable<Raster> sample, int nGens, int depth, int zDim, Filter[] convFilters, Filter[] deconvFilters) {
+		List<Raster> result = Util.newList(0);
+		
+		if (sample == null || zDim <= 0) return result;
+		nGens = nGens < 1 ? 1 : nGens;
+		depth = depth < 1 ? 1 : depth;
+
+		int n = 0;
+		int width = 0;
+		int height = 0;
+		for (Raster raster : sample) {
+			width += raster.getWidth();
+			height += raster.getHeight();
+			n++;
+		}
+		if (n == 0) return result;
+		width = width / n;
+		height = height / n;
+		if (width == 0 || height == 0) return result;
+		
+		int xDim = width*height;
+		if (convFilters != null && convFilters.length > 0) {
+			for (Filter filter : convFilters) xDim = xDim / (filter.slideWidth()*filter.slideHeight());
+			
+			if (xDim == 0) return result;
+		}
+		
+		ConvVAEImpl convVAE = new ConvVAEImpl(depth, width, height);
+		convVAE.initialize(zDim, createHiddenNeuron(xDim, zDim), convFilters, deconvFilters);
+		
+		try {
+			convVAE.learnByRaster(sample);
+		}
+		catch (Exception e) {
+			Util.trace(e);
+			try {
+				convVAE.close();
+			} catch (Exception e2) {}
+			return result;
+		}
+		
+		for (int i = 0; i < nGens; i++) {
+			try {
+				Raster raster = convVAE.generateRaster();
+				if (raster != null) result.add(raster);
+			} catch (Exception e) {Util.trace(e);}
+		}
+		
+		try {
+			convVAE.close();
+		} catch (Exception e) {Util.trace(e);}
+		
+		return result;
+	}
+	
+	
+	/**
+	 * Generating rasters from sample.
+	 * @param sample raster sample.
+	 * @param nGens number of generated raster.
+	 * @param depth raster depth.
+	 * @param zDim Z dimension.
+	 * @param convFilters convolutional filters.
+	 * @return list of generated rasters.
+	 */
+	public static List<Raster> generateRasters(Iterable<Raster> sample, int nGens, int depth, int zDim, Filter[] convFilters) {
+		return generateRasters(sample, nGens, depth, zDim, convFilters, null);
+	}
+	
+	
+	/**
+	 * Generating rasters from sample.
+	 * @param sample raster sample.
+	 * @param nGens number of generated raster.
+	 * @param depth raster depth.
+	 * @param zDim Z dimension.
+	 * @return list of generated rasters.
+	 */
+	public static List<Raster> generateRasters(Iterable<Raster> sample, int nGens, int depth, int zDim) {
+		return generateRasters(sample, nGens, depth, zDim, null, null);
+	}
+
+	
+	/**
+	 * Generating rasters from sample.
+	 * @param sample raster sample.
+	 * @param nGens number of generated raster.
+	 * @param depth raster depth.
+	 * @param zDim Z dimension.
+	 * @param zoomOutRatio zoom out ration.
+	 * @return list of generated rasters.
+	 */
+	public static List<Raster> generateRasters(Iterable<Raster> sample, int nGens, int depth, int zDim, int zoomOutRatio) {
+		List<Raster> result = Util.newList(0);
+		
+		if (sample == null || zDim <= 0) return result;
+		nGens = nGens < 1 ? 1 : nGens;
+		depth = depth < 1 ? 1 : depth;
+		zoomOutRatio = zoomOutRatio <= 0 ? 1 : zoomOutRatio;
+
+		int n = 0;
+		int width = 0;
+		int height = 0;
+		for (Raster raster : sample) {
+			width += raster.getWidth();
+			height += raster.getHeight();
+			n++;
+		}
+		if (n == 0) return result;
+		width = width / n;
+		height = height / n;
+		if (width == 0 || height == 0) return result;
+		
+		ConvVAEImpl convVAE = new ConvVAEImpl(depth, width, height);
+		
+		int xDim = width*height;
+		Filter[] convFilters = null;
+		Filter[] deconvFilters = null;
+		if (zoomOutRatio > 1) {
+			FilterFactory factory = convVAE.getFilterFactory();
+			convFilters = new Filter[] {factory.zoomOut(zoomOutRatio, zoomOutRatio)};
+			deconvFilters = new Filter[] {factory.zoomIn(zoomOutRatio, zoomOutRatio)};
+			
+			xDim = xDim / (zoomOutRatio*zoomOutRatio);
+		}
+		
+		convVAE.initialize(zDim, createHiddenNeuron(xDim, zDim), convFilters, deconvFilters);
+		
+		try {
+			convVAE.learnByRaster(sample);
+		} catch (Exception e) {
+			Util.trace(e);
+		}
+		
+		for (int i = 0; i < nGens; i++) {
+			try {
+				Raster raster = convVAE.generateRaster();
+				if (raster != null) result.add(raster);
+			} catch (Exception e) {
+				Util.trace(e);
+			}
+		}
+		
+		try {
+			convVAE.close();
+		} catch (Exception e) {
+			Util.trace(e);
+		}
+		
+		return result;
+	}
+
+	
+	/**
+	 * Generating rasters from source directory to target directory.
+	 * @param sourceDirectory source directory.
+	 * @param targetDirectory target directory.
+	 * @param nGens number of generated raster.
+	 * @param depth raster depth.
+	 * @param zDim Z dimension.
+	 * @param zoomOutRatio zoom out ration.
+	 * @return list of generated rasters.
+	 */
+	public static void generateRasters(Path sourceDirectory, Path targetDirectory, int nGens, int depth, int zDim, int zoomOutRatio) {
+		if ((!Files.isDirectory(sourceDirectory)) || (!Files.isDirectory(targetDirectory))) return;
+		
+		List<Raster> sample = Raster.loadDirectory(sourceDirectory);
+		List<Raster> rasters = generateRasters(sample, nGens, depth, zDim, zoomOutRatio);
+		for (Raster raster : rasters) {
+			Path path = targetDirectory.resolve("gen" + System.currentTimeMillis() + "." + Raster.IMAGE_FORMAT_DEFAULT);
+			raster.save(path);
+		}
+	}
+	
+	
+	/**
+	 * Generating rasters from source directory to target directory.
+	 * @param sourceDirectory source directory.
+	 * @param targetDirectory target directory.
+	 * @param nGens number of generated raster.
+	 * @param depth raster depth.
+	 * @param zDim Z dimension.
+	 * @return list of generated rasters.
+	 */
+	public static void generateRasters(Path sourceDirectory, Path targetDirectory, int nGens, int depth, int zDim) {
+		generateRasters(sourceDirectory, targetDirectory, nGens, depth, zDim, 1);
 	}
 
 	
@@ -482,42 +694,46 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	 * @param args arguments.
 	 */
 	public static void main(String[] args) {
-		try (ConvVAEImpl convVAE = new ConvVAEImpl(3, 250, 250)) {
-			convVAE.config.put(LEARN_MAX_ITERATION_FIELD, 1);
-			
-			Filter[] convFilters = new Filter[] {convVAE.getFilterFactory().zoomOut(3, 3)};
-			Filter[] deconvFilters = new Filter[] {convVAE.getFilterFactory().zoomIn(3, 3)};
-			//convVAE.initialize(10, new int[] {30, 20});
-			convVAE.initialize(10, new int[] {30, 20}, convFilters, deconvFilters);
+		generateRasters(Paths.get("working/sample"), Paths.get("working/gen"),
+				10, 3, 10, 3);
 		
-			List<Raster> sample = Util.newList(0);
-			
-			Raster image = Raster.load(Paths.get("working/sample1.png"));
-			sample.add(image);
-			
-			image = Raster.load(Paths.get("working/sample2.png"));
-			sample.add(image);
-
-			//image = Raster.load(Paths.get("working/sample3.png"));
-			//sample.add(image);
-
-			convVAE.learnByRaster(sample);
-			
-			image = convVAE.generateRaster();
-			image.save(Paths.get("working/gen1.png"));
-			
-			image = convVAE.generateRaster();
-			image.save(Paths.get("working/gen2.png"));
-			
-			//image = convVAE.generateImage();
-			//image.save(Paths.get("working/gen3.png"));
-			
-			//image = convVAE.generateImage();
-			//image.save(Paths.get("working/gen4.png"));
-		}
-		catch (Exception e) {
-			Util.trace(e);
-		}
+//		try (ConvVAEImpl convVAE = new ConvVAEImpl(3, 250, 250)) {
+//			convVAE.config.put(LEARN_MAX_ITERATION_FIELD, 1);
+//			
+//			Filter[] convFilters = new Filter[] {convVAE.getFilterFactory().zoomOut(3, 3)};
+//			Filter[] deconvFilters = new Filter[] {convVAE.getFilterFactory().zoomIn(3, 3)};
+//			//convVAE.initialize(10, new int[] {30, 20});
+//			convVAE.initialize(10, new int[] {30, 20}, convFilters, deconvFilters);
+//		
+//			List<Raster> sample = Util.newList(0);
+//			
+//			Raster image = Raster.load(Paths.get("working/sample1.png"));
+//			sample.add(image);
+//			
+//			image = Raster.load(Paths.get("working/sample2.png"));
+//			sample.add(image);
+//
+//			//image = Raster.load(Paths.get("working/sample3.png"));
+//			//sample.add(image);
+//
+//			convVAE.learnByRaster(sample);
+//			
+//			image = convVAE.generateRaster();
+//			image.save(Paths.get("working/gen1.png"));
+//			
+//			image = convVAE.generateRaster();
+//			image.save(Paths.get("working/gen2.png"));
+//			
+//			//image = convVAE.generateImage();
+//			//image.save(Paths.get("working/gen3.png"));
+//			
+//			//image = convVAE.generateImage();
+//			//image.save(Paths.get("working/gen4.png"));
+//		}
+//		catch (Exception e) {
+//			Util.trace(e);
+//		}
+		
 	}
 
 

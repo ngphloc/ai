@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -149,6 +150,24 @@ public class Raster implements Serializable {
 	}
 	
 	
+	/**
+	 * Getting raster width.
+	 * @return raster width.
+	 */
+	public int getWidth() {
+		return image.getWidth();
+	}
+	
+	
+	/**
+	 * Getting raster height.
+	 * @return raster height.
+	 */
+	public int getHeight() {
+		return image.getHeight();
+	}
+	
+
 	/**
 	 * Writing object for serialization.
 	 * @param out specific output stream.
@@ -494,32 +513,23 @@ public class Raster implements Serializable {
 		double factor = isNorm ? 255 : 1;
 		int minWidth = Math.min(width, image.getWidth());
 		int minHeight = Math.min(height, image.getHeight());
-		for (int y = 0; y < minHeight; y++) {
-			for (int x = 0; x < minWidth; x++) {
-				int p = image.getRGB(x, y);
-				  
-	            int a = (p >> 24) & 0xff;
-	            int r = (p >> 16) & 0xff;
-	            int g = (p >> 8) & 0xff;
-	            int b = p & 0xff;
-	            
-	            //Gray value
-	            int gray = (r + g + b) / 3;
-	
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
 	            NeuronValue value = null;
-	            switch (imageType) {
-	            case GRAY:
-	            	value = new NeuronValue1((double)gray/factor);
-	            	break;
-	            case RGB:
-	            	value = new NeuronValueV((double)r/factor, (double)g/factor, (double)b/factor);
-	            	break;
-	            case ARGB:
-	            	value = new NeuronValueV((double)a/factor, (double)r/factor, (double)g/factor, (double)b/factor);
-	            	break;
-	            default:
-	            	value = new NeuronValue1((double)gray/factor);
-	            	break;
+	            if (x >= minWidth || y >= minHeight)
+	            	value = createNeuronValue(imageType, 0, 0, 0, 0, 0, 1);
+	            else {
+					int p = image.getRGB(x, y);
+					  
+		            int a = (p >> 24) & 0xff;
+		            int r = (p >> 16) & 0xff;
+		            int g = (p >> 8) & 0xff;
+		            int b = p & 0xff;
+		            
+		            //Gray value
+		            int gray = (r + g + b) / 3;
+		            
+	            	value = createNeuronValue(imageType, a, r, g, b, gray, factor);
 	            }
 	
 	            values[y*width + x] = value;
@@ -527,51 +537,78 @@ public class Raster implements Serializable {
 			
 		}
 		
-		//Fill zero.
-		for (int y = minHeight; y < height; y++) {
-			for (int x = minWidth; x < width; x++) {
-	            NeuronValue value = null;
-	            switch (imageType) {
-	            case GRAY:
-	            	value = new NeuronValue1(0).zero();
-	            	break;
-	            case RGB:
-	            	value = new NeuronValueV(0, 0, 0).zero();
-	            	break;
-	            case ARGB:
-	            	value = new NeuronValue1(0).zero();
-	            	break;
-	            default:
-	            	value = new NeuronValue1(0).zero();
-	            	break;
-	            }
-	            
-	            values[y*width + x] = value;
-			}
-		}
-		
 		return values;
 	}
 
 
 	/**
+	 * Create neuron value.
+	 * @param imageType image type.
+	 * @param a alpha value.
+	 * @param r red value.
+	 * @param g green value.
+	 * @param b blue value.
+	 * @param gray gray value.
+	 * @param factor specific factor.
+	 * @return neuron value.
+	 */
+	private static NeuronValue createNeuronValue(ImageType imageType, int a, int r, int g, int b, int gray, double factor) {
+        NeuronValue value = null;
+        switch (imageType) {
+        case GRAY:
+        	value = new NeuronValue1((double)gray/factor);
+        	break;
+        case RGB:
+        	value = new NeuronValueV((double)r/factor, (double)g/factor, (double)b/factor);
+        	break;
+        case ARGB:
+        	value = new NeuronValueV((double)a/factor, (double)r/factor, (double)g/factor, (double)b/factor);
+        	break;
+        default:
+        	value = new NeuronValue1((double)gray/factor);
+        	break;
+        }
+        
+        return value;
+	}
+	
+	
+	/**
 	 * Extracting raster into neuron value array.
 	 * @param neuronChannel neuron channel.
 	 * @param imageWidth image width.
 	 * @param imageHeight image height.
-	 * @param imageSpec image specification.
 	 * @param sourceImageType source image type.
 	 * @param isResize flag to indicate whether image is resized.
 	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
 	 * @return neuron value array.
 	 */
-	public static NeuronValue[] convertFromRasterToNeuronValues(int neuronChannel, int imageWidth, int imageHeight,
-			Raster imageSpec, int sourceImageType, boolean isResize, boolean isNorm) {
-		if (imageSpec != null)
-			return convertFromImageToNeuronValues(toImageType(neuronChannel), imageWidth, imageHeight,
-				imageSpec.getImage(), sourceImageType, isResize, isNorm);
-		else
-			return null;
+	public NeuronValue[] convertFromRasterToNeuronValues(int neuronChannel, int imageWidth, int imageHeight,
+			int sourceImageType, boolean isResize, boolean isNorm) {
+		return convertFromImageToNeuronValues(toImageType(neuronChannel), imageWidth, imageHeight,
+				this.getImage(), sourceImageType, isResize, isNorm);
+	}
+	
+	
+	/**
+	 * Load rasters from directory.
+	 * @param directory specified directory.
+	 * @return list of rasters loaded from directory.
+	 */
+	public static List<Raster> loadDirectory(Path directory) {
+		List<Raster> rasters = Util.newList(0);
+		if (!Files.isDirectory(directory)) return rasters;
+		
+		try {
+			Files.walk(directory).filter(Files::isRegularFile).forEach((path) -> {
+				Raster raster = Raster.load(path);
+				if (raster != null) rasters.add(raster);
+			});
+		} catch (Exception e) {
+			Util.trace(e);
+		}
+		
+		return rasters;
 	}
 	
 	

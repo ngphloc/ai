@@ -14,6 +14,7 @@ import java.util.Random;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerStandard;
+import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.NetworkStandardImpl;
 import net.ea.ann.core.NeuronStandard;
@@ -21,7 +22,6 @@ import net.ea.ann.core.NeuronValue;
 import net.ea.ann.core.NeuronValue1;
 import net.ea.ann.core.Record;
 import net.ea.ann.core.Util;
-import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.LogisticFunction1;
 
@@ -178,8 +178,48 @@ public class VAEImpl extends VAEAbstract {
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int xDim, int zDim, int[] nHiddenNeuronEncode) {
-		return initialize(xDim, zDim, nHiddenNeuronEncode,
+		return this.initialize(xDim, zDim, nHiddenNeuronEncode,
 			nHiddenNeuronEncode != null && nHiddenNeuronEncode.length > 0? reverse(nHiddenNeuronEncode) : null);
+	}
+	
+	
+	/**
+	 * Initialize with X dimension and Z dimension.
+	 * @param xDim X dimension.
+	 * @param zDim Z dimension
+	 * @return true if initialization is successful.
+	 */
+	public boolean initialize(int xDim, int zDim) {
+		if (xDim <= 0 || zDim <= 0) return false;
+
+		int n = (int) (Math.log(xDim) / Math.log(zDim) - 1.5);
+		n = n < 1 ? 1 : n;
+		int[] nHiddenNeuronEncode = new int[n];
+		for (int i = 0; i < n; i++) {
+			nHiddenNeuronEncode[i] = (int) (Math.pow(zDim, i+2) + 0.5);
+		}
+		
+		return this.initialize(xDim, zDim, createHiddenNeuron(xDim, zDim));
+	}
+
+	
+	/**
+	 * Create array of hidden neurons.
+	 * @param xDim X dimension.
+	 * @param zDim Z dimension.
+	 * @return array of hidden neurons.
+	 */
+	protected static int[] createHiddenNeuron(int xDim, int zDim) {
+		if (xDim <= 0 || zDim <= 0) return null;
+
+		int n = (int) (Math.log(xDim) / Math.log(zDim) - 2);
+		n = n < 1 ? 1 : n;
+		int[] nHiddenNeuron = new int[n];
+		for (int i = 0; i < n; i++) {
+			nHiddenNeuron[i] = (int) (Math.pow(zDim, i+2));
+		}
+		
+		return nHiddenNeuron;
 	}
 	
 	
