@@ -9,7 +9,7 @@ package net.ea.ann.gen.vae;
 
 import java.rmi.RemoteException;
 
-import net.ea.ann.conv.ImageSpec;
+import net.ea.ann.conv.Raster;
 import net.ea.ann.core.NeuronValue;
 
 /**
@@ -23,20 +23,20 @@ public interface ConvVAE extends VAE {
 
 
 	/**
-	 * Learning the convolutional Variational Autoencoders.
+	 * Learning the convolutional Variational Autoencoders by raster.
 	 * @param sample sample for learning.
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	NeuronValue[] learnByImages(Iterable<ImageSpec> sample) throws RemoteException;
+	NeuronValue[] learnByRaster(Iterable<Raster> sample) throws RemoteException;
 
 	
 	/**
-	 * Generate image.
-	 * @return generated image.
+	 * Generate raster.
+	 * @return generated raster.
 	 * @throws RemoteException if any error raises.
 	 */
-	ImageSpec generateImage() throws RemoteException;
+	Raster generateRaster() throws RemoteException;
 
 	
 }

@@ -60,6 +60,12 @@ public class NeuronValue1 implements NeuronValue {
 
 
 	@Override
+	public NeuronValue duplicate() {
+		return new NeuronValue1(this.v);
+	}
+
+
+	@Override
 	public WeightValue newWeightValue() {
 		return new WeightValue1(0.0).zero();
 	}

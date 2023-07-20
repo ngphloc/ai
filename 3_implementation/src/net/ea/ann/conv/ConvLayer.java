@@ -7,6 +7,7 @@
  */
 package net.ea.ann.conv;
 
+import net.ea.ann.conv.filter.Filter;
 import net.ea.ann.core.Layer;
 import net.ea.ann.core.NeuronValue;
 

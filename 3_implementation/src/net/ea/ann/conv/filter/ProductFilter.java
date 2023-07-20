@@ -5,8 +5,9 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.conv;
+package net.ea.ann.conv.filter;
 
+import net.ea.ann.conv.ConvLayer;
 import net.ea.ann.core.NeuronValue;
 
 /**
@@ -37,6 +38,11 @@ public class ProductFilter extends AbstractFilter {
 	protected NeuronValue weight = null;
 	
 	
+	/**
+	 * Constructor with kernel and weight.
+	 * @param kernel specific kernel.
+	 * @param weight specific weight.
+	 */
 	public ProductFilter(NeuronValue[][] kernel, NeuronValue weight) {
 		super();
 		this.kernel = kernel;

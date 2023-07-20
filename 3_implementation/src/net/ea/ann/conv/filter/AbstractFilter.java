@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.conv;
+package net.ea.ann.conv.filter;
 
 /**
  * This class is an abstract implementation of filter.
@@ -42,6 +42,23 @@ public abstract class AbstractFilter implements Filter {
 		return blockSlide;
 	}
 
-	
+
+	@Override
+	public void setBlockSlide(boolean blockSlide) {
+		this.blockSlide = blockSlide;
+	}
+
+
+	@Override
+	public int slideWidth() {
+		return isBlockSlide() ? width() : 1;
+	}
+
+
+	@Override
+	public int slideHeight() {
+		return isBlockSlide() ? height() : 1;
+	}
+
 	
 }

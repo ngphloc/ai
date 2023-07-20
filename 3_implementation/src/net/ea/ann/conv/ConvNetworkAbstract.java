@@ -12,6 +12,8 @@ import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.List;
 
+import net.ea.ann.conv.filter.DeconvFilter;
+import net.ea.ann.conv.filter.Filter;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerStandard;
 import net.ea.ann.core.NetworkAbstract;
@@ -69,10 +71,10 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		
 		this.neuronChannel = neuronChannel;
 		
-		this.config.put(ImageSpec.SOURCE_IMAGE_TYPE_FIELD, ImageSpec.SOURCE_IMAGE_TYPE_DEFAULT);
-		this.config.put(ImageSpec.NORM_FIELD, ImageSpec.NORM_DEFAULT);
-		this.config.put(ImageSpec.SOURCE_IMAGE_RESIZE_FIELD, ImageSpec.SOURCE_IMAGE_RESIZE_DEFAULT);
-		this.config.put(ImageSpec.ALPHA_FIELD, ImageSpec.ALPHA_DEFAULT);
+		this.config.put(Raster.SOURCE_IMAGE_TYPE_FIELD, Raster.SOURCE_IMAGE_TYPE_DEFAULT);
+		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
+		this.config.put(Raster.SOURCE_RESIZE_FIELD, Raster.SOURCE_RESIZE_DEFAULT);
+		this.config.put(Raster.ALPHA_FIELD, Raster.ALPHA_DEFAULT);
 	}
 
 	
@@ -109,20 +111,32 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 //		reset();
 		
 		if (width <= 0 || height <= 0) return false;
+		if (filters == null || filters.length == 0) return false;
 		
 		Dimension size = new Dimension(width, height);
 		ConvLayer layer = null;
 		layer = addConvLayers(filters, size, layer);
-		ConvLayer lastLayer = newLayer(size.width / filters[filters.length-1].width(), size.height / filters[filters.length-1].height(), null);
+		if (layer == null) return false;
+		
+		Filter lastFilter = filters[filters.length-1];
+		if (lastFilter instanceof DeconvFilter) {
+			size.width *= lastFilter.slideWidth();
+			size.height *= lastFilter.slideHeight();
+		}
+		else {
+			size.width /= lastFilter.slideWidth();
+			size.height /= lastFilter.slideHeight();
+		}
+		ConvLayer lastLayer = newLayer(size.width, size.height, null);
 		if (lastLayer != null) {
-			layer.setNextLayer(lastLayer);
 			convLayers.add(lastLayer);
+			layer.setNextLayer(lastLayer);
+			layer = lastLayer;
 		}
 		
-		if (layer == null) return false;
 		if (nFullHiddenOutputNeuron == null || nFullHiddenOutputNeuron.length < 1) return true;
 		
-		fullNetwork = new NetworkStandardImpl(neuronChannel, ImageSpec.toActivationRef(neuronChannel, isNorm()));
+		fullNetwork = new NetworkStandardImpl(neuronChannel, Raster.toActivationRef(neuronChannel, isNorm()));
 		int nInputNeuron = layer.getWidth() * layer.getHeight();
 		if (nFullHiddenOutputNeuron.length == 1)
 			fullNetwork.initialize(nInputNeuron, nFullHiddenOutputNeuron[0]);
@@ -170,8 +184,14 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		for (int i = 0; i < filters.length; i++) {
 			Filter filter = filters[i];
 			if (i > 0) {
-				size.width /= filter.width();
-				size.height /= filter.height();
+				if (filter instanceof DeconvFilter) {
+					size.width *= filter.slideWidth();
+					size.height *= filter.slideHeight();
+				}
+				else {
+					size.width /= filter.slideWidth();
+					size.height /= filter.slideHeight();
+				}
 			}
 			ConvLayer newLayer = newLayer(size.width, size.height, filter);
 			if (newLayer == null) continue;
@@ -196,13 +216,13 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	
 	
 	@Override
-	public synchronized NeuronValue[] evaluateByImage(ImageSpec inputImage) throws RemoteException {
+	public synchronized NeuronValue[] evaluateByRaster(Raster inputImage) throws RemoteException {
 		if (inputImage == null) return null;
 		ConvLayer inputLayer = convLayers.get(0);
 		if (inputLayer == null) return null;
 		
-		NeuronValue[] input = ImageSpec.convertFromImageToNeuronValues(neuronChannel, inputLayer.getWidth(), inputLayer.getHeight(),
-				inputImage, getSourceImageType(), isSourceImageResize(), isNorm());
+		NeuronValue[] input = Raster.convertFromRasterToNeuronValues(neuronChannel, inputLayer.getWidth(), inputLayer.getHeight(),
+				inputImage, getSourceImageType(), isSourceRasterResize(), isNorm());
 		return evaluate(input);
 	}
 
@@ -212,7 +232,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	 * @param input array of neuron values as input.
 	 * @return evaluated array of neuron values.
 	 */
-	protected NeuronValue[] evaluate(NeuronValue[] input) {
+	public NeuronValue[] evaluate(NeuronValue[] input) {
 		if (convLayers.size() == 0 || input == null) return null;
 		
 		ConvLayer inputLayer = convLayers.get(0);
@@ -269,15 +289,15 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 			if (!doStarted) break;
 			
 			if (record == null || record.output == null) continue;
-			if ((record.undefinedInput == null) || !(record.undefinedInput instanceof ImageSpec)) continue;
+			if ((record.undefinedInput == null) || !(record.undefinedInput instanceof Raster)) continue;
 			
 			try {
-				ImageSpec imageSpec = (ImageSpec)record.undefinedInput;
-				NeuronValue[] input = ImageSpec.convertFromImageToNeuronValues(neuronChannel, convInputLayer.getWidth(), convInputLayer.getHeight(),
-						imageSpec, getSourceImageType(), isSourceImageResize(), isNorm());
+				Raster imageSpec = (Raster)record.undefinedInput;
+				NeuronValue[] input = Raster.convertFromRasterToNeuronValues(neuronChannel, convInputLayer.getWidth(), convInputLayer.getHeight(),
+						imageSpec, getSourceImageType(), isSourceRasterResize(), isNorm());
 				if (input == null) continue;
 
-				NeuronValue[] evaluated = evaluateByImage(imageSpec);
+				NeuronValue[] evaluated = evaluateByRaster(imageSpec);
 				if (evaluated == null) continue;
 			} catch (Throwable e) {Util.trace(e);}
 			
@@ -370,10 +390,10 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	 * @return source image type.
 	 */
 	private int getSourceImageType() {
-		if (config.containsKey(ImageSpec.SOURCE_IMAGE_TYPE_FIELD))
-			return config.getAsInt(ImageSpec.SOURCE_IMAGE_TYPE_FIELD);
+		if (config.containsKey(Raster.SOURCE_IMAGE_TYPE_FIELD))
+			return config.getAsInt(Raster.SOURCE_IMAGE_TYPE_FIELD);
 		else
-			return ImageSpec.SOURCE_IMAGE_TYPE_DEFAULT;
+			return Raster.SOURCE_IMAGE_TYPE_DEFAULT;
 	}
 	
 	
@@ -382,22 +402,22 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	 * @return whether point values are normalized in rang [0, 1].
 	 */
 	private boolean isNorm() {
-		if (config.containsKey(ImageSpec.NORM_FIELD))
-			return config.getAsBoolean(ImageSpec.NORM_FIELD);
+		if (config.containsKey(Raster.NORM_FIELD))
+			return config.getAsBoolean(Raster.NORM_FIELD);
 		else
-			return ImageSpec.NORM_DEFAULT;
+			return Raster.NORM_DEFAULT;
 	}
 	
 	
 	/**
-	 * Getting whether source image is resized.
-	 * @return whether source image is resized.
+	 * Getting whether source raster is resized.
+	 * @return whether source raster is resized.
 	 */
-	private boolean isSourceImageResize() {
-		if (config.containsKey(ImageSpec.SOURCE_IMAGE_RESIZE_FIELD))
-			return config.getAsBoolean(ImageSpec.SOURCE_IMAGE_RESIZE_FIELD);
+	private boolean isSourceRasterResize() {
+		if (config.containsKey(Raster.SOURCE_RESIZE_FIELD))
+			return config.getAsBoolean(Raster.SOURCE_RESIZE_FIELD);
 		else
-			return ImageSpec.SOURCE_IMAGE_RESIZE_DEFAULT;
+			return Raster.SOURCE_RESIZE_DEFAULT;
 	}
 	
 	

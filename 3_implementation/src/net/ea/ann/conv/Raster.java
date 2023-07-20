@@ -31,13 +31,13 @@ import net.ea.ann.core.function.LogisticFunction1;
 import net.ea.ann.core.function.LogisticFunctionV;
 
 /**
- * This class represent an serializable image.
+ * This class represent an serializable raster.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class ImageSpec implements Serializable {
+public class Raster implements Serializable {
 
 
 	/**
@@ -49,7 +49,7 @@ public class ImageSpec implements Serializable {
 	/**
 	 * Name of default source image type.
 	 */
-	public static final String SOURCE_IMAGE_TYPE_FIELD = "conv_image_type";
+	public static final String SOURCE_IMAGE_TYPE_FIELD = "conv_source_image_type";
 	
 
 	/**
@@ -73,13 +73,13 @@ public class ImageSpec implements Serializable {
 	/**
 	 * Name of resizing source image flag.
 	 */
-	public static final String SOURCE_IMAGE_RESIZE_FIELD = "conv_image_resize";
+	public static final String SOURCE_RESIZE_FIELD = "conv_source_resize";
 
 	
 	/**
 	 * Resizing source image flag.
 	 */
-	public static final boolean SOURCE_IMAGE_RESIZE_DEFAULT = true;
+	public static final boolean SOURCE_RESIZE_DEFAULT = true;
 	
 	
 	/**
@@ -135,7 +135,7 @@ public class ImageSpec implements Serializable {
 	 * Constructor with image. 
 	 * @param image specific image.
 	 */
-	public ImageSpec(BufferedImage image) {
+	public Raster(BufferedImage image) {
 		this.image = image;
 	}
 
@@ -173,16 +173,16 @@ public class ImageSpec implements Serializable {
     
     
 	/**
-	 * Save image to path.
-	 * @param imagePath image path.
+	 * Save raster to path.
+	 * @param path raster path.
 	 * @param imageFormat image format.
 	 * @return true if writing is successful.
 	 */
-	public boolean save(Path imagePath, String imageFormat) {
+	public boolean save(Path path, String imageFormat) {
 		try {
 			if (image == null) return false;
 			
-			OutputStream os = Files.newOutputStream(imagePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+			OutputStream os = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 			ImageIO.write(image, imageFormat, os);
 			os.close();
 			
@@ -197,30 +197,30 @@ public class ImageSpec implements Serializable {
 
 
 	/**
-	 * Save image to path.
-	 * @param imagePath image path.
+	 * Save raster to path.
+	 * @param path raster path.
 	 * @return true if writing is successful.
 	 */
-	public boolean save(Path imagePath) {
-		return save(imagePath, IMAGE_FORMAT_DEFAULT);
+	public boolean save(Path path) {
+		return save(path, IMAGE_FORMAT_DEFAULT);
 	}
 
 		
 	/**
-	 * Creating this image from path.
-	 * @param imagePath specific path.
-	 * @return image loaded from path.
+	 * Creating this raster from path.
+	 * @param path specific path.
+	 * @return raster loaded from path.
 	 */
-	public static ImageSpec load(Path imagePath) {
+	public static Raster load(Path path) {
 		try {
-			InputStream is = Files.newInputStream(imagePath);
+			InputStream is = Files.newInputStream(path);
 			BufferedImage image = ImageIO.read(is);
 			is.close();
 			
 			if (image == null)
 				return null;
 			else
-				return new ImageSpec(image);
+				return new Raster(image);
 		}
 		catch (Throwable e) {
 			Util.trace(e);
@@ -340,14 +340,14 @@ public class ImageSpec implements Serializable {
 	 * @param sourceImageType source image type.
 	 * @return resized image.
 	 */
-	private static BufferedImage resizeImage(BufferedImage image, int newWidth, int newHeight, int sourceImageType) {
+	private static BufferedImage resize(BufferedImage image, int newWidth, int newHeight, int sourceImageType) {
 		if (image == null || newWidth <= 0 || newHeight <= 0)
 			return null;
 		else if (image.getWidth() != newWidth || image.getHeight() != newHeight) {
 			Image resizedImage = image.getScaledInstance(newWidth, newHeight, Image.SCALE_DEFAULT);
 			if (resizedImage == null) return null;
 			
-			image = ImageSpec.convertToSourceTypeImage(resizedImage, sourceImageType);
+			image = Raster.convertToSourceTypeImage(resizedImage, sourceImageType);
 			if (image == null)
 				return null;
 			//else if (image.getWidth() != newWidth || image.getHeight() != newHeight)
@@ -445,20 +445,20 @@ public class ImageSpec implements Serializable {
 
 
 	/**
-	 * Converting neuron values to image.
+	 * Converting neuron values to raster.
 	 * @param values neuron values.
 	 * @param neuronChannel neuron channel.
 	 * @param width raster width.
 	 * @param height raster height.
 	 * @param sourceImageType source image type.
 	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
-	 * @return converted image specification.
+	 * @return converted raster specification.
 	 */
-	public static ImageSpec convertFromNeuronValuesToImage(NeuronValue[] values, int neuronChannel, int width, int height,
+	public static Raster convertFromNeuronValuesToRaster(NeuronValue[] values, int neuronChannel, int width, int height,
 			int sourceImageType, boolean isNorm, int defaultAlpha) {
 		BufferedImage image = convertFromNeuronValuesToImage(values, toImageType(neuronChannel), width, height,
 				sourceImageType, isNorm, defaultAlpha);
-		return image != null ? new ImageSpec(image) : null;
+		return image != null ? new Raster(image) : null;
 	}
 	
 	
@@ -478,7 +478,7 @@ public class ImageSpec implements Serializable {
 		if (image == null || width <= 0 || height <= 0) return null;
 		
 		if (isResize && image.getWidth() != width && image.getHeight() != height) {
-			image = resizeImage(image, width, height, sourceImageType);
+			image = resize(image, width, height, sourceImageType);
 			if (image == null) return null;
 		}
 		
@@ -555,7 +555,7 @@ public class ImageSpec implements Serializable {
 
 
 	/**
-	 * Extracting image into neuron value array.
+	 * Extracting raster into neuron value array.
 	 * @param neuronChannel neuron channel.
 	 * @param imageWidth image width.
 	 * @param imageHeight image height.
@@ -565,8 +565,8 @@ public class ImageSpec implements Serializable {
 	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
 	 * @return neuron value array.
 	 */
-	public static NeuronValue[] convertFromImageToNeuronValues(int neuronChannel, int imageWidth, int imageHeight,
-			ImageSpec imageSpec, int sourceImageType, boolean isResize, boolean isNorm) {
+	public static NeuronValue[] convertFromRasterToNeuronValues(int neuronChannel, int imageWidth, int imageHeight,
+			Raster imageSpec, int sourceImageType, boolean isResize, boolean isNorm) {
 		if (imageSpec != null)
 			return convertFromImageToNeuronValues(toImageType(neuronChannel), imageWidth, imageHeight,
 				imageSpec.getImage(), sourceImageType, isResize, isNorm);

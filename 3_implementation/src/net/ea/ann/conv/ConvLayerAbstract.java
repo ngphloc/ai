@@ -7,6 +7,8 @@
  */
 package net.ea.ann.conv;
 
+import net.ea.ann.conv.filter.DeconvFilter;
+import net.ea.ann.conv.filter.Filter;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerAbstract;
 import net.ea.ann.core.NeuronValue;
@@ -222,22 +224,44 @@ public abstract class ConvLayerAbstract extends LayerAbstract implements ConvLay
 		Filter filter = getFilter();
 		if (filter == null) return null;
 		
-		int filterWidth = filter.width();
-		int filterHeight = filter.height();
-		int widthBlock = filter.isBlockSlide() ? this.getWidth() / filterWidth : 1;
-		int heightBlock = filter.isBlockSlide() ? this.getHeight() / filterHeight : 1;
+		int filterWidth = filter.slideWidth();
+		int filterHeight = filter.slideHeight();
+		int thisWidth = this.getWidth();
+		int thisHeight = this.getHeight();
+		int nextWidth = nextLayer.getWidth();
+		int nextHeight = nextLayer.getHeight();
 		
-		int width = nextLayer.getWidth();
-		int height = nextLayer.getHeight();
-		for (int y = 0; y < height; y++) {
-			int yBlock = y < heightBlock ? y : heightBlock-1;
-			int Y = yBlock*filterHeight;
-			for (int x = 0; x < width; x++) {
-				int xBlock = x < widthBlock ? x : widthBlock-1;
-				int X = xBlock*filterWidth;
+		int blockWidth = filter.isBlockSlide() ? thisWidth / filterWidth : 1;
+		int blockHeight = filter.isBlockSlide() ? thisHeight / filterHeight : 1;
+		if (filter instanceof DeconvFilter) {
+			blockWidth = filterWidth;
+			blockHeight = filterHeight;
+		}
+		
+		for (int nextY = 0; nextY < nextHeight; nextY++) {
+			int Y = 0;
+			if (filter instanceof DeconvFilter) {
+				Y = (int) ((double)nextY/blockHeight + 0.5);
+				Y = Y < thisHeight ? Y : thisHeight-1;
+			}
+			else {
+				int yBlock = nextY < blockHeight ? nextY : blockHeight-1;
+				Y = yBlock*filterHeight;
+			}
+			
+			for (int nextX = 0; nextX < nextWidth; nextX++) {
+				int X = 0;
+				if (filter instanceof DeconvFilter) {
+					X = (int) ((double)nextX/blockWidth + 0.5);
+					X = X < thisWidth ? X : thisWidth-1;
+				}
+				else {
+					int xBlock = nextX < blockWidth ? nextX : blockWidth-1;
+					X = xBlock*filterWidth;
+				}
 				
 				NeuronValue value = filter.apply(X, Y, this);
-				int index = y*width + x;
+				int index = nextY*nextWidth + nextX;
 				if (value != null)
 					nextNeurons[index].setValue(value);
 				else

@@ -5,8 +5,9 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.conv;
+package net.ea.ann.conv.filter;
 
+import net.ea.ann.conv.ConvLayer;
 import net.ea.ann.core.NeuronValue;
 import net.ea.ann.core.function.Function;
 

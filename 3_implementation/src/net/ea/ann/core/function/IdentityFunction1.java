@@ -7,14 +7,17 @@
  */
 package net.ea.ann.core.function;
 
+import net.ea.ann.core.NeuronValue;
+import net.ea.ann.core.NeuronValue1;
+
 /**
- * This class represents default activation function with scalar variable.
+ * This class represents identity function with scalar variable.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class IdentityFunction1 extends LogisticFunction1 {
+public class IdentityFunction1 implements Function {
 
 
 	/**
@@ -28,6 +31,18 @@ public class IdentityFunction1 extends LogisticFunction1 {
 	 */
 	public IdentityFunction1() {
 		super();
+	}
+
+
+	@Override
+	public NeuronValue eval(NeuronValue x) {
+		return x;
+	}
+
+
+	@Override
+	public NeuronValue derivative(NeuronValue x) {
+		return new NeuronValue1(1);
 	}
 
 	

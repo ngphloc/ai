@@ -74,6 +74,15 @@ public class NeuronValueV implements NeuronValue {
 	}
 
 	
+	@Override
+	public NeuronValue duplicate() {
+		NeuronValueV result = new NeuronValueV(this.v.length);
+		for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i];
+		
+		return result;
+	}
+
+
 	/**
 	 * Getting length of this vector.
 	 * @return length of this vector.

@@ -24,12 +24,12 @@ public interface ConvNetwork extends Network {
 
 
 	/**
-	 * Evaluating the convolutional network by input image.
-	 * @param inputImage input image for evaluating.
+	 * Evaluating the convolutional network by input raster.
+	 * @param inputRaster input raster for evaluating.
 	 * @return array as output of output layer.
 	 * @throws RemoteException if any error raises.
 	 */
-	NeuronValue[] evaluateByImage(ImageSpec inputImage) throws RemoteException;
+	NeuronValue[] evaluateByRaster(Raster inputRaster) throws RemoteException;
 
 	
 	/**

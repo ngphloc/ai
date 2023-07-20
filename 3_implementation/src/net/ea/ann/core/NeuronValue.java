@@ -34,6 +34,13 @@ public interface NeuronValue extends Value {
 	
 	
 	/**
+	 * Duplicate this neuron value.
+	 * @return duplicated neuron value.
+	 */
+	NeuronValue duplicate();
+	
+	
+	/**
 	 * Create weight value.
 	 * @return weight value.
 	 */

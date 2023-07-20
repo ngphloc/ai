@@ -9,9 +9,6 @@ package net.ea.ann.conv;
 
 import net.ea.ann.conv.filter.Filter;
 import net.ea.ann.core.Id;
-import net.ea.ann.core.NeuronValue;
-import net.ea.ann.core.NeuronValue1;
-import net.ea.ann.core.NeuronValueV;
 
 /**
  * This class is the default implementation of convolutional layer.
@@ -20,7 +17,7 @@ import net.ea.ann.core.NeuronValueV;
  * @version 1.0
  *
  */
-public class ConvLayerImpl extends ConvLayerAbstract {
+public class DeconvLayerImpl extends ConvLayerImpl implements DeconvLayer {
 
 
 	/**
@@ -28,7 +25,6 @@ public class ConvLayerImpl extends ConvLayerAbstract {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	
 	/**
 	 * Constructor with neuron channel, width, height, filter, and ID reference.
 	 * @param neuronChannel neuron channel or depth.
@@ -37,7 +33,7 @@ public class ConvLayerImpl extends ConvLayerAbstract {
 	 * @param filter kernel filter.
 	 * @param idRef ID reference.
 	 */
-	public ConvLayerImpl(int neuronChannel, int width, int height, Filter filter, Id idRef) {
+	public DeconvLayerImpl(int neuronChannel, int width, int height, Filter filter, Id idRef) {
 		super(neuronChannel, width, height, filter, idRef);
 	}
 
@@ -49,60 +45,49 @@ public class ConvLayerImpl extends ConvLayerAbstract {
 	 * @param height layer height.
 	 * @param filter kernel filter.
 	 */
-	public ConvLayerImpl(int neuronChannel, int width, int height, Filter filter) {
-		this(neuronChannel, width, height, filter, null);
+	public DeconvLayerImpl(int neuronChannel, int width, int height, Filter filter) {
+		super(neuronChannel, width, height, filter);
 	}
 
-
-	@Override
-	public NeuronValue newNeuronValue() {
-		if (neuronChannel <= 0)
-			return null;
-		else if (neuronChannel == 1)
-			return new NeuronValue1(0.0).zero();
-		else
-			return new NeuronValueV(neuronChannel).zero();
-	}
-
-
+	
 	/**
-	 * Creating convolutional layer with neuron channel, width, height, filter, and ID reference.
+	 * Creating deconvolutional layer with neuron channel, width, height, filter, and ID reference.
 	 * @param neuronChannel neuron channel or depth.
 	 * @param width layer width.
 	 * @param height layer height.
 	 * @param filter kernel filter.
 	 * @param idRef ID reference.
-	 * @return convolutional layer.
+	 * @return deconvolutional layer.
 	 */
-	public static ConvLayer create(int neuronChannel, int width, int height, Filter filter, Id idRef) {
+	public static DeconvLayer create(int neuronChannel, int width, int height, Filter filter, Id idRef) {
 		if (width <= 0 || height <= 0) return null;
 		neuronChannel = neuronChannel < 1 ? 1 : neuronChannel;
 		
-		return new ConvLayerImpl(neuronChannel, width, height, filter, idRef);
+		return new DeconvLayerImpl(neuronChannel, width, height, filter, idRef);
 	}
 
 
 	/**
-	 * Creating convolutional layer with neuron channel, width, height, and filter.
+	 * Creating deconvolutional layer with neuron channel, width, height, and filter.
 	 * @param neuronChannel neuron channel or depth.
 	 * @param width layer width.
 	 * @param height layer height.
 	 * @param filter kernel filter.
-	 * @return convolutional layer.
+	 * @return deconvolutional layer.
 	 */
-	public static ConvLayer create(int neuronChannel, int width, int height, Filter filter) {
+	public static DeconvLayer create(int neuronChannel, int width, int height, Filter filter) {
 		return create(neuronChannel, width, height, filter, null);
 	}
 	
 	
 	/**
-	 * Creating convolutional layer with neuron channel, width, and height.
+	 * Creating deconvolutional layer with neuron channel, width, and height.
 	 * @param neuronChannel neuron channel or depth.
 	 * @param width layer width.
 	 * @param height layer height.
-	 * @return convolutional layer.
+	 * @return deconvolutional layer.
 	 */
-	public static ConvLayer create(int neuronChannel, int width, int height) {
+	public static DeconvLayer create(int neuronChannel, int width, int height) {
 		return create(neuronChannel, width, height, null, null);
 	}
 

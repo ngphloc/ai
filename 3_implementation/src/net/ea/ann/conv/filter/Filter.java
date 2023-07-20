@@ -5,14 +5,15 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.conv;
+package net.ea.ann.conv.filter;
 
 import java.io.Serializable;
 
+import net.ea.ann.conv.ConvLayer;
 import net.ea.ann.core.NeuronValue;
 
 /**
- * This class represents a filter.
+ * This interface represents a filter.
  * 
  * @author Loc Nguyen
  * @version 1.0
@@ -29,6 +30,13 @@ public interface Filter extends Serializable, Cloneable {
 
 	
 	/**
+	 * Getting sliding width.
+	 * @return
+	 */
+	int slideWidth();
+	
+	
+	/**
 	 * Getting filter height.
 	 * @return filter height.
 	 */
@@ -36,10 +44,24 @@ public interface Filter extends Serializable, Cloneable {
 	
 	
 	/**
+	 * Getting sliding height.
+	 * @return
+	 */
+	int slideHeight();
+	
+	
+	/**
 	 * Checking whether to slide according to block when filtering.
 	 * @return whether to slide according to block when filtering.
 	 */
 	boolean isBlockSlide();
+	
+	
+	/**
+	 * Checking whether to slide according to block when filtering.
+	 * @param blockSlide flag to slide according to block when filtering.
+	 */
+	void setBlockSlide(boolean blockSlide);
 	
 	
 	/**

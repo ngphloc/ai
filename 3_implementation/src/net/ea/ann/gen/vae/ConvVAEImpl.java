@@ -15,10 +15,11 @@ import java.util.List;
 import net.ea.ann.conv.ConvLayer;
 import net.ea.ann.conv.ConvNetworkAbstract;
 import net.ea.ann.conv.ConvNetworkImpl;
-import net.ea.ann.conv.Filter;
-import net.ea.ann.conv.FilterFactory;
-import net.ea.ann.conv.FilterFactoryImpl;
-import net.ea.ann.conv.ImageSpec;
+import net.ea.ann.conv.DeconvNetworkImpl;
+import net.ea.ann.conv.Raster;
+import net.ea.ann.conv.filter.Filter;
+import net.ea.ann.conv.filter.FilterFactory;
+import net.ea.ann.conv.filter.FilterFactoryImpl;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerStandard;
 import net.ea.ann.core.NetworkDoEvent.Type;
@@ -56,34 +57,34 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 
 	
 	/**
-	 * Encoding convolutional network.
+	 * Convolutional network.
 	 */
-	protected ConvNetworkAbstract encodeConv = null;
+	protected ConvNetworkAbstract conv = null;
 
 	
 	/**
-	 * Decoding convolutional network.
+	 * Deconvolutional network.
 	 */
-	protected ConvNetworkAbstract decodeConv = null;
+	protected ConvNetworkAbstract deconv = null;
 	
 	
 	/**
 	 * Constructor with neuron channel, width, height, and identifier reference.
-	 * @param neuronChannel image type.
+	 * @param neuronChannel neuron channel or depth.
 	 * @param width raster width.
 	 * @param height raster height.
 	 * @param idRef identifier reference.
 	 */
 	public ConvVAEImpl(int neuronChannel, int width, int height, Id idRef) {
 		super(neuronChannel, null, idRef);
-		this.activateRef = ImageSpec.toActivationRef(neuronChannel, isNorm());
+		this.activateRef = Raster.toActivationRef(neuronChannel, isNorm());
 		
 		this.config.put(LEARN_MAX_ITERATION_FIELD, 1);
 
-		this.config.put(ImageSpec.SOURCE_IMAGE_TYPE_FIELD, ImageSpec.SOURCE_IMAGE_TYPE_DEFAULT);
-		this.config.put(ImageSpec.NORM_FIELD, ImageSpec.NORM_DEFAULT);
-		this.config.put(ImageSpec.SOURCE_IMAGE_RESIZE_FIELD, ImageSpec.SOURCE_IMAGE_RESIZE_DEFAULT);
-		this.config.put(ImageSpec.ALPHA_FIELD, ImageSpec.ALPHA_DEFAULT);
+		this.config.put(Raster.SOURCE_IMAGE_TYPE_FIELD, Raster.SOURCE_IMAGE_TYPE_DEFAULT);
+		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
+		this.config.put(Raster.SOURCE_RESIZE_FIELD, Raster.SOURCE_RESIZE_DEFAULT);
+		this.config.put(Raster.ALPHA_FIELD, Raster.ALPHA_DEFAULT);
 		
 		this.width = width;
 		this.height = height;
@@ -91,8 +92,8 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 
 	
 	/**
-	 * Constructor with image type, width, and height.
-	 * @param neuronChannel neuron channel.
+	 * Constructor with neuron channel, width, and height.
+	 * @param neuronChannel neuron channel or depth.
 	 * @param width raster width.
 	 * @param height raster height.
 	 */
@@ -115,23 +116,23 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	 * @param zDim Z dimension
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param nHiddenNeuronDecode number of decoded hidden neurons.
-	 * @param encodeFilters encoding filters.
-	 * @param decodeFilters decoding filters.
+	 * @param convFilters convolutional filters.
+	 * @param deconvFilters deconvolutional filters.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int zDim, int[] nHiddenNeuronEncode, int[] nHiddenNeuronDecode,
-			Filter[] encodeFilters, Filter[] decodeFilters) {
+			Filter[] convFilters, Filter[] deconvFilters) {
 //		reset();
 		int xDim = 0;
 		
-		if (encodeFilters != null && encodeFilters.length > 0) {
-			encodeConv = createEncodeConvNetwork();
-			if (encodeConv == null)
+		if (convFilters != null && convFilters.length > 0) {
+			conv = createConvNetwork();
+			if (conv == null)
 				return false;
-			else if (!encodeConv.initialize(width, height, encodeFilters))
+			else if (!conv.initialize(width, height, convFilters))
 				return false;
 			
-			xDim = encodeConv.getConvOutputLayer().getWidth() * encodeConv.getConvOutputLayer().getHeight();
+			xDim = conv.getConvOutputLayer().getWidth() * conv.getConvOutputLayer().getHeight();
 		}
 		else
 			xDim = width * height;
@@ -139,8 +140,18 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 		if(!super.initialize(xDim, zDim, nHiddenNeuronEncode, nHiddenNeuronDecode))
 			return false;
 
-		if (decodeFilters != null && decodeFilters.length > 0) {
-			//Fixing here.
+		if (deconvFilters != null && deconvFilters.length > 0) {
+			int deconvWidth = width, deconvHeight = height;
+			if (conv != null) {
+				deconvWidth = conv.getConvOutputLayer().getWidth();
+				deconvHeight = conv.getConvOutputLayer().getHeight();
+			}
+			
+			deconv = createDeconvNetwork();
+			if (deconv == null)
+				return false;
+			else if (!deconv.initialize(deconvWidth, deconvHeight, deconvFilters))
+				return false;
 		}
 		
 		return true;
@@ -151,13 +162,13 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	 * Initialize with Z dimension as well as other specifications.
 	 * @param zDim Z dimension
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
-	 * @param encodeFilters encoding filters.
-	 * @param decodeFilters decoding filters.
+	 * @param convFilters convolutional filters.
+	 * @param deconvFilters deconvolutional filters.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int zDim, int[] nHiddenNeuronEncode, 
-			Filter[] encodeFilters, Filter[] decodeFilters) {
-		return this.initialize(zDim, nHiddenNeuronEncode, null, encodeFilters, decodeFilters);
+			Filter[] convFilters, Filter[] deconvFilters) {
+		return this.initialize(zDim, nHiddenNeuronEncode, null, convFilters, deconvFilters);
 	}
 
 	
@@ -165,12 +176,12 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	 * Initialize with Z dimension as well as other specifications.
 	 * @param zDim Z dimension
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
-	 * @param encodeFilters encoding filters.
+	 * @param convFilters convolutional filters.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int zDim, int[] nHiddenNeuronEncode, 
-			Filter[] encodeFilters) {
-		return this.initialize(zDim, nHiddenNeuronEncode, null, encodeFilters, null);
+			Filter[] convFilters) {
+		return this.initialize(zDim, nHiddenNeuronEncode, null, convFilters, null);
 	}
 
 	
@@ -186,20 +197,29 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 
 	
 	/**
-	 * Creating encoding convolutional neural network.
-	 * @return encoding convolutional neural network.
+	 * Creating convolutional neural network.
+	 * @return convolutional neural network.
 	 */
-	protected ConvNetworkAbstract createEncodeConvNetwork() {
+	protected ConvNetworkAbstract createConvNetwork() {
 		return ConvNetworkImpl.create(neuronChannel, idRef);
 	}
 	
 	
 	/**
-	 * Getting encoding filter factory.
-	 * @return encoding filter factory.
+	 * Creating deconvolutional neural network.
+	 * @return deconvolutional neural network.
 	 */
-	protected FilterFactory getEncodeFilterFactory() {
-		ConvNetworkAbstract conv = createEncodeConvNetwork();
+	protected ConvNetworkAbstract createDeconvNetwork() {
+		return DeconvNetworkImpl.create(neuronChannel, idRef);
+	}
+
+	
+	/**
+	 * Getting filter factory.
+	 * @return filter factory.
+	 */
+	protected FilterFactory getFilterFactory() {
+		ConvNetworkAbstract conv = createConvNetwork();
 		if (conv == null) return null;
 		
 		ConvLayer layer = conv.newLayer(1, 1, null);
@@ -214,13 +234,13 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	public synchronized NeuronValue[] learn(Iterable<Record> sample) throws RemoteException {
 		for (Record record : sample) {
 			try {
-				if ((record.undefinedInput == null) || !(record.undefinedInput instanceof ImageSpec)) continue;
+				if ((record.undefinedInput == null) || !(record.undefinedInput instanceof Raster)) continue;
 				
-				ImageSpec imageSpec = (ImageSpec)record.undefinedInput;
-				if (imageSpec == null) continue;
+				Raster raster = (Raster)record.undefinedInput;
+				if (raster == null) continue;
 				
-				NeuronValue[] input = ImageSpec.convertFromImageToNeuronValues(neuronChannel, width, height,
-						imageSpec, getSourceImageType(), isSourceImageResize(), isNorm());
+				NeuronValue[] input = Raster.convertFromRasterToNeuronValues(neuronChannel, width, height,
+						raster, getSourceImageType(), isSourceRasterResize(), isNorm());
 				if (input != null) record.input = input;
 			}
 			catch (Throwable e) {
@@ -233,11 +253,11 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 
 
 	@Override
-	public synchronized NeuronValue[] learnByImages(Iterable<ImageSpec> sample) throws RemoteException {
+	public synchronized NeuronValue[] learnByRaster(Iterable<Raster> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
 		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
-		return bpLearnByImages(sample, learningRate, terminatedThreshold, maxIteration);
+		return bpLearnByRaster(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
 
@@ -249,7 +269,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	protected NeuronValue[] bpLearnByImages(Iterable<ImageSpec> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	protected NeuronValue[] bpLearnByRaster(Iterable<Raster> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -265,20 +285,20 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			for (ImageSpec imageSpec : sample) {
-				if (imageSpec == null) continue;
+			for (Raster raster : sample) {
+				if (raster == null) continue;
 				
 				NeuronValue[] input = null;
 				
 				//Evaluating convolutional encoding network.
-				if (encodeConv != null) {
+				if (conv != null) {
 					try {
-						input = encodeConv.evaluateByImage(imageSpec);
+						input = conv.evaluateByRaster(raster);
 					} catch (Throwable e) {Util.trace(e);}
 				}
 				else
-					input = ImageSpec.convertFromImageToNeuronValues(neuronChannel, width, height,
-						imageSpec, getSourceImageType(), isSourceImageResize(), isNorm());
+					input = Raster.convertFromRasterToNeuronValues(neuronChannel, width, height,
+						raster, getSourceImageType(), isSourceRasterResize(), isNorm());
 				
 				if (input == null) continue;
 					
@@ -313,7 +333,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 			
 			iteration ++;
 			
-			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "vae_backpropogate",
+			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "convvae_backpropogate",
 				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
 
 			if (error == null || error.length == 0)
@@ -340,7 +360,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 			doStarted = false;
 			doPaused = false;
 			
-			fireDoEvent(new NetworkDoEventImpl(this, Type.done, "vae_backpropogate",
+			fireDoEvent(new NetworkDoEventImpl(this, Type.done, "convvae_backpropogate",
 				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
 			
 			notifyAll();
@@ -351,13 +371,27 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 
 	
 	@Override
-	public synchronized ImageSpec generateImage() throws RemoteException {
+	public synchronized Raster generateRaster() throws RemoteException {
 		try {
 			NeuronValue[] dataX = generate();
-			Dimension size = getEncodeRasterSize();
-			return ImageSpec.convertFromNeuronValuesToImage(dataX, neuronChannel, size.width, size.height,
+			if (dataX == null) return null;
+			
+			if (deconv == null) {
+				Dimension size = getConvRasterSize();
+				Raster raster = Raster.convertFromNeuronValuesToRaster(dataX, neuronChannel, size.width, size.height,
+					getSourceImageType(), isNorm(), getDefaultAlpha());
+				
+				return raster;
+			}
+			
+			dataX = deconv.evaluate(dataX);
+			if (dataX == null) return null;
+			
+			Dimension size = getDeconvRasterSize();
+			return Raster.convertFromNeuronValuesToRaster(dataX, neuronChannel, size.width, size.height,
 				getSourceImageType(), isNorm(), getDefaultAlpha());
-		} catch (Throwable e) {
+		}
+		catch (Throwable e) {
 			Util.trace(e);
 		}
 		
@@ -366,30 +400,44 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	
 	
 	/**
-	 * Getting encoding raster size.
-	 * @return encoding raster size.
+	 * Getting convolutional raster size.
+	 * @return convolutional raster size.
 	 */
-	protected Dimension getEncodeRasterSize() {
-		if (encodeConv == null) return new Dimension(width, height);
+	protected Dimension getConvRasterSize() {
+		if (conv == null) return new Dimension(width, height);
 		
-		ConvLayer convOutputLayer = encodeConv.getConvOutputLayer();
+		ConvLayer convOutputLayer = conv.getConvOutputLayer();
 		if (convOutputLayer == null)
 			return new Dimension(width, height);
 		else
 			return new Dimension(convOutputLayer.getWidth(), convOutputLayer.getHeight());
-		
 	}
 	
+	
+	/**
+	 * Getting deconvolutional raster size.
+	 * @return deconvolutional raster size.
+	 */
+	protected Dimension getDeconvRasterSize() {
+		if (deconv == null) return getConvRasterSize();
+		
+		ConvLayer deconvOutputLayer = deconv.getConvOutputLayer();
+		if (deconvOutputLayer == null)
+			return getConvRasterSize();
+		else
+			return new Dimension(deconvOutputLayer.getWidth(), deconvOutputLayer.getHeight());
+	}
+
 	
 	/**
 	 * Getting source image type.
 	 * @return source image type.
 	 */
 	private int getSourceImageType() {
-		if (config.containsKey(ImageSpec.SOURCE_IMAGE_TYPE_FIELD))
-			return config.getAsInt(ImageSpec.SOURCE_IMAGE_TYPE_FIELD);
+		if (config.containsKey(Raster.SOURCE_IMAGE_TYPE_FIELD))
+			return config.getAsInt(Raster.SOURCE_IMAGE_TYPE_FIELD);
 		else
-			return ImageSpec.SOURCE_IMAGE_TYPE_DEFAULT;
+			return Raster.SOURCE_IMAGE_TYPE_DEFAULT;
 	}
 	
 	
@@ -398,22 +446,22 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	 * @return whether point values are normalized in rang [0, 1].
 	 */
 	private boolean isNorm() {
-		if (config.containsKey(ImageSpec.NORM_FIELD))
-			return config.getAsBoolean(ImageSpec.NORM_FIELD);
+		if (config.containsKey(Raster.NORM_FIELD))
+			return config.getAsBoolean(Raster.NORM_FIELD);
 		else
-			return ImageSpec.NORM_DEFAULT;
+			return Raster.NORM_DEFAULT;
 	}
 	
 	
 	/**
-	 * Getting whether source image is resized.
-	 * @return whether source image is resized.
+	 * Getting whether source raster is resized.
+	 * @return whether source raster is resized.
 	 */
-	private boolean isSourceImageResize() {
-		if (config.containsKey(ImageSpec.SOURCE_IMAGE_RESIZE_FIELD))
-			return config.getAsBoolean(ImageSpec.SOURCE_IMAGE_RESIZE_FIELD);
+	private boolean isSourceRasterResize() {
+		if (config.containsKey(Raster.SOURCE_RESIZE_FIELD))
+			return config.getAsBoolean(Raster.SOURCE_RESIZE_FIELD);
 		else
-			return ImageSpec.SOURCE_IMAGE_RESIZE_DEFAULT;
+			return Raster.SOURCE_RESIZE_DEFAULT;
 	}
 	
 	
@@ -422,10 +470,10 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	 * @return default alpha.
 	 */
 	private int getDefaultAlpha() {
-		if (config.containsKey(ImageSpec.ALPHA_FIELD))
-			return config.getAsInt(ImageSpec.ALPHA_FIELD);
+		if (config.containsKey(Raster.ALPHA_FIELD))
+			return config.getAsInt(Raster.ALPHA_FIELD);
 		else
-			return ImageSpec.ALPHA_DEFAULT;
+			return Raster.ALPHA_DEFAULT;
 	}
 	
 
@@ -437,31 +485,35 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 		try (ConvVAEImpl convVAE = new ConvVAEImpl(3, 250, 250)) {
 			convVAE.config.put(LEARN_MAX_ITERATION_FIELD, 1);
 			
-			Filter[] filters = new Filter[] {convVAE.getEncodeFilterFactory().meanFilter(3, 3)};
+			Filter[] convFilters = new Filter[] {convVAE.getFilterFactory().zoomOut(3, 3)};
+			Filter[] deconvFilters = new Filter[] {convVAE.getFilterFactory().zoomIn(3, 3)};
 			//convVAE.initialize(10, new int[] {30, 20});
-			convVAE.initialize(10, new int[] {30, 20}, filters);
+			convVAE.initialize(10, new int[] {30, 20}, convFilters, deconvFilters);
 		
-			List<ImageSpec> sample = Util.newList(0);
+			List<Raster> sample = Util.newList(0);
 			
-			ImageSpec image = ImageSpec.load(Paths.get("working/sample1.png"));
+			Raster image = Raster.load(Paths.get("working/sample1.png"));
 			sample.add(image);
 			
-			image = ImageSpec.load(Paths.get("working/sample2.png"));
-			sample.add(image);
-
-			image = ImageSpec.load(Paths.get("working/sample3.png"));
+			image = Raster.load(Paths.get("working/sample2.png"));
 			sample.add(image);
 
-			convVAE.learnByImages(sample);
+			//image = Raster.load(Paths.get("working/sample3.png"));
+			//sample.add(image);
+
+			convVAE.learnByRaster(sample);
 			
-			image = convVAE.generateImage();
+			image = convVAE.generateRaster();
 			image.save(Paths.get("working/gen1.png"));
 			
-			image = convVAE.generateImage();
+			image = convVAE.generateRaster();
 			image.save(Paths.get("working/gen2.png"));
 			
-			image = convVAE.generateImage();
-			image.save(Paths.get("working/gen3.png"));
+			//image = convVAE.generateImage();
+			//image.save(Paths.get("working/gen3.png"));
+			
+			//image = convVAE.generateImage();
+			//image.save(Paths.get("working/gen4.png"));
 		}
 		catch (Exception e) {
 			Util.trace(e);

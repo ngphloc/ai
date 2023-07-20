@@ -5,16 +5,16 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.conv;
+package net.ea.ann.conv.filter;
 
 /**
- * This class represents a pooling filter.
+ * This class is an abstract implementation of deconvolution filter.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public abstract class PoolFilter extends AbstractFilter {
+public abstract class AbstractDeconvFilter extends AbstractFilter implements DeconvFilter {
 
 
 	/**
@@ -26,8 +26,7 @@ public abstract class PoolFilter extends AbstractFilter {
 	/**
 	 * Default constructor.
 	 */
-	protected PoolFilter() {
-		super();
+	protected AbstractDeconvFilter() {
 
 	}
 
