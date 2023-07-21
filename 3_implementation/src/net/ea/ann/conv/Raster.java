@@ -198,7 +198,7 @@ public class Raster implements Serializable {
 	 * @param imageFormat image format.
 	 * @return true if writing is successful.
 	 */
-	public boolean save(Path path, String imageFormat) {
+	private boolean save(Path path, String imageFormat) {
 		try {
 			if (image == null) return false;
 			
@@ -618,12 +618,12 @@ public class Raster implements Serializable {
 	
 	/**
 	 * Load rasters from directory.
-	 * @param directory specified directory.
+	 * @param directory source directory.
 	 * @return list of rasters loaded from directory.
 	 */
 	public static List<Raster> loadDirectory(Path directory) {
 		List<Raster> rasters = Util.newList(0);
-		if (!Files.isDirectory(directory)) return rasters;
+		if (directory == null || !Files.isDirectory(directory)) return rasters;
 		
 		try {
 			File[] files = directory.toFile().listFiles();
@@ -639,6 +639,24 @@ public class Raster implements Serializable {
 		} catch (Exception e) {Util.trace(e);}
 		
 		return rasters;
+	}
+
+
+	/**
+	 * Saving rasters to directory.
+	 * @param directory target directory.
+	 * @return number of generated rasters.
+	 */
+	public static int saveDirector(Iterable<Raster> rasters, Path directory) {
+		if (rasters == null || !Files.isDirectory(directory)) return 0;
+
+		int count = 0;
+		for (Raster raster : rasters) {
+			Path path = directory.resolve("gen" + System.currentTimeMillis() + "." + Raster.IMAGE_FORMAT_DEFAULT);
+			if (raster.save(path)) count++;
+		}
+		
+		return count;
 	}
 
 

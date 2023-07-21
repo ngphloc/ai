@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.rmi.RemoteException;
 import java.util.Collection;
+import java.util.List;
 
 import net.ea.ann.adapter.Util;
 import net.ea.ann.conv.Raster;
@@ -72,25 +73,25 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 	/**
 	 * Name of minimum width field.
 	 */
-	public final static String MINWIDTH_FIELD = "convvae_minwidth";
+	public final static String XMINWIDTH_FIELD = "convvae_xminwidth";
 
 	
 	/**
 	 * Default value of minimum width field.
 	 */
-	public final static int MINWIDTH_DEFAULT = 50;
+	public final static int XMINWIDTH_DEFAULT = 50;
 
 	
 	/**
 	 * Name of minimum height field.
 	 */
-	public final static String MINHEIGHT_FIELD = "convvae_minheight";
+	public final static String XMINHEIGHT_FIELD = "convvae_xminheight";
 
 	
 	/**
 	 * Default value of minimum height field.
 	 */
-	public final static int MINHEIGHT_DEFAULT = 50;
+	public final static int XMINHEIGHT_DEFAULT = 50;
 
 	
 	/**
@@ -161,8 +162,11 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 			int minWidth = getMinWidth();
 			int minHeight = getMinHeight();
 			
-			count += ConvVAEUtil.create(vae).generateRasters(sourceDirectory, targetDirectory, nGens,
+			List<Raster> rasters = Raster.loadDirectory(sourceDirectory);
+			if (rasters.size() == 0) continue;
+			rasters = ConvVAEUtil.create(vae).generateRasters(rasters, nGens,
 					getZDim(), getZoomOut(), minWidth, minHeight);
+			count += Raster.saveDirector(rasters, targetDirectory);
 		}
 		
 		return Double.valueOf(count);
@@ -207,10 +211,10 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 	 * @return minimum width.
 	 */
 	protected int getMinWidth() {
-		int minWidth = MINWIDTH_DEFAULT;
-		if (config.containsKey(MINWIDTH_FIELD)) minWidth = config.getAsInt(MINWIDTH_FIELD);
+		int minWidth = XMINWIDTH_DEFAULT;
+		if (config.containsKey(XMINWIDTH_FIELD)) minWidth = config.getAsInt(XMINWIDTH_FIELD);
 		
-		minWidth = minWidth <= 0 ? MINWIDTH_DEFAULT : minWidth;
+		minWidth = minWidth <= 0 ? XMINWIDTH_DEFAULT : minWidth;
 		return minWidth;
 	}
 
@@ -220,10 +224,10 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 	 * @return minimum height.
 	 */
 	protected int getMinHeight() {
-		int minHeight = MINHEIGHT_DEFAULT;
-		if (config.containsKey(MINHEIGHT_FIELD)) minHeight = config.getAsInt(MINHEIGHT_FIELD);
+		int minHeight = XMINHEIGHT_DEFAULT;
+		if (config.containsKey(XMINHEIGHT_FIELD)) minHeight = config.getAsInt(XMINHEIGHT_FIELD);
 		
-		minHeight = minHeight <= 0 ? MINHEIGHT_DEFAULT : minHeight;
+		minHeight = minHeight <= 0 ? XMINHEIGHT_DEFAULT : minHeight;
 		return minHeight;
 	}
 
@@ -300,8 +304,8 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 		DataConfig config = super.createDefaultConfig();
 		config.put(ZDIM_FIELD, ZDIM_DEFAULT);
 		config.put(ZOOMOUT_FIELD, ZOOMOUT_DEFAULT);
-		config.put(MINWIDTH_FIELD, MINWIDTH_DEFAULT);
-		config.put(MINHEIGHT_FIELD, MINHEIGHT_DEFAULT);
+		config.put(XMINWIDTH_FIELD, XMINWIDTH_DEFAULT);
+		config.put(XMINHEIGHT_FIELD, XMINHEIGHT_DEFAULT);
 		
 		config.addReadOnly(Raster.SOURCE_IMAGE_TYPE_FIELD);
 		
