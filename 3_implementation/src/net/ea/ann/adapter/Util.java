@@ -9,9 +9,12 @@ package net.ea.ann.adapter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import net.ea.ann.core.NetworkConfig;
 import net.hudup.core.Constants;
 import net.hudup.core.data.Attribute.Type;
+import net.hudup.core.data.DataConfig;
 import net.hudup.core.data.Profile;
 import net.hudup.core.logistic.MathUtil;
 
@@ -170,6 +173,42 @@ public class Util {
 		}
 		
 		return newAttRef;
+	}
+
+
+	/**
+	 * Convert Hudup configuration to ANN configuration.
+	 * @param config Hudup configuration.
+	 * @return ANN configuration.
+	 */
+	public static NetworkConfig transferToANNConfig(DataConfig config) {
+		if (config == null) return new NetworkConfig();
+		
+		NetworkConfig annConfig = new NetworkConfig();
+		Set<String> keys = config.keySet();
+		for (String key : keys) {
+			if (annConfig.containsKey(key)) annConfig.put(key, config.get(key));
+		}
+		
+		return annConfig;
+	}
+
+	
+	/**
+	 * Convert ANN configuration to Hudup configuration.
+	 * @param annConfig ANN configuration.
+	 * @return Hudup configuration.
+	 */
+	public static DataConfig toConfig(NetworkConfig annConfig) {
+		if (annConfig == null) return new DataConfig();
+		
+		DataConfig config = new DataConfig();
+		Set<String> keys = annConfig.keySet();
+		for (String key : keys) {
+			config.put(key, annConfig.get(key));
+		}
+		
+		return config;
 	}
 
 

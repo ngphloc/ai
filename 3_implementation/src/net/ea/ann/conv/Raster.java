@@ -10,6 +10,7 @@ package net.ea.ann.conv;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -590,6 +591,31 @@ public class Raster implements Serializable {
 	}
 	
 	
+//	/**
+//	 * Load rasters from directory. This method cause some Reflections (old version) trace because of the new Lambda expression (like for each) in new Java newer as 8.0.
+//	 * However this trace is not serious. It is possible to use the other version of this method.
+//	 * @param directory specified directory.
+//	 * @return list of rasters loaded from directory.
+//	 */
+//	public static List<Raster> loadDirectory(Path directory) {
+//		List<Raster> rasters = Util.newList(0);
+//		if (!Files.isDirectory(directory)) return rasters;
+//		
+//		try {
+//			Files.walk(directory).filter(Files::isRegularFile).forEach((path) -> {
+//				try {
+//					Raster raster = load(path);
+//					if (raster != null) rasters.add(raster);
+//				} catch (Throwable e) {}
+//			});
+//		} catch (Exception e) {
+//			Util.trace(e);
+//		}
+//		
+//		return rasters;
+//	}
+	
+	
 	/**
 	 * Load rasters from directory.
 	 * @param directory specified directory.
@@ -600,16 +626,20 @@ public class Raster implements Serializable {
 		if (!Files.isDirectory(directory)) return rasters;
 		
 		try {
-			Files.walk(directory).filter(Files::isRegularFile).forEach((path) -> {
-				Raster raster = Raster.load(path);
-				if (raster != null) rasters.add(raster);
-			});
-		} catch (Exception e) {
-			Util.trace(e);
-		}
+			File[] files = directory.toFile().listFiles();
+			for (File file : files) {
+				if (!file.isFile()) continue;
+				
+				try {
+					Raster raster = load(file.toPath());
+					if (raster != null) rasters.add(raster);
+				} catch (Throwable e) {}
+			}
+			
+		} catch (Exception e) {Util.trace(e);}
 		
 		return rasters;
 	}
-	
-	
+
+
 }

@@ -48,9 +48,10 @@ public class LayerStandardImpl extends LayerStandardAbstract {
 	
 	/**
 	 * Default constructor.
+	 * @param neuronChannel neuron channel.
 	 */
-	public LayerStandardImpl() {
-		this(1, null, null);
+	public LayerStandardImpl(int neuronChannel) {
+		this(neuronChannel, null, null);
 	}
 
 	

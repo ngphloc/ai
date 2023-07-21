@@ -8,7 +8,6 @@
 package net.ea.ann.gen.vae;
 
 import java.rmi.RemoteException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -19,11 +18,9 @@ import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.NetworkStandardImpl;
 import net.ea.ann.core.NeuronStandard;
 import net.ea.ann.core.NeuronValue;
-import net.ea.ann.core.NeuronValue1;
 import net.ea.ann.core.Record;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
-import net.ea.ann.core.function.LogisticFunction1;
 
 /**
  * This class is the default implementation of Variational Autoencoders.
@@ -100,23 +97,12 @@ public class VAEImpl extends VAEAbstract {
 	
 	/**
 	 * Default constructor.
+	 * @param neuronChannel neuron channel.
 	 */
-	public VAEImpl() {
-		this(1, null, null);
+	public VAEImpl(int neuronChannel) {
+		this(neuronChannel, null, null);
 	}
 
-	
-//	/**
-//	 * Resetting data structures for initialization.
-//	 */
-//	protected void reset() {
-//		encoder = null;
-//		decoder = null;
-//		muX = null;
-//		varX = null;
-//		varXInverse = null;
-//	}
-	
 	
 	/**
 	 * Initialize with X dimension and Z dimension as well as hidden neurons.
@@ -127,8 +113,6 @@ public class VAEImpl extends VAEAbstract {
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int xDim, int zDim, int[] nHiddenNeuronEncode, int[] nHiddenNeuronDecode) {
-//		reset();
-		
 		if (xDim <= 0 || zDim <= 0) return false;
 		
 		this.encoder = new NetworkStandardImpl(neuronChannel, activateRef, idRef) {
@@ -525,32 +509,6 @@ public class VAEImpl extends VAEAbstract {
 		buffer.append(decoder.toString());
 		
 		return buffer.toString();
-	}
-
-
-	/**
-	 * Main method.
-	 * @param args arguments.
-	 */
-	public static void main(String[] args) {
-		try (VAEImpl vae = new VAEImpl(1, new LogisticFunction1())) {
-			vae.initialize(4, 2, new int[] {3});
-		
-			//System.out.println(vae.toString());
-			
-			Record record = new Record();
-			record.input = new NeuronValue[] {new NeuronValue1(4), new NeuronValue1(3), new NeuronValue1(2), new NeuronValue1(1)};
-			record.output = null;
-			vae.learn(Arrays.asList(record));
-			
-			System.out.println(vae.toString());
-			
-			NeuronValue[] x = vae.generate();
-			System.out.println(x);
-		}
-		catch (Exception e) {
-			
-		}
 	}
 
 

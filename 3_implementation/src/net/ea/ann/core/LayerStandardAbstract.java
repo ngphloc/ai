@@ -82,7 +82,7 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 	 * @param activateRef activation function.
 	 * @param idRef identifier reference.
 	 */
-	public LayerStandardAbstract(int neuronChannel, Function activateRef, Id idRef) {
+	protected LayerStandardAbstract(int neuronChannel, Function activateRef, Id idRef) {
 		super(idRef);
 		
 		if (neuronChannel <= 1 && activateRef == null) {
@@ -101,16 +101,17 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public LayerStandardAbstract(int neuronChannel, Function activateRef) {
+	protected LayerStandardAbstract(int neuronChannel, Function activateRef) {
 		this(neuronChannel, activateRef, null);
 	}
 
 	
 	/**
 	 * Default constructor.
+	 * @param neuronChannel neuron channel.
 	 */
-	public LayerStandardAbstract() {
-		this(1, null, null);
+	protected LayerStandardAbstract(int neuronChannel) {
+		this(neuronChannel, null, null);
 	}
 
 	

@@ -1,0 +1,2 @@
+source~string, target~string, gens~integer
+"datasets/label", "datasets/label", 10

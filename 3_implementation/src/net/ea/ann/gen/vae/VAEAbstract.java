@@ -46,7 +46,7 @@ public abstract class VAEAbstract extends NetworkAbstract implements VAE {
 	 * @param activateRef activation function.
 	 * @param idRef identifier reference.
 	 */
-	public VAEAbstract(int neuronChannel, Function activateRef, Id idRef) {
+	protected VAEAbstract(int neuronChannel, Function activateRef, Id idRef) {
 		super(idRef);
 		
 		if (neuronChannel <= 1 && activateRef == null) {
@@ -65,16 +65,17 @@ public abstract class VAEAbstract extends NetworkAbstract implements VAE {
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public VAEAbstract(int neuronChannel, Function activateRef) {
+	protected VAEAbstract(int neuronChannel, Function activateRef) {
 		this(neuronChannel, activateRef, null);
 	}
 
 	
 	/**
 	 * Default constructor.
+	 * @param neuronChannel neuron channel.
 	 */
-	public VAEAbstract() {
-		this(1, null, null);
+	protected VAEAbstract(int neuronChannel) {
+		this(neuronChannel, null, null);
 	}
 
 	

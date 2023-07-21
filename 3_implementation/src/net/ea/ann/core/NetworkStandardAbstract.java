@@ -54,7 +54,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	/**
 	 * Constructor with ID reference.
 	 */
-	public NetworkStandardAbstract(Id idRef) {
+	protected NetworkStandardAbstract(Id idRef) {
 		super(idRef);
 	}
 
@@ -62,20 +62,9 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	/**
 	 * Default constructor.
 	 */
-	public NetworkStandardAbstract() {
+	protected NetworkStandardAbstract() {
 		this(null);
 	}
-	
-	
-//	/**
-//	 * Resetting data structures for initialization.
-//	 */
-//	protected void reset() {
-//		inputLayer = null;
-//		hiddenLayers.clear();
-//		outputLayer = null;
-//		memoryLayer = null;
-//	}
 	
 	
 	/**
@@ -87,8 +76,6 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int nInputNeuron, int nOutputNeuron, int[] nHiddenNeuron, int nMemoryNeuron) {
-//		reset();
-		
 		nInputNeuron = nInputNeuron < 1 ? 1 : nInputNeuron;
 		nOutputNeuron = nOutputNeuron < 1 ? 1 : nOutputNeuron;
 		nMemoryNeuron = nMemoryNeuron < 0 ? 0 : nMemoryNeuron;

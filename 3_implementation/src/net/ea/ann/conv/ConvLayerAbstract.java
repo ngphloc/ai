@@ -107,7 +107,7 @@ public abstract class ConvLayerAbstract extends LayerAbstract implements ConvLay
 	 * @param height layer height.
 	 * @param filter kernel filter.
 	 */
-	public ConvLayerAbstract(int neuronChannel, int width, int height, Filter filter) {
+	protected ConvLayerAbstract(int neuronChannel, int width, int height, Filter filter) {
 		this(neuronChannel, width, height, filter, null);
 	}
 

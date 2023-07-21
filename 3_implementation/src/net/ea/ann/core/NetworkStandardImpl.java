@@ -76,20 +76,13 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	
 	/**
 	 * Default constructor.
+	 * @param neuronChannel neuron channel.
 	 */
-	public NetworkStandardImpl() {
-		this(1, null, null);
+	public NetworkStandardImpl(int neuronChannel) {
+		this(neuronChannel, null, null);
 	}
 	
 
-//	@Override
-//	protected void reset() {
-//		super.reset();
-//		neuronChannel = 1;
-//		activateRef = null;
-//	}
-
-	
 	@Override
 	protected LayerStandard newLayer() {
 		return new LayerStandardImpl(neuronChannel, activateRef, idRef);
@@ -339,7 +332,6 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	public static void main(String[] args) {
 		try (NetworkStandardImpl network = new NetworkStandardImpl(1, new LogisticFunction1())) {
 			network.initialize(3, 3, new int[] {3, 3, 3});
-			//System.out.println(network.toString());
 			
 			Record record1 = new Record();
 			record1.input = new NeuronValue[] {new NeuronValue1(1), new NeuronValue1(2), new NeuronValue1(3)};
