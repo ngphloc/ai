@@ -71,6 +71,8 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		
 		this.neuronChannel = neuronChannel;
 		
+		this.config.put(LEARN_MAX_ITERATION_FIELD, 1);
+
 		this.config.put(Raster.SOURCE_IMAGE_TYPE_FIELD, Raster.SOURCE_IMAGE_TYPE_DEFAULT);
 		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		this.config.put(Raster.SOURCE_RESIZE_FIELD, Raster.SOURCE_RESIZE_DEFAULT);
@@ -87,16 +89,6 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	}
 
 	
-//	/**
-//	 * Resetting data structures for initialization.
-//	 */
-//	protected void reset() {
-//		convLayers.clear();
-//		fullNetwork = null;
-//		neuronChannel = 1;
-//	}
-
-	
 	/**
 	 * Initialize with image/raster specification and filters.
 	 * @param width raster width.
@@ -108,7 +100,6 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	public boolean initialize(int width, int height,
 			Filter[] filters,
 			int[] nFullHiddenOutputNeuron) {
-//		reset();
 		
 		if (width <= 0 || height <= 0) return false;
 		if (filters == null || filters.length == 0) return false;
@@ -304,10 +295,11 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 			
 			if (fullNetwork != null) {
 				try {
+					int bpIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 					Record bpRecord = new Record();
 					bpRecord.input = convOutputLayer.getData();
 					bpRecord.output = record.output;
-					error = fullNetwork.bpLearn(sample, learningRate, terminatedThreshold, 1);
+					error = fullNetwork.bpLearn(sample, learningRate, terminatedThreshold, bpIteration);
 				} catch (Throwable e) {Util.trace(e);}
 			}
 				
