@@ -106,6 +106,43 @@ public class ConvVAEUtil implements Serializable, Cloneable {
 	
 	
 	/**
+	 * Resizing the size according to zooming-out ratio, minimum width, and minimum height.
+	 * @param width original width.
+	 * @param height original height.
+	 * @param zoomOutRatio zooming-out ratio.
+	 * @param minWidth minimum width.
+	 * @param minHeight minimum height.
+	 * @return the fit size including width, height, and zooming out ratio according to zooming-out ratio, minimum width, and minimum height.
+	 */
+	public static int[] fitSize(int width, int height, int zoomOutRatio, int minWidth, int minHeight) {
+		if (width < 1 || height < 1 || zoomOutRatio <= 1 || minWidth < 1 || minHeight < 1) {
+			width = width < 1 ? 0 : width;
+			height = height < 1 ? 0 : height;
+			return new int[] {width, height, 1};
+		}
+		
+		Dimension size = new Dimension(width, height);
+		double ratio = (double)height / (double)width;
+		int newMinHeight = (int)(ratio*minWidth + 0.5);
+		if (newMinHeight < minHeight && newMinHeight > 3/*pixels*/) {
+			minHeight = newMinHeight; //Reserve the raster ratio.
+		}
+		
+		if (width/zoomOutRatio < minWidth || height/zoomOutRatio < minHeight) {
+			zoomOutRatio = Math.max(width/minWidth, height/minHeight);
+			size.width = minWidth*zoomOutRatio;
+			size.height = minHeight*zoomOutRatio;
+		}
+		else {
+			size.width = width;
+			size.height = height;
+		}
+		
+		return new int[] {size.width, size.height, zoomOutRatio};
+	}
+	
+	
+	/**
 	 * Getting average with and height of rasters in sample.
 	 * @param sample specified sample.
 	 * @return average with and height of rasters in sample.
@@ -152,7 +189,7 @@ public class ConvVAEUtil implements Serializable, Cloneable {
 		}
 		
 		try {
-			convVAE.close();
+//			convVAE.close();
 		} catch (Exception e) {Util.trace(e);}
 		
 		return result;
@@ -215,16 +252,23 @@ public class ConvVAEUtil implements Serializable, Cloneable {
 	 * @param nGens number of generated raster.
 	 * @param zDim Z dimension.
 	 * @param zoomOutRatio zoom out ration.
+	 * @param minWidth minimum width.
+	 * @param minHeight minimum height.
 	 * @return list of generated rasters.
 	 */
-	public List<Raster> generateRasters(Iterable<Raster> sample, int nGens, int zDim, int zoomOutRatio) {
+	public List<Raster> generateRasters(Iterable<Raster> sample, int nGens, int zDim, int zoomOutRatio, int minWidth, int minHeight) {
 		if (sample == null || zDim <= 0) return Util.newList(0);
 
 		Dimension size = getAverageSize(sample);
-		if (size.width == 0 || size.height == 0) return Util.newList(0);
+		int[] triple = fitSize(size.width, size.height, zoomOutRatio, minWidth, minHeight);
+		int width = triple[0];
+		int height = triple[1];
+		zoomOutRatio = triple[2];
+		if (width == 0 || height == 0) return Util.newList(0);
+		
 		ConvVAESetting setting = convVAE.getSetting();
-		setting.width = size.width;
-		setting.height = size.height;
+		setting.width = width;
+		setting.height = height;
 		convVAE.setSetting(setting);
 		
 		Filter[] convFilters = null;
@@ -239,6 +283,19 @@ public class ConvVAEUtil implements Serializable, Cloneable {
 		
 		return generateRasters(sample, nGens);
 	}
+	
+	
+	/**
+	 * Generating rasters from sample.
+	 * @param sample raster sample.
+	 * @param nGens number of generated raster.
+	 * @param zDim Z dimension.
+	 * @param zoomOutRatio zoom out ration.
+	 * @return list of generated rasters.
+	 */
+	public List<Raster> generateRasters(Iterable<Raster> sample, int nGens, int zDim, int zoomOutRatio) {
+		return generateRasters(sample, nGens, zDim, zoomOutRatio, 0, 0);	
+	}
 
 	
 	/**
@@ -248,13 +305,15 @@ public class ConvVAEUtil implements Serializable, Cloneable {
 	 * @param nGens number of generated raster.
 	 * @param zDim Z dimension.
 	 * @param zoomOutRatio zoom out ration.
+	 * @param minWidth minimum width.
+	 * @param minHeight minimum height.
 	 * @return number of generated rasters.
 	 */
-	public int generateRasters(Path sourceDirectory, Path targetDirectory, int nGens, int zDim, int zoomOutRatio) {
+	public int generateRasters(Path sourceDirectory, Path targetDirectory, int nGens, int zDim, int zoomOutRatio, int minWidth, int minHeight) {
 		if ((!Files.isDirectory(sourceDirectory)) || (!Files.isDirectory(targetDirectory))) return 0;
 		
 		List<Raster> sample = Raster.loadDirectory(sourceDirectory);
-		List<Raster> rasters = generateRasters(sample, nGens, zDim, zoomOutRatio);
+		List<Raster> rasters = generateRasters(sample, nGens, zDim, zoomOutRatio, minWidth, minHeight);
 		for (Raster raster : rasters) {
 			Path path = targetDirectory.resolve("gen" + System.currentTimeMillis() + "." + Raster.IMAGE_FORMAT_DEFAULT);
 			raster.save(path);
@@ -270,10 +329,24 @@ public class ConvVAEUtil implements Serializable, Cloneable {
 	 * @param targetDirectory target directory.
 	 * @param nGens number of generated raster.
 	 * @param zDim Z dimension.
+	 * @param zoomOutRatio zoom out ration.
+	 * @return number of generated rasters.
+	 */
+	public int generateRasters(Path sourceDirectory, Path targetDirectory, int nGens, int zDim, int zoomOutRatio) {
+		return generateRasters(sourceDirectory, targetDirectory, nGens, zDim, zoomOutRatio, 0, 0);
+	}
+	
+	
+	/**
+	 * Generating rasters from source directory to target directory.
+	 * @param sourceDirectory source directory.
+	 * @param targetDirectory target directory.
+	 * @param nGens number of generated raster.
+	 * @param zDim Z dimension.
 	 * @return list of generated rasters.
 	 */
-	public void generateRasters(Path sourceDirectory, Path targetDirectory, int nGens, int zDim) {
-		generateRasters(sourceDirectory, targetDirectory, nGens, zDim, 1);
+	public int generateRasters(Path sourceDirectory, Path targetDirectory, int nGens, int zDim) {
+		return generateRasters(sourceDirectory, targetDirectory, nGens, zDim, 1, 0, 0);
 	}
 
 	

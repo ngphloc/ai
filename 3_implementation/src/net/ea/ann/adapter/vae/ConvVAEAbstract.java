@@ -70,6 +70,30 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 
 	
 	/**
+	 * Name of minimum width field.
+	 */
+	public final static String MINWIDTH_FIELD = "convvae_minwidth";
+
+	
+	/**
+	 * Default value of minimum width field.
+	 */
+	public final static int MINWIDTH_DEFAULT = 50;
+
+	
+	/**
+	 * Name of minimum height field.
+	 */
+	public final static String MINHEIGHT_FIELD = "convvae_minheight";
+
+	
+	/**
+	 * Default value of minimum height field.
+	 */
+	public final static int MINHEIGHT_DEFAULT = 50;
+
+	
+	/**
 	 * Default value of zoom-out field.
 	 */
 	public final static int GENS_DEFAULT = 10;
@@ -103,6 +127,16 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 	}
 
 
+	@Override
+	public synchronized void unsetup() throws RemoteException {
+		super.unsetup();
+		
+		try {
+			if (vae != null) vae.close(); //The internal VAE do not export inside this algorithm.
+		} catch (Exception e) {Util.trace(e);}
+	}
+
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object executeAsLearn(Object input) throws RemoteException {
@@ -124,7 +158,11 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 			if (profile.getAttCount() > 2) nGens = profile.getValueAsInt(2);
 			nGens = nGens <= 0 ? GENS_DEFAULT : nGens;
 			
-			count += ConvVAEUtil.create(vae).generateRasters(sourceDirectory, targetDirectory, nGens, getZDim(), getZoomOut());
+			int minWidth = getMinWidth();
+			int minHeight = getMinHeight();
+			
+			count += ConvVAEUtil.create(vae).generateRasters(sourceDirectory, targetDirectory, nGens,
+					getZDim(), getZoomOut(), minWidth, minHeight);
 		}
 		
 		return Double.valueOf(count);
@@ -159,8 +197,34 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 		int zoomOut = ZOOMOUT_DEFAULT;
 		if (config.containsKey(ZOOMOUT_FIELD)) zoomOut = config.getAsInt(ZOOMOUT_FIELD);
 		
-		zoomOut = zoomOut <= 0 ? ZOOMOUT_DEFAULT : zoomOut;
+		zoomOut = zoomOut < 1 ? ZOOMOUT_DEFAULT : zoomOut;
 		return zoomOut;
+	}
+
+	
+	/**
+	 * Getting minimum width.
+	 * @return minimum width.
+	 */
+	protected int getMinWidth() {
+		int minWidth = MINWIDTH_DEFAULT;
+		if (config.containsKey(MINWIDTH_FIELD)) minWidth = config.getAsInt(MINWIDTH_FIELD);
+		
+		minWidth = minWidth <= 0 ? MINWIDTH_DEFAULT : minWidth;
+		return minWidth;
+	}
+
+	
+	/**
+	 * Getting minimum height.
+	 * @return minimum height.
+	 */
+	protected int getMinHeight() {
+		int minHeight = MINHEIGHT_DEFAULT;
+		if (config.containsKey(MINHEIGHT_FIELD)) minHeight = config.getAsInt(MINHEIGHT_FIELD);
+		
+		minHeight = minHeight <= 0 ? MINHEIGHT_DEFAULT : minHeight;
+		return minHeight;
 	}
 
 	
@@ -236,6 +300,8 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 		DataConfig config = super.createDefaultConfig();
 		config.put(ZDIM_FIELD, ZDIM_DEFAULT);
 		config.put(ZOOMOUT_FIELD, ZOOMOUT_DEFAULT);
+		config.put(MINWIDTH_FIELD, MINWIDTH_DEFAULT);
+		config.put(MINHEIGHT_FIELD, MINHEIGHT_DEFAULT);
 		
 		config.addReadOnly(Raster.SOURCE_IMAGE_TYPE_FIELD);
 		
