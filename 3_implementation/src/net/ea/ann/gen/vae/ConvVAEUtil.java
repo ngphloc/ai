@@ -104,63 +104,6 @@ public class ConvVAEUtil implements Serializable, Cloneable {
 	
 	
 	/**
-	 * Calculating zooming ratio of filters.
-	 * @param filters specified filters.
-	 * @return zooming ratio of filters.
-	 */
-	public static int zoomRatioOf(Filter[] filters) {
-		if (filters == null || filters.length == 0)
-			return 1;
-		else {
-			int zoom = 1;
-			for (Filter filter : filters) {
-				zoom *= Math.max(filter.slideWidth(), filter.slideHeight());
-			}
-			
-			return zoom;
-		}
-		
-	}
-	
-	
-	/**
-	 * Resizing the size according to zooming-out ratio, minimum width, and minimum height.
-	 * @param width original width.
-	 * @param height original height.
-	 * @param zoomRatio zooming ratio.
-	 * @param xMinWidth X minimum width.
-	 * @param xMinHeight X minimum height.
-	 * @return the fit size including width, height, and zooming out ratio according to zooming-out ratio, minimum width, and minimum height.
-	 */
-	public static int[] fitSize(int width, int height, int zoomRatio, int xMinWidth, int xMinHeight) {
-		if (width < 1 || height < 1 || zoomRatio <= 1 || xMinWidth < 1 || xMinHeight < 1) {
-			width = width < 1 ? 0 : width;
-			height = height < 1 ? 0 : height;
-			return new int[] {width, height, 1};
-		}
-		
-		Dimension size = new Dimension(width, height);
-		double ratio = (double)height / (double)width;
-		int newMinHeight = (int)(ratio*xMinWidth + 0.5);
-		if (newMinHeight < xMinHeight && newMinHeight > 3/*pixels*/) {
-			xMinHeight = newMinHeight; //Reserve the raster ratio.
-		}
-		
-		if (width/zoomRatio < xMinWidth || height/zoomRatio < xMinHeight) {
-			zoomRatio = Math.max(width/xMinWidth, height/xMinHeight);
-			size.width = xMinWidth*zoomRatio;
-			size.height = xMinHeight*zoomRatio;
-		}
-		else {
-			size.width = width;
-			size.height = height;
-		}
-		
-		return new int[] {size.width, size.height, zoomRatio};
-	}
-	
-	
-	/**
 	 * Getting average with and height of rasters in sample.
 	 * @param sample specified sample.
 	 * @return average with and height of rasters in sample.
@@ -225,7 +168,7 @@ public class ConvVAEUtil implements Serializable, Cloneable {
 		if (sample == null || zDim <= 0) return Util.newList(0);
 
 		Dimension size = getAverageSize(sample);
-		int[] triple = fitSize(size.width, size.height, zoomRatioOf(convFilters), xMinWidth, xMinHeight);
+		int[] triple = ConvVAEImpl.fitSize(size.width, size.height, Filter.zoomRatioOf(convFilters), xMinWidth, xMinHeight);
 		int width = triple[0];
 		int height = triple[1];
 		if (width == 0 || height == 0) return Util.newList(0);
@@ -297,7 +240,7 @@ public class ConvVAEUtil implements Serializable, Cloneable {
 		if (sample == null || zDim <= 0) return Util.newList(0);
 
 		Dimension size = getAverageSize(sample);
-		int[] triple = fitSize(size.width, size.height, zoomOutRatio, xMinWidth, xMinHeight);
+		int[] triple = ConvVAEImpl.fitSize(size.width, size.height, zoomOutRatio, xMinWidth, xMinHeight);
 		int width = triple[0];
 		int height = triple[1];
 		zoomOutRatio = triple[2];

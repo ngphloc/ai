@@ -95,6 +95,12 @@ public abstract class ConvVAEAbstract extends ExecuteAsLearnAlgAbstract implemen
 
 	
 	/**
+	 * Name of filters field.
+	 */
+	public final static String FILTERS_FIELD = "convvae_filters";
+	
+	
+	/**
 	 * Default value of zoom-out field.
 	 */
 	public final static int GENS_DEFAULT = 10;

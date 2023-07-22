@@ -136,6 +136,43 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE {
 	
 	
 	/**
+	 * Resizing the size according to zooming ratio, minimum width, and minimum height.
+	 * @param width original width.
+	 * @param height original height.
+	 * @param zoomRatio zooming ratio.
+	 * @param xMinWidth X minimum width.
+	 * @param xMinHeight X minimum height.
+	 * @return the fit size including fitSize[0] = width, fitSize[1] = height, and fitSize[0] = zooming-ratio according to minimum width, minimum height, and zooming ratio.
+	 */
+	public static int[] fitSize(int width, int height, int zoomRatio, int xMinWidth, int xMinHeight) {
+		if (width < 1 || height < 1 || zoomRatio <= 1 || xMinWidth < 1 || xMinHeight < 1) {
+			width = width < 1 ? 0 : width;
+			height = height < 1 ? 0 : height;
+			return new int[] {width, height, 1};
+		}
+		
+		Dimension size = new Dimension(width, height);
+		double ratio = (double)height / (double)width;
+		int newMinHeight = (int)(ratio*xMinWidth + 0.5);
+		if (newMinHeight < xMinHeight && newMinHeight > 3/*pixels*/) {
+			xMinHeight = newMinHeight; //Reserve the raster ratio.
+		}
+		
+		if (width/zoomRatio < xMinWidth || height/zoomRatio < xMinHeight) {
+			zoomRatio = Math.max(width/xMinWidth, height/xMinHeight);
+			size.width = xMinWidth*zoomRatio;
+			size.height = xMinHeight*zoomRatio;
+		}
+		else {
+			size.width = width;
+			size.height = height;
+		}
+		
+		return new int[] {size.width, size.height, zoomRatio};
+	}
+
+
+	/**
 	 * Initialize with Z dimension as well as other specifications.
 	 * @param zDim Z dimension
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.

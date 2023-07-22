@@ -367,8 +367,35 @@ public class VAEImpl extends VAEAbstract {
 	
 	/**
 	 * Calculate error of an encoded neuron.
+	 * This code is the most important code to implement and combine Variational Autoencoders (VAE) with backpropagation algorithm.
+	 * The equation to calculate KL-divergence given standard Gaussian distribution N(0, I) is available in the book
+	 * Tutorial on Variational Autoencoders by Carl Doersch, Carnegie Mellon / UC Berkeley, page 9.
+	 * The KL-divergence given n-dimension standard Gaussian distribution, which measures the difference between
+	 * the distribution of X (mean muX and covariance matrix varX) and the standard Gaussian distribution, is specified as follows:<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;KL(N(muX, varX) | N(0, I)) = 1/2(trace(varX) + muX^muX - n - log(det(varX)))<br>
+	 * Actually, KL(N(muX, varX) | N(0, I)) is equivalent to the KL-divergence between the distribution of encoded Z distribution and decoded X distribution
+	 * because Z is calculated from mean muX and covariance matrix varX as follows:<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;Z = muX + sqrt(varX)*r where r is random vector by standard Gaussian distribution N(0, I).<br>
+	 * The gradient of KL(N(muX, varX) | N(0, I)) is:<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;gradient(KL(N(muX, varX) | N(0, I))) = 1/2(I + 2muX - V^(-1)<br>
+	 * Where<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;derivative(trace(varX)) = I<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;derivative(muX^muX) = 2mu<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;derivative(log(det(varX))) = V^(-1)<br>
+	 * Obviously, the descending direction of KL-divergence in stochastic gradient descend (SGD) algorithm is:<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;d(KL(N(muX, varX) | N(0, I))) = -gradient(KL(N(muX, varX) | N(0, I))) = 1/2(-I - 2muX + V^(-1)<br>
+	 * My contribution here is to combine Variational Autoencoders and backpropagation algorithm in incorporating KL-divergence and calculating error in backpropagation.
+	 * Note that the loss function in VAE is:<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;loss = ||X' - X||^2 + KL(N(muX, varX) | N(0, I))<br>
+	 * Where X' is forwarded from Z by the decoding neural network. The error ||X' - X||^2 is minimized by backpropagation as usual but
+	 * this method here is to minimized KL(N(muX, varX) | N(0, I)) by SGD algorithm.<br>
+	 * Minimize this loss function is to maximize the following log-likelihood function:<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;log-likelihood = log-likelihood(P(X|Z)) - KL(N(muX, varX) | N(0, I))<br>
+	 * Maximizing log-likelihood(P(X|Z)) is the same to minimize the error ||X' - X||^2 as usual. Note that Z is calculated from muX and varX as follows:<br>
+	 * &nbsp;&nbsp;&nbsp;&nbsp;Z = muX + sqrt(varX)*r where r is random vector by standard Gaussian distribution N(0, I).
 	 * @param neuron specific encoded neuron.
 	 * @return error or loss of the encode neuron.
+	 * @author Carl Doersch, Loc Nguyen
 	 */
 	protected NeuronValue calcEncodedError(NeuronStandard neuron) {
 		NeuronValue out = neuron.getOutput();
@@ -381,7 +408,10 @@ public class VAEImpl extends VAEAbstract {
 				break;
 			}
 		}
-		if (isMu) return out.negative().multiplyDerivative(derivative);
+		if (isMu) {
+			//Calculate derivative of mean. The derivative(muX^muX) = 2mu
+			return out.negative().multiplyDerivative(derivative);
+		}
 		
 		boolean isVar = false;
 		int row = 0, column = 0;
@@ -401,10 +431,17 @@ public class VAEImpl extends VAEAbstract {
 		NeuronValue[][] varXValue = getVarXValue();
 		if (varXValue.length == 0) return null;
 		
-		if (neuron == varX[0][0] || varXInverse == null) updateVarXInverse();
+		if (neuron == varX[0][0] || varXInverse == null) {
+			//Calculate the inverse of covariance matrix which is derivative of logarithm of determinant of covariance matrix.
+			//It means that derivative(log(det(varX))) = V^(-1)
+			updateVarXInverse();
+		}
 		
 		NeuronValue encodedError = varXInverse[row][column];
-		if (row == column) encodedError.subtract(encodedError.identity());
+		if (row == column) {
+			//Derivative of trace of covariance matrix is identity, derivative(trace(varX)) = I
+			encodedError.subtract(encodedError.identity());
+		}
 		return encodedError.multiply(0.5).multiplyDerivative(derivative);
 	}
 

@@ -73,5 +73,25 @@ public interface Filter extends Serializable, Cloneable {
 	 */
 	NeuronValue apply(int x, int y, ConvLayer layer);
 
+
+	/**
+	 * Calculating zooming ratio of filters.
+	 * @param filters specified filters.
+	 * @return zooming ratio of filters.
+	 */
+	static int zoomRatioOf(Filter[] filters) {
+		if (filters == null || filters.length == 0)
+			return 1;
+		else {
+			int zoom = 1;
+			for (Filter filter : filters) {
+				zoom *= Math.max(filter.slideWidth(), filter.slideHeight());
+			}
+			
+			return zoom;
+		}
+		
+	}
+
 	
 }
