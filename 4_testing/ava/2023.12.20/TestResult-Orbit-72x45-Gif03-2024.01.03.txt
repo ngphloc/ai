@@ -1,0 +1,161 @@
+Base: "datasets/orbit/base", "working/gen", 1
+Test: "datasets/orbit/base", "working/recover", 10
+
+Convolution: no zooming.
+Generated: random 10 gif animations
+Metric: balance metric (BM) harmonizes the similarity quality and diversity quality.
+
+
+Result:
+AVA1-1, bm=0.2248
+AVA2-1, bm=0.2249
+AVA3-1, bm=0.0753
+AVA4-1, bm=0.0769
+AVA5-1, bm=0.2266
+VAE-1, bm=0.085
+GAN-1, bm=0.2304
+
+AVA1-0.9, bm=0.2295
+AVA2-0.9, bm=0.2288
+AVA3-0.9, bm=0.075
+AVA4-0.9, bm=0.0966
+AVA5-0.9, bm=0.2274
+VAE-0.9, bm=0.0805
+GAN-0.9, bm=0.2286
+
+AVA1-0.8, bm=0.2315
+AVA2-0.8, bm=0.2284
+AVA3-0.8, bm=0.0883
+AVA4-0.8, bm=0.0951
+AVA5-0.8, bm=0.2281
+VAE-0.8, bm=0.0761
+GAN-0.8, bm=0.231
+
+AVA1-0.7, bm=0.2296
+AVA2-0.7, bm=0.2296
+AVA3-0.7, bm=0.0818
+AVA4-0.7, bm=0.0873
+AVA5-0.7, bm=0.2321
+VAE-0.7, bm=0.0795
+GAN-0.7, bm=0.2283
+
+AVA1-0.6, bm=0.225
+AVA2-0.6, bm=0.2314
+AVA3-0.6, bm=0.0875
+AVA4-0.6, bm=0.0877
+AVA5-0.6, bm=0.2282
+VAE-0.6, bm=0.0828
+GAN-0.6, bm=0.229
+
+AVA1-0.5, bm=0.2194
+AVA2-0.5, bm=0.2275
+AVA3-0.5, bm=0.0806
+AVA4-0.5, bm=0.1041
+AVA5-0.5, bm=0.225
+VAE-0.5, bm=0.0794
+GAN-0.5, bm=0.2294
+
+AVA1-0.4, bm=0.2252
+AVA2-0.4, bm=0.2245
+AVA3-0.4, bm=0.0995
+AVA4-0.4, bm=0.0919
+AVA5-0.4, bm=0.2233
+VAE-0.4, bm=0.0862
+GAN-0.4, bm=0.229
+
+AVA1-0.3, bm=0.221
+AVA2-0.3, bm=0.2148
+AVA3-0.3, bm=0.1105
+AVA4-0.3, bm=0.1153
+AVA5-0.3, bm=0.2148
+VAE-0.3, bm=0.1075
+GAN-0.3, bm=0.218
+
+AVA1-0.2, bm=0.1869
+AVA2-0.2, bm=0.1849
+AVA3-0.2, bm=0.1405
+AVA4-0.2, bm=0.1452
+AVA5-0.2, bm=0.1907
+VAE-0.2, bm=0.1483
+GAN-0.2, bm=0.191
+
+AVA1-0.1, bm=0.1689
+AVA2-0.1, bm=0.1716
+AVA3-0.1, bm=0.1896
+AVA4-0.1, bm=0.1891
+AVA5-0.1, bm=0.1672
+VAE-0.1, bm=0.192
+GAN-0.1, bm=0.169
+
+AVA1-0.09, bm=0.1755
+AVA2-0.09, bm=0.1713
+AVA3-0.09, bm=0.196
+AVA4-0.09, bm=0.1956
+AVA5-0.09, bm=0.1752
+VAE-0.09, bm=0.1962
+GAN-0.09, bm=0.1767
+
+AVA1-0.08, bm=0.1846
+AVA2-0.08, bm=0.1835
+AVA3-0.08, bm=0.1991
+AVA4-0.08, bm=0.1999
+AVA5-0.08, bm=0.1841
+VAE-0.08, bm=0.1972
+GAN-0.08, bm=0.1837
+
+AVA1-0.07, bm=0.1841
+AVA2-0.07, bm=0.1898
+AVA3-0.07, bm=0.2022
+AVA4-0.07, bm=0.2022
+AVA5-0.07, bm=0.1832
+VAE-0.07, bm=0.2025
+GAN-0.07, bm=0.1924
+
+AVA1-0.06, bm=0.1936
+AVA2-0.06, bm=0.1998
+AVA3-0.06, bm=0.2057
+AVA4-0.06, bm=0.2057
+AVA5-0.06, bm=0.1972
+VAE-0.06, bm=0.2054
+GAN-0.06, bm=0.1982
+
+AVA1-0.05, bm=0.2039
+AVA2-0.05, bm=0.2028
+AVA3-0.05, bm=0.208
+AVA4-0.05, bm=0.2081
+AVA5-0.05, bm=0.2016
+VAE-0.05, bm=0.2078
+GAN-0.05, bm=0.2042
+
+AVA1-0.04, bm=0.2074
+AVA2-0.04, bm=0.2084
+AVA3-0.04, bm=0.21
+AVA4-0.04, bm=0.21
+AVA5-0.04, bm=0.2081
+VAE-0.04, bm=0.21
+GAN-0.04, bm=0.2082
+
+AVA1-0.03, bm=0.2115
+AVA2-0.03, bm=0.2113
+AVA3-0.03, bm=0.2116
+AVA4-0.03, bm=0.2116
+AVA5-0.03, bm=0.2111
+VAE-0.03, bm=0.2117
+GAN-0.03, bm=0.2114
+
+AVA1-0.02, bm=0.2132
+AVA2-0.02, bm=0.2132
+AVA3-0.02, bm=0.2129
+AVA4-0.02, bm=0.2129
+AVA5-0.02, bm=0.2133
+VAE-0.02, bm=0.2129
+GAN-0.02, bm=0.2133
+
+AVA1-0.01, bm=0.2142
+AVA2-0.01, bm=0.2142
+AVA3-0.01, bm=0.2138
+AVA4-0.01, bm=0.2138
+AVA5-0.01, bm=0.2142
+VAE-0.01, bm=0.2138
+GAN-0.01, bm=0.2142
+

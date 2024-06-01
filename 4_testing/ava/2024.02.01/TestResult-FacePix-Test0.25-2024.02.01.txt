@@ -1,0 +1,56 @@
+Base: "datasets/orbit/base", "working/gen", 1
+Test: "datasets/orbit/base", "working/recover", 10
+
+Convolution: no zooming.
+Generated: randomizing 10 images, relearning & comparing for each test image
+Metric: balance metric (BM) harmonizes the similarity quality and diversity quality.
+
+
+Result:
+AVA1-1, bm=0.2259
+AVA2-1, bm=0.2255
+AVA3-1, bm=0.0645
+AVA4-1, bm=0.0644
+AVA5-1, bm=0.2263
+VAE-1, bm=0.0645
+GAN-1, bm=0.2262
+
+AVA1-0.9, bm=0.2245
+AVA2-0.9, bm=0.2245
+AVA3-0.9, bm=0.0601
+AVA4-0.9, bm=0.0601
+AVA5-0.9, bm=0.2247
+VAE-0.9, bm=0.06
+GAN-0.9, bm=0.2246
+
+AVA1-0.8, bm=0.2205
+AVA2-0.8, bm=0.221
+AVA3-0.8, bm=0.068
+AVA4-0.8, bm=0.0681
+AVA5-0.8, bm=0.221
+VAE-0.8, bm=0.0681
+GAN-0.8, bm=0.2208
+
+AVA1-0.7, bm=0.2158
+AVA2-0.7, bm=0.216
+AVA3-0.7, bm=0.0878
+AVA4-0.7, bm=0.088
+AVA5-0.7, bm=0.2158
+VAE-0.7, bm=0.0879
+GAN-0.7, bm=0.2151
+
+AVA1-0.6, bm=0.2095
+AVA2-0.6, bm=0.2098
+AVA3-0.6, bm=0.1104
+AVA4-0.6, bm=0.1109
+AVA5-0.6, bm=0.209
+VAE-0.6, bm=0.1101
+GAN-0.6, bm=0.2098
+
+AVA1-0.5, bm=0.2019
+AVA2-0.5, bm=0.2029
+AVA3-0.5, bm=0.1295
+AVA4-0.5, bm=0.13
+AVA5-0.5, bm=0.2036
+VAE-0.5, bm=0.1294
+GAN-0.5, bm=0.2022

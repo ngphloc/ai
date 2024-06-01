@@ -1,0 +1,70 @@
+Base: "datasets/label/base", "working/gen", 1
+Test: "datasets/label/base", "working/recover", 1
+
+Convolution: Zooming out 3 times.
+Metric: Recovering source image and then calculating the root mean squared error (RMSE) between the source image and the recovered image. In other words, the best generated image from the generators minimizes the errors between such best image and all source images.
+
+Result:
+n=1 lr=1 AVA rmse=0.177
+n=1 lr=1 VAE rmse=0.249
+
+n=1 lr=0.9 AVA rmse=0.1782
+n=1 lr=0.9 VAE rmse=0.2403
+
+n=1 lr=0.8 AVA rmse=0.178
+n=1 lr=0.8 VAE rmse=0.2562
+
+n=1 lr=0.7 AVA rmse=0.1769
+n=1 lr=0.7 VAE rmse=0.2395
+
+n=1 lr=0.6 AVA rmse=0.1774
+n=1 lr=0.6 VAE rmse=0.2582
+
+n=1 lr=0.5 AVA rmse=0.1772
+n=1 lr=0.5 VAE rmse=0.2468
+
+n=1 lr=0.4 AVA rmse=0.1786
+n=1 lr=0.4 VAE rmse=0.2504
+
+n=1 lr=0.3 AVA rmse=0.177
+n=1 lr=0.3 VAE rmse=0.255
+
+n=1 lr=0.2 AVA rmse=0.1777
+n=1 lr=0.2 VAE rmse=0.2503
+
+n=1 lr=0.1 AVA rmse=0.1768
+n=1 lr=0.1 VAE rmse=0.2378
+
+n=1 lr=0.09 AVA rmse=0.1784
+n=1 lr=0.09 VAE rmse=0.252
+
+n=1 lr=0.08 AVA rmse=0.178
+n=1 lr=0.08 VAE rmse=0.2618
+
+n=1 lr=0.07 AVA rmse=0.1773
+n=1 lr=0.07 VAE rmse=0.2469
+
+n=1 lr=0.06 AVA rmse=0.178
+n=1 lr=0.06 VAE rmse=0.249
+
+n=1 lr=0.05 AVA rmse=0.177
+n=1 lr=0.05 VAE rmse=0.25
+
+n=1 lr=0.04 AVA rmse=0.1775
+n=1 lr=0.04 VAE rmse=0.2479
+
+n=1 lr=0.03 AVA rmse=0.177
+n=1 lr=0.03 VAE rmse=0.2563
+
+n=1 lr=0.02 AVA rmse=0.1779
+n=1 lr=0.02 VAE rmse=0.2479
+
+n=1 lr=0.01 AVA rmse=0.1778
+n=1 lr=0.01 VAE rmse=0.2383
+
+n=1 lr=0.001 AVA rmse=0.1792
+n=1 lr=0.001 VAE rmse=0.2401
+
+n=1 lr=0.0001 AVA rmse=0.1789
+n=1 lr=0.0001 VAE rmse=0.2471
+

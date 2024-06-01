@@ -1,0 +1,156 @@
+Base: "datasets/label/base", "working/gen", 1
+Test: "datasets/label/base", "working/recover", 1
+
+Convolution: Zooming out 3 times.
+Metric: Recovering source image and then calculating the root mean squared error (RMSE) between the source image and the recovered image. In other words, the best generated image from the generators minimizes the errors between such best image and all source images.
+
+
+Result:
+n=1 lr=1 AVA1 rmse=0.1776
+n=1 lr=1 AVA2 rmse=0.1772
+n=1 lr=1 AVA3 rmse=0.1772
+n=1 lr=1 AVA4 rmse=0.1771
+n=1 lr=1 AVA5 rmse=0.1777
+n=1 lr=1 VAE rmse=0.2366
+
+n=1 lr=0.9 AVA1 rmse=0.1775
+n=1 lr=0.9 AVA2 rmse=0.1808
+n=1 lr=0.9 AVA3 rmse=0.1773
+n=1 lr=0.9 AVA4 rmse=0.1783
+n=1 lr=0.9 AVA5 rmse=0.1806
+n=1 lr=0.9 VAE rmse=0.2513
+
+n=1 lr=0.8 AVA1 rmse=0.1887
+n=1 lr=0.8 AVA2 rmse=0.1778
+n=1 lr=0.8 AVA3 rmse=0.1777
+n=1 lr=0.8 AVA4 rmse=0.1795
+n=1 lr=0.8 AVA5 rmse=0.1778
+n=1 lr=0.8 VAE rmse=0.2458
+
+n=1 lr=0.7 AVA1 rmse=0.1793
+n=1 lr=0.7 AVA2 rmse=0.1771
+n=1 lr=0.7 AVA3 rmse=0.1834
+n=1 lr=0.7 AVA4 rmse=0.1777
+n=1 lr=0.7 AVA5 rmse=0.1797
+n=1 lr=0.7 VAE rmse=0.2527
+
+n=1 lr=0.6 AVA1 rmse=0.1774
+n=1 lr=0.6 AVA2 rmse=0.1782
+n=1 lr=0.6 AVA3 rmse=0.177
+n=1 lr=0.6 AVA4 rmse=0.1786
+n=1 lr=0.6 AVA5 rmse=0.1774
+n=1 lr=0.6 VAE rmse=0.2413
+
+n=1 lr=0.5 AVA1 rmse=0.1774
+n=1 lr=0.5 AVA2 rmse=0.1779
+n=1 lr=0.5 AVA3 rmse=0.1775
+n=1 lr=0.5 AVA4 rmse=0.1782
+n=1 lr=0.5 AVA5 rmse=0.1811
+n=1 lr=0.5 VAE rmse=0.2439
+
+n=1 lr=0.4 AVA1 rmse=0.1772
+n=1 lr=0.4 AVA2 rmse=0.1775
+n=1 lr=0.4 AVA3 rmse=0.1776
+n=1 lr=0.4 AVA4 rmse=0.1796
+n=1 lr=0.4 AVA5 rmse=0.1778
+n=1 lr=0.4 VAE rmse=0.2455
+
+n=1 lr=0.3 AVA1 rmse=0.1769
+n=1 lr=0.3 AVA2 rmse=0.178
+n=1 lr=0.3 AVA3 rmse=0.1796
+n=1 lr=0.3 AVA4 rmse=0.1783
+n=1 lr=0.3 AVA5 rmse=0.1775
+n=1 lr=0.3 VAE rmse=0.2434
+
+n=1 lr=0.2 AVA1 rmse=0.1777
+n=1 lr=0.2 AVA2 rmse=0.1772
+n=1 lr=0.2 AVA3 rmse=0.1769
+n=1 lr=0.2 AVA4 rmse=0.1779
+n=1 lr=0.2 AVA5 rmse=0.1776
+n=1 lr=0.2 VAE rmse=0.2434
+
+n=1 lr=0.1 AVA1 rmse=0.1778
+n=1 lr=0.1 AVA2 rmse=0.1814
+n=1 lr=0.1 AVA3 rmse=0.1765
+n=1 lr=0.1 AVA4 rmse=0.1775
+n=1 lr=0.1 AVA5 rmse=0.1775
+n=1 lr=0.1 VAE rmse=0.2544
+
+n=1 lr=0.09 AVA1 rmse=0.1773
+n=1 lr=0.09 AVA2 rmse=0.1778
+n=1 lr=0.09 AVA3 rmse=0.1784
+n=1 lr=0.09 AVA4 rmse=0.177
+n=1 lr=0.09 AVA5 rmse=0.1774
+n=1 lr=0.09 VAE rmse=0.2465
+
+n=1 lr=0.08 AVA1 rmse=0.1783
+n=1 lr=0.08 AVA2 rmse=0.1801
+n=1 lr=0.08 AVA3 rmse=0.1835
+n=1 lr=0.08 AVA4 rmse=0.1817
+n=1 lr=0.08 AVA5 rmse=0.1777
+n=1 lr=0.08 VAE rmse=0.2407
+
+n=1 lr=0.07 AVA1 rmse=0.1831
+n=1 lr=0.07 AVA2 rmse=0.177
+n=1 lr=0.07 AVA3 rmse=0.1775
+n=1 lr=0.07 AVA4 rmse=0.1776
+n=1 lr=0.07 AVA5 rmse=0.1802
+n=1 lr=0.07 VAE rmse=0.2554
+
+n=1 lr=0.06 AVA1 rmse=0.1782
+n=1 lr=0.06 AVA2 rmse=0.1794
+n=1 lr=0.06 AVA3 rmse=0.1784
+n=1 lr=0.06 AVA4 rmse=0.1775
+n=1 lr=0.06 AVA5 rmse=0.1786
+n=1 lr=0.06 VAE rmse=0.2458
+
+n=1 lr=0.05 AVA1 rmse=0.1786
+n=1 lr=0.05 AVA2 rmse=0.1782
+n=1 lr=0.05 AVA3 rmse=0.1789
+n=1 lr=0.05 AVA4 rmse=0.178
+n=1 lr=0.05 AVA5 rmse=0.1774
+n=1 lr=0.05 VAE rmse=0.2449
+
+n=1 lr=0.04 AVA1 rmse=0.1774
+n=1 lr=0.04 AVA2 rmse=0.1777
+n=1 lr=0.04 AVA3 rmse=0.1775
+n=1 lr=0.04 AVA4 rmse=0.1785
+n=1 lr=0.04 AVA5 rmse=0.1768
+n=1 lr=0.04 VAE rmse=0.2458
+
+n=1 lr=0.03 AVA1 rmse=0.1799
+n=1 lr=0.03 AVA2 rmse=0.1833
+n=1 lr=0.03 AVA3 rmse=0.1774
+n=1 lr=0.03 AVA4 rmse=0.1791
+n=1 lr=0.03 AVA5 rmse=0.1776
+n=1 lr=0.03 VAE rmse=0.2385
+
+n=1 lr=0.02 AVA1 rmse=0.1777
+n=1 lr=0.02 AVA2 rmse=0.1781
+n=1 lr=0.02 AVA3 rmse=0.1775
+n=1 lr=0.02 AVA4 rmse=0.1772
+n=1 lr=0.02 AVA5 rmse=0.1792
+n=1 lr=0.02 VAE rmse=0.2377
+
+n=1 lr=0.01 AVA1 rmse=0.1776
+n=1 lr=0.01 AVA2 rmse=0.1789
+n=1 lr=0.01 AVA3 rmse=0.1784
+n=1 lr=0.01 AVA4 rmse=0.178
+n=1 lr=0.01 AVA5 rmse=0.1787
+n=1 lr=0.01 VAE rmse=0.2491
+
+n=1 lr=0.001 AVA1 rmse=0.178
+n=1 lr=0.001 AVA2 rmse=0.1775
+n=1 lr=0.001 AVA3 rmse=0.1767
+n=1 lr=0.001 AVA4 rmse=0.1803
+n=1 lr=0.001 AVA5 rmse=0.1793
+n=1 lr=0.001 VAE rmse=0.2491
+
+n=1 lr=0.0001 AVA1 rmse=0.1776
+n=1 lr=0.0001 AVA2 rmse=0.1771
+n=1 lr=0.0001 AVA3 rmse=0.1775
+n=1 lr=0.0001 AVA4 rmse=0.1786
+n=1 lr=0.0001 AVA5 rmse=0.1776
+n=1 lr=0.0001 VAE rmse=0.2454
+
+

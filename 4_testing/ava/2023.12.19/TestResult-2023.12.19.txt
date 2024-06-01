@@ -1,0 +1,87 @@
+Base: "datasets/orbit/base", "working/gen", 1
+Test: "datasets/orbit/base", "working/recover", 10
+
+Convolution: Zooming out 2 times.
+Metric: balance metric (BM) harmonizes the similarity quality and diversity quality.
+
+
+Result:
+n=10 lr=1.0 AVA1 bm=0.1961
+n=10 lr=1.0 AVA2 bm=0.2051
+n=10 lr=1.0 AVA3 bm=0.2077
+n=10 lr=1.0 AVA4 bm=0.2008
+n=10 lr=1.0 AVA5 bm=0.2022
+n=10 lr=1.0 VAE  bm=0.1813
+n=10 lr=1.0 GAN  bm=0.2054
+
+n=10 lr=0.9 AVA1 bm=0.2014
+n=10 lr=0.9 AVA2 bm=0.2039
+n=10 lr=0.9 AVA3 bm=0.2094
+n=10 lr=0.9 AVA4 bm=0.2052
+n=10 lr=0.9 AVA5 bm=0.2048
+n=10 lr=0.9 VAE  bm=0.1821
+n=10 lr=0.9 GAN  bm=0.2055
+
+n=10 lr=0.8 AVA1 bm=0.2051
+n=10 lr=0.8 AVA2 bm=0.1988
+n=10 lr=0.8 AVA3 bm=0.201
+n=10 lr=0.8 AVA4 bm=0.2027
+n=10 lr=0.8 AVA5 bm=0.197
+n=10 lr=0.8 VAE  bm=0.1812
+n=10 lr=0.8 GAN  bm=0.2028
+
+n=10 lr=0.7 AVA1 bm=0.1977
+n=10 lr=0.7 AVA2 bm=0.196
+n=10 lr=0.7 AVA3 bm=0.2062
+n=10 lr=0.7 AVA4 bm=0.2036
+n=10 lr=0.7 AVA5 bm=0.2084
+n=10 lr=0.7 VAE  bm=0.1825
+n=10 lr=0.7 GAN  bm=0.197
+
+n=10 lr=0.6 AVA1 bm=0.2103
+n=10 lr=0.6 AVA2 bm=0.2003
+n=10 lr=0.6 AVA3 bm=0.2066
+n=10 lr=0.6 AVA4 bm=0.2072
+n=10 lr=0.6 AVA5 bm=0.2056
+n=10 lr=0.6 VAE  bm=0.182
+n=10 lr=0.6 GAN  bm=0.2054
+
+n=10 lr=0.5 AVA1 bm=0.195
+n=10 lr=0.5 AVA2 bm=0.2045
+n=10 lr=0.5 AVA3 bm=0.2096
+n=10 lr=0.5 AVA4 bm=0.2
+n=10 lr=0.5 AVA5 bm=0.2028
+n=10 lr=0.5 VAE  bm=0.1812
+n=10 lr=0.5 GAN  bm=0.2058
+
+n=10 lr=0.4 AVA1 bm=0.1989
+n=10 lr=0.4 AVA2 bm=0.2036
+n=10 lr=0.4 AVA3 bm=0.2013
+n=10 lr=0.4 AVA4 bm=0.2004
+n=10 lr=0.4 AVA5 bm=0.2006
+n=10 lr=0.4 VAE  bm=0.1826
+n=10 lr=0.4 GAN  bm=0.1958
+
+n=10 lr=0.3 AVA1 bm=0.2035
+n=10 lr=0.3 AVA2 bm=0.1995
+n=10 lr=0.3 AVA3 bm=0.1952
+n=10 lr=0.3 AVA4 bm=0.2026
+n=10 lr=0.3 AVA5 bm=0.2036
+n=10 lr=0.3 VAE  bm=0.1815
+n=10 lr=0.3 GAN  bm=0.1991
+
+n=10 lr=0.2 AVA1 bm=0.205
+n=10 lr=0.2 AVA2 bm=0.2021
+n=10 lr=0.2 AVA3 bm=0.2057
+n=10 lr=0.2 AVA4 bm=0.2017
+n=10 lr=0.2 AVA5 bm=0.207
+n=10 lr=0.2 VAE  bm=0.1812
+n=10 lr=0.2 GAN  bm=0.2039
+
+n=10 lr=0.1 AVA1 bm=0.2035
+n=10 lr=0.1 AVA2 bm=0.2055
+n=10 lr=0.1 AVA3 bm=0.2014
+n=10 lr=0.1 AVA4 bm=0.1983
+n=10 lr=0.1 AVA5 bm=0.2012
+n=10 lr=0.1 VAE  bm=0.1816
+n=10 lr=0.1 GAN  bm=0.2052

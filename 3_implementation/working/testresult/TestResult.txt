@@ -1,0 +1,5 @@
+vae-1, error=0.1789
+vae-0.5, error=0.1837
+nf-1, error=51406.928
+nf-1, error=51403.3711
+vae-1, error=51429.1614

@@ -1,0 +1,8 @@
+# Sample batch script
+
+
+algorithms=vae, ava
+
+trainingsets=datasets/label/hdp_sample.base#snapshot_parser#file
+
+testingsets=datasets/label/hdp_sample.test#snapshot_parser#file

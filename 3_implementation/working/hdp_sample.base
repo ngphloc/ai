@@ -1,0 +1,2 @@
+source~string, target~string, gens~integer
+"working/base", "working/gen", 1
