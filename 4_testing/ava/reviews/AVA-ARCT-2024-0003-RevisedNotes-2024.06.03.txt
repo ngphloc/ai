@@ -1,0 +1,41 @@
+ACRT: https://intech-review.rivervalley.io/journal/acrt
+Manuscript ID: ACRT-2024-0003
+Manuscript title: Adversarial Variational Autoencoders to extend and improve generative model
+
+Dear InTechOpen Editors and Reviewers,
+Thank you very much for your kind announcement and reviewers' comments which are very helpful for me to improve the work. This is my biggest honor and happiness. I kindly send you the revised paper in which revised parts are marked yellow. Moreover, followings are my answers to reviewer comments. 
+
+Reviewer 1:
+Minor formatting required as per the manuscript formatting guidelines. Especially between Tables on page# 10.
+Answer: I will format the paper according to formatting guidelines.
+The use of "I" in academic writing is typically discouraged as it might give the work a subjective feel. Please consult with the journal editor or their style guide for usage of first-person pronouns.
+Answer: I changed the pronounce "I" into indirect form.
+
+Reviewer 2:
+Nothing new. The idea of Adversarial Variational Autoencoders has been proposed many years ago. The research methodology presented in the paper is also not scientific.
+Answer: Although the ideology of fusing VAE and GAN like AVA does is not new when reviewing the research "Autoencoding beyond pixels using a learned similarity metric" by Larsen et al. (Larsen, Sønderby, Larochelle, & Winther, 2016) in which their unification mechanism is like AVA, the contribution of this research is to propose a solid architecture of generative model based on two powerful models VAE and GAN, which aims to flexibility with plentiful functions including encoder, decoder, and leaning mechanism that allows developers to customize AVA according to their individual purposes.
+
+Reviewer 3:
+In this paper, VAE and GAN methods are unified into a consistent and consolidated model called Adversarial Variational Autoencoders (AVA) in which VAE and GAN complement each other. Model is explained with extensive descriptions, then evaluated with extensive testing results.
+Few comments for improvement:
+1) Explain the dataset used in the paper better with more details.
+2) Provide a download site (github?) for the dataset and the results, and code if possible.
+3) Extend the reference list.
+4) Highlight the prominent and important results in the tables where results are presented.
+5) Table titles should be listed at the top of the tables not at the bottom.
+Answer: Thank you very much for your appreciation. This is my big honor and happiness. Following are my answer to your requirements:
+1) I added some explanations about the dataset.
+2) I cannot share the source code yet but I can share you GitHub links of dataset, results, and code.
+   Dataset: https://github.com/ngphloc/ai/tree/main/3_implementation/datasets/orbit/base-100x64
+   Test results: https://github.com/ngphloc/ai/tree/main/4_testing/ava
+   Test main results: https://github.com/ngphloc/ai/blob/main/4_testing/ava/2023.12.20/TestResult-Orbit-100x64-2023.12.29.xlsx
+   Code: https://github.com/ngphloc/ai/tree/main/3_implementation
+   You can try the generative AI application by running the bat file "genai.bat" in directory "3_implementation". The application requires Java 15.
+3) The research tries to contribute methodological aspect in deep generative models where fundamental researches relate mainly GAN and VAE. Therefore, these references are essential but I will try my best to improve the reference list.
+4) The most important result is stated in the end of session 3 "Experimental results and discussions" that the corporation of GAN and VAE which produces AVA in this research results out better encoding and decoding performance of deep generative model when metrics such as BM means, BM maxima, BM minima, and BM standard deviations of AVAs are better with regards to contexts of balance quality and similarity quality. Moreover, AVA5 which is full of functions including decoder discriminator, decoder leaning, encoder discrimination, and encoder leaning produces the best results with highest balance quality given largest BM mean (0.2096) and highest stability given smallest SD (0.0244).
+5) I formatted the table titles according to your requirement.
+
+
+The new revised version can be resent to you again.
+Please wait for me and keep in touch with me. Best wishes to us,
+Loc Nguyen
