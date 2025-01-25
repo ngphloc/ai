@@ -165,7 +165,7 @@
 		<javadoc destdir="${docs.home}/api"
 			classpathref="build.class.path"
 			sourcepath="${src.home}"
-			excludepackagenames="net.ea.ann.raster.com.madgag.gif.fmsware.*, net.ea.pso.logistic.speqmath.*, net.temp.*">
+			excludepackagenames="net.ea.ann.raster.com.madgag.gif.fmsware.*, net.ea.pso.logistic.speqmath.*, net.temp.*, temp.*">
 		</javadoc>
 	</target>
 
@@ -176,7 +176,7 @@
 		<javadoc destdir="${archive.home}"
 			classpathref="build.class.path"
 			sourcepath="${src.home}"
-			excludepackagenames="net.ea.ann.raster.com.madgag.gif.fmsware.*, net.ea.pso.logistic.speqmath.*, net.temp.*">
+			excludepackagenames="net.ea.ann.raster.com.madgag.gif.fmsware.*, net.ea.pso.logistic.speqmath.*, net.temp.*, temp.*">
 		</javadoc>
 
 		<zip destfile="${archive.home}/${product}-${version}-doc.zip" basedir="${archive.home}"/>
