@@ -1,0 +1,23 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
+package temp.ea.ann.rnn2;
+
+import net.ea.ann.core.NetworkStandard;
+
+/**
+ * This interface represents multiple weight network.
+ * 
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+@Deprecated
+public interface MultiWeightNetwork extends NetworkStandard {
+
+	
+}

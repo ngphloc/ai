@@ -1,0 +1,45 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
+package net.ea.ann.conv.filter;
+
+import net.ea.ann.conv.ConvLayerSingle2D;
+import net.ea.ann.conv.ConvLayerSingle3D;
+import net.ea.ann.core.value.NeuronValue;
+
+/**
+ * This class is an abstract implementation of filter in 3D space.
+ * 
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+public abstract class AbstractFilter3D extends AbstractFilter2D implements Filter3D {
+
+
+	/**
+	 * Serial version UID for serializable class.
+	 */
+	private static final long serialVersionUID = 1L;
+
+	
+	/**
+	 * Default constructor.
+	 */
+	protected AbstractFilter3D() {
+		super();
+	}
+
+
+	@Override
+	public NeuronValue apply(int x, int y, ConvLayerSingle2D layer) {
+		if (!(layer instanceof ConvLayerSingle3D)) return null;
+		return apply(x, y, 0, (ConvLayerSingle3D)layer);
+	}
+
+
+}
