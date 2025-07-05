@@ -137,7 +137,7 @@ public class Util {
 			MatrixUtils.createRealMatrix(1, 1); //Try to test class existence.
 		}
 		catch (Throwable e) {
-			double det = net.ea.ann.core.Util.detNotOptimalYet(A);
+			double det = net.ea.ann.core.value.NeuronValueM.detNotOptimalYet(A);
 			return (!Double.isNaN(det)) && (det != 0);
 		}
 
@@ -157,7 +157,7 @@ public class Util {
 			MatrixUtils.createRealMatrix(1, 1); //Try to test class existence.
 		}
 		catch (Throwable e) {
-			return net.ea.ann.core.Util.detNotOptimalYet(A);
+			return net.ea.ann.core.value.NeuronValueM.detNotOptimalYet(A);
 		}
 
 		RealMatrix M = MatrixUtils.createRealMatrix(A);
@@ -175,7 +175,7 @@ public class Util {
 			MatrixUtils.createRealMatrix(1, 1); //Try to test class existence.
 		}
 		catch (Throwable e) {
-			return net.ea.ann.core.Util.inverseNotOptimalYet(A);
+			return net.ea.ann.core.value.NeuronValueM.inverseNotOptimalYet(A);
 		}
 
 		RealMatrix M = MatrixUtils.createRealMatrix(A);
@@ -194,7 +194,7 @@ public class Util {
 			MatrixUtils.createRealMatrix(1, 1); //Try to test class existence.
 		}
 		catch (Throwable e) {
-			return net.ea.ann.core.Util.sqrtNotOptimalYet(A);
+			return net.ea.ann.core.value.NeuronValueM.sqrtNotOptimalYet(A);
 		}
 
 		RealMatrix M = MatrixUtils.createRealMatrix(A);

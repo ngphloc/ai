@@ -672,7 +672,7 @@ public interface NeuronValue extends Value {
 		if (A == null || B == null) return null;
 		int m = A.length, n = B.length, o = B[0].length;
 		NeuronValue[][] C = new NeuronValue[m][o];
-		NeuronValue zero = A[0][0];
+		NeuronValue zero = A[0][0].zero();
 		for (int i = 0; i < m; i++) {
 			for (int k = 0; k < o; k++) {
 				C[i][k] = zero;
