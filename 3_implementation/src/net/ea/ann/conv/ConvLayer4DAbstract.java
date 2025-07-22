@@ -433,12 +433,18 @@ public abstract class ConvLayer4DAbstract extends ConvLayer3DAbstract implements
 			nextNeurons = nextLayer.getNeurons();
 		else {
 			nextNeurons = new ConvNeuron[nextLayer.length()];
-			for (int i = 0; i < nextNeurons.length; i++) nextNeurons[i].setValue(nextZero);
+			for (int i = 0; i < nextNeurons.length; i++) {
+				nextNeurons[i].setValue(nextZero);
+				nextNeurons[i].setInput(nextZero);
+			}
 		}
 		if (nextNeurons == null || nextNeurons.length == 0) return null;
 		
 		if (filter instanceof DeconvConvFilter) {
-			for (ConvNeuron nextNeuron : nextNeurons) nextNeuron.setValue(null);
+			for (ConvNeuron nextNeuron : nextNeurons) {
+				nextNeuron.setValue(null);
+				nextNeuron.setInput(null);
+			}
 		}
 		
 		if (thisFilterRegion != null && nextFilterRegion != null) nextFilterRegion = null;
@@ -459,6 +465,8 @@ public abstract class ConvLayer4DAbstract extends ConvLayer3DAbstract implements
 		int nextHeight = nextLayer.getHeight();
 		int nextDepth = nextLayer.getDepth();
 		int nextTime = nextLayer.getTime();
+		Function activateRef = nextLayer.getActivateRef();
+		activateRef = activateRef == null ? thisLayer.getActivateRef() : activateRef;
 		
 		for (int nextT = 0; nextT < nextTime; nextT++) {
 			int thisT = 0;
@@ -527,7 +535,7 @@ public abstract class ConvLayer4DAbstract extends ConvLayer3DAbstract implements
 						
 						if (filteredValue != null) {
 							filteredValue = filteredValue.add(thisLayer.getBias());
-							Function activateRef = nextLayer.getActivateRef();
+							nextNeurons[nextIndex].setInput(filteredValue);
 							if (activateRef != null) filteredValue = activateRef.evaluate(filteredValue);
 							nextNeurons[nextIndex].setValue(filteredValue);
 						}
@@ -541,6 +549,7 @@ public abstract class ConvLayer4DAbstract extends ConvLayer3DAbstract implements
 		if (filter instanceof DeconvConvFilter) {
 			for (ConvNeuron nextNeuron : nextNeurons) {
 				if (nextNeuron.getValue() == null) nextNeuron.setValue(nextZero);
+				if (nextNeuron.getInput() == null) nextNeuron.setInput(nextZero);
 			}
 		}
 

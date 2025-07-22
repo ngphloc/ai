@@ -724,7 +724,7 @@ public class GeneratorStandard<T extends Trainer> extends NetworkStandardImpl im
 	 * @return new weight.
 	 */
 	protected Weight newWeight(LayerStandard layer) {
-		return (layer != null && layer instanceof Layer) ? ((Layer)layer).newWeightCaller() : new Weight(newNeuronValue(layer).newWeightValue().zero());
+		return (layer != null && layer instanceof Layer) ? ((Layer)layer).newWeightCaller() : new Weight(newNeuronValue(layer).newWeightValue().zeroW());
 	}
 
 	

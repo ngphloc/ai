@@ -1061,11 +1061,9 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else {
-				double errorMean = 0;
-				for (NeuronValue r : error) errorMean += r.norm();
-				errorMean = errorMean / error.length;
-				if (errorMean < terminatedThreshold) doStarted = false; 
+			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+				double errorMean = NeuronValue.normMean(error);
+				if (errorMean < terminatedThreshold) doStarted = false;
 			}
 			
 			synchronized (this) {
@@ -1171,11 +1169,9 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else {
-				double errorMean = 0;
-				for (NeuronValue r : error) errorMean += r.norm();
-				errorMean = errorMean / error.length;
-				if (errorMean < terminatedThreshold) doStarted = false; 
+			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+				double errorMean = NeuronValue.normMean(error);
+				if (errorMean < terminatedThreshold) doStarted = false;
 			}
 			
 			synchronized (this) {

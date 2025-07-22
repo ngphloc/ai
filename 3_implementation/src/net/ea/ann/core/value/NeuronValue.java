@@ -975,4 +975,76 @@ public interface NeuronValue extends Value {
 	}
 
 
+	/**
+	 * Calculating norm mean.
+	 * @param array array.
+	 * @return norm mean.
+	 */
+	static double normMean(NeuronValue[] array) {
+		if (array == null || array.length == 0) return 0;
+		double mean = 0;
+		for (NeuronValue value : array) mean += value.norm();
+		return mean / (double)array.length;
+	}
+	
+	
+	/**
+	 * Calculating value mean.
+	 * @param array array.
+	 * @return value mean.
+	 */
+	static NeuronValue valueMean(NeuronValue[] array) {
+		if (array == null || array.length == 0) return null;
+		NeuronValue mean = null;
+		for (NeuronValue value : array) {
+			if (mean == null)
+				mean = value;
+			else
+				mean = mean.add(value);
+		}
+		return mean.divide((double)array.length);
+	}
+
+	
+	/**
+	 * Calculating norm mean.
+	 * @param matrix matrix.
+	 * @return norm mean.
+	 */
+	static double normMean(NeuronValue[][] matrix) {
+		if (matrix == null || matrix.length == 0) return 0;
+		double mean = 0;
+		int count = 0;
+		for (NeuronValue[] array : matrix) {
+			for (NeuronValue value : array) {
+				mean += value.norm();
+				count++;
+			}
+		}
+		return mean / (double)count;
+	}
+
+
+	/**
+	 * Calculating value mean.
+	 * @param matrix matrix.
+	 * @return value mean.
+	 */
+	static NeuronValue valueMean(NeuronValue[][] matrix) {
+		if (matrix == null || matrix.length == 0) return null;
+		NeuronValue mean = null;
+		int count = 0;
+		for (NeuronValue[] array : matrix) {
+			for (NeuronValue value : array) {
+				if (mean == null)
+					mean = value;
+				else
+					mean = mean.add(value);
+				count++;
+			}
+		}
+		return mean.divide((double)count);
+	}
+
+
 }

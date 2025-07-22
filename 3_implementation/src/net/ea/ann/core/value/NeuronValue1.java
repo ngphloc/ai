@@ -114,7 +114,7 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 
 	@Override
 	public WeightValue newWeightValue() {
-		return new WeightValue1(0.0).zero();
+		return new WeightValue1(0.0).zeroW();
 	}
 
 
@@ -166,7 +166,7 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 	@Override
 	public NeuronValue multiply(WeightValue value) {
 		if (value instanceof WeightValueV) {
-			NeuronValueV vector = (NeuronValueV)((WeightValueV)value).toNeuronValue();
+			NeuronValueV vector = (NeuronValueV)((WeightValueV)value).toValue();
 			int n = vector.length();
 			if (n == 0) return null;
 			NeuronValueV result = new NeuronValueV(n, 0);

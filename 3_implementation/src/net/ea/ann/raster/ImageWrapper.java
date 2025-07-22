@@ -53,12 +53,12 @@ public class ImageWrapper implements Image {
 	protected transient BufferedImage image;
 	
 	
-//	/**
-//	 * The auxiliary image data supports serialization. Constructor {@link #ImageWrapper(BufferedImage)} will create such data from the buffered image.
-//	 * Method {@link #getImage()} will create the buffered image from such data if the the buffered image is null by non-serializing.
-//	 * The value imageData[0] is image width and the value imageData[1] is image height. Image pixels are stored from imageData[2]. 
-//	 */
-//	protected int[] imageData = null;
+	/**
+	 * The auxiliary image data supports serialization. Constructor {@link #ImageWrapper(BufferedImage)} will create such data from the buffered image.
+	 * Method {@link #getImage()} will create the buffered image from such data if the the buffered image is null by non-serializing.
+	 * The value imageData[0] is image width and the value imageData[1] is image height. Image pixels are stored from imageData[2]. 
+	 */
+	protected int[] imageData = null;
 	
 	
 	/**
@@ -67,6 +67,15 @@ public class ImageWrapper implements Image {
 	 */
 	public ImageWrapper(BufferedImage image) {
 		this.image = image;
+		
+		try {
+			//The value imageData[0] is image width and the value imageData[1] is image height. Image pixels are stored from imageData[2].
+			if (this.image != null && this.imageData == null)
+				this.imageData = convertFromImageToData(this.image);
+		} catch (Throwable e) {
+			this.imageData = null;
+			System.out.println("Error: " + e.getMessage());
+		}
 	}
 
 	
@@ -75,7 +84,15 @@ public class ImageWrapper implements Image {
 	 * @return internal image.
 	 */
 	protected BufferedImage getImage() {
-		return image;
+		try {
+			//The value imageData[0] is image width and the value imageData[1] is image height. Image pixels are stored from imageData[2].
+			if (this.image == null && this.imageData != null)
+				this.image = convertFromDataToImage(imageData);
+		} catch (Throwable e) {
+			System.out.println("Error: " + e.getMessage());
+		}
+		
+		return this.image;
 	}
 	
 
@@ -352,6 +369,30 @@ public class ImageWrapper implements Image {
 		return image != null ? new ImageWrapper(image) : null;
 	}
 	
+
+	/**
+	 * Converting data to image.
+	 * @param imageData specified image data.
+	 * The value imageData[0] is image width and the value imageData[1] is image height. Image pixels are stored from imageData[2].
+	 * @return image.
+	 */
+	private static BufferedImage convertFromDataToImage(int[] imageData) {
+		if (imageData == null || imageData.length <= 2) return null;
+		
+		int width = imageData[0];
+		int height = imageData[1];
+		if (width <= 0 || height <= 0) return null;
+		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int p = imageData[2 + y*width + x];
+	            image.setRGB(x, y, p);
+			}
+		}
+		
+		return image;
+	}
+	
 	
 	/**
 	 * Extracting image into neuron value array.
@@ -448,6 +489,31 @@ public class ImageWrapper implements Image {
 	}
 	
 
+	/**
+	 * Converting image to data.
+	 * @param image specified image.
+	 * @return image data.
+	 * The value imageData[0] is image width and the value imageData[1] is image height. Image pixels are stored from imageData[2].
+	 */
+	private static int[] convertFromImageToData(BufferedImage image) {
+		if (image == null) return null;
+		int width = image.getWidth(), height = image.getHeight();
+		if (width == 0 || height == 0) return null;
+		
+		int[] imageData = new int[2 + width*height];
+		imageData[0] = width;
+		imageData[1] = height;
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int p = image.getRGB(x, y);
+				imageData[2 + y*width + x] = p;
+			}
+		}
+		
+		return imageData;
+	}
+	
+	
 	@Override
 	public NeuronValue[] convertFromImageToNeuronValues(int neuronChannel, int width, int height,
 			boolean isNorm) {

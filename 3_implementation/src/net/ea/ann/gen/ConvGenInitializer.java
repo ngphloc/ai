@@ -28,7 +28,7 @@ import net.ea.ann.raster.SizeZoom;
  * @version 1.0
  *
  */
-public class Initializer implements Serializable, Cloneable {
+public class ConvGenInitializer implements Serializable, Cloneable {
 
 
 	/**
@@ -47,7 +47,7 @@ public class Initializer implements Serializable, Cloneable {
 	 * Constructor with convolutional generative model.
 	 * @param convGM convolutional generative model.
 	 */
-	public Initializer(ConvGenModel convGM) {
+	public ConvGenInitializer(ConvGenModel convGM) {
 		this.convGM = convGM;
 	}
 
@@ -57,7 +57,7 @@ public class Initializer implements Serializable, Cloneable {
 	 * @param thickStack thick-stack property. In thick-stack mode (true), every stack in convolutional network should have more than one element layer.
 	 * @return this initializer.
 	 */
-	public Initializer setParamThickStack(boolean thickStack) {
+	public ConvGenInitializer setParamThickStack(boolean thickStack) {
 		try {
 			ConvGenSetting setting = convGM.getSetting();
 			setting.thickStack = thickStack;

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.Raster;
 
@@ -140,6 +141,26 @@ public class Record implements Serializable, Cloneable {
 	
 	
 	/**
+	 * Constructor with matrix input.
+	 * @param matrixInput matrix input.
+	 */
+	public Record(Matrix matrixInput) {
+		this.undefinedInput = matrixInput;
+	}
+
+	
+	/**
+	 * Constructor with matrix input and matrix output.
+	 * @param matrixInput matrix input.
+	 * @param matrixOutput matrix output.
+	 */
+	public Record(Matrix matrixInput, Matrix matrixOutput) {
+		this.undefinedInput = matrixInput;
+		this.undefinedOutput = matrixOutput;
+	}
+
+	
+	/**
 	 * Constructor with other record.
 	 * @param record other record.
 	 */
@@ -249,6 +270,42 @@ public class Record implements Serializable, Cloneable {
 	}
 
 
+	/**
+	 * Getting matrix input.
+	 * @return matrix input.
+	 */
+	public Matrix getMatrixInput() {
+		return (undefinedInput != null) && (undefinedInput instanceof Matrix) ? (Matrix)undefinedInput : null;
+	}
+	
+	
+	/**
+	 * Setting matrix input.
+	 * @param matrixInput matrix input.
+	 */
+	public void setMatrixInput(Matrix matrixInput) {
+		this.undefinedInput = matrixInput;
+	}
+	
+	
+	/**
+	 * Getting matrix output.
+	 * @return matrix output.
+	 */
+	public Matrix getMatrixOutput() {
+		return (undefinedOutput != null) && (undefinedOutput instanceof Matrix) ? (Matrix)undefinedOutput : null;
+	}
+
+
+	/**
+	 * Setting matrix output.
+	 * @param matrixOutput matrix output.
+	 */
+	public void setMatrixOutput(Matrix matrixOutput) {
+		this.undefinedOutput = matrixOutput;
+	}
+
+	
 	/**
 	 * Randomizing sample flag.
 	 */

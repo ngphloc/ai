@@ -7,8 +7,6 @@
  */
 package temp.ea.ann.transformer;
 
-import java.io.Serializable;
-
 import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerStandard;
 import net.ea.ann.core.NetworkStandardAbstract;
@@ -77,7 +75,7 @@ public class Attention extends LinkedGenerator {
  * @version 1.0
  *
  */
-class LinkedGenerator extends GeneratorStandard<Trainer> implements Cloneable, Serializable {
+class LinkedGenerator extends GeneratorStandard<Trainer> {
 
 
 	/**

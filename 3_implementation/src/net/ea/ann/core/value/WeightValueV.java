@@ -125,7 +125,7 @@ public class WeightValueV implements WeightValue, TextParsable {
 
 	
 	@Override
-	public WeightValue zero() {
+	public WeightValue zeroW() {
 		if (zero == this) return zero;
 		if (zero != null && zero.v.length == this.v.length) return zero;
 		if (this.v.length < zeros.length) {
@@ -139,7 +139,7 @@ public class WeightValueV implements WeightValue, TextParsable {
 
 	
 	@Override
-	public WeightValue unit() {
+	public WeightValue unitW() {
 		if (unit == this) return unit;
 		if (unit != null && unit.v.length == this.v.length) return unit;
 		if (this.v.length < zeros.length) {
@@ -153,7 +153,7 @@ public class WeightValueV implements WeightValue, TextParsable {
 
 	
 	@Override
-	public NeuronValue toNeuronValue() {
+	public NeuronValue toValue() {
 		NeuronValueV result = new NeuronValueV(this.v.length); 
 		for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i];
 		return result;
@@ -161,7 +161,7 @@ public class WeightValueV implements WeightValue, TextParsable {
 
 
 	@Override
-	public WeightValue add(NeuronValue value) {
+	public WeightValue addValue(NeuronValue value) {
 		WeightValueV result = new WeightValueV(this.v.length);
 		if (value instanceof NeuronValue1) {
 			double other = ((NeuronValue1)value).get();
@@ -176,7 +176,7 @@ public class WeightValueV implements WeightValue, TextParsable {
 
 	
 	@Override
-	public WeightValue subtract(NeuronValue value) {
+	public WeightValue subtractValue(NeuronValue value) {
 		WeightValueV result = new WeightValueV(this.v.length);
 		if (value instanceof NeuronValue1) {
 			double other = ((NeuronValue1)value).get();

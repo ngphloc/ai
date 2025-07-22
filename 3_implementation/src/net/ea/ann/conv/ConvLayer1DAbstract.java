@@ -25,6 +25,7 @@ import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.NeuronRaster;
+import net.ea.ann.raster.NeuronValueRaster;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.Size;
@@ -574,6 +575,18 @@ public abstract class ConvLayer1DAbstract extends LayerAbstract implements ConvL
 	}
 
 
+	@Override
+	public NeuronValue[][] dKernel(ConvLayerSingle nextError, Filter filter) {
+		return dKernel(this, (ConvLayerSingle1D)nextError, filter, null, null);
+	}
+
+
+	@Override
+	public NeuronValueRaster dValue(ConvLayerSingle nextError, Filter filter) {
+		return dValue(this, (ConvLayerSingle1D)nextError, filter, null, null);
+	}
+
+
 	/**
 	 * Forwarding evaluation from current layer to next layer.
 	 * @param thisLayer current layer.
@@ -595,12 +608,18 @@ public abstract class ConvLayer1DAbstract extends LayerAbstract implements ConvL
 			nextNeurons = nextLayer.getNeurons();
 		else {
 			nextNeurons = new ConvNeuron[nextLayer.length()];
-			for (int i = 0; i < nextNeurons.length; i++) nextNeurons[i].setValue(nextZero);
+			for (int i = 0; i < nextNeurons.length; i++) {
+				nextNeurons[i].setValue(nextZero);
+				nextNeurons[i].setInput(nextZero);
+			}
 		}
 		if (nextNeurons == null || nextNeurons.length == 0) return null;
 		
 		if (filter instanceof DeconvConvFilter) {
-			for (ConvNeuron nextNeuron : nextNeurons) nextNeuron.setValue(null);
+			for (ConvNeuron nextNeuron : nextNeurons) {
+				nextNeuron.setValue(null);
+				nextNeuron.setInput(null);
+			}
 		}
 		
 		if (thisFilterRegion != null && nextFilterRegion != null) nextFilterRegion = null;
@@ -609,50 +628,53 @@ public abstract class ConvLayer1DAbstract extends LayerAbstract implements ConvL
 		int thisWidth = thisLayer.getWidth();
 		int thisBlockWidth = filter.isMoveStride() ? thisWidth / filterStrideWidth : thisWidth;
 		int nextWidth = nextLayer.getWidth();
+		Function activateRef = nextLayer.getActivateRef();
+		activateRef = activateRef == null ? thisLayer.getActivateRef() : activateRef;
 		
-			for (int nextX = 0; nextX < nextWidth; nextX++) {
-				int thisX = 0;
-				if (filter instanceof DeconvFilter) {
-					thisX = nextX / filterStrideWidth;
-					if (!nextLayer.isPadZeroFilter()) thisX = thisX < thisWidth ? thisX : thisWidth-1;
-				}
-				else {
-					int xBlock = nextLayer.isPadZeroFilter() ? nextX : (nextX < thisBlockWidth ? nextX : thisBlockWidth-1);
-					thisX = xBlock*filterStrideWidth;
-				}
-				
-				//Setting zero to outline pixels.
-				if (thisX >= thisWidth) {
-					nextNeurons[nextX].setValue(nextZero);
-					continue;
-				}
-				
-				//Checking region.
-				if (thisFilterRegion != null && (thisX < thisFilterRegion.x || thisFilterRegion.x + thisFilterRegion.width <= thisX))
-					continue;
-				if (nextFilterRegion != null && (nextX < nextFilterRegion.x || nextFilterRegion.x + nextFilterRegion.width <= nextX))
-					continue;
-				
-				//Filtering
-				NeuronValue filteredValue = null;
-				if (filter instanceof DeconvConvFilter)
-					filteredValue = ((DeconvConvFilter1D)filter).apply(thisX, thisLayer, nextX, nextLayer);
-				else
-					filteredValue = filter.apply(thisX, thisLayer);
-				
-				if (filteredValue != null) {
-					filteredValue = filteredValue.add(thisLayer.getBias());
-					Function activateRef = nextLayer.getActivateRef();
-					if (activateRef != null) filteredValue = activateRef.evaluate(filteredValue);
-					nextNeurons[nextX].setValue(filteredValue);
-				}
-				else
-					nextNeurons[nextX].setValue(nextZero);
+		for (int nextX = 0; nextX < nextWidth; nextX++) {
+			int thisX = 0;
+			if (filter instanceof DeconvFilter) {
+				thisX = nextX / filterStrideWidth;
+				if (!nextLayer.isPadZeroFilter()) thisX = thisX < thisWidth ? thisX : thisWidth-1;
 			}
+			else {
+				int xBlock = nextLayer.isPadZeroFilter() ? nextX : (nextX < thisBlockWidth ? nextX : thisBlockWidth-1);
+				thisX = xBlock*filterStrideWidth;
+			}
+			
+			//Setting zero to outline pixels.
+			if (thisX >= thisWidth) {
+				nextNeurons[nextX].setValue(nextZero);
+				continue;
+			}
+			
+			//Checking region.
+			if (thisFilterRegion != null && (thisX < thisFilterRegion.x || thisFilterRegion.x + thisFilterRegion.width <= thisX))
+				continue;
+			if (nextFilterRegion != null && (nextX < nextFilterRegion.x || nextFilterRegion.x + nextFilterRegion.width <= nextX))
+				continue;
+			
+			//Filtering
+			NeuronValue filteredValue = null;
+			if (filter instanceof DeconvConvFilter)
+				filteredValue = ((DeconvConvFilter1D)filter).apply(thisX, thisLayer, nextX, nextLayer);
+			else
+				filteredValue = filter.apply(thisX, thisLayer);
+			
+			if (filteredValue != null) {
+				filteredValue = filteredValue.add(thisLayer.getBias());
+				nextNeurons[nextX].setInput(filteredValue);
+				if (activateRef != null) filteredValue = activateRef.evaluate(filteredValue);
+				nextNeurons[nextX].setValue(filteredValue);
+			}
+			else
+				nextNeurons[nextX].setValue(nextZero);
+		}
 		
 		if (filter instanceof DeconvConvFilter) {
 			for (ConvNeuron nextNeuron : nextNeurons) {
 				if (nextNeuron.getValue() == null) nextNeuron.setValue(nextZero);
+				if (nextNeuron.getInput() == null) nextNeuron.setInput(nextZero);
 			}
 		}
 
@@ -676,6 +698,34 @@ public abstract class ConvLayer1DAbstract extends LayerAbstract implements ConvL
 	}
 
 		
+	/**
+	 * Calculating derivative of this filter given next layer as bias layer at specified coordinator.
+	 * @param thisLayerSize current layer.
+	 * @param nextLayer next layer.
+	 * @param f filter of current layer.
+	 * @param thisFilterRegion filtering region of current layer. It can be null.
+	 * @param nextFilterRegion filtering region of next layer. It can be null.
+	 * @return differentials of kernel.
+	 */
+	static NeuronValue[][] dKernel(ConvLayerSingle1D thisLayer, ConvLayerSingle1D nextLayer, Filter f, Rectangle thisFilterRegion, Rectangle nextFilterRegion) {
+		throw new RuntimeException("Method ConvLayer1DAbstract::dKernel(ConvLayerSingle1D, ConvLayerSingle1D, Filter, Rectangle, Rectangle) not implmented yet");
+	}
+	
+	
+	/**
+	 * Calculating derivative of this layer given next layer as bias layer at specified coordinator.
+	 * @param thisLayer current layer.
+	 * @param nextLayer next layer.
+	 * @param f filter of current layer.
+	 * @param thisFilterRegion filtering region of current layer. It can be null.
+	 * @param nextFilterRegion filtering region of next layer. It can be null.
+	 * @return arrays of values filtered.
+	 */
+	static NeuronValueRaster dValue(ConvLayerSingle1D thisLayer, ConvLayerSingle1D nextLayer, Filter f, Rectangle thisFilterRegion, Rectangle nextFilterRegion) {
+		throw new RuntimeException("Method ConvLayer1DAbstract::dValue(ConvLayerSingle1D, ConvLayerSingle1D, Filter, Rectangle, Rectangle) not implmented yet");
+	}
+	
+	
 	/**
 	 * Forwarding evaluation from current layer to next layer.
 	 * @param input input data. It can be null.

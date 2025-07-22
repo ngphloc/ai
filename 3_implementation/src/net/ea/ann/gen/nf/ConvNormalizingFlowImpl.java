@@ -141,7 +141,7 @@ public class ConvNormalizingFlowImpl extends ConvGANImpl implements ConvNormaliz
 					if (prevNeurons.length == 0) continue;
 					Mean biasDeltaMean = null;
 					for (WeightedNeuron prevNeuron : prevNeurons) {
-						NeuronValue w = prevNeuron.weight.value.toNeuronValue();
+						NeuronValue w = prevNeuron.weight.value.toValue();
 						if (!w.canInvert()) continue;
 						
 						//Updating bias delta.
@@ -156,7 +156,7 @@ public class ConvNormalizingFlowImpl extends ConvGANImpl implements ConvNormaliz
 						
 						//Updating weight.
 						NeuronValue weightDelta = errorw2.subtract(w.inverse()).multiply(learningRate);
-						prevNeuron.weight.value = prevNeuron.weight.value.add(weightDelta);
+						prevNeuron.weight.value = prevNeuron.weight.value.addValue(weightDelta);
 					}
 					
 					//Updating bias.

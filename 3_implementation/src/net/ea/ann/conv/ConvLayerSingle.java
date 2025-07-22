@@ -11,6 +11,7 @@ import net.ea.ann.conv.filter.BiasFilter;
 import net.ea.ann.conv.filter.Filter;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.raster.NeuronValueRaster;
 import net.ea.ann.raster.Raster;
 
 /**
@@ -164,6 +165,24 @@ public interface ConvLayerSingle extends ConvLayer {
 	 */
 	ConvLayerSingle forward(ConvLayerSingle nextLayer, Filter filter);
 
+	
+	/**
+	 * Calculating derivative of this filter given next layer as bias layer at specified coordinator.
+	 * @param nextError next layer as next bias.
+	 * @param filter specified filter.
+	 * @return differentials of kernel.
+	 */
+	NeuronValue[][] dKernel(ConvLayerSingle nextError, Filter filter);
+	
+	
+	/**
+	 * Calculating derivative of this layer given next layer as bias layer at specified coordinator.
+	 * @param nextError next layer as next bias.
+	 * @param filter specified filter.
+	 * @return differentials of values.
+	 */
+	NeuronValueRaster dValue(ConvLayerSingle nextError, Filter filter);
+	
 	
 	/**
 	 * Create raster from neuron values.

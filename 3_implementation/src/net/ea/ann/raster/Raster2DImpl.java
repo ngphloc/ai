@@ -57,6 +57,10 @@ public class Raster2DImpl extends RasterAbstract implements Raster2D {
 	
 
 	@Override
+	public Image getImage() {return image;}
+	
+	
+	@Override
 	public java.awt.Image getRepImage() {
 		if (image == null)
 			return null;

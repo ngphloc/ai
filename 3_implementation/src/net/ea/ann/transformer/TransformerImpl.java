@@ -12,6 +12,7 @@ import java.rmi.RemoteException;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.mane.MatrixNetwork;
 
 /**
  * This class implements simplest transformer.

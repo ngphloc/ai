@@ -23,21 +23,21 @@ public interface WeightValue extends Value {
 	 * Retrieve zero value.
 	 * @return zero value.
 	 */
-	WeightValue zero();
+	WeightValue zeroW();
 	
 	
 	/**
 	 * Getting identity.
 	 * @return identity.
 	 */
-	WeightValue unit();
+	WeightValue unitW();
 
 	
 	/**
 	 * Converting this weight value to neuron value.
 	 * @return converted neuron value.
 	 */
-	NeuronValue toNeuronValue();
+	NeuronValue toValue();
 	
 	
 	/**
@@ -45,7 +45,7 @@ public interface WeightValue extends Value {
 	 * @param value other neuron value.
 	 * @return added value.
 	 */
-	WeightValue add(NeuronValue value);
+	WeightValue addValue(NeuronValue value);
 
 
 	/**
@@ -53,7 +53,7 @@ public interface WeightValue extends Value {
 	 * @param value other value.
 	 * @return subtracted value.
 	 */
-	WeightValue subtract(NeuronValue value);
+	WeightValue subtractValue(NeuronValue value);
 
 
 	/**

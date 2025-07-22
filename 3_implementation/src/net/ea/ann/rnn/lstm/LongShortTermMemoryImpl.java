@@ -92,7 +92,7 @@ public class LongShortTermMemoryImpl extends RecurrentNetworkImpl implements Lon
 
 	@Override
 	protected Weight newWeight(State state, LayerStandard layer) {
-		WeightValue weightValue = newNeuronValue(state, layer).newWeightValue().zero();
+		WeightValue weightValue = newNeuronValue(state, layer).newWeightValue().zeroW();
 		return new Weight(weightValue);
 	}
 

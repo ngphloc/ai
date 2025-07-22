@@ -30,4 +30,26 @@ public interface Filter2D extends Filter1D {
 	NeuronValue apply(int x, int y, ConvLayerSingle2D layer);
 
 
+	/**
+	 * Calculating derivative of kernel of this layer given next layer as bias layer at specified coordinator.
+	 * @param nextX next X coordinator.
+	 * @param nextY next Y coordinator.
+	 * @param thisLayer this layer.
+	 * @param nextLayer next layer as bias layer.
+	 * @return derivative of kernel of this layer given next layer as bias layer.
+	 */
+	public NeuronValue[][] dKernel(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer);
+
+	
+	/**
+	 * Calculating derivative of this layer given next layer as bias layer at specified coordinator.
+	 * @param nextX next X coordinator.
+	 * @param nextY next Y coordinator.
+	 * @param thisLayer this layer.
+	 * @param nextLayer next layer as bias layer.
+	 * @return derivative of this layer given next layer as bias layer.
+	 */
+	public NeuronValue[][] dValue(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer);
+
+	
 }

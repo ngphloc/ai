@@ -7,6 +7,9 @@
  */
 package net.ea.ann.core.value;
 
+import net.ea.ann.conv.Content;
+import net.ea.ann.core.function.Function;
+
 /**
  * This class implements default matrix.
  * 
@@ -44,7 +47,8 @@ public class MatrixImpl implements Matrix {
 	 * @param columns numbers of columns.
 	 * @param value specified value.
 	 */
-	public MatrixImpl(int rows, int columns, NeuronValue value) {
+	protected MatrixImpl(int rows, int columns, NeuronValue value) {
+		if (rows <= 0 || columns <= 0 || value == null) throw new IllegalArgumentException("Wrong rows, columns, or value");
 		data = new NeuronValue[rows][columns];
 		for (int i = 0; i < rows; i++) {
 			for (int j = 0; j < columns; j++) data[i][j] = value;
@@ -58,7 +62,7 @@ public class MatrixImpl implements Matrix {
 	 * @param columns numbers of columns.
 	 * @param value specified double value.
 	 */
-	public MatrixImpl(int rows, int columns, double value) {
+	protected MatrixImpl(int rows, int columns, double value) {
 		this(rows, columns, new NeuronValue1(value));
 	}
 	
@@ -68,8 +72,20 @@ public class MatrixImpl implements Matrix {
 	 * @param rows number of rows.
 	 * @param columns numbers of columns.
 	 */
-	public MatrixImpl(int rows, int columns) {
+	protected MatrixImpl(int rows, int columns) {
 		this(rows, columns, 0);
+	}
+
+
+	@Override
+	public NeuronValue newNeuronValue() {
+		NeuronValue value = create(1, 1).get(0, 0);
+		if (value instanceof Matrix)
+			return value;
+		else if (value instanceof Content)
+			return value;
+		else
+			return value.zero();
 	}
 
 
@@ -98,6 +114,15 @@ public class MatrixImpl implements Matrix {
 		int n = columns();
 		NeuronValue[][] newdata = new NeuronValue[1][n];
 		for (int j = 0; j < n; j++) newdata[0][j] = this.data[row][j];
+		return new MatrixImpl(newdata);
+	}
+
+
+	@Override
+	public Matrix getColumn(int column) {
+		int m = rows();
+		NeuronValue[][] newdata = new NeuronValue[m][1];
+		for (int i = 0; i < m; i++) newdata[i][0] = this.data[i][column];
 		return new MatrixImpl(newdata);
 	}
 
@@ -145,6 +170,21 @@ public class MatrixImpl implements Matrix {
 
 
 	@Override
+	public Matrix multiplyWise(Matrix other) {
+		int m = Math.min(this.rows(), other.rows());
+		int n = Math.min(this.columns(), other.columns());
+		Matrix result = create(m, n);
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j < n; j++) {
+				NeuronValue value = this.get(i, j).multiply(other.get(i, j));
+				result.set(i, j, value);
+			}
+		}
+		return result;
+	}
+
+	
+	@Override
 	public Matrix divide0(NeuronValue value) {
 		return new MatrixImpl(NeuronValue.divide(this.data, value));
 	}
@@ -153,6 +193,40 @@ public class MatrixImpl implements Matrix {
 	@Override
 	public Matrix divide0(double value) {
 		return new MatrixImpl(NeuronValue.divide(this.data, value));
+	}
+
+
+	@Override
+	public Matrix kroneckerProductRowOf(Matrix other, int rowOfThis) {
+		Matrix[] matrices = new Matrix[this.columns()];
+		for (int j = 0; j < matrices.length; j++) {
+			matrices[j] = other.multiply0(this.get(rowOfThis, j));
+		}
+		return concatVertical(matrices);
+	}
+
+
+	@Override
+	public Matrix evaluate0(Function f) {
+		Matrix result = create(this.rows(), this.columns());
+		for (int i = 0; i < this.rows(); i++) {
+			for (int j = 0; j < this.columns(); j++) {
+				result.set(i, j, this.get(i, j).evaluate(f));
+			}
+		}
+		return result;
+	}
+
+
+	@Override
+	public Matrix derivativeWise(Function f) {
+		Matrix result = create(this.rows(), this.columns());
+		for (int i = 0; i < this.rows(); i++) {
+			for (int j = 0; j < this.columns(); j++) {
+				result.set(i, j, this.get(i, j).derivative(f));
+			}
+		}
+		return result;
 	}
 
 
@@ -218,6 +292,82 @@ public class MatrixImpl implements Matrix {
 		}
 		return newMatrix;
 	}
+
+
+	@Override
+	public Matrix vec() {
+		if (this.columns() == 1) return this;
+		Matrix result = create(this.rows()*this.columns(), 1);
+		int k = 0;
+		for (int j = 0; j < this.columns(); j++) {
+			for (int i = 0; i < this.rows(); i++) {
+				result.set(k, 0, this.get(i, j));
+				k++;
+			}
+		}
+		return result;
+	}
+
+
+	@Override
+	public Matrix vecInverse(int rows) {
+		if (rows <= 0) return null;
+		int columns = this.rows() / rows;
+		if (columns == 0) return null;
+		
+		Matrix result = create(rows, columns);
+		for (int j = 0; j < columns; j++) {
+			int columnLength = j*rows;
+			for (int i = 0; i < rows; i++) {
+				int index = columnLength + i;
+				result.set(i, j, this.get(index, 0));
+			}
+		}
+		return result;
+	}
 	
-	
+
+	@Override
+	public Matrix create(int rows, int columns) {
+		if (rows <= 0 || columns <= 0)
+			return null;
+		else
+			return new MatrixImpl(rows, columns, this.get(0, 0).zero());
+	}
+
+
+	/**
+	 * Creating matrix from data array.
+	 * @param data data array.
+	 * @return matrix.
+	 */
+	public static Matrix create(NeuronValue[][] data) {
+		if (data == null || data.length == 0) return null;
+		int n = data[0].length;
+		if (n == 0) return null;
+		for (int i = 1; i < data.length; i++) {
+			if (data[i] == null || data[i].length != n) return null;
+		}
+		return new MatrixImpl(data);
+	}
+
+
+	@Override
+	public Matrix createIdentity(int n) {
+		Matrix matrix = create(n, n);
+		if (matrix == null) return null;
+		NeuronValue zero = matrix.get(0, 0).zero();
+		NeuronValue unit = matrix.get(0, 0).unit();
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				if (i == j)
+					matrix.set(i, j, unit);
+				else
+					matrix.set(i, j, zero);
+			}
+		}
+		return matrix;
+	}
+
+
 }

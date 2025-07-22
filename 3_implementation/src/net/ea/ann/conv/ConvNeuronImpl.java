@@ -32,6 +32,18 @@ public class ConvNeuronImpl implements ConvNeuron {
 	
 	
 	/**
+	 * Input.
+	 */
+	protected NeuronValue input = null;
+	
+	
+	/**
+	 * Input.
+	 */
+	protected Object tag = null;
+
+	
+	/**
 	 * Constructor with specific layer.
 	 * @param layer specific layer.
 	 */
@@ -51,6 +63,39 @@ public class ConvNeuronImpl implements ConvNeuron {
 		NeuronValue prevValue = this.value;
 		this.value = value;
 		return prevValue;
+	}
+
+
+	@Override
+	public NeuronValue getInput() {
+		return input;
+	}
+
+
+	@Override
+	public void setInput(NeuronValue input) {
+		this.input = input;
+	}
+
+
+	@Override
+	public Object getTag() {
+		return tag;
+	}
+
+
+	@Override
+	public void setTag(Object tag) {
+		this.tag = tag;
+	}
+
+
+	@Override
+	public void clear() {
+		NeuronValue zero = input.zero();
+		setValue(zero);
+		setInput(null);
+		setTag(null);
 	}
 	
 	

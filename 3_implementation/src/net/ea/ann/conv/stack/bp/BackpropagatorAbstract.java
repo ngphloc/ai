@@ -7,7 +7,6 @@
  */
 package net.ea.ann.conv.stack.bp;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
 
@@ -113,7 +112,7 @@ public abstract class BackpropagatorAbstract extends BackpropagatorAbstract0 {
  * @version 1.0
  *
  */
-abstract class BackpropagatorAbstract0 implements Backpropagator, Serializable, Cloneable {
+abstract class BackpropagatorAbstract0 implements Backpropagator {
 
 
 	/**
@@ -269,7 +268,7 @@ abstract class BackpropagatorAbstract0 implements Backpropagator, Serializable, 
 						if (!checkIndex(index)) continue;
 						Content delta = error[index].multiply(prevOut).multiply0(learningRate);
 						Weight nw = target.weight;
-						nw.value = nw.value.add(delta.mean0());
+						nw.value = nw.value.addValue(delta.mean0());
 					}
 				}
 			}

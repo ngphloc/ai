@@ -7,6 +7,7 @@
  */
 package net.ea.ann.raster;
 
+import java.awt.Dimension;
 import java.io.Serializable;
 
 /**
@@ -61,6 +62,14 @@ public class Size extends java.awt.Dimension implements Serializable, Cloneable 
 	}
 
 	
+	/**
+	 * Constructor with specified size.
+	 * @param size specified size.
+	 */
+	public Size(Dimension size) {
+		this(size.width, size.height, 0, 0);
+	}
+	
 	
 	/**
 	 * Constructor with specified width and height.
@@ -81,15 +90,25 @@ public class Size extends java.awt.Dimension implements Serializable, Cloneable 
 
 	
 	/**
-	 * Multiplying this dimension with factor.
+	 * Multiplying this size with factor.
 	 * @param factor specified factor.
-	 * @return new dimension multiplied with factor.
+	 * @return new size multiplied with factor.
 	 */
 	public Size multiply(int factor) {
 		return new Size(width*factor, height*factor, depth*factor, time*factor);
 	}
 
 
+	/**
+	 * Dividing this size by factor.
+	 * @param factor specified factor.
+	 * @return new size multiplied with factor.
+	 */
+	public Size divide(int factor) {
+		return factor != 0 ? new Size(width/factor, height/factor, depth/factor, time/factor) : null;
+	}
+	
+	
 	/**
 	 * Getting size.
 	 * @return length.

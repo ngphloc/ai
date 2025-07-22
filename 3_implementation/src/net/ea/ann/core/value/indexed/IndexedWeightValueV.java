@@ -65,38 +65,38 @@ public class IndexedWeightValueV implements IndexedWeightValue {
 	
 	
 	@Override
-	public WeightValue zero() {
-		return re(v().zero());
+	public WeightValue zeroW() {
+		return re(v().zeroW());
 	}
 
 	
 	@Override
-	public WeightValue unit() {
-		return re(v().unit());
+	public WeightValue unitW() {
+		return re(v().unitW());
 	}
 
 	
 	@Override
-	public NeuronValue toNeuronValue() {
+	public NeuronValue toValue() {
 		int size = this.size();
 		IndexedNeuronValueV neuronValue = new IndexedNeuronValueV(size, 1);
-		for (int i = 0; i < size; i++) neuronValue.set(i, this.get(i).toNeuronValue());
+		for (int i = 0; i < size; i++) neuronValue.set(i, this.get(i).toValue());
 		neuronValue.setIndex(this.getIndex());
 		return neuronValue;
 	}
 
 	
 	@Override
-	public WeightValue add(NeuronValue value) {
+	public WeightValue addValue(NeuronValue value) {
 		if (value == null || !(value instanceof IndexedNeuronValue)) return null;
-		return re(v().add(((IndexedNeuronValue)value).v()));
+		return re(v().addValue(((IndexedNeuronValue)value).v()));
 	}
 
 	
 	@Override
-	public WeightValue subtract(NeuronValue value) {
+	public WeightValue subtractValue(NeuronValue value) {
 		if (value == null || !(value instanceof IndexedNeuronValue)) return null;
-		return re(v().subtract(((IndexedNeuronValue)value).v()));
+		return re(v().subtractValue(((IndexedNeuronValue)value).v()));
 	}
 
 	

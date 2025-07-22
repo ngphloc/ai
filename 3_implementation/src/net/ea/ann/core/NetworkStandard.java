@@ -67,6 +67,7 @@ public interface NetworkStandard extends Network, Evaluator {
 	}
 	
 
+	//It is not necessary to re-declare this method because it was declared in remote interface Evaluator.
 	@Override
 	NeuronValue[] evaluate(Record inputRecord) throws RemoteException;
 	
@@ -95,7 +96,9 @@ public interface NetworkStandard extends Network, Evaluator {
 	 * @param nOutput number of output neurons.
 	 * @return array of hidden neurons.
 	 */
-	static int[] constructHiddenNeuronNumbers(int nInput, int nOutput) {
+	@SuppressWarnings("unused")
+	@Deprecated
+	private static int[] constructHiddenNeuronNumbers0(int nInput, int nOutput) {
 		if (nInput <= 0 || nOutput <= 0) return null;
 		if (nInput == nOutput) return null;
 	
@@ -127,19 +130,66 @@ public interface NetworkStandard extends Network, Evaluator {
 	 * Create array of hidden neurons.
 	 * @param nInput number of input neurons.
 	 * @param nOutput number of output neurons.
+	 * @param base base.
+	 * @param minimum number of hidden layers.
+	 * @return array of hidden neurons.
+	 */
+	static int[] constructHiddenNeuronNumbers(int nInput, int nOutput, int base, int hiddenLayerMin) {
+		if (nInput <= 0 || nOutput <= 0 || base < 2) return null;
+		if (nInput == nOutput) return null;
+	
+		//Determining minimum and maximum.
+		int min = Math.min(nInput, nOutput);
+		int max = Math.max(nInput, nOutput);
+		
+		//Calculating array of hidden size.
+		int[] nHiddenNeuron = null;
+		int n = (int) (Math.log(max/min) / Math.log(base) - 1); //min*base^x = max
+		if (n < 1)
+			nHiddenNeuron = new int[] {(min+max)/2};
+		else {
+			nHiddenNeuron = new int[n];
+			for (int i = 0; i < n; i++) nHiddenNeuron[i] = (int) (min*Math.pow(base, i+1));
+		}
+
+		//Re-ordering the hidden sizes.
+		if (nInput > nOutput) {
+			int[] array = new int[nHiddenNeuron.length];
+			for (int i = 0; i < nHiddenNeuron.length; i++) array[i] = nHiddenNeuron[(array.length-i) - 1];
+			nHiddenNeuron = array;
+		}
+		
+		//Checking hidden layer minimum.
+		if (hiddenLayerMin < 1 || nHiddenNeuron.length >= hiddenLayerMin) return nHiddenNeuron;
+		int length = nHiddenNeuron.length;
+		int pad = hiddenLayerMin - length;
+		nHiddenNeuron = Arrays.copyOf(nHiddenNeuron, length + pad);
+		Arrays.fill(nHiddenNeuron, length, length + pad, nHiddenNeuron[length-1]);
+		return nHiddenNeuron;
+	}
+	
+	
+	/**
+	 * Create array of hidden neurons.
+	 * @param nInput number of input neurons.
+	 * @param nOutput number of output neurons.
 	 * @param hiddenLayerMin minimum number of hidden layers.
 	 * @return array of hidden neurons.
 	 */
 	static int[] constructHiddenNeuronNumbers(int nInput, int nOutput, int hiddenLayerMin) {
-		int[] nHiddenNeuron = constructHiddenNeuronNumbers(nInput, nOutput);
-		if (nHiddenNeuron == null || hiddenLayerMin < 1) return nHiddenNeuron;
-		int n = nHiddenNeuron.length;
-		if (n >= hiddenLayerMin) return nHiddenNeuron;
-		
-		nHiddenNeuron = Arrays.copyOf(nHiddenNeuron, n + hiddenLayerMin);
-		for (int i = 0; i < hiddenLayerMin; i++) nHiddenNeuron[n+i] = hiddenLayerMin;
-		return nHiddenNeuron;
+		return constructHiddenNeuronNumbers(nInput, nOutput, 2, hiddenLayerMin);
 	}
 	
 
+	/**
+	 * Create array of hidden neurons.
+	 * @param nInput number of input neurons.
+	 * @param nOutput number of output neurons.
+	 * @return array of hidden neurons.
+	 */
+	static int[] constructHiddenNeuronNumbers(int nInput, int nOutput) {
+		return constructHiddenNeuronNumbers(nInput, nOutput, 2, 0);
+	}
+	
+	
 }

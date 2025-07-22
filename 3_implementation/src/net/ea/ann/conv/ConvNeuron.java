@@ -27,4 +27,39 @@ public interface ConvNeuron extends Neuron {
 	 */
 	NeuronValue setValue(NeuronValue value);
 	
+	
+	/**
+	 * Getting input.
+	 * @return input.
+	 */
+	NeuronValue getInput();
+	
+	
+	/**
+	 * Setting input.
+	 * @param input input.
+	 */
+	void setInput(NeuronValue input);
+	
+	
+	/**
+	 * Getting tag.
+	 * @return tag.
+	 */
+	Object getTag();
+	
+	
+	/**
+	 * Setting tag.
+	 * @param tag tag.
+	 */
+	void setTag(Object tag);
+
+	
+	/**
+	 * Clearing neuron.
+	 */
+	void clear();
+	
+	
 }

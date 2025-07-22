@@ -78,7 +78,7 @@ public class NetworkStandardAssoc implements Serializable, Cloneable {
 				if (wns == null || wns.length == 0) continue;
 				
 				for (WeightedNeuron wn : wns) {
-					NeuronValue weightValue = wn.weight.value.toNeuronValue();
+					NeuronValue weightValue = wn.weight.value.toValue();
 					wn.weight.value = weightValue.valueOf(weight).toWeightValue();
 				}
 			}

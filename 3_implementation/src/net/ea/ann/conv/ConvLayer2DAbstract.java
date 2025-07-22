@@ -8,6 +8,7 @@
 package net.ea.ann.conv;
 
 import java.awt.Rectangle;
+import java.util.Arrays;
 
 import net.ea.ann.conv.filter.BiasFilter;
 import net.ea.ann.conv.filter.DeconvConvFilter;
@@ -22,6 +23,7 @@ import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.NeuronRaster;
+import net.ea.ann.raster.NeuronValueRaster;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.Size;
@@ -352,6 +354,18 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 	}
 
 
+	@Override
+	public NeuronValue[][] dKernel(ConvLayerSingle nextError, Filter filter) {
+		return dKernel(this, (ConvLayerSingle2D)nextError, filter, null, null);
+	}
+
+
+	@Override
+	public NeuronValueRaster dValue(ConvLayerSingle nextError, Filter filter) {
+		return dValue(this, (ConvLayerSingle2D)nextError, filter, null, null);
+	}
+
+
 	/**
 	 * Forwarding evaluation from current layer to next layer.
 	 * @param thisLayer current layer.
@@ -375,12 +389,18 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 			nextNeurons = nextLayer.getNeurons();
 		else {
 			nextNeurons = new ConvNeuron[nextLayer.length()];
-			for (int i = 0; i < nextNeurons.length; i++) nextNeurons[i].setValue(nextZero);
+			for (int i = 0; i < nextNeurons.length; i++) {
+				nextNeurons[i].setValue(nextZero);
+				nextNeurons[i].setInput(nextZero);
+			}
 		}
 		if (nextNeurons == null || nextNeurons.length == 0) return null;
 		
 		if (filter instanceof DeconvConvFilter) {
-			for (ConvNeuron nextNeuron : nextNeurons) nextNeuron.setValue(null);
+			for (ConvNeuron nextNeuron : nextNeurons) {
+				nextNeuron.setValue(null);
+				nextNeuron.setInput(null);
+			}
 		}
 		
 		if (thisFilterRegion != null && nextFilterRegion != null) nextFilterRegion = null;
@@ -393,6 +413,8 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 		int thisBlockHeight = filter.isMoveStride() ? thisHeight / filterStrideHeight : thisHeight;
 		int nextWidth = nextLayer.getWidth();
 		int nextHeight = nextLayer.getHeight();
+		Function activateRef = nextLayer.getActivateRef();
+		activateRef = activateRef == null ? thisLayer.getActivateRef() : activateRef;
 		
 		for (int nextY = 0; nextY < nextHeight; nextY++) {
 			int thisY = 0;
@@ -437,7 +459,7 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 				
 				if (filteredValue != null) {
 					filteredValue = filteredValue.add(thisLayer.getBias());
-					Function activateRef = nextLayer.getActivateRef();
+					nextNeurons[nextIndex].setInput(filteredValue);
 					if (activateRef != null) filteredValue = activateRef.evaluate(filteredValue);
 					nextNeurons[nextIndex].setValue(filteredValue);
 				}
@@ -449,6 +471,7 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 		if (filter instanceof DeconvConvFilter) {
 			for (ConvNeuron nextNeuron : nextNeurons) {
 				if (nextNeuron.getValue() == null) nextNeuron.setValue(nextZero);
+				if (nextNeuron.getInput() == null) nextNeuron.setInput(nextZero);
 			}
 		}
 
@@ -465,8 +488,9 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 		ConvNeuron[] regionNeurons = new ConvNeuron[nextRegion.width*nextRegion.height];
 		int regionIndex = 0;
 		for (int nextY = nextRegion.y; nextY < nextRegion.y + nextRegion.height; nextY++) {
+			int nextLength = nextY*nextWidth;
 			for (int nextX = nextRegion.x; nextX < nextRegion.x + nextRegion.width; nextX++) {
-				int nextIndex = nextY*nextWidth + nextX;
+				int nextIndex = nextLength + nextX;
 				regionNeurons[regionIndex] = nextNeurons[nextIndex];
 				regionIndex++;
 			}
@@ -491,6 +515,222 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 		return forward(thisLayer, nextLayer, f, thisFilterRegion, nextFilterRegion, nextAffected);
 	}
 	
+	
+	/**
+	 * Forwarding evaluation from current layer to next layer.
+	 * @param thisLayer current layer.
+	 * @param nextLayer next layer.
+	 * @param f filter of current layer.
+	 * @return arrays of neurons filtered.
+	 */
+	public static NeuronRaster forward(ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer, Filter f) {
+		return forward(thisLayer, nextLayer, f, null, null, true);
+	}
+	
+	
+	/**
+	 * Calculating derivative of this filter given next layer as bias layer at specified coordinator.
+	 * @param thisLayerSize current layer size.
+	 * @param nextLayer next layer.
+	 * @param f filter of current layer.
+	 * @param thisFilterRegion filtering region of current layer. It can be null.
+	 * @param nextFilterRegion filtering region of next layer. It can be null.
+	 * @return differentials of kernel.
+	 */
+	static NeuronValue[][] dKernel(ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer, Filter f, Rectangle thisFilterRegion, Rectangle nextFilterRegion) {
+		if (thisLayer == null || nextLayer == null) return null;
+		Filter2D filter = (f != null && f instanceof Filter2D) ? (Filter2D)f : thisLayer.getFilter2D();
+		if (filter == null)
+			return ConvLayer1DAbstract.dKernel(thisLayer, nextLayer, f, thisFilterRegion, nextFilterRegion);
+		if (filter instanceof DeconvConvFilter)
+			throw new RuntimeException("Derivative not implemented with de-convolutional filter yet");
+		if (!(filter instanceof ProductFilter2D))
+			throw new RuntimeException("Derivative not implemented with non-product filter yet");
+		
+		NeuronValue thisZero = thisLayer != null ? thisLayer.newNeuronValue().zero() : nextLayer.newNeuronValue().zero();;
+		NeuronValue[][] thisKernel = new NeuronValue[filter.height()][filter.width()];
+		for (int i = 0; i < thisKernel.length; i++) {
+			for (int j = 0; j < thisKernel[i].length; j++) thisKernel[i][j] = thisZero;
+		}
+		
+		if (thisFilterRegion != null && nextFilterRegion != null) nextFilterRegion = null;
+		
+		int filterStrideWidth = filter.getStrideWidth();
+		int filterStrideHeight = filter.getStrideHeight();
+		int thisWidth = thisLayer.getWidth();
+		int thisHeight = thisLayer.getHeight();
+		int thisBlockWidth = filter.isMoveStride() ? thisWidth / filterStrideWidth : thisWidth;
+		int thisBlockHeight = filter.isMoveStride() ? thisHeight / filterStrideHeight : thisHeight;
+		int nextWidth = nextLayer.getWidth();
+		int nextHeight = nextLayer.getHeight();
+		
+		int countKernel = 0;
+		for (int nextY = 0; nextY < nextHeight; nextY++) {
+			int thisY = 0;
+			if (filter instanceof DeconvFilter) {
+				thisY = nextY / filterStrideHeight;
+				if (!nextLayer.isPadZeroFilter()) thisY = thisY < thisHeight ? thisY : thisHeight-1;
+			}
+			else {
+				int yBlock = nextLayer.isPadZeroFilter() ? nextY : (nextY < thisBlockHeight ? nextY : thisBlockHeight-1);
+				thisY = yBlock*filterStrideHeight;
+			}
+			
+			for (int nextX = 0; nextX < nextWidth; nextX++) {
+				int thisX = 0;
+				if (filter instanceof DeconvFilter) {
+					thisX = nextX / filterStrideWidth;
+					if (!nextLayer.isPadZeroFilter()) thisX = thisX < thisWidth ? thisX : thisWidth-1;
+				}
+				else {
+					int xBlock = nextLayer.isPadZeroFilter() ? nextX : (nextX < thisBlockWidth ? nextX : thisBlockWidth-1);
+					thisX = xBlock*filterStrideWidth;
+				}
+				
+				//Ignoring outline pixels.
+				if (thisY >= thisHeight || thisX >= thisWidth) continue;
+
+				//Checking region.
+				if (thisFilterRegion != null && !thisFilterRegion.contains(thisX, thisY)) continue;
+				if (nextFilterRegion != null && !nextFilterRegion.contains(nextX, nextY)) continue;
+				
+				//Calculating derivative.
+				NeuronValue[][] dKernel = null;
+				dKernel = filter.dKernel(nextX, nextY, thisLayer, nextLayer);
+				if (dKernel == null) continue;
+				
+				for (int i = 0; i < dKernel.length; i++) {
+					for (int j = 0; j < dKernel[i].length; j++) {
+						thisKernel[i][j] = thisKernel[i][j].add(dKernel[i][j]);
+					}
+				}
+				countKernel++;
+			}
+		}
+		
+		//Calculating mean of kernel.
+		if (countKernel > 0) {
+			for (int i = 0; i < thisKernel.length; i++) {
+				for (int j = 0; j < thisKernel[i].length; j++)
+					thisKernel[i][j] = thisKernel[i][j].divide(countKernel);
+			}
+		}
+		return thisKernel;
+	}
+
+	
+	/**
+	 * Calculating derivative of this layer given next layer as bias layer at specified coordinator.
+	 * @param thisLayerSize current layer size.
+	 * @param nextLayer next layer.
+	 * @param f filter of current layer.
+	 * @param thisFilterRegion filtering region of current layer. It can be null.
+	 * @param nextFilterRegion filtering region of next layer. It can be null.
+	 * @return differentials of values.
+	 */
+	static NeuronValueRaster dValue(ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer, Filter f, Rectangle thisFilterRegion, Rectangle nextFilterRegion) {
+		if (thisLayer == null || nextLayer == null) return null;
+		Filter2D filter = (f != null && f instanceof Filter2D) ? (Filter2D)f : thisLayer.getFilter2D();
+		if (filter == null)
+			return ConvLayer1DAbstract.dValue(thisLayer, nextLayer, f, thisFilterRegion, nextFilterRegion);
+		if (filter instanceof DeconvConvFilter)
+			throw new RuntimeException("Derivative not implemented with de-convolutional filter yet");
+
+		NeuronValue thisZero = thisLayer != null ? thisLayer.newNeuronValue().zero() : nextLayer.newNeuronValue().zero();;
+		NeuronValue[] thisValues = new NeuronValue[thisLayer.getWidth()*thisLayer.getHeight()];
+		for (int i = 0; i < thisValues.length; i++) thisValues[i] = thisZero;
+		int[] thisValuesCount = new int[thisValues.length];
+		Arrays.fill(thisValuesCount, 0);
+		
+		if (thisFilterRegion != null && nextFilterRegion != null) nextFilterRegion = null;
+		
+		int filterStrideWidth = filter.getStrideWidth();
+		int filterStrideHeight = filter.getStrideHeight();
+		int thisWidth = thisLayer.getWidth();
+		int thisHeight = thisLayer.getHeight();
+		int thisBlockWidth = filter.isMoveStride() ? thisWidth / filterStrideWidth : thisWidth;
+		int thisBlockHeight = filter.isMoveStride() ? thisHeight / filterStrideHeight : thisHeight;
+		int nextWidth = nextLayer.getWidth();
+		int nextHeight = nextLayer.getHeight();
+		
+		int countValues = 0;
+		for (int nextY = 0; nextY < nextHeight; nextY++) {
+			int thisY = 0;
+			if (filter instanceof DeconvFilter) {
+				thisY = nextY / filterStrideHeight;
+				if (!nextLayer.isPadZeroFilter()) thisY = thisY < thisHeight ? thisY : thisHeight-1;
+			}
+			else {
+				int yBlock = nextLayer.isPadZeroFilter() ? nextY : (nextY < thisBlockHeight ? nextY : thisBlockHeight-1);
+				thisY = yBlock*filterStrideHeight;
+			}
+			
+			for (int nextX = 0; nextX < nextWidth; nextX++) {
+				int thisX = 0;
+				if (filter instanceof DeconvFilter) {
+					thisX = nextX / filterStrideWidth;
+					if (!nextLayer.isPadZeroFilter()) thisX = thisX < thisWidth ? thisX : thisWidth-1;
+				}
+				else {
+					int xBlock = nextLayer.isPadZeroFilter() ? nextX : (nextX < thisBlockWidth ? nextX : thisBlockWidth-1);
+					thisX = xBlock*filterStrideWidth;
+				}
+				
+				//Ignoring outline pixels.
+				if (thisY >= thisHeight || thisX >= thisWidth) continue;
+
+				//Checking region.
+				if (thisFilterRegion != null && !thisFilterRegion.contains(thisX, thisY)) continue;
+				if (nextFilterRegion != null && !nextFilterRegion.contains(nextX, nextY)) continue;
+				
+				//Calculating derivative.
+				NeuronValue[][] dValues = null;
+				dValues = filter.dValue(nextX, nextY, thisLayer, nextLayer);
+				if (dValues == null) continue;
+				
+				for (int i = 0; i < dValues.length; i++) {
+					int rowLength = (thisY+i) * thisWidth;
+					for (int j = 0; j < dValues[i].length; j++) {
+						int index = rowLength + (thisX+j);
+						if (index >= thisValues.length) continue; //Not so necessary.
+						thisValues[index] = thisValues[index].add(dValues[i][j]);
+						thisValuesCount[index] = thisValuesCount[index] + 1;
+					}
+				}
+			}
+		}
+		
+		//Calculating mean of values.
+		for (int i = 0; i < thisValues.length; i++) {
+			if (thisValuesCount[i] <= 0) continue;
+			thisValues[i] = thisValues[i].divide((double)thisValuesCount[i]);
+			countValues++;
+		}
+		
+		if (thisFilterRegion == null && nextFilterRegion == null)
+			return new NeuronValueRaster(nextLayer.getNeuronChannel(), thisValues, new Size(thisWidth, thisHeight, 1, 1), countValues);
+
+		Rectangle thisRegion = null;
+		if (nextFilterRegion != null)
+			thisRegion = ((ConvLayer2DAbstract)nextLayer).getPrevRegion(nextFilterRegion);
+		else
+			thisRegion = thisFilterRegion;
+		if (thisRegion == null)
+			return new NeuronValueRaster(nextLayer.getNeuronChannel(), thisValues, new Size(thisWidth, thisHeight, 1, 1), countValues);
+
+		NeuronValue[] regionValues = new NeuronValue[thisRegion.width*thisRegion.height];
+		int regionIndex = 0;
+		for (int thisY = thisRegion.y; thisY < thisRegion.y + thisRegion.height; thisY++) {
+			int thisLength = thisY*thisWidth;
+			for (int thisX = thisRegion.x; thisX < thisRegion.x + thisRegion.width; thisX++) {
+				int thisIndex = thisLength + thisX;
+				regionValues[regionIndex] = thisValues[thisIndex];
+				regionIndex++;
+			}
+		}
+		return new NeuronValueRaster(nextLayer.getNeuronChannel(), regionValues, new Size(thisRegion.width, thisRegion.height, 1, 1), countValues);
+	}
+
 	
 	@Override
 	public Raster createRaster(NeuronValue[] values,

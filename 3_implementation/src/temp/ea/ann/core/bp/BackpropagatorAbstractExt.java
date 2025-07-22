@@ -258,7 +258,7 @@ public abstract class BackpropagatorAbstractExt extends BackpropagatorAbstract {
 						Weight nw = target.weight;
 						int index = layer.indexOf(target.neuron);
 						NeuronValue delta = multiply(error[index], prevOut).multiply(learningRate); //Fixing for vector.
-						nw.value = nw.value.add(delta);
+						nw.value = nw.value.addValue(delta);
 					}
 				}
 			}

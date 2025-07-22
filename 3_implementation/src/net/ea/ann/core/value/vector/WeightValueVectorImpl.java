@@ -62,7 +62,7 @@ public class WeightValueVectorImpl implements WeightValueVector {
 	public WeightValueVectorImpl(int dim, WeightValue initValue) {
 		this.v = new WeightValue[dim < 0 ? 0 : dim];
 		for (int i = 0; i < this.v.length; i++) this.v[i] = initValue;
-		if (this.v.length > 0) this.zeroValue = initValue.zero();
+		if (this.v.length > 0) this.zeroValue = initValue.zeroW();
 	}
 
 	
@@ -73,7 +73,7 @@ public class WeightValueVectorImpl implements WeightValueVector {
 	public WeightValueVectorImpl(WeightValue...array) {
 		this.v = array != null ? new WeightValue[array.length] : new WeightValue[0];
 		for (int i = 0; i < this.v.length; i++) this.v[i] = array[i];
-		if (this.v.length > 0) this.zeroValue = this.v[0].zero();
+		if (this.v.length > 0) this.zeroValue = this.v[0].zeroW();
 	}
 
 	
@@ -88,12 +88,12 @@ public class WeightValueVectorImpl implements WeightValueVector {
 			this.v[i] = value;
 			i++;
 		}
-		if (this.v.length > 0) this.zeroValue = this.v[0].zero();
+		if (this.v.length > 0) this.zeroValue = this.v[0].zeroW();
 	}
 
 	
 	@Override
-	public WeightValue zero() {
+	public WeightValue zeroW() {
 		if (zero == this) return zero;
 		if (zero != null && zero.v.length == this.v.length && zero.zeroValue == this.zeroValue) return zero;
 		zero = new WeightValueVectorImpl(this.v.length, this.zeroValue);
@@ -102,10 +102,10 @@ public class WeightValueVectorImpl implements WeightValueVector {
 
 	
 	@Override
-	public WeightValue unit() {
+	public WeightValue unitW() {
 		if (unit == this) return unit;
 		if (unit != null && unit.v.length == this.v.length && unit.zeroValue == this.zeroValue) return unit;
-		unit = new WeightValueVectorImpl(this.v.length, this.zeroValue.unit());
+		unit = new WeightValueVectorImpl(this.v.length, this.zeroValue.unitW());
 		return unit;
 	}
 
@@ -117,36 +117,36 @@ public class WeightValueVectorImpl implements WeightValueVector {
 
 	
 	@Override
-	public NeuronValue toNeuronValue() {
-		NeuronValueVectorImpl result = new NeuronValueVectorImpl(this.v.length, zeroValue.toNeuronValue()); 
-		for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].toNeuronValue();
+	public NeuronValue toValue() {
+		NeuronValueVectorImpl result = new NeuronValueVectorImpl(this.v.length, zeroValue.toValue()); 
+		for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].toValue();
 		return result;
 	}
 
 	
 	@Override
-	public WeightValue add(NeuronValue value) {
+	public WeightValue addValue(NeuronValue value) {
 		WeightValueVectorImpl result = new WeightValueVectorImpl(this.v.length, zeroValue);
 		if ((value instanceof NeuronValue1) || (value instanceof NeuronValueV)) {
-			for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].add(value);
+			for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].addValue(value);
 		}
 		else {
 			NeuronValueVectorImpl other = (NeuronValueVectorImpl)value;
-			for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].add(other.v[i]);
+			for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].addValue(other.v[i]);
 		}
 		return result;
 	}
 
 	
 	@Override
-	public WeightValue subtract(NeuronValue value) {
+	public WeightValue subtractValue(NeuronValue value) {
 		WeightValueVectorImpl result = new WeightValueVectorImpl(this.v.length, zeroValue);
 		if ((value instanceof NeuronValue1) || (value instanceof NeuronValueV)) {
-			for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].subtract(value);
+			for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].subtractValue(value);
 		}
 		else {
 			NeuronValueVectorImpl other = (NeuronValueVectorImpl)value;
-			for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].subtract(other.v[i]);
+			for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].subtractValue(other.v[i]);
 		}
 		return result;
 	}

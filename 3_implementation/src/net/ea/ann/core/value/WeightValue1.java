@@ -63,31 +63,31 @@ public class WeightValue1 implements WeightValue, TextParsable {
 	
 
 	@Override
-	public WeightValue zero() {
+	public WeightValue zeroW() {
 		return zero;
 	}
 	
 	
 	@Override
-	public WeightValue unit() {
+	public WeightValue unitW() {
 		return unit;
 	}
 
 	
 	@Override
-	public NeuronValue toNeuronValue() {
+	public NeuronValue toValue() {
 		return new NeuronValue1(v);
 	}
 
 
 	@Override
-	public WeightValue add(NeuronValue value) {
+	public WeightValue addValue(NeuronValue value) {
 		return new WeightValue1(this.v + ((NeuronValue1)value).get());
 	}
 
 
 	@Override
-	public WeightValue subtract(NeuronValue value) {
+	public WeightValue subtractValue(NeuronValue value) {
 		return new WeightValue1(this.v - ((NeuronValue1)value).get());
 	}
 

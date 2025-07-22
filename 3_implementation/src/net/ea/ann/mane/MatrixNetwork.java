@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.transformer;
+package net.ea.ann.mane;
 
 import java.rmi.RemoteException;
 
@@ -25,7 +25,7 @@ public interface MatrixNetwork extends Network {
 	/**
 	 * Evaluating matrix neural network.
 	 * @param input input matrix for evaluating.
-	 * @return array as output.
+	 * @return matrix as output.
 	 * @throws RemoteException if any error raises.
 	 */
 	Matrix evaluate(Matrix input) throws RemoteException;
@@ -33,12 +33,11 @@ public interface MatrixNetwork extends Network {
 
 	/**
 	 * Learning matrix neural network.
-	 * @param input input matrix for learning.
-	 * @param output output matrix for learning.
+	 * @param inouts sample as collection of input and output whose each element is an 2-component array of input (the first) and output (the second).
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	Matrix learn(Matrix input, Matrix output) throws RemoteException;
+	Matrix[] learn(Iterable<Matrix[]> inouts) throws RemoteException;
 
 
 }

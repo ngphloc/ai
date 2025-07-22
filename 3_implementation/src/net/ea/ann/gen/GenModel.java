@@ -8,7 +8,6 @@
 package net.ea.ann.gen;
 
 import java.io.Serializable;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 import net.ea.ann.core.Network;
@@ -24,7 +23,7 @@ import net.ea.ann.raster.Raster;
  * @version 1.0
  *
  */
-public interface GenModel extends Network, Remote, Cloneable, AutoCloseable {
+public interface GenModel extends Network {
 
 	
 	/**

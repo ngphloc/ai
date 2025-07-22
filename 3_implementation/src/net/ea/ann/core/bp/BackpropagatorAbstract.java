@@ -7,7 +7,6 @@
  */
 package net.ea.ann.core.bp;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -164,7 +163,7 @@ public abstract class BackpropagatorAbstract extends BackpropagatorAbstract0 {
  * @version 1.0
  *
  */
-abstract class BackpropagatorAbstract0 implements Backpropagator, Serializable, Cloneable {
+abstract class BackpropagatorAbstract0 implements Backpropagator {
 
 
 	/**
@@ -313,7 +312,7 @@ abstract class BackpropagatorAbstract0 implements Backpropagator, Serializable, 
 						if (!checkIndex(index)) continue;
 						NeuronValue delta = error[index].multiply(prevOut).multiply(learningRate);
 						Weight nw = target.weight;
-						nw.value = nw.value.add(delta);
+						nw.value = nw.value.addValue(delta);
 					}
 				}
 			}
@@ -487,7 +486,7 @@ abstract class BackpropagatorAbstract0 implements Backpropagator, Serializable, 
 						if (!checkIndex(index)) continue;
 						NeuronValue delta = error[index].multiply(prevOut).multiply(learningRate);
 						Weight nw = target.weight;
-						nw.value = nw.value.add(delta);
+						nw.value = nw.value.addValue(delta);
 					}
 				}
 			}

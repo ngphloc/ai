@@ -91,7 +91,7 @@ public abstract class StackAbstract extends LayerAbstract implements Stack {
 	
 	@Override
 	public Weight newWeight() {
-		return new Weight(newNeuronValue().newWeightValue().zero());
+		return new Weight(newNeuronValue().newWeightValue().zeroW());
 	}
 
 	

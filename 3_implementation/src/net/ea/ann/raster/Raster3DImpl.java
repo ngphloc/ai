@@ -8,8 +8,10 @@
 package net.ea.ann.raster;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import net.ea.ann.conv.ConvLayerSingle;
+import net.ea.ann.core.Util;
 import net.ea.ann.core.value.NeuronValue;
 
 /**
@@ -126,6 +128,33 @@ public class Raster3DImpl extends RasterAbstract implements Raster3D {
 			return new Raster3DImpl(imageList);
 		else
 			return null;
+	}
+	
+	
+	/**
+	 * Creating raster from collection of images.
+	 * @param images collection of images.
+	 * @return raster from collection of images.
+	 */
+	public static Raster3DImpl create(Iterable<Image> images) {
+		return create(ImageList.create(images));
+	}
+	
+	
+	/**
+	 * Creating 3D raster from other rasters.
+	 * @param rasters collection of other rasters.
+	 * @return  3D raster from other rasters.
+	 */
+	public static Raster3DImpl createByRasters(Iterable<Raster> rasters) {
+		List<Image> images = Util.newList(0);
+		for (Raster raster : rasters) {
+			Image image = null;
+			if (raster instanceof Raster2D) image = ((Raster2D)raster).getImage();
+			if (image == null) raster.getRepImage();
+			if (image != null) images.add(image);
+		}
+		return create(images);
 	}
 	
 	

@@ -11,7 +11,6 @@ import java.rmi.RemoteException;
 
 import net.ea.ann.conv.Content;
 import net.ea.ann.conv.ConvNetwork;
-import net.ea.ann.core.Evaluator;
 import net.ea.ann.core.Record;
 import net.ea.ann.core.value.NeuronValue;
 
@@ -22,7 +21,7 @@ import net.ea.ann.core.value.NeuronValue;
  * @version 1.0
  *
  */
-public interface StackNetwork extends ConvNetwork, Evaluator {
+public interface StackNetwork extends ConvNetwork {
 
 
 	/**

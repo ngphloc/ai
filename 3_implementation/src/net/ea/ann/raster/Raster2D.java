@@ -31,4 +31,11 @@ public interface Raster2D extends Raster {
 	boolean LEARN_DEFAULT = false;
 	
 	
+	/**
+	 * Getting image.
+	 * @return internal image.
+	 */
+	Image getImage();
+
+
 }

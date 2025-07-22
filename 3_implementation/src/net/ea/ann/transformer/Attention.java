@@ -12,10 +12,7 @@ import java.io.Serializable;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
-import net.ea.ann.core.value.MatrixImpl;
 import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.core.value.NeuronValue1;
-import net.ea.ann.core.value.NeuronValueM;
 
 /**
  * This class represents standard attention (multi-head attention).
@@ -112,8 +109,8 @@ public class Attention implements Cloneable, Serializable {
 			head.assignInputs(M, Y, X);
 		}
 		
-		WO = Attention0.newMatrix(h*dv, dm, zero);
-		A = Attention0.newMatrix(n, dm, zero);
+		WO = Matrix.create(h*dv, dm, zero);
+		A = Matrix.create(n, dm, zero);
 		
 		return validate();
 	}
@@ -265,8 +262,8 @@ public class Attention implements Cloneable, Serializable {
 	 * @param inputX X input data.
 	 */
 	public void setInputs(Matrix inputY, Matrix inputX) {
-		if (Y() != null && inputY != null) Attention0.copy(inputY, Y());
-		if (X() != null && inputX != null) Attention0.copy(inputX, X());
+		if (Y() != null && inputY != null) Matrix.copy(inputY, Y());
+		if (X() != null && inputX != null) Matrix.copy(inputX, X());
 	}
 
 		
@@ -283,7 +280,7 @@ public class Attention implements Cloneable, Serializable {
 		Matrix[] aList = new Matrix[heads.length];
 		for (int i = 0; i < heads.length; i++) aList[i] = heads[i].evaluate();
 		
-		Matrix eval = aList[0].concatVertical(aList).multiply(WO);
+		Matrix eval = Matrix.concatV(aList).multiply(WO);
 		int n = A.rows();
 		int dm = A.columns();
 		for (int i = 0; i < n; i++) {
@@ -309,7 +306,7 @@ public class Attention implements Cloneable, Serializable {
 	 * @param learningRate learning rate.
 	 * @param maxIteration maximum iterations.
 	 */
-	protected void learn(Matrix error, double learningRate) {
+	private void learn(Matrix error, double learningRate) {
 		if (!validate()) return;
 		if (error == null) return;
 		if (error.rows() != A.rows() || error.columns() != A.columns()) return;
@@ -318,7 +315,7 @@ public class Attention implements Cloneable, Serializable {
 
 		//Training entire weight matrix WO.
 		Matrix[] headsA = headsA();
-		Matrix As = headsA[0].concatVertical(headsA);
+		Matrix As = Matrix.concatV(headsA);
 		As = As.transpose().multiply(error).multiply0(learningRate);
 		WO = WO.add(As);
 		
@@ -363,12 +360,8 @@ public class Attention implements Cloneable, Serializable {
 			
 			if (error == null || error.rows() == 0 || error.columns() == 0 || (iteration >= maxIteration && maxIteration == 1))
 				break;
-			else {
-				double errorMean = 0;
-				for (int i = 0; i < error.rows(); i++) {
-					for (int j = 0; j < error.columns(); j++) errorMean += error.get(i, j).norm();
-				}
-				errorMean = errorMean / (error.rows()*error.columns());
+			else if (terminatedThreshold > 0) {
+				double errorMean = Matrix.normMean(error);
 				if (errorMean < terminatedThreshold) break; 
 			}
 			
@@ -509,29 +502,29 @@ class Attention0 implements Cloneable, Serializable {
 		
 		this.X = this.T1 = this.T2 = null;
 		if (m > 0 && m != n && d != dm) {
-			this.T1 = newMatrix(n, m, zero);
-			this.X = newMatrix(m, d, zero);
-			this.T2 = newMatrix(d, dm, zero);
+			this.T1 = Matrix.create(n, m, zero);
+			this.X = Matrix.create(m, d, zero);
+			this.T2 = Matrix.create(d, dm, zero);
 		}
 		else if (m > 0 && m != n && d == dm) {
-			this.T1 = newMatrix(n, m, zero);
-			this.X = newMatrix(m, dm, zero);
+			this.T1 = Matrix.create(n, m, zero);
+			this.X = Matrix.create(m, dm, zero);
 		}
 		else if (m > 0 && m == n && d != dm) {
-			this.X = newMatrix(m, d, zero);
-			this.T2 = newMatrix(d, dm, zero);
+			this.X = Matrix.create(m, d, zero);
+			this.T2 = Matrix.create(d, dm, zero);
 		}
 		
-		this.Y = newMatrix(n, dm, zero);
+		this.Y = Matrix.create(n, dm, zero);
 		this.M = new boolean[n][n];
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) this.M[i][j] = false;
 		}
 		
-		this.WQ = newMatrix(dm, dk, zero);
-		this.WK = newMatrix(dm, dk, zero);
-		this.WV = newMatrix(dm, dv, zero);
-		this.A = newMatrix(n, dv, zero);
+		this.WQ = Matrix.create(dm, dk, zero);
+		this.WK = Matrix.create(dm, dk, zero);
+		this.WV = Matrix.create(dm, dv, zero);
+		this.A = Matrix.create(n, dv, zero);
 		
 		return validate();
 	}
@@ -779,7 +772,7 @@ class Attention0 implements Cloneable, Serializable {
 		
 		int n = n();
 		NeuronValue zero = QK.get(0, 0).zero();
-		Matrix softmax = newMatrix(n, n, zero);
+		Matrix softmax = Matrix.create(n, n, zero);
 		for (int i = 0; i < n; i++) {
 			NeuronValue sum = zero;
 			for (int j = 0; j < n; j++) {
@@ -816,7 +809,7 @@ class Attention0 implements Cloneable, Serializable {
 		int n = softmax.rows();
 		NeuronValue zero = softmax.get(0, 0).zero();
 		NeuronValue unit = zero.unit();
-		Matrix softmaxGrad = newMatrix(n, n, zero);
+		Matrix softmaxGrad = Matrix.create(n, n, zero);
 		for (int i = 0; i < n; i++) {
 			NeuronValue value1 = softmax.get(row, i);
 			for (int j = 0; j < n; j++) {
@@ -837,8 +830,8 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param inputX X input data.
 	 */
 	public void setInputs(Matrix inputY, Matrix inputX) {
-		Attention0.copy(inputY, Y);
-		if (X != null && inputX != null) Attention0.copy(inputX, X);
+		Matrix.copy(inputY, Y);
+		if (X != null && inputX != null) Matrix.copy(inputX, X);
 	}
 
 	
@@ -939,12 +932,15 @@ class Attention0 implements Cloneable, Serializable {
 			Matrix d = Y().getRow(i).transpose().multiply(errvi);
 			dW = dW != null ? dW.add(d) : d;
 		}
-		WQ = WQ.add(dW.multiply(K).multiply0(learningRate));
-		WK = WK.add(dW.multiply(Q).multiply0(learningRate));
+		Matrix WQ = this.WQ.add(dW.multiply(K).multiply0(learningRate));
+		Matrix.copy(WQ, this.WQ);
+		Matrix WK = this.WK.add(dW.multiply(Q).multiply0(learningRate));
+		Matrix.copy(WK, this.WK);
 		
 		//Training weight value matrix.
 		Matrix dWV = Y().transpose().multiply(softmax.transpose()).multiply(errv);
-		WV = WV.add(dWV.multiply0(learningRate));
+		Matrix WV = this.WV.add(dWV.multiply0(learningRate));
+		Matrix.copy(WV, this.WV);
 		
 		if (T1 == null && T2 == null) return;
 		
@@ -964,7 +960,8 @@ class Attention0 implements Cloneable, Serializable {
 					t1s[i] = t1s[i].multiply(X().transpose());
 				t1s[i] = t1s[i].multiply0(learningRate);
 			}
-			T1 = T1.concatHorizontal(t1s);
+			Matrix T1 = Matrix.concatH(t1s);
+			Matrix.copy(T1, this.T1);
 		}
 		
 		//Training the first transposition matrix T2.
@@ -976,45 +973,10 @@ class Attention0 implements Cloneable, Serializable {
 				dT2 = dT2 != null ? dT2.add(d) : d;
 			}
 			dT2 = X().transpose().multiply(dT2).multiply(QKMean);
-			T2 = T2.add(dT2.multiply0(learningRate));
+			Matrix T2 = this.T2.add(dT2.multiply0(learningRate));
+			Matrix.copy(T2, this.T2);
 		}
 		
-	}
-	
-	
-	/**
-	 * Copying source matrix to target matrix.
-	 * @param source source matrix.
-	 * @param target target matrix.
-	 */
-	protected static void copy(Matrix source, Matrix target) {
-		if (source == null || target == null) return;
-		int rows = Math.min(source.rows(), target.rows());
-		int columns = Math.min(source.columns(), target.columns());
-		for (int i = 0; i < rows; i++) {
-			for (int j = 0; j < columns; j++) target.set(i, j, source.get(i, j));
-		}
-	}
-
-
-	/**
-	 * Creating new matrix.
-	 * @param rows rows.
-	 * @param columns columns.
-	 * @param value specified value.
-	 * @return matrix.
-	 */
-	protected static Matrix newMatrix(int rows, int columns, Object value) {
-		if (rows <= 0 || columns <= 0)
-			return null;
-		else if (value == null)
-			return new MatrixImpl(rows, columns, new NeuronValue1(0).zero());
-		else if (value instanceof NeuronValue)
-			return new MatrixImpl(rows, columns, (NeuronValue)value);
-		else if (value instanceof Number)
-			return new NeuronValueM(rows, columns, ((Number)value).doubleValue());
-		else
-			return null;
 	}
 	
 	

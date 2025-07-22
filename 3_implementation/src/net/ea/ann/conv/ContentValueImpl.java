@@ -283,7 +283,7 @@ public class ContentValueImpl extends ContentImpl implements ContentValue, NormS
 		}
 		
 		@Override
-		public WeightValue zero() {
+		public WeightValue zeroW() {
 			if (zero == this) return zero;
 			if (zero != null && zero.getSize().equals(this.getSize()) && zero.getAtomicZeroValue() == this.getAtomicZeroValue()) return zero;
 			zero = (ContentWeightImpl)this.valueOf(0);
@@ -291,7 +291,7 @@ public class ContentValueImpl extends ContentImpl implements ContentValue, NormS
 		}
 
 		@Override
-		public WeightValue unit() {
+		public WeightValue unitW() {
 			if (unit == this) return unit;
 			if (unit != null && unit.getSize().equals(this.getSize()) && unit.getAtomicZeroValue() == this.getAtomicZeroValue()) return unit;
 			unit = (ContentWeightImpl)this.valueOf(1);
@@ -299,18 +299,18 @@ public class ContentValueImpl extends ContentImpl implements ContentValue, NormS
 		}
 
 		@Override
-		public NeuronValue toNeuronValue() {
+		public NeuronValue toValue() {
 			ContentValueImpl contentValue = new ContentValueImpl(neuronChannel, activateRef, getSize(), filter, idRef);
 			return (NeuronValue)contentValue.newContent(getData(), getBias());
 		}
 
 		@Override
-		public WeightValue add(NeuronValue value) {
+		public WeightValue addValue(NeuronValue value) {
 			return (WeightValue)super.add((Content)value);
 		}
 
 		@Override
-		public WeightValue subtract(NeuronValue value) {
+		public WeightValue subtractValue(NeuronValue value) {
 			return (WeightValue)super.subtract((Content)value);
 		}
 

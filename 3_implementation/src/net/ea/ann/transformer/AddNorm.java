@@ -8,6 +8,8 @@
 package net.ea.ann.transformer;
 
 import net.ea.ann.core.Id;
+import net.ea.ann.core.function.Function;
+import net.ea.ann.mane.MatrixNetworkImpl;
 
 /**
  * This class implements add & norm component.
@@ -26,20 +28,45 @@ public class AddNorm extends MatrixNetworkImpl {
 
 	
 	/**
-	 * Constructor with ID reference.
-	 * @param idRef ID reference.
+	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 * @param idRef identifier reference.
 	 */
-	public AddNorm(Id idRef) {
-		super(idRef);
+	public AddNorm(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+		super(neuronChannel, activateRef, convActivateRef, idRef);
 	}
 	
 
 	/**
-	 * Default constructor.
+	 * Constructor with neuron channel, activation function, and convolutional activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
 	 */
-	public AddNorm() {
-		this(new Id());
+	public AddNorm(int neuronChannel, Function activateRef, Function convActivateRef) {
+		this(neuronChannel, activateRef, convActivateRef, null);
 	}
 
 	
+	/**
+	 * Constructor with neuron channel and activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 */
+	public AddNorm(int neuronChannel, Function activateRef) {
+		this(neuronChannel, activateRef, null, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel.
+	 * @param neuronChannel neuron channel.
+	 */
+	public AddNorm(int neuronChannel) {
+		this(neuronChannel, null, null, null);
+	}
+	
+
 }

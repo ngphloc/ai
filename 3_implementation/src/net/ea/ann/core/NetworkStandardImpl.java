@@ -9,7 +9,6 @@ package net.ea.ann.core;
 
 import java.rmi.RemoteException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -199,11 +198,9 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else {
-				double errorMean = 0;
-				for (NeuronValue r : error) errorMean += r.norm();
-				errorMean = errorMean / error.length;
-				if (errorMean < terminatedThreshold) doStarted = false; 
+			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+				double errorMean = NeuronValue.normMean(error);
+				if (errorMean < terminatedThreshold) doStarted = false;
 			}
 			
 			synchronized (this) {
@@ -264,11 +261,9 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else {
-				double errorMean = 0;
-				for (NeuronValue r : error) errorMean += r.norm();
-				errorMean = errorMean / error.length;
-				if (errorMean < terminatedThreshold) doStarted = false; 
+			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+				double errorMean = NeuronValue.normMean(error);
+				if (errorMean < terminatedThreshold) doStarted = false;
 			}
 			
 			synchronized (this) {
@@ -374,11 +369,9 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 			
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				break;
-			else {
-				double errorMean = 0;
-				for (NeuronValue r : error) errorMean += r.norm();
-				errorMean = errorMean / error.length;
-				if (errorMean < terminatedThreshold) break; 
+			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+				double errorMean = NeuronValue.normMean(error);
+				if (errorMean < terminatedThreshold) doStarted = false;
 			}
 			
 		}
@@ -470,18 +463,10 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 			
 			if (error == null || error.size() == 0 || (iteration >= maxIteration && maxIteration == 1))
 				break;
-			else {
-				Collection<NeuronValue[]> es = error.values();
-				double errorMean = 0;
-				int errorCount = 0;
-				for (NeuronValue[] e : es) {
-					for (NeuronValue r : e) {
-						errorMean += r.norm();
-						errorCount++;
-					}
-				}
-				errorMean = errorMean / errorCount;
-				if (errorMean < terminatedThreshold) break; 
+			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+				NeuronValue[][] errors = error.values().toArray(new NeuronValue[][] {});
+				double errorMean = NeuronValue.normMean(errors);
+				if (errorMean < terminatedThreshold) break;
 			}
 		}
 		

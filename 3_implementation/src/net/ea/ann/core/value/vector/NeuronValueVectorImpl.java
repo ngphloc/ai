@@ -201,7 +201,7 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 
 	@Override
 	public WeightValue newWeightValue() {
-		return new WeightValueVectorImpl(v.length, zeroValue.newWeightValue()).zero();
+		return new WeightValueVectorImpl(v.length, zeroValue.newWeightValue()).zeroW();
 	}
 
 	
@@ -275,12 +275,12 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 		int n = other.length();
 		if (n == 0) return multiply0(value);
 		if (!(other.v[0] instanceof WeightValueVectorImpl)) return multiply0(value);
-		NeuronValue zeroValue = ((NeuronValueVectorImpl)other.v[0].toNeuronValue()).zeroValue;
+		NeuronValue zeroValue = ((NeuronValueVectorImpl)other.v[0].toValue()).zeroValue;
 		if (!zero.getClass().equals(this.zeroValue.getClass())) return multiply0(value);
 		
 		NeuronValueVectorImpl result = new NeuronValueVectorImpl(n, zeroValue); 
 		for (int i = 0; i < n; i++) {
-			NeuronValueVector product = (NeuronValueVector)this.product((NeuronValueVector)other.v[i].toNeuronValue());
+			NeuronValueVector product = (NeuronValueVector)this.product((NeuronValueVector)other.v[i].toValue());
 			result.set(i,product);
 		}
 		return result;

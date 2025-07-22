@@ -17,7 +17,7 @@ import net.ea.ann.core.function.FunctionInvertible;
  * @version 1.0
  *
  */
-public class NeuronValueM extends NeuronValueM0 implements NeuronValue, Matrix {
+public class NeuronValueM extends NeuronValueM0 implements NeuronValue, WeightValue {
 
 	
 	/**
@@ -27,10 +27,11 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, Matrix {
 
 	
 	/**
-	 * Default constructor.
+	 * Constructor with data.
+	 * @param data data.
 	 */
-	private NeuronValueM() {
-		super();
+	private NeuronValueM(double[][] data) {
+		super(data);
 	}
 	
 	
@@ -40,7 +41,7 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, Matrix {
 	 * @param columns numbers of columns.
 	 * @param value specified value.
 	 */
-	public NeuronValueM(int rows, int columns, double value) {
+	protected NeuronValueM(int rows, int columns, double value) {
 		super(rows, columns, value);
 	}
 
@@ -52,11 +53,23 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, Matrix {
 
 	
 	@Override
+	public WeightValue zeroW() {
+		return (WeightValue)zero();
+	}
+
+
+	@Override
 	public NeuronValue unit() {
 		throw new RuntimeException("Not implemented yet");
 	}
 
 	
+	@Override
+	public WeightValue unitW() {
+		return (WeightValue)unit();
+	}
+
+
 	@Override
 	public int length() {
 		return rows()*columns();
@@ -89,16 +102,22 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, Matrix {
 	
 	@Override
 	public WeightValue newWeightValue() {
-		throw new RuntimeException("Not implemented yet");
+		return (WeightValue)zero();
 	}
 
 	
 	@Override
 	public WeightValue toWeightValue() {
-		throw new RuntimeException("Not implemented yet");
+		return this;
 	}
 
 	
+	@Override
+	public NeuronValue toValue() {
+		return this;
+	}
+
+
 	@Override
 	public NeuronValue negative() {
 		return (NeuronValue)negative0();
@@ -124,11 +143,23 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, Matrix {
 
 	
 	@Override
+	public WeightValue addValue(NeuronValue value) {
+		return (WeightValue)add(value);
+	}
+
+
+	@Override
 	public NeuronValue subtract(NeuronValue value) {
 		return (NeuronValue)subtract((Matrix)value);
 	}
 
 	
+	@Override
+	public WeightValue subtractValue(NeuronValue value) {
+		return (WeightValue)subtract(value);
+	}
+
+
 	@Override
 	public NeuronValue multiply(NeuronValue value) {
 		return (NeuronValue)multiply0(value);
@@ -269,7 +300,7 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, Matrix {
 	
 	@Override
 	public NeuronValue evaluate(Function f) {
-		throw new RuntimeException("Not implemented yet");
+		return (NeuronValue)evaluate0(f);
 	}
 
 	
@@ -299,12 +330,29 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, Matrix {
 		for (int i = 1; i < data.length; i++) {
 			if (data[i] == null || data[i].length != n) return null;
 		}
-		NeuronValueM matrix = new NeuronValueM();
-		matrix.data = data;
-		return matrix;
+		return new NeuronValueM(data);
 	}
 
 
+	@Override
+	public Matrix create(int rows, int columns) {
+		if (rows <= 0 || columns <= 0)
+			return null;
+		else
+			return new NeuronValueM(rows, columns, 0);
+	}
+
+
+	/**
+	 * Creating matrix from data array.
+	 * @param data data array.
+	 * @return matrix.
+	 */
+	public static Matrix create(double[][] data) {
+		return new NeuronValueM(null).wrap(data);
+	}
+
+	
 }
 
 
@@ -332,10 +380,11 @@ abstract class NeuronValueM0 implements Matrix {
 
 	
 	/**
-	 * Default constructor.
+	 * Constructor with data.
+	 * @param data data.
 	 */
-	protected NeuronValueM0() {
-		this.data = null;
+	protected NeuronValueM0(double[][] data) {
+		this.data = data;
 	}
 	
 	
@@ -346,6 +395,7 @@ abstract class NeuronValueM0 implements Matrix {
 	 * @param value specified value.
 	 */
 	protected NeuronValueM0(int rows, int columns, double value) {
+		if (rows <= 0 || columns <= 0 || Double.isNaN(value)) throw new IllegalArgumentException("Wrong rows, columns, or value");
 		data = new double[rows][columns];
 		for (int i = 0; i < rows; i++) {
 			for (int j = 0; j < columns; j++) data[i][j] = value;
@@ -359,6 +409,13 @@ abstract class NeuronValueM0 implements Matrix {
 	 * @return wrapped matrix.
 	 */
 	protected abstract Matrix wrap(double[][] data);
+
+	
+	@Override
+	public NeuronValue newNeuronValue() {
+		return create(1, 1).get(0, 0).zero();
+	}
+
 
 	@Override
 	public int rows() {return data.length;}
@@ -385,6 +442,15 @@ abstract class NeuronValueM0 implements Matrix {
 		int n = columns();
 		double[][] newdata = new double[1][n];
 		for (int j = 0; j < n; j++) newdata[0][j] = this.data[row][j];
+		return wrap(newdata);
+	}
+
+
+	@Override
+	public Matrix getColumn(int column) {
+		int m = rows();
+		double[][] newdata = new double[m][1];
+		for (int i = 0; i < m; i++) newdata[i][0] = this.data[i][column];
 		return wrap(newdata);
 	}
 
@@ -436,7 +502,7 @@ abstract class NeuronValueM0 implements Matrix {
 		int m = A.length, n = A[0].length;
 		double[][] C = new double[m][n];
 		for (int i = 0; i < m; i++) {
-			for (int j = 0; j < n; j++) C[i][j] = A[i][j] + B[i][j];
+			for (int j = 0; j < n; j++) C[i][j] = A[i][j] - B[i][j];
 		}
 		return wrap(C);
 	}
@@ -469,6 +535,21 @@ abstract class NeuronValueM0 implements Matrix {
 
 
 	@Override
+	public Matrix multiplyWise(Matrix other) {
+		int m = Math.min(this.rows(), other.rows());
+		int n = Math.min(this.columns(), other.columns());
+		Matrix result = create(m, n);
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j < n; j++) {
+				NeuronValue value = this.get(i, j).multiply(other.get(i, j));
+				result.set(i, j, value);
+			}
+		}
+		return result;
+	}
+
+	
+	@Override
 	public Matrix divide0(NeuronValue value) {
 		return divide0( ((NeuronValue1)value).v );
 	}
@@ -486,6 +567,41 @@ abstract class NeuronValueM0 implements Matrix {
 	}
 
 
+	@Override
+	public Matrix kroneckerProductRowOf(Matrix other, int rowOfThis) {
+		Matrix[] matrices = new Matrix[this.columns()];
+		for (int j = 0; j < matrices.length; j++) {
+			matrices[j] = other.multiply0(this.get(rowOfThis, j));
+		}
+		return concatVertical(matrices);
+	}
+
+	
+	@Override
+	public Matrix evaluate0(Function f) {
+		if (f == null) return null;
+		Matrix result = create(this.rows(), this.columns());
+		for (int i = 0; i < this.rows(); i++) {
+			for (int j = 0; j < this.columns(); j++) {
+				result.set(i, j, this.get(i, j).evaluate(f));
+			}
+		}
+		return result;
+	}
+
+	
+	@Override
+	public Matrix derivativeWise(Function f) {
+		Matrix result = create(this.rows(), this.columns());
+		for (int i = 0; i < this.rows(); i++) {
+			for (int j = 0; j < this.columns(); j++) {
+				result.set(i, j, this.get(i, j).derivative(f));
+			}
+		}
+		return result;
+	}
+
+	
 	@Override
 	public Matrix concatHorizontal(Matrix... matrices) {
 		if (matrices == null || matrices.length == 0) return null;
@@ -553,6 +669,38 @@ abstract class NeuronValueM0 implements Matrix {
 	}
 
 	
+	@Override
+	public Matrix vec() {
+		if (this.columns() == 1) return this;
+		double[][] result = new double[this.rows()*this.columns()][1];
+		int k = 0;
+		for (int j = 0; j < this.columns(); j++) {
+			for (int i = 0; i < this.rows(); i++) {
+				result[k][0] = this.data[i][j];
+				k++;
+			}
+		}
+		return wrap(result);
+	}
+
+
+	@Override
+	public Matrix vecInverse(int rows) {
+		if (rows <= 0) return null;
+		int columns = this.rows() / rows;
+		if (columns == 0) return null;
+		
+		double[][] result = new double[rows][columns];
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < columns; j++) {
+				int index = j*rows + i;
+				result[i][j] = this.data[index][0];
+			}
+		}
+		return wrap(result);
+	}
+
+	
 	/**
 	 * Multiplying two matrices.
 	 * @param A first matrix.
@@ -570,12 +718,24 @@ abstract class NeuronValueM0 implements Matrix {
 		for (int i = 0; i < m; i++) {
 			for (int k = 0; k < o; k++) {
 				C[i][k] = zero;
-				for (int j = 0; j < n; j++) C[i][k] = C[i][k] + A[i][j]*B[j][k];
+				for (int j = 0; j < n; j++) C[i][k] += A[i][j]*B[j][k];
 			}
 		}
 		return C;
 	}
 	
+	
+	@Override
+	public Matrix createIdentity(int n) {
+		double[][] identityData = new double[n][n];
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				identityData[i][j] = i == j ? 1 : 0;
+			}
+		}
+		return wrap(identityData);
+	}
+
 	
 	/**
 	 * Generate cofactor of matrix, the code is available at https://stackoverflow.com/questions/16602350/calculating-matrix-determinant
@@ -664,7 +824,6 @@ abstract class NeuronValueM0 implements Matrix {
 				B[j][i] = Math.pow(-1.0, i+j) * detNotOptimalYet(co) / det;
 			}
 		}
-		
 		return B;
 	}
 	
@@ -685,7 +844,6 @@ abstract class NeuronValueM0 implements Matrix {
 			}
 			System.out.println("Checking if matrix is invertible causes error: " + e.getMessage());
 		}
-
 		return false;
 	}
 
@@ -703,7 +861,6 @@ abstract class NeuronValueM0 implements Matrix {
 			if (e instanceof ClassNotFoundException) return detNotOptimalYet(A);
 			System.out.println("Calculating matrix determinant causes error: " + e.getMessage());
 		}
-		
 		return Double.NaN;
 	}
 
@@ -721,7 +878,6 @@ abstract class NeuronValueM0 implements Matrix {
 			if (e instanceof ClassNotFoundException) return inverseNotOptimalYet(A);
 			System.out.println("Calculating matrix inverse causes error: " + e.getMessage());
 		}
-		
 		return null;
 	}
 	

@@ -209,7 +209,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * @return list of generated rasters.
 	 */
 	public List<Raster> initGenRasters(Iterable<Raster> sample, int nGens, int zDim, Filter[] convFilters, Filter[] deconvFilters, Size minSize) {
-		if (new Initializer(convGM).initialize(sample, zDim, convFilters, deconvFilters, minSize))
+		if (new ConvGenInitializer(convGM).initialize(sample, zDim, convFilters, deconvFilters, minSize))
 			return genRasters(sample, nGens);
 		else
 			return Util.newList(0);
@@ -267,7 +267,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * @return list of generated rasters.
 	 */
 	public List<Raster> initGenRasters(Iterable<Raster> sample, int nGens, int zDim, SizeZoom zoomOut, Size minSize) {
-		if (new Initializer(convGM).initialize(sample, zDim, zoomOut, minSize))
+		if (new ConvGenInitializer(convGM).initialize(sample, zDim, zoomOut, minSize))
 			return genRasters(sample, nGens);
 		else
 			return Util.newList(0);
@@ -295,7 +295,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * @return list of generated rasters.
 	 */
 	public List<Raster> initGenRasters(Iterable<Raster> sample, int nGens, int zDim) {
-		if (new Initializer(convGM).initialize(sample, zDim))
+		if (new ConvGenInitializer(convGM).initialize(sample, zDim))
 			return genRasters(sample, nGens);
 		else
 			return Util.newList(0);
@@ -312,7 +312,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * @return list of generated rasters.
 	 */
 	public List<Raster> initGenRastersFeatureExtractor2D(Iterable<Raster> sample, int nGens, int zDim, SizeZoom zoomOut, Size minSize) {
-		if (new Initializer(convGM).initializeFeatureExtractor2D(sample, zDim, zoomOut, minSize))
+		if (new ConvGenInitializer(convGM).initializeFeatureExtractor2D(sample, zDim, zoomOut, minSize))
 			return genRasters(sample, nGens);
 		else
 			return Util.newList(0);
@@ -591,7 +591,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 */
 	private List<G> initRecoverRasters(String gmName, Iterable<Raster> sample, int zDim, SizeZoom zoomOut, Size minSize,
 			Iterable<Raster> rasters, Cube region, boolean randomGen, int nGens, Path recoverDir, boolean memory) {
-		if (!new Initializer(convGM).initialize(sample, zDim, zoomOut, minSize))
+		if (!new ConvGenInitializer(convGM).initialize(sample, zDim, zoomOut, minSize))
 			return Util.newList(0);
 		
 		try {
@@ -957,7 +957,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 */
 	private List<G> initRecoverRasters(String gmName, Iterable<Raster> sample, int zDim, Filter[] convFilters, Filter[] deconvFilters, Size minSize,
 			Iterable<Raster> rasters, Cube region, boolean randomGen, int nGens, Path recoverDir, boolean memory) {
-		if (!new Initializer(convGM).initialize(sample, zDim, convFilters, deconvFilters, minSize))
+		if (!new ConvGenInitializer(convGM).initialize(sample, zDim, convFilters, deconvFilters, minSize))
 			return Util.newList(0);
 		
 		try {
@@ -1379,7 +1379,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 */
 	private List<G> initRecoverRastersFeatureExtractor2D(String gmName, Iterable<Raster> sample, int zDim, SizeZoom zoomOut, Size minSize,
 			Iterable<Raster> rasters, Cube region, boolean randomGen, int nGens, Path recoverDir, boolean memory) {
-		if (!new Initializer(convGM).initializeFeatureExtractor2D(sample, zDim, zoomOut, minSize))
+		if (!new ConvGenInitializer(convGM).initializeFeatureExtractor2D(sample, zDim, zoomOut, minSize))
 			return Util.newList(0);
 		
 		try {
@@ -1458,20 +1458,6 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	}
 
 
-	/**
-	 * Main method.
-	 * @param args arguments.
-	 */
-	public static void main(String[] args) {
-		try {
-			gen(System.in, System.out);
-		}
-		catch (Throwable e) {
-			Util.trace(e);
-		}
-	}
-	
-	
 	/**
 	 * Test of generation.
 	 * @param in input stream.
@@ -1635,7 +1621,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 		if (testRasters.size() > 0) {
 			baseRasters = load3d ? RasterAssoc.load3D(baseDir) : RasterAssoc.load(baseDir);
 		}
-		else {
+		else { //Randomizing testing rasters based on base rasters.
 			List<Path> basePaths = Util.newList(0);
 			try {
 				Files.list(baseDir).filter(Files::isRegularFile).forEach((basePath) -> {
@@ -1650,7 +1636,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 			double r = 0.25;
 			int k = (int)(basePaths.size()*r);
 			if (k == 0) {
-				printer.println("Empty test directory");
+				printer.println("Empty base directory for creating test directory.");
 				return;
 			}
 			Random rnd = new Random();
@@ -1781,6 +1767,18 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 		try {writer.close();} catch (Throwable e) {Util.trace(e);}
 		
 	}
+	
+	
+//	/**
+//	 * Main method.
+//	 * @param args arguments.
+//	 */
+//	public static void main(String[] args) {
+//		try {
+//			gen(System.in, System.out);
+//		}
+//		catch (Throwable e) {Util.trace(e);}
+//	}
 	
 	
 }

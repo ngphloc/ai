@@ -38,25 +38,25 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	/**
 	 * Maximum iteration of learning neural network.
 	 */
-	public final static String LEARN_MAX_ITERATION_FIELD = "ann_learn_max_iteration";
+	public final static String LEARN_MAX_ITERATION_FIELD = "net_learn_max_iteration";
 	
 	
 	/**
 	 * Terminated threshold of learning neural network.
 	 */
-	public final static String LEARN_TERMINATED_THRESHOLD_FIELD = "ann_learn_terminated_threshold";
+	public final static String LEARN_TERMINATED_THRESHOLD_FIELD = "net_learn_terminated_threshold";
 
 	
 	/**
 	 * Learning rate.
 	 */
-	public final static String LEARN_RATE_FIELD = "ann_learn_rate";
+	public final static String LEARN_RATE_FIELD = "net_learn_rate";
 
 	
 	/**
 	 * Name of learning rate fixed field.
 	 */
-	public final static String LEARN_RATE_FIXED_FIELD = "ann_learn_rate_fixed";
+	public final static String LEARN_RATE_FIXED_FIELD = "net_learn_rate_fixed";
 
 	
 	/**
@@ -66,9 +66,21 @@ public abstract class NetworkAbstract implements Network, Serializable {
 
 	
 	/**
+	 * Name of learning terminated error field.
+	 */
+	public final static String LEARN_TERMINATE_ERROR_FIELD = "net_learn_terminate_error";
+
+	
+	/**
+	 * Default value of learning terminated error field.
+	 */
+	public final static boolean LEARN_TERMINATE_ERROR_DEFAULT = false;
+
+	
+	/**
 	 * Name of re-sampling field.
 	 */
-	public final static String RESAMPLE_FILED = "ann_resample";
+	public final static String RESAMPLE_FILED = "net_resample";
 	
 	
 	/**
@@ -151,6 +163,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 		config.put(LEARN_MAX_ITERATION_FIELD, LEARN_MAX_ITERATION_DEFAULT);
 		config.put(LEARN_TERMINATED_THRESHOLD_FIELD, LEARN_TERMINATED_THRESHOLD_DEFAULT);
 		config.put(LEARN_RATE_FIELD, LEARN_RATE_DEFAULT);
+		config.put(LEARN_TERMINATE_ERROR_FIELD, LEARN_TERMINATE_ERROR_DEFAULT);
 		config.put(RESAMPLE_FILED, RESAMPLE_DEFAULT);
 		config.put(LEARN_RATE_FIXED_FIELD, LEARN_RATE_FIXED_DEFAULT);
 

@@ -9,6 +9,11 @@ package temp.ea.ann;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.awt.Dimension;
+
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.SwingConstants;
 
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
@@ -48,7 +53,42 @@ public class Temp {
 		System.out.println(rasters.size());
 //		int count = RasterAssoc.saveDirector(rasters, Paths.get("D:/1/gen"), "cifar", true);
 //		System.out.println(count);
+
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            createAndShowGUI();
+        });
+		
 	}
 
 	
+    /**
+     * Creating and show GUI.
+     */
+    protected static void createAndShowGUI() {
+        JFrame frame = new JFrame("HelloWorldSwing");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        JLabel label = new JLabel("Hello World from Swing in Codespace!", SwingConstants.CENTER);
+        label.setPreferredSize(new Dimension(300, 100)); // Ä�áº·t kÃ­ch thÆ°á»›c Æ°u tiÃªn
+        frame.getContentPane().add(label);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+
+
+    /**
+     * Creating and show GUI.
+     */
+    protected static void createAndShowGUI2() {
+        JFrame frame = new JFrame("HelloWorldSwing");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        JLabel label = new JLabel("Hello World from Swing in Codespace!", SwingConstants.CENTER);
+        label.setPreferredSize(new Dimension(300, 100)); // Ä�áº·t kÃ­ch thÆ°á»›c Æ°u tiÃªn
+        frame.getContentPane().add(label);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+
+
 }

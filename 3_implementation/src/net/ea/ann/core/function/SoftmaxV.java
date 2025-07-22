@@ -10,8 +10,6 @@ package net.ea.ann.core.function;
 import net.ea.ann.core.LayerStandard;
 import net.ea.ann.core.NeuronStandard;
 import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.core.value.NeuronValue1;
-import net.ea.ann.core.value.NeuronValueV;
 
 /**
  * This class represents soft-max function with vector variable.
@@ -79,57 +77,51 @@ public class SoftmaxV implements Softmax {
 	}
 
 
-	/**
-	 * Checking whether neuron value vector is larger than float maximum.
-	 * @param value neuron value vector.
-	 * @return whether neuron value vector is larger than float maximum.
-	 */
-	private boolean isLargerThanFloatMax(NeuronValueV value) {
-		if (value == null) return false;
-		if (value.length() == 0) return false;
-		for (int i = 0; i < value.length(); i++) {
-			if (value.get(i) <= Float.MAX_VALUE) return false;
-		}
-		return true;
+	@Override
+	public NeuronValue evaluate(NeuronValue x) {
+		return softmaxOne(getAllValues(), x);
 	}
 
 	
-	@Override
-	public NeuronValue evaluate(NeuronValue x) {
-		if (x == null) return null;
-		NeuronValue[] all = getAllValues();
-		if (all == null || all.length == 0) return null;
-		
-		NeuronValue max = NeuronValue.max(all);
-		max = max != null ? max : all[0].zero();
-		NeuronValue[] array = new NeuronValue[all.length];
-		boolean finite = true;
-		for (int i = 0; i < array.length; i++) {
-			array[i] = all[i].subtract(max).exp();
-			NeuronValueV v = (NeuronValueV)array[i];
-			if (NeuronValueV.isInfinite(v) || isLargerThanFloatMax(v))
-				array[i] = new NeuronValue1(Float.MAX_VALUE);
-			finite = finite && NeuronValueV.isFinite(v);
-		}
-		if (!finite)
-			return x.valueOf(1.0/(double)all.length);
-		
-		NeuronValue zero = x.zero();
-		NeuronValue sum = zero;
-		for (NeuronValue v : array) sum = sum.add(v);
-		if (sum.equals(zero))
-			return x.valueOf(1.0/(double)all.length);
+//	@Override
+//	public NeuronValue evaluate(NeuronValue x) {
+//		if (x == null) return null;
+//		NeuronValue[] all = getAllValues();
+//		if (all == null || all.length == 0) return null;
+//		
+//		NeuronValue max = NeuronValue.max(all);
+//		max = max != null ? max : all[0].zero();
+//		NeuronValue[] array = new NeuronValue[all.length];
+//		boolean finite = true;
+//		for (int i = 0; i < array.length; i++) {
+//			array[i] = all[i].subtract(max).exp();
+//			NeuronValueV v = (NeuronValueV)array[i];
+//			if (NeuronValueV.isInfinite(v) || isLargerThanFloatMax(v))
+//				array[i] = new NeuronValue1(Float.MAX_VALUE);
+//			finite = finite && NeuronValueV.isFinite(v);
+//		}
+//		if (!finite)
+//			return x.valueOf(1.0/(double)all.length);
+//		
+//		NeuronValue zero = x.zero();
+//		NeuronValue sum = zero;
+//		for (NeuronValue v : array) sum = sum.add(v);
+//		if (sum.equals(zero))
+//			return x.valueOf(1.0/(double)all.length);
+//
+//		NeuronValue xexp = x.subtract(max).exp();
+//		NeuronValueV v = (NeuronValueV)xexp;
+//		if (NeuronValueV.isInfinite(v) || isLargerThanFloatMax(v))
+//			xexp = x.valueOf(Float.MAX_VALUE);
+//		
+//		NeuronValue value = xexp.divide(sum);
+//		return value;
+//	}
 
-		NeuronValue xexp = x.subtract(max).exp();
-		NeuronValueV v = (NeuronValueV)xexp;
-		if (NeuronValueV.isInfinite(v) || isLargerThanFloatMax(v))
-			xexp = x.valueOf(Float.MAX_VALUE);
-		
-		NeuronValue value = xexp.divide(sum);
-		return value;
-	}
 
-
+	/*
+	 * Gradient on diagonal.
+	 */
 	@Override
 	public NeuronValue derivative(NeuronValue x) {
 		NeuronValue v = evaluate(x);
@@ -138,6 +130,85 @@ public class SoftmaxV implements Softmax {
 		return v.multiply(unit.subtract(v));
 	}
 
+	
+//	/**
+//	 * Checking whether neuron value vector is larger than float maximum.
+//	 * @param value neuron value vector.
+//	 * @return whether neuron value vector is larger than float maximum.
+//	 */
+//	private static boolean isLargerThanFloatMax(NeuronValueV value) {
+//		if (value == null) return false;
+//		if (value.length() == 0) return false;
+//		for (int i = 0; i < value.length(); i++) {
+//			if (value.get(i) <= Float.MAX_VALUE) return false;
+//		}
+//		return true;
+//	}
+
+	
+	/**
+	 * Calculating softmax of specified value and array. 
+	 * @param all array.
+	 * @param x value.
+	 * @return soft-max of specified value and array.
+	 */
+	private static NeuronValue softmaxOne(NeuronValue[] all, NeuronValue x) {
+		if (x == null || all == null || all.length == 0) return null;
+		
+		NeuronValue max = NeuronValue.max(all);
+		max = max != null ? max : all[0].zero();
+		NeuronValue[] exps = new NeuronValue[all.length];
+		NeuronValue sum = x.zero();
+		for (int i = 0; i < all.length; i++) {
+			exps[i] = all[i].subtract(max).exp();
+			sum = sum.add(exps[i]);
+		}
+		
+		NeuronValue xexp = x.subtract(max).exp();
+		return xexp.divide(sum);
+	}
+
+	
+	/**
+	 * Calculating softmax of specified array.
+	 * @param all array.
+	 * @return softmax of specified array.
+	 */
+	public static NeuronValue[] softmax(NeuronValue[] all) {
+		if (all == null || all.length == 0) return null;
+		
+		NeuronValue max = NeuronValue.max(all);
+		max = max != null ? max : all[0].zero();
+		NeuronValue[] exps = new NeuronValue[all.length];
+		NeuronValue sum = all[0].zero();
+		for (int i = 0; i < all.length; i++) {
+			exps[i] = all[i].subtract(max).exp();
+			sum = sum.add(exps[i]);
+		}
+		
+		NeuronValue[] softmax = new NeuronValue[all.length];
+		for (int i = 0; i < all.length; i++) softmax[i] = exps[i].divide(sum);
+		return softmax;
+	}
+	
+	
+	/**
+	 * Calculating softmax derivative on diagonal of specified array.
+	 * @param all specified array.
+	 * @return softmax derivative of specified array.
+	 */
+	public static NeuronValue[] softmaxDerivativeDiagonal(NeuronValue[] all) {
+		NeuronValue[] softmax = softmax(all);
+		if (softmax == null || softmax.length == 0) return null;
+		
+		NeuronValue unit = all[0].unit();
+		NeuronValue[] gradient = new NeuronValue[softmax.length];
+		for (int i = 0; i < softmax.length; i++) {
+			gradient[i] = softmax[i].multiply(unit.subtract(softmax[i]));
+		}
+		return gradient;
+	}
+	
 	
 	/**
 	 * Creating soft-max function with all values.

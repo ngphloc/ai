@@ -134,7 +134,7 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 	
 	@Override
 	public Weight newWeight() {
-		return new Weight(newNeuronValue().newWeightValue().zero());
+		return new Weight(newNeuronValue().newWeightValue().zeroW());
 	}
 	
 	
@@ -247,16 +247,72 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 		if (prevLayer != null && prevLayer == getRibinLayer()) return false;
 
 		LayerStandard oldPrevLayer = this.prevLayer;
-		LayerStandard oldPrevPrevLayer = null;
 		if (oldPrevLayer != null) {
-			oldPrevPrevLayer = oldPrevLayer.getPrevLayer();
 			clearNextNeurons(oldPrevLayer);
+			((LayerStandardImpl)oldPrevLayer).nextLayer = null;
 		}
-
 		this.prevLayer = prevLayer;
 		if (prevLayer == null) return true;
 
 		clearNextNeurons(prevLayer);
+		LayerStandard nextLayerOfPrevLayer = ((LayerStandardImpl)prevLayer).nextLayer;
+		if (nextLayerOfPrevLayer != null) ((LayerStandardImpl)nextLayerOfPrevLayer).prevLayer = null;
+		
+		((LayerStandardImpl)prevLayer).nextLayer = this;
+		if (injective) {
+			int n = Math.min(prevLayer.size(), size());
+			for (int i = 0; i < n; i++) {
+				prevLayer.get(i).setNextNeuron(get(i), newWeight());
+			}
+		}
+		else {
+			for (int i = 0; i < prevLayer.size(); i++) {
+				NeuronStandard neuron = prevLayer.get(i);
+				for (int j = 0; j < size(); j++) {
+					neuron.setNextNeuron(get(j), newWeight());
+				}
+			}
+		}
+		
+		return true;
+	}
+
+	
+	/**
+	 * Replacing previous layer.
+	 * @param prevLayer previous layer. It can be null.
+	 * @return true if setting is successful.
+	 */
+	protected boolean replacePrevLayer(LayerStandard prevLayer) {
+		return replacePrevLayer(prevLayer, false);
+	}
+
+
+	/**
+	 * Replacing previous layer.
+	 * @param prevLayer previous layer. It can be null.
+	 * @param injective if this parameter is true, there is only one connection between two neurons.
+	 * @return true if setting is successful.
+	 */
+	protected boolean replacePrevLayer(LayerStandard prevLayer, boolean injective) {
+		if (prevLayer == this.prevLayer) return false;
+		if (this.prevLayer == null && this.prevLayerImplicit != null) return false;
+		if (prevLayer != null && prevLayer == getRibinLayer()) return false;
+
+		LayerStandard oldPrevLayer = this.prevLayer;
+		LayerStandard oldPrevPrevLayer = null;
+		if (oldPrevLayer != null) {
+			oldPrevPrevLayer = oldPrevLayer.getPrevLayer();
+			clearNextNeurons(oldPrevLayer);
+			((LayerStandardImpl)oldPrevLayer).nextLayer = null;
+		}
+		this.prevLayer = prevLayer;
+		if (prevLayer == null) return true;
+
+		clearNextNeurons(prevLayer);
+		LayerStandard nextLayerOfPrevLayer = ((LayerStandardImpl)prevLayer).nextLayer;
+		if (nextLayerOfPrevLayer != null) ((LayerStandardImpl)nextLayerOfPrevLayer).prevLayer = null;
+		
 		((LayerStandardImpl)prevLayer).nextLayer = this;
 		if (injective) {
 			int n = Math.min(prevLayer.size(), size());
@@ -344,6 +400,7 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 		
 		/**
 		 * Setting next layer (2nd). This method is ignored when setting network from left to right.
+		 * Indeed this method is the same to method {@link #setNextLayer(LayerStandard, LayerStandard)}.
 		 * @param nextLayer next layer.
 		 * @param nextNextLayer next layer of the next layer.
 		 */
@@ -367,18 +424,106 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 		}
 		
 		clearNextNeurons(this);
+		LayerStandard oldNextLayer = this.nextLayer;
+		if (oldNextLayer != null) ((LayerStandardImpl)oldNextLayer).prevLayer = null;
+		this.nextLayer = nextLayer;
+		if (nextLayer == null) return true;
 		
+		LayerStandard prevLayerOfNextLayer = ((LayerStandardImpl)nextLayer).prevLayer;
+		if (prevLayerOfNextLayer != null) {
+			clearNextNeurons(prevLayerOfNextLayer);
+			((LayerStandardImpl)prevLayerOfNextLayer).nextLayer = null;
+		}
+		
+		((LayerStandardImpl)nextLayer).prevLayer = this;
+		if (setter != null) {
+			setter.setNextLayer(this, nextLayer);
+		}
+		else {
+			if (injective) {
+				int n = Math.min(size(), nextLayer.size());
+				for (int i = 0; i < n; i++) {
+					get(i).setNextNeuron(nextLayer.get(i), newWeight());
+				}
+			}
+			else {
+				for (int i = 0; i < size(); i++) {
+					NeuronStandard neuron = get(i);
+					for (int j = 0; j < nextLayer.size(); j++) {
+						neuron.setNextNeuron(nextLayer.get(j), newWeight());
+					}
+				}
+			}
+		}
+		
+		return true;
+	}
+
+	
+	/**
+	 * Setting next layer.
+	 * @param nextLayer next layer. It can be null.
+	 * @param setter specified setter. It can be null.
+	 * @return true if setting is successful.
+	 */
+	protected boolean setNextLayer(LayerStandard nextLayer, NextLayerSetter setter) {
+		return setNextLayer(nextLayer, setter, false);
+	}
+	
+	
+	/**
+	 * Setting next layer.
+	 * @param nextLayer next layer. It can be null.
+	 * @param injective if this parameter is true, there is only one connection between two neurons.
+	 * @return true if setting is successful.
+	 */
+	protected boolean setNextLayer(LayerStandard nextLayer, boolean injective) {
+		return setNextLayer(nextLayer, null, injective);
+	}
+	
+	
+	/**
+	 * Replacing next layer.
+	 * @param nextLayer next layer. It can be null.
+	 * @return true if setting is successful.
+	 */
+	protected boolean replaceNextLayer(LayerStandard nextLayer) {
+		return replaceNextLayer(nextLayer, null, false);
+	}
+
+
+	/**
+	 * Replacing next layer.
+	 * @param nextLayer next layer. It can be null.
+	 * @param setter specified setter. It can be null.
+	 * @param injective if this parameter is true, there is only one connection between two neurons.
+	 * @return true if setting is successful.
+	 */
+	private boolean replaceNextLayer(LayerStandard nextLayer, NextLayerSetter setter, boolean injective) {
+		if (nextLayer == this.nextLayer) return false;
+		if (nextLayer != null) {
+			if (nextLayer == getRiboutLayer()) return false;
+			if (nextLayer.getRibinLayer() == this) return false;
+		}
+		
+		clearNextNeurons(this);
 		LayerStandard oldNextLayer = this.nextLayer;
 		LayerStandard oldNextNextLayer = null;
 		if (oldNextLayer != null) {
 			oldNextNextLayer = oldNextLayer.getNextLayer();
 			clearNextNeurons(oldNextLayer);
+			((LayerStandardImpl)oldNextLayer).prevLayer = null;
 		}
-
 		this.nextLayer = nextLayer;
 		if (nextLayer == null) return true;
 
+		LayerStandard prevLayerOfNextLayer = ((LayerStandardImpl)nextLayer).prevLayer;
+		if (prevLayerOfNextLayer != null) {
+			clearNextNeurons(prevLayerOfNextLayer);
+			((LayerStandardImpl)prevLayerOfNextLayer).nextLayer = null;
+		}
 		clearNextNeurons(nextLayer);
+		
 		((LayerStandardImpl)nextLayer).prevLayer = this;
 		if (setter != null) {
 			setter.setNextLayer(this, nextLayer);
@@ -428,24 +573,48 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 
 	
 	/**
-	 * Setting next layer.
+	 * Replacing next layer.
 	 * @param nextLayer next layer. It can be null.
 	 * @param setter specified setter. It can be null.
 	 * @return true if setting is successful.
 	 */
-	protected boolean setNextLayer(LayerStandard nextLayer, NextLayerSetter setter) {
-		return setNextLayer(nextLayer, setter, false);
+	protected boolean replaceNextLayer(LayerStandard nextLayer, NextLayerSetter setter) {
+		return replaceNextLayer(nextLayer, setter, false);
 	}
 	
 	
 	/**
-	 * Setting next layer.
+	 * Replacing next layer.
 	 * @param nextLayer next layer. It can be null.
 	 * @param injective if this parameter is true, there is only one connection between two neurons.
 	 * @return true if setting is successful.
 	 */
-	protected boolean setNextLayer(LayerStandard nextLayer, boolean injective) {
-		return setNextLayer(nextLayer, null, injective);
+	protected boolean replaceNextLayer(LayerStandard nextLayer, boolean injective) {
+		return replaceNextLayer(nextLayer, null, injective);
+	}
+
+	
+	/**
+	 * Removing this layer from the list.
+	 * @return this layer from the list.
+	 */
+	protected boolean cutOffLayer() {
+		return cutOffLayer(false);
+	}
+
+
+	/**
+	 * Removing this layer from the list.
+	 * @param injective if this parameter is true, there is only one connection between two neurons.
+	 * @return this layer from the list.
+	 */
+	protected boolean cutOffLayer(boolean injective) {
+		LayerStandardAbstract prevLayer = (LayerStandardAbstract)getPrevLayer();
+		if (prevLayer != null) prevLayer.setNextLayer(null, injective);
+		LayerStandardAbstract nextLayer = (LayerStandardAbstract)getNextLayer();
+		if (nextLayer != null) nextLayer.setPrevLayer(null, injective);
+		
+		return prevLayer != null && nextLayer != null ? prevLayer.setNextLayer(nextLayer, injective) : true;
 	}
 	
 	
@@ -473,6 +642,49 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 	}
 
 	
+//	/**
+//	 * Setting input rib layer. This method needs to be checked more carefully.
+//	 * @param ribinLayer input rib layer. It can be null.
+//	 * @param injective if this parameter is true, there is only one connection between two neurons.
+//	 * @return true if setting is successful.
+//	 */
+//	protected boolean setRibinLayer(LayerStandard ribinLayer, boolean injective) {
+//		if (this.ribinLayer == ribinLayer) return false;
+//		if (ribinLayer != null) {
+//			//Rib-in layer has only one next layer which is this layer, which is a strict condition.
+//			//Therefore setting rib-in layer is stricter setting rib-out layer.
+//			if (ribinLayer.getNextLayer() != null) return false;
+//			
+//			if (ribinLayer == getPrevLayer()) return false;
+//		}
+//		
+//		this.ribinLayer = ribinLayer;
+//		if (ribinLayer == null) return true;
+//			
+//		clearNextNeurons(ribinLayer);
+//		LayerStandard oldNextLayer = ribinLayer.getNextLayer();
+//		if (oldNextLayer != null) clearNextNeurons(oldNextLayer); //This code line cutting off network to assert the strict condition that rib-in layer has only one next layer.
+//
+//		((LayerStandardImpl)ribinLayer).nextLayer = this;
+//		if (injective) {
+//			int n = Math.min(ribinLayer.size(), size());
+//			for (int i = 0; i < n; i++) {
+//				ribinLayer.get(i).setNextNeuron(get(i), newWeight());
+//			}
+//		}
+//		else {
+//			for (int i = 0; i < ribinLayer.size(); i++) {
+//				NeuronStandard ribbinNeuron = ribinLayer.get(i);
+//				for (int j = 0; j < size(); j++) {
+//					ribbinNeuron.setNextNeuron(get(j), newWeight());
+//				}
+//			}
+//		}
+//		
+//		return true;
+//	}
+
+	
 	/**
 	 * Setting input rib layer. This method needs to be checked more carefully.
 	 * @param ribinLayer input rib layer. It can be null.
@@ -494,7 +706,7 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 			
 		clearNextNeurons(ribinLayer);
 		LayerStandard oldNextLayer = ribinLayer.getNextLayer();
-		if (oldNextLayer != null) clearNextNeurons(oldNextLayer);
+		if (oldNextLayer != null) ((LayerStandardImpl)oldNextLayer).ribinLayer = null; //This code is not necessary because of the strict condition that rib-in layer has only one next layer.
 
 		((LayerStandardImpl)ribinLayer).nextLayer = this;
 		if (injective) {

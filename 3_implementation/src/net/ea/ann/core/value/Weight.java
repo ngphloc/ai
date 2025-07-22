@@ -159,7 +159,7 @@ class MultiWeight extends Weight {
 		if (values == null || wvs.size() == 0) return this;
 		if (values instanceof NeuronValue1) {
 			if (wvs.size() != 1) return this;
-			WeightValue nw = wvs.get(0).add(values);
+			WeightValue nw = wvs.get(0).addValue(values);
 			wvs.set(0, nw);
 		}
 		else if (values instanceof NeuronValueV) {
@@ -167,7 +167,7 @@ class MultiWeight extends Weight {
 			int n = Math.min(vector.length(), wvs.size());
 			for (int i = 0; i < n; i++) {
 				WeightValue nw = wvs.get(i);
-				nw = nw.add(nw.toNeuronValue().valueOf(vector.get(i)));
+				nw = nw.addValue(nw.toValue().valueOf(vector.get(i)));
 				wvs.set(i, nw);
 			}
 		}
@@ -176,7 +176,7 @@ class MultiWeight extends Weight {
 			int n = Math.min(vector.length(), wvs.size());
 			for (int i = 0; i < n; i++) {
 				WeightValue nw = wvs.get(i);
-				nw = nw.add(vector.get(i));
+				nw = nw.addValue(vector.get(i));
 				wvs.set(i, nw);
 			}
 		}

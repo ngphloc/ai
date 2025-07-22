@@ -119,18 +119,6 @@ public class ConvNetworkImpl extends ConvNetworkAbstract {
 	
 	
 	/**
-	 * Main method.
-	 * @param args arguments.
-	 */
-	public static void main(String[] args) {
-		try {
-			learnFilter(System.in, System.out);
-		}
-		catch (Throwable e) {Util.trace(e);}
-	}
-
-	
-	/**
 	 * Learning filter.
 	 * @param in input stream.
 	 * @param out output stream.
@@ -299,6 +287,18 @@ public class ConvNetworkImpl extends ConvNetworkAbstract {
 	}
 	
 	
+//	/**
+//	 * Main method.
+//	 * @param args arguments.
+//	 */
+//	public static void main(String[] args) {
+//		try {
+//			learnFilter(System.in, System.out);
+//		}
+//		catch (Throwable e) {Util.trace(e);}
+//	}
+
+
 }
 
 

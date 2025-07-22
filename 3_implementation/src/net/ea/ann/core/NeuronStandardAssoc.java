@@ -119,7 +119,7 @@ public class NeuronStandardAssoc implements Serializable, Cloneable {
 		WeightedNeuron[] prevWeightedNeurons = neuron.getPrevNeurons();
 		List<NeuronValue> weights = Util.newList(0);
 		if (prevWeightedNeurons != null) {
-			for (WeightedNeuron wn : prevWeightedNeurons) weights.add(wn.weight.value.toNeuronValue());
+			for (WeightedNeuron wn : prevWeightedNeurons) weights.add(wn.weight.value.toValue());
 		}
 		return weights.toArray(new NeuronValue[] {});
 	}
@@ -133,7 +133,7 @@ public class NeuronStandardAssoc implements Serializable, Cloneable {
 		WeightedNeuron[] prevWeightedNeuronsImplicit = neuron.getPrevNeuronsImplicit();
 		List<NeuronValue> weights = Util.newList(0);
 		if (prevWeightedNeuronsImplicit != null) {
-			for (WeightedNeuron wn : prevWeightedNeuronsImplicit) weights.add(wn.weight.value.toNeuronValue());
+			for (WeightedNeuron wn : prevWeightedNeuronsImplicit) weights.add(wn.weight.value.toValue());
 		}
 		return weights.toArray(new NeuronValue[] {});
 	}
@@ -148,10 +148,10 @@ public class NeuronStandardAssoc implements Serializable, Cloneable {
 		WeightedNeuron[] prevWeightedNeuronsImplicit = neuron.getPrevNeuronsImplicit();
 		List<NeuronValue> weights = Util.newList(0);
 		if (prevWeightedNeurons != null) {
-			for (WeightedNeuron wn : prevWeightedNeurons) weights.add(wn.weight.value.toNeuronValue());
+			for (WeightedNeuron wn : prevWeightedNeurons) weights.add(wn.weight.value.toValue());
 		}
 		if (prevWeightedNeuronsImplicit != null) {
-			for (WeightedNeuron wn : prevWeightedNeuronsImplicit) weights.add(wn.weight.value.toNeuronValue());
+			for (WeightedNeuron wn : prevWeightedNeuronsImplicit) weights.add(wn.weight.value.toValue());
 		}
 		return weights.toArray(new NeuronValue[] {});
 	}

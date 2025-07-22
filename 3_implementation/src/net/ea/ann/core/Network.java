@@ -35,7 +35,7 @@ public interface Network extends Remote, Cloneable, AutoCloseable {
 	/**
 	 * Default value for learning rate.
 	 */
-	final static double LEARN_RATE_DEFAULT = 1.0;
+	final static double LEARN_RATE_DEFAULT = 1;
 
 	
 	/**

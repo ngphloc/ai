@@ -42,4 +42,16 @@ public abstract class AbstractFilter2D extends AbstractFilter1D implements Filte
 	}
 
 
+	@Override
+	public NeuronValue[][] dKernel(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer) {
+		throw new RuntimeException("Method Filter2D::dKernel(int, int, ConvLayerSingle2D, ConvLayerSingle2D) not implemented yet");
+	}
+
+
+	@Override
+	public NeuronValue[][] dValue(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer) {
+		throw new RuntimeException("Method Filter2D::dValue(int, int, ConvLayerSingle2D, ConvLayerSingle2D) not implemented yet");
+	}
+
+
 }
