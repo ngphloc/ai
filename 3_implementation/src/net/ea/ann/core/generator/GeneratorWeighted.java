@@ -123,24 +123,28 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	
 	/**
 	 * Field of the number elements of a combination.
+	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
 	public static final String COMB_NUMBER_FIELD = "gw_comb_number";
 	
 	
 	/**
 	 * Default value for the field of the number elements of a combination.
+	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
 	public static final int COMB_NUMBER_DEFAULT = 2;
 	
 	
 	/**
-	 * Outputs-classes map.
+	 * Outputs-classes map whose each element is a subtask which is a combination given classes.
+	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
 	protected Map<Integer, int[]> outputClassMap = Util.newMap(0);
 	
 	
 	/**
-	 * Classes-outputs map.
+	 * Classes-outputs map whose each element is a class pointer to the subtask which is a combination given classes.
+	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
 	protected Map<Integer, int[]> classOutputMap = Util.newMap(0);
 
@@ -223,6 +227,7 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	
 	/**
 	 * Configure class information.
+	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 * @param nClass number of classes.
 	 * @return true if configuration is successful.
 	 */
@@ -231,8 +236,8 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 		int comb = paramGetCombNumber();
 		if (comb < 1 || comb > nClass) return false;
 		
-		outputClassMap.clear();
-		classOutputMap.clear();
+		outputClassMap.clear(); //outputs-classes map whose each element is a subtask which is a combination given classes.
+		classOutputMap.clear(); //classes-outputs map whose each element is a class pointer to the subtask which is a combination given classes.
 
 		CombinationGenerator cg = new CombinationGenerator(nClass, comb);
 		int index = 0;
@@ -302,13 +307,14 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	 * Getting number of classes.
 	 * @return number of classes.
 	 */
-	public int getNumberOfClass() {
+	public int getNumberOfClasses() {
 		return classOutputMap.size();
 	}
 	
 	
 	/**
 	 * Creating output from class index.
+	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 * @param classIndex class index.
 	 * @return output created from class index.
 	 */
@@ -317,13 +323,24 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 		NeuronValue zero = outputLayer.newNeuronValue().zero();
 		NeuronValue unit = zero.unit();
 		NeuronValue[] output = new NeuronValue[getOutputLayer().size()];
+		int unitCount = 0;
 		for (int outputIndex = 0; outputIndex < output.length; outputIndex++) {
 			int[] classIndices = outputClassMap.get(outputIndex);
-			if (Arrays.binarySearch(classIndices, classIndex) >= 0)
+			if (Arrays.binarySearch(classIndices, classIndex) >= 0) {
 				output[outputIndex] = unit;
+				unitCount++;
+			}
 			else
 				output[outputIndex] = zero;
 		}
+		
+		//Normalization.
+		if (unitCount > 0) {
+			for (int outputIndex = 0; outputIndex < output.length; outputIndex++) {
+				output[outputIndex] = output[outputIndex].divide(unitCount);
+			}
+		}
+		
 		return output;
 	}
 	
@@ -356,12 +373,13 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	
 	/**
 	 * Extracting class of given output.
+	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 * @param output specified output.
 	 * @return class of given output.
 	 */
 	private int extractClass(NeuronValue[] output) {
 		if (output == null || output.length == 0) return -1;
-		int nClass = getNumberOfClass();
+		int nClass = getNumberOfClasses();
 		if (nClass <= 0) return -1;
 		
 		double[] weights = weightsOfOutput(output);
@@ -388,6 +406,7 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	
 //	/**
 //	 * Extracting class of given output.
+//	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 //	 * @param output specified output.
 //	 * @return class of given output.
 //	 */
@@ -420,7 +439,7 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	 * @param output specified output.
 	 * @return weights of specified output.
 	 */
-	private double[] weightsOfOutput(NeuronValue[] output) {
+	private static double[] weightsOfOutput(NeuronValue[] output) {
 		double[] weights = new double[output.length];
 		for (int i = 0; i < weights.length; i++) weights[i] = output[i].mean();
 		return weights;
@@ -485,6 +504,7 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 
 	
 }
+
 
 
 /**

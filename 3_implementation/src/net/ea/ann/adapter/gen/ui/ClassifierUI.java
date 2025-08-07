@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.adapter.classifier.ui;
+package net.ea.ann.adapter.gen.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -44,12 +44,13 @@ import net.hudup.core.data.ui.PropDlg;
 import net.hudup.core.logistic.ui.UIUtil;
 
 /**
- * This class represents raster classifier.
+ * This class implements partially raster classifier user interface.
  * @author Loc Nguyen
  * @version 1.0
  *
  */
 public abstract class ClassifierUI extends JFrame {
+	
 	
 	/**
 	 * Serial version UID for serializable class. 
@@ -370,6 +371,7 @@ public abstract class ClassifierUI extends JFrame {
 		});
 		footer.add(close);
 	}
+	
 	
 	/**
 	 * Creating main menu bar.

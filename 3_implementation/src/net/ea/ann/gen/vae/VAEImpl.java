@@ -224,7 +224,7 @@ public class VAEImpl extends VAEAbstract {
 	/**
 	 * Initialize with X dimension and Z dimension as well as hidden neurons.
 	 * @param xDim X dimension.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param nHiddenNeuronDecode number of decoded hidden neurons.
 	 * @return true if initialization is successful.
@@ -264,7 +264,7 @@ public class VAEImpl extends VAEAbstract {
 	/**
 	 * Initialize with X dimension and Z dimension as well as hidden neurons.
 	 * @param xDim X dimension.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @return true if initialization is successful.
 	 */
@@ -277,7 +277,7 @@ public class VAEImpl extends VAEAbstract {
 	/**
 	 * Initialize with X dimension and Z dimension.
 	 * @param xDim X dimension.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int xDim, int zDim) {

@@ -290,82 +290,6 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 	/**
 	 * Initialize with image/raster specification and filters.
 	 * @param size stack content size.
-	 * @param filters specific filters.
-	 * @param nFullHiddenOutputNeuron numbers of hidden neurons and output neurons of fully connected network.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Size size,
-			Filter[] filters,
-			int[] nFullHiddenOutputNeuron) {
-		return initialize(size, filters, nFullHiddenOutputNeuron, false);
-	}
-	
-	
-	/**
-	 * Initialize with image/raster specification and filters.
-	 * @param size stack content size.
-	 * @param filters specific filters.
-	 * @param initReverse flag to indicate whether to initialize the reversed full network.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Size size,
-			Filter[] filters,
-			boolean initReverse) {
-		return initialize(size, filters, null, initReverse);
-	}
-
-	
-	/**
-	 * Initialize with image/raster specification without reversed fully connected network.
-	 * @param size stack content size.
-	 * @param filters specific filters.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Size size,
-			Filter[] filters) {
-		return initialize(size, filters, null, false);
-	}
-
-	
-	/**
-	 * Initialize with image/raster specification.
-	 * @param size stack content size.
-	 * @param nFullHiddenOutputNeuron numbers of hidden neurons and output neurons of fully connected network.
-	 * @param initReverse flag to indicate whether to initialize the reversed full network.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Size size,
-			int[] nFullHiddenOutputNeuron,
-			boolean initReverse) {
-		return initialize(size, (Filter[])null, nFullHiddenOutputNeuron, initReverse);
-	}
-	
-	
-	/**
-	 * Initialize with image/raster specification.
-	 * @param size stack content size.
-	 * @param nFullHiddenOutputNeuron numbers of hidden neurons and output neurons of fully connected network.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Size size,
-			int[] nFullHiddenOutputNeuron) {
-		return initialize(size, (Filter[])null, nFullHiddenOutputNeuron, false);
-	}
-
-	
-	/**
-	 * Initialize with image/raster specification.
-	 * @param size stack content size.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Size size) {
-		return initialize(size, (Filter[])null, null, false);
-	}
-
-	
-	/**
-	 * Initialize with image/raster specification and filters.
-	 * @param size stack content size.
 	 * @param filterArrays arrays of filters. Filters in the same array have the same size.
 	 * @param nFullHiddenOutputNeuron numbers of hidden neurons and output neurons of fully connected network.
 	 * @param initReverse flag to indicate whether to initialize the reversed full network.
@@ -394,46 +318,6 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 		if (nFullHiddenOutputNeuron == null || nFullHiddenOutputNeuron.length < 1) return true;
 
 		return initializeFullNetwork(nFullHiddenOutputNeuron, initReverse);
-	}
-
-	
-	/**
-	 * Initialize with image/raster specification and filters.
-	 * @param size stack content size.
-	 * @param filterArrays array of filters. Filters in the same row have the same size.
-	 * @param nFullHiddenOutputNeuron numbers of hidden neurons and output neurons of fully connected network.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Size size,
-			Filter[][] filterArrays,
-			int[] nFullHiddenOutputNeuron) {
-		return initialize(size, filterArrays, nFullHiddenOutputNeuron, false);
-	}
-	
-	
-	/**
-	 * Initialize with image/raster specification.
-	 * @param size stack content size.
-	 * @param filterArrays array of filters. Filters in the same row have the same size.
-	 * @param initReverse flag to indicate whether to initialize the reversed full network.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Size size,
-			Filter[][] filterArrays,
-			boolean initReverse) {
-		return initialize(size, filterArrays, null, initReverse);
-	}
-
-	
-	/**
-	 * Initialize with image/raster specification without reversed fully connected network.
-	 * @param size stack content size.
-	 * @param filterArrays array of filters. Filters in the same row have the same size.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Size size,
-			Filter[][] filterArrays) {
-		return initialize(size, filterArrays, null, false);
 	}
 
 	

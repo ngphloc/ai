@@ -202,7 +202,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial generating rasters from sample.
 	 * @param sample raster sample.
 	 * @param nGens number of generated raster.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param minSize minimum size.
@@ -220,7 +220,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial generating rasters from sample.
 	 * @param sample raster sample.
 	 * @param nGens number of generated raster.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @return list of generated rasters.
@@ -234,7 +234,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial generating rasters from sample.
 	 * @param sample raster sample.
 	 * @param nGens number of generated raster.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param minSize minimum size.
 	 * @return list of generated rasters.
@@ -248,7 +248,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial generating rasters from sample.
 	 * @param sample raster sample.
 	 * @param nGens number of generated raster.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @return list of generated rasters.
 	 */
@@ -261,7 +261,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial generating rasters from sample.
 	 * @param sample raster sample.
 	 * @param nGens number of generated raster.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @return list of generated rasters.
@@ -278,7 +278,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial generating rasters from sample.
 	 * @param sample raster sample.
 	 * @param nGens number of generated raster.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @return list of generated rasters.
 	 */
@@ -291,7 +291,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial generating rasters from sample.
 	 * @param sample raster sample.
 	 * @param nGens number of generated raster.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @return list of generated rasters.
 	 */
 	public List<Raster> initGenRasters(Iterable<Raster> sample, int nGens, int zDim) {
@@ -306,7 +306,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial generating rasters from sample given 2D feature extractor.
 	 * @param sample raster sample.
 	 * @param nGens number of generated raster.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @return list of generated rasters.
@@ -578,7 +578,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @param rasters recovering rasters.
@@ -613,7 +613,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters.
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @param rasters recovering rasters.
@@ -633,7 +633,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters.
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -652,7 +652,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters.
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
 	 * @param randomGen flag to indicate whether to randomize generated rasters.
@@ -670,7 +670,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters.
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param nGens number of generated rasters.
 	 * @return recovery results.
@@ -686,7 +686,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @param rasters recovering rasters.
@@ -707,7 +707,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -727,7 +727,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
 	 * @param randomGen flag to indicate whether to randomize generated rasters.
@@ -746,7 +746,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param nGens number of generated rasters.
 	 * @param recoverDir recovering directory.
@@ -762,7 +762,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @param rasters recovering rasters.
@@ -781,7 +781,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -799,7 +799,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param nGens number of generated rasters.
 	 * @return recovery results.
@@ -814,7 +814,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @param rasters recovering rasters.
@@ -834,7 +834,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -853,7 +853,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
 	 * @param randomGen flag to indicate whether to randomize generated rasters.
@@ -871,7 +871,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param nGens number of generated rasters.
 	 * @param recoverDir recovering directory.
@@ -888,7 +888,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @param rasters recovering rasters.
@@ -908,7 +908,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -927,7 +927,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param nGens number of generated rasters.
 	 * @param recoverDir recovering directory.
@@ -943,7 +943,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param minSize minimum size.
@@ -979,7 +979,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters.
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param minSize minimum size.
@@ -1000,7 +1000,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters.
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param rasters recovering rasters.
@@ -1020,7 +1020,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters.
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -1039,7 +1039,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters.
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param rasters recovering rasters.
 	 * @param nGens number of generated rasters.
@@ -1056,7 +1056,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param minSize minimum size.
@@ -1078,7 +1078,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param rasters recovering rasters.
@@ -1099,7 +1099,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -1119,7 +1119,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param rasters recovering rasters.
 	 * @param nGens number of generated rasters.
@@ -1136,7 +1136,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param minSize minimum size.
@@ -1156,7 +1156,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param rasters recovering rasters.
@@ -1175,7 +1175,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -1193,7 +1193,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
 	 * @param randomGen flag to indicate whether to randomize generated rasters.
@@ -1210,7 +1210,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param minSize minimum size.
@@ -1231,7 +1231,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param rasters recovering rasters.
@@ -1251,7 +1251,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -1270,7 +1270,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Initial recovering rasters
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param rasters recovering rasters.
 	 * @param nGens number of generated rasters.
@@ -1288,7 +1288,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param minSize minimum size.
@@ -1309,7 +1309,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters convolutional filters.
 	 * @param rasters recovering rasters.
@@ -1329,7 +1329,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
@@ -1348,7 +1348,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param rasters recovering rasters.
 	 * @param region specified region.
 	 * @param randomGen flag to indicate whether to randomize generated rasters.
@@ -1366,7 +1366,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @param rasters recovering rasters.
@@ -1401,7 +1401,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * Initial recovering rasters.
 	 * @param gmName name of generative model.
 	 * @param sample raster sample.
-	 * @param zDim Z dimension.
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOut zoom out ratio.
 	 * @param minSize minimum size.
 	 * @param rasters recovering rasters.

@@ -17,6 +17,7 @@ import net.ea.ann.conv.filter.Filter;
 import net.ea.ann.conv.filter.FilterFactory;
 import net.ea.ann.conv.stack.StackNetworkAbstract;
 import net.ea.ann.conv.stack.StackNetworkAssoc;
+import net.ea.ann.conv.stack.StackNetworkInitializer;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
@@ -177,7 +178,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	/**
 	 * Initialize with Z dimension as well as other specifications.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param nHiddenNeuronDecode number of decoded hidden neurons.
 	 * @param convFilterArrays arrays of convolutional filters. Filters in the same array have the same size.
@@ -194,13 +195,13 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 			if (conv == null)
 				return false;
 			else if (thickStack) {
-				if (!conv.initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
+				if (!new StackNetworkInitializer(conv).initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
 			}
 			else if (convFilterArrays.length == 1) {
-				if (!conv.initialize(new Size(width, height, depth, time), convFilterArrays[0])) return false;
+				if (!new StackNetworkInitializer(conv).initialize(new Size(width, height, depth, time), convFilterArrays[0])) return false;
 			}
 			else {
-				if (!conv.initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
+				if (!new StackNetworkInitializer(conv).initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
 			}
 			
 			try {
@@ -228,13 +229,13 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 			if (deconv == null)
 				return false;
 			else if (thickStack) {
-				if (!deconv.initialize(deconvSize, deconvFilterArrays)) return false;
+				if (!new StackNetworkInitializer(deconv).initialize(deconvSize, deconvFilterArrays)) return false;
 			}
 			else if (deconvFilterArrays.length == 1) {
-				if (!deconv.initialize(deconvSize, deconvFilterArrays[0])) return false;
+				if (!new StackNetworkInitializer(deconv).initialize(deconvSize, deconvFilterArrays[0])) return false;
 			}
 			else {
-				if (!deconv.initialize(deconvSize, deconvFilterArrays)) return false;
+				if (!new StackNetworkInitializer(deconv).initialize(deconvSize, deconvFilterArrays)) return false;
 			}
 		}
 		else
@@ -246,7 +247,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	/**
 	 * Initialize with Z dimension as well as other specifications.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param convFilterArrays arrays of convolutional filters. Filters in the same array have the same size.
 	 * @param deconvFilterArrays deconvolutional filters. Filters in the same array have the same size.
@@ -263,7 +264,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	/**
 	 * Initialize with Z dimension as well as other specifications.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param convFilterArrays arrays of convolutional filters. Filters in the same array have the same size.
 	 * @return true if initialization is successful.
@@ -286,7 +287,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 
 	/**
 	 * Initialize with Z dimension as well as other specifications.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param nHiddenNeuronDecode number of decoded hidden neurons.
 	 * @param convFilters convolutional filters.
@@ -304,7 +305,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	/**
 	 * Initialize with Z dimension as well as other specifications.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters deconvolutional filters.
@@ -321,7 +322,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	/**
 	 * Initialize with Z dimension as well as other specifications.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param convFilters convolutional filters.
 	 * @return true if initialization is successful.
@@ -334,7 +335,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	/**
 	 * Initialize with Z dimension and number of encoding hidden neuron.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @return true if initialization is successful.
 	 */
@@ -355,7 +356,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	/**
 	 * Initialize with Z dimension and convolutional filters.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @return true if initialization is successful.
 	 */
@@ -372,7 +373,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	/**
 	 * Initialize with Z dimension with zooming out ratio.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param zoomOutRatio zooming out ratio.
 	 * @return true if initialization is successful.
 	 */
@@ -397,7 +398,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	/**
 	 * Initialize with Z dimension.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int zDim) {

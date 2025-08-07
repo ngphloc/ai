@@ -7,6 +7,7 @@
  */
 package net.ea.ann.mane;
 
+import java.io.Serializable;
 import java.util.List;
 
 import net.ea.ann.core.Util;
@@ -20,7 +21,7 @@ import net.ea.ann.core.value.Matrix;
  * @version 1.0
  *
  */
-public abstract class TaskTrainerAbstract implements TaskTrainer {
+public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverter, Serializable, Cloneable {
 
 
 	/**
@@ -70,8 +71,7 @@ public abstract class TaskTrainerAbstract implements TaskTrainer {
 	/**
 	 * Calculating the optimal derivative given computed output and real output.
 	 * @param output computed or predicted output.
-	 * @param realOutput real output from environment.
-	 * @param params optional parameters.
+	 * @param realOutput real output from environment. It can be null.
 	 * @return optimal derivative.
 	 */
 	protected abstract Matrix gradient(Matrix output, Matrix realOutput);

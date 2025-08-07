@@ -114,6 +114,28 @@ public interface RasterProperty extends Serializable, Cloneable {
 	
 	
 	/**
+	 * Getting label at specified index.
+	 * @param index specified index.
+	 * @return label at specified index.
+	 */
+	Label getLabel(int index);
+	
+	
+	/**
+	 * Getting number of labels.
+	 * @return number of labels.
+	 */
+	int getLabelCount();
+	
+	
+	/**
+	 * Adding label.
+	 * @param label label.
+	 */
+	void addLabel(Label label);
+	
+	
+	/**
 	 * Setting label.
 	 * @param label specified label.
 	 */
@@ -121,10 +143,26 @@ public interface RasterProperty extends Serializable, Cloneable {
 
 	
 	/**
+	 * Setting label at specified index.
+	 * @param index index.
+	 * @param label label.
+	 */
+	void setLabel(int index, Label label);
+	
+	
+	/**
 	 * Getting label identifier.
 	 * @return label identifier.
 	 */
 	int getLabelId();
+	
+	
+	/**
+	 * Getting label identifier at specified index.
+	 * @param index specified index.
+	 * @return label identifier at specified index.
+	 */
+	int getLabelId(int index);
 	
 	
 	/**
@@ -135,6 +173,14 @@ public interface RasterProperty extends Serializable, Cloneable {
 	
 	
 	/**
+	 * Setting label identifier at specified index.
+	 * @param index specified index.
+	 * @param labelId specified label identifier.
+	 */
+	void setLabelId(int index, int labelId);
+
+	
+	/**
 	 * Getting label name.
 	 * @return label name.
 	 */
@@ -142,10 +188,26 @@ public interface RasterProperty extends Serializable, Cloneable {
 	
 	
 	/**
+	 * Getting label name at specified index.
+	 * @param index specified index.
+	 * @return label name at specified index.
+	 */
+	String getLabelName(int index);
+
+	
+	/**
 	 * Setting label name.
 	 * @param labelName specified label name.
 	 */
 	void setLabelName(String labelName);
+
+	
+	/**
+	 * Setting label name at specified index.
+	 * @param index specified index.
+	 * @param labelName specified label name.
+	 */
+	void setLabelName(int index, String labelName);
 
 	
 	/**

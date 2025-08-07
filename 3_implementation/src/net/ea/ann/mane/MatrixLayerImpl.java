@@ -487,14 +487,25 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		
 		MatrixLayer nextLayer = null;
-		Matrix resulted = null;
+		Matrix result = null;
 		while ((nextLayer = this.getNextLayer()) != null) {
-			resulted = nextLayer.evaluate();
+			result = nextLayer.evaluate();
 		}
-		return resulted;
+		return result;
 	}
 
 
+	/**
+	 * Learning matrix neural network layer.
+	 * @param outputErrors core last errors which are core last biases.
+	 * @param learningRate learning rate.
+	 * @return training error.
+	 */
+	protected Matrix[] learn(Matrix[] outputErrors, double learningRate) {
+		 return backward(outputErrors, this, true, learningRate);
+	}
+
+	
 	@Override
 	public Matrix[] backward(Matrix[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		if (outputErrors == null || outputErrors.length == 0) return null;
@@ -646,13 +657,13 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 
 	/**
-	 * Learning matrix neural network.
+	 * Back-warding matrix neural network layer.
 	 * @param outputErrors core last errors which are core last biases.
 	 * @param learningRate learning rate.
 	 * @return training error.
 	 */
-	public Matrix[] learn(Matrix[] outputErrors, double learningRate) {
-		 return backward(outputErrors, this, true, learningRate);
+	protected Matrix[] backward(Matrix[] outputErrors, double learningRate) {
+		 return backward(outputErrors, null, true, learningRate);
 	}
 
 	

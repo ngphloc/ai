@@ -7,7 +7,6 @@
  */
 package net.ea.ann.core.value;
 
-import java.io.Serializable;
 import java.util.List;
 
 import net.ea.ann.core.Util;
@@ -26,7 +25,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public interface Matrix extends NeuronValueCreator, Cloneable, Serializable {
+public interface Matrix extends NeuronValueCreator {
 
 
 	/**

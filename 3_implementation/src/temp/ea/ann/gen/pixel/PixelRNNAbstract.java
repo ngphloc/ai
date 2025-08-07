@@ -17,6 +17,7 @@ import net.ea.ann.conv.ConvSupporter;
 import net.ea.ann.conv.filter.Filter;
 import net.ea.ann.conv.filter.FilterFactory;
 import net.ea.ann.conv.stack.StackNetworkAbstract;
+import net.ea.ann.conv.stack.StackNetworkInitializer;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerStandard;
 import net.ea.ann.core.NetworkDoEvent.Type;
@@ -228,13 +229,13 @@ public abstract class PixelRNNAbstract extends GenModelAbstract implements Pixel
 			if (conv == null)
 				return false;
 			else if (thickStack) {
-				if (!conv.initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
+				if (!new StackNetworkInitializer(conv).initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
 			}
 			else if (convFilterArrays.length == 1) {
-				if (!conv.initialize(new Size(width, height, depth, time), convFilterArrays[0])) return false;
+				if (!new StackNetworkInitializer(conv).initialize(new Size(width, height, depth, time), convFilterArrays[0])) return false;
 			}
 			else {
-				if (!conv.initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
+				if (!new StackNetworkInitializer(conv).initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
 			}
 			
 			try {
@@ -261,13 +262,13 @@ public abstract class PixelRNNAbstract extends GenModelAbstract implements Pixel
 			if (deconv == null)
 				return false;
 			else if (thickStack) {
-				if (!deconv.initialize(deconvSize, deconvFilterArrays)) return false;
+				if (!new StackNetworkInitializer(deconv).initialize(deconvSize, deconvFilterArrays)) return false;
 			}
 			else if (deconvFilterArrays.length == 1) {
-				if (!deconv.initialize(deconvSize, deconvFilterArrays[0])) return false;
+				if (!new StackNetworkInitializer(deconv).initialize(deconvSize, deconvFilterArrays[0])) return false;
 			}
 			else {
-				if (!deconv.initialize(deconvSize, deconvFilterArrays)) return false;
+				if (!new StackNetworkInitializer(deconv).initialize(deconvSize, deconvFilterArrays)) return false;
 			}
 		}
 		else

@@ -24,57 +24,56 @@ public interface LikelihoodGradient {
 	/**
 	 * Calculating the optimal derivative given computed output and real output.
 	 * @param output computed or predicted output.
-	 * @param realOutput real output from environment.
-	 * @param params optional parameters.
+	 * @param realOutput real output from environment. It can be null.
 	 * @return optimal derivative.
 	 */
-	Matrix gradient(Matrix output, Matrix realOutput, Object...params);
+	Matrix gradient(Matrix output, Matrix realOutput);
 
 	
 	/**
 	 * Calculating error of computed output and environmental output, which is often the negative of likelood.
-	 * @param output computed or predicted output.
-	 * @param realOutput real output from environment.
+	 * @param output computed or predicted output. It cannot be null.
+	 * @param realOutput real output from environment. It cannot be null.
 	 * @return the last bias.
 	 */
-	static Matrix error(Matrix output, Matrix realOutput, Object...params) {
+	static Matrix error(Matrix output, Matrix realOutput) {
 		return realOutput.subtract(output);
 	}
 	
 	
 	/**
 	 * Calculating gradient of loss entropy by column.
-	 * @param outputProbs computed or predicted output probabilities.
-	 * @param realOutputProbs real probabilities from environment.
+	 * @param output computed or predicted output.
+	 * @param realOutputProb real probabilistic distribution from environment.
 	 * @return the last bias.
 	 */
-	static Matrix lossEntropyGradientByRow(Matrix outputProbs, Matrix realOutputProbs, Object...params) {
+	static Matrix lossEntropyGradientByRow(Matrix output, Matrix realOutputProb) {
 		//Normalizing real probabilities.
-		for (int row = 0; row < realOutputProbs.rows(); row++) {
-			NeuronValue sum = realOutputProbs.get(0, 0).zero();
-			for (int column = 0; column < realOutputProbs.columns(); column++) {
-				sum = sum.add(realOutputProbs.get(row, column));
+		for (int row = 0; row < realOutputProb.rows(); row++) {
+			NeuronValue sum = realOutputProb.get(0, 0).zero();
+			for (int column = 0; column < realOutputProb.columns(); column++) {
+				sum = sum.add(realOutputProb.get(row, column));
 			}
 			if (!sum.canInvert()) continue;
 
-			for (int column = 0; column < realOutputProbs.columns(); column++) {
-				NeuronValue p = realOutputProbs.get(row, column);
-				realOutputProbs.set(row, column, p.divide(sum));
+			for (int column = 0; column < realOutputProb.columns(); column++) {
+				NeuronValue p = realOutputProb.get(row, column);
+				realOutputProb.set(row, column, p.divide(sum));
 			}
 		}
 
 		//Calculating gradient of loss entropy by row.
-		int rows = outputProbs.rows(), columns = outputProbs.columns();
-		Matrix grad = outputProbs.create(rows, columns);
-		Matrix softmax = Matrix.softmaxByColumn(outputProbs);
-		NeuronValue zero = outputProbs.get(0, 0).zero();
+		int rows = output.rows(), columns = output.columns();
+		Matrix grad = output.create(rows, columns);
+		Matrix softmax = Matrix.softmaxByColumn(output);
+		NeuronValue zero = output.get(0, 0).zero();
 		NeuronValue unit = zero.unit();
 		for (int row = 0; row < rows; row++) {
 			for (int column = 0; column < columns; column++) {
 				NeuronValue sum = zero;
 				NeuronValue p = softmax.get(row, column);
 				for (int i = 0; i < columns; i++) {
-					NeuronValue realp = realOutputProbs.get(row, i);
+					NeuronValue realp = realOutputProb.get(row, i);
 					NeuronValue value = i==column ? realp.multiply(unit.subtract(p)) : realp.multiply(p.negative());
 					sum = sum.add(value);
 				}
@@ -88,37 +87,37 @@ public interface LikelihoodGradient {
 	
 	/**
 	 * Calculating gradient of loss entropy by column.
-	 * @param outputProbs computed or predicted output probabilities.
-	 * @param realOutputProbs real probabilities from environment.
+	 * @param output computed or predicted output.
+	 * @param realOutputProb real probabilistic distribution from environment.
 	 * @return the last bias.
 	 */
-	static Matrix lossEntropyGradientByColumn(Matrix outputProbs, Matrix realOutputProbs, Object...params) {
+	static Matrix lossEntropyGradientByColumn(Matrix output, Matrix realOutputProb) {
 		//Normalizing real probabilities.
-		for (int column = 0; column < realOutputProbs.columns(); column++) {
-			NeuronValue sum = realOutputProbs.get(0, 0).zero();
-			for (int row = 0; row < realOutputProbs.rows(); row++) {
-				sum = sum.add(realOutputProbs.get(row, column));
+		for (int column = 0; column < realOutputProb.columns(); column++) {
+			NeuronValue sum = realOutputProb.get(0, 0).zero();
+			for (int row = 0; row < realOutputProb.rows(); row++) {
+				sum = sum.add(realOutputProb.get(row, column));
 			}
 			if (!sum.canInvert()) continue;
 
-			for (int row = 0; row < realOutputProbs.rows(); row++) {
-				NeuronValue p = realOutputProbs.get(row, column);
-				realOutputProbs.set(row, column, p.divide(sum));
+			for (int row = 0; row < realOutputProb.rows(); row++) {
+				NeuronValue p = realOutputProb.get(row, column);
+				realOutputProb.set(row, column, p.divide(sum));
 			}
 		}
 		
 		//Calculating gradient of loss entropy by column.
-		int rows = outputProbs.rows(), columns = outputProbs.columns();
-		Matrix grad = outputProbs.create(rows, columns);
-		Matrix softmax = Matrix.softmaxByColumn(outputProbs);
-		NeuronValue zero = outputProbs.get(0, 0).zero();
+		int rows = output.rows(), columns = output.columns();
+		Matrix grad = output.create(rows, columns);
+		Matrix softmax = Matrix.softmaxByColumn(output);
+		NeuronValue zero = output.get(0, 0).zero();
 		NeuronValue unit = zero.unit();
 		for (int column = 0; column < columns; column++) {
 			for (int row = 0; row < rows; row++) {
 				NeuronValue sum = zero;
 				NeuronValue p = softmax.get(row, column);
 				for (int i = 0; i < rows; i++) {
-					NeuronValue realp = realOutputProbs.get(i, column);
+					NeuronValue realp = realOutputProb.get(i, column);
 					NeuronValue value = i==row ? realp.multiply(unit.subtract(p)) : realp.multiply(p.negative());
 					sum = sum.add(value);
 				}

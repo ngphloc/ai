@@ -26,6 +26,18 @@ public class TaskTrainerLossEntropy extends TaskTrainerAbstract {
 
 	
 	/**
+	 * Calculating by column.
+	 */
+	public final static boolean BYCOLUMN = true;
+	
+	
+	/**
+	 * Flag to calculating by column.
+	 */
+	protected boolean byColumn = BYCOLUMN;
+	
+	
+	/**
 	 * Default constructor.
 	 */
 	public TaskTrainerLossEntropy() {
@@ -35,8 +47,33 @@ public class TaskTrainerLossEntropy extends TaskTrainerAbstract {
 	
 	@Override
 	protected Matrix gradient(Matrix output, Matrix realOutput) {
-		return LikelihoodGradient.lossEntropyGradientByColumn(output, realOutput);
+		return byColumn ? LikelihoodGradient.lossEntropyGradientByColumn(output, realOutput) :
+			LikelihoodGradient.lossEntropyGradientByRow(output, realOutput);
 	}
 
+
+	@Override
+	public Matrix convert(Matrix output) {
+		return byColumn ? Matrix.softmaxByColumn(output) : Matrix.softmaxByRow(output);
+	}
+
+	
+	/**
+	 * Checking by-column flag.
+	 * @return by-column flag.
+	 */
+	public boolean isByColumn() {return byColumn;}
+	
+	
+	/**
+	 * Setting by-column flag.
+	 * @param byColumn by-column flag.
+	 * @return this task trainer.
+	 */
+	public TaskTrainerLossEntropy setByColumn(boolean byColumn) {
+		this.byColumn = byColumn;
+		return this;
+	}
+	
 	
 }

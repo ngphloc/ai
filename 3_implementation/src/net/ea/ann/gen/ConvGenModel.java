@@ -50,7 +50,7 @@ public interface ConvGenModel extends GenModel {
 
 	/**
 	 * Initialize with Z dimension, convolutional filters and deconvolutional filters.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilterArrays arrays of convolutional filters. Convolutional filters in the same array have the same size.
 	 * @param deconvFilterArrays arrays of deconvolutional filters. Deconvolutional filters in the same array have the same size.
 	 * @return true if initialization is successful.
@@ -62,7 +62,7 @@ public interface ConvGenModel extends GenModel {
 	
 	/**
 	 * Initialize with Z dimension, convolutional filters and deconvolutional filters.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param convFilters convolutional filters.
 	 * @param deconvFilters deconvolutional filters.
 	 * @return true if initialization is successful.
@@ -128,9 +128,10 @@ public interface ConvGenModel extends GenModel {
 
 
 	/**
-	 * Reproducing raster.
+	 * Reproducing raster, which is similar to method {@link #recoverRaster(Raster, Cube, boolean, boolean)} except that
+	 * reproducing method firstly learns from the raster itself that will be reproduced.
 	 * @param raster original raster.
-	 * @param region specified region. If it is null, entire raster will be recovered.
+	 * @param region specified region. If it is null, entire raster will be reproduced.
 	 * @param random flag to indicate whether or not to random generation.
 	 * @param calcError flag to indicate whether or not to calculate error.
 	 * @return generated structure.

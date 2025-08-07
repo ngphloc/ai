@@ -219,7 +219,7 @@ public class AVAExt extends AVA {
 	/**
 	 * Initialize with X dimension and Z dimension as well as other specifications.
 	 * @param xDim X dimension.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronEncode number of encoded hidden neurons.
 	 * @param nHiddenNeuronDecode number of decoded hidden neurons.
 	 * @param nHiddenNeuronAdversarial number of adversarial hidden neurons.

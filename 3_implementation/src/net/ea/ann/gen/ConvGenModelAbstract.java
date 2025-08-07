@@ -11,7 +11,7 @@ import java.rmi.RemoteException;
 import java.util.Arrays;
 
 import net.ea.ann.classifier.Classifier;
-import net.ea.ann.classifier.ClassifierImpl;
+import net.ea.ann.classifier.StackClassifier;
 import net.ea.ann.conv.Content;
 import net.ea.ann.conv.ConvSupporter;
 import net.ea.ann.conv.filter.Filter;
@@ -19,6 +19,7 @@ import net.ea.ann.conv.filter.FilterFactory;
 import net.ea.ann.conv.stack.StackNetworkAbstract;
 import net.ea.ann.conv.stack.StackNetworkAssoc;
 import net.ea.ann.conv.stack.StackNetworkImpl;
+import net.ea.ann.conv.stack.StackNetworkInitializer;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.NetworkConfig;
@@ -222,13 +223,13 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 			if (conv == null)
 				return false;
 			else if (thickStack) {
-				if (!conv.initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
+				if (!new StackNetworkInitializer(conv).initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
 			}
 			else if (convFilterArrays.length == 1) {
-				if (!conv.initialize(new Size(width, height, depth, time), convFilterArrays[0])) return false;
+				if (!new StackNetworkInitializer(conv).initialize(new Size(width, height, depth, time), convFilterArrays[0])) return false;
 			}
 			else {
-				if (!conv.initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
+				if (!new StackNetworkInitializer(conv).initialize(new Size(width, height, depth, time), convFilterArrays)) return false;
 			}
 			
 			try {
@@ -256,13 +257,13 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 			if (deconv == null)
 				return false;
 			else if (thickStack) {
-				if (!deconv.initialize(deconvSize, deconvFilterArrays)) return false;
+				if (!new StackNetworkInitializer(deconv).initialize(deconvSize, deconvFilterArrays)) return false;
 			}
 			else if (deconvFilterArrays.length == 1) {
-				if (!deconv.initialize(deconvSize, deconvFilterArrays[0])) return false;
+				if (!new StackNetworkInitializer(deconv).initialize(deconvSize, deconvFilterArrays[0])) return false;
 			}
 			else {
-				if (!deconv.initialize(deconvSize, deconvFilterArrays)) return false;
+				if (!new StackNetworkInitializer(deconv).initialize(deconvSize, deconvFilterArrays)) return false;
 			}
 		}
 		else
@@ -723,7 +724,8 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 
 
 	/**
-	 * Reproducing raster.
+	 * Reproducing raster, which is similar to method {@link #recoverRaster(Raster, Cube, boolean, boolean)} except that
+	 * reproducing method firstly learns from the raster itself that will be reproduced.
 	 * @param model convolutional generative model.
 	 * @param raster original raster.
 	 * @param region specified region. If it is null, entire raster will be recovered.
@@ -769,7 +771,7 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 		
 		StackNetworkAbstract sn = null;
 		if (config.getAsBoolean(CONV_CLASSIFIER_FIELD))
-			sn = ClassifierImpl.create(rasterChannel, activateRef, contentActivateRef, idRef);
+			sn = StackClassifier.create(rasterChannel, activateRef, contentActivateRef, idRef);
 		else if (config.getAsBoolean(Raster2D.LEARN_FIELD))
 			sn = StackNetworkImpl.createRSN(rasterChannel, contentActivateRef, idRef);
 		else

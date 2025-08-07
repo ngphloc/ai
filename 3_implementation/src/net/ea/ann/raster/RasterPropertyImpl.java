@@ -7,6 +7,10 @@
  */
 package net.ea.ann.raster;
 
+import java.util.List;
+
+import net.ea.ann.core.Util;
+
 /**
  * This interface represents raster property.
  * 
@@ -24,16 +28,16 @@ public class RasterPropertyImpl implements RasterProperty {
 
 	
 	/**
-	 * Label.
+	 * List of labels.
 	 */
-	protected Label label = new Label();
+	protected List<Label> labels = Util.newList(0);
 	
 	
 	/**
 	 * Default constructor.
 	 */
 	public RasterPropertyImpl() {
-
+		labels.add(new Label());
 	}
 
 
@@ -42,49 +46,99 @@ public class RasterPropertyImpl implements RasterProperty {
 	 * @param property other property.
 	 */
 	public RasterPropertyImpl(RasterProperty property) {
-		this.label = property.getLabel();
+		int n = property.getLabelCount();
+		for (int i = 0; i < n; i++) this.labels.add(property.getLabel(i));
 	}
 	
 	
 	@Override
 	public Label getLabel() {
-		return label;
+		return labels.get(0);
+	}
+
+
+	@Override
+	public Label getLabel(int index) {
+		return labels.get(index);
+	}
+
+
+	@Override
+	public int getLabelCount() {
+		return labels.size();
+	}
+
+
+	@Override
+	public void addLabel(Label label) {
+		if (label != null) this.labels.add(label);
 	}
 
 
 	@Override
 	public void setLabel(Label label) {
-		this.label = label != null ? label : new Label();
+		if (label == null) this.labels.set(0, label);
+	}
+
+
+	@Override
+	public void setLabel(int index, Label label) {
+		if (label == null) this.labels.set(index, label);
 	}
 
 
 	@Override
 	public int getLabelId() {
-		return label.labelId;
+		return getLabel().labelId;
+	}
+
+
+	@Override
+	public int getLabelId(int index) {
+		return getLabel(index).labelId;
 	}
 
 
 	@Override
 	public void setLabelId(int labelId) {
-		label.labelId = labelId;
+		getLabel().labelId = labelId;
+	}
+
+
+	@Override
+	public void setLabelId(int index, int labelId) {
+		getLabel(index).labelId = labelId;
 	}
 
 
 	@Override
 	public String getLabelName() {
-		return label.labelName;
+		return getLabel().labelName;
+	}
+
+
+	@Override
+	public String getLabelName(int index) {
+		return getLabel(index).labelName;
 	}
 
 
 	@Override
 	public void setLabelName(String labelName) {
-		label.labelName = labelName;
+		getLabel().labelName = labelName;
+	}
+
+
+	@Override
+	public void setLabelName(int index, String labelName) {
+		getLabel(index).labelName = labelName;
 	}
 
 
 	@Override
 	public void clearLabel() {
-		label = new Label();
+		this.labels.clear();
+		this.labels.add(new Label());
 	}
 
 

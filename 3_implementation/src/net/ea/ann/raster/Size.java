@@ -8,7 +8,6 @@
 package net.ea.ann.raster;
 
 import java.awt.Dimension;
-import java.io.Serializable;
 
 /**
  * This class represents multi-dimension.
@@ -16,7 +15,7 @@ import java.io.Serializable;
  * @version 1.0
  *
  */
-public class Size extends java.awt.Dimension implements Serializable, Cloneable {
+public class Size extends java.awt.Dimension {
 
 
 	/**

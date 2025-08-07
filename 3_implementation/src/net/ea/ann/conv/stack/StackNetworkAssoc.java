@@ -114,7 +114,7 @@ public class StackNetworkAssoc implements Serializable, Cloneable {
 		size.width = widthHeight.width;
 		size.height = widthHeight.height;
 		Filter[][] filterArrays = FilterAssoc.createFeatureExtractor2D(extractor.newStack(Size.unit()));
-		return extractor.initialize(size, filterArrays) ? extractor : null;
+		return new StackNetworkInitializer(extractor).initialize(size, filterArrays) ? extractor : null;
 	}
 
 

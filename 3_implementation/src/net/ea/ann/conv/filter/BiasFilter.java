@@ -7,8 +7,6 @@
  */
 package net.ea.ann.conv.filter;
 
-import java.io.Serializable;
-
 import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.value.NeuronValue;
 
@@ -16,7 +14,7 @@ import net.ea.ann.core.value.NeuronValue;
  * This class represent a pair of filter and bias. 
  * @author Loc Nguyen
  */
-public class BiasFilter implements Serializable, Cloneable, TextParsable {
+public class BiasFilter implements TextParsable {
 
 
 	/**

@@ -351,6 +351,15 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	
 	
 	/**
+	 * Getting trainer.
+	 * @return the first trainer.
+	 */
+	public TaskTrainer getTrainer() {
+		return trainers.size() > 0 ? trainers.get(0) : null;
+	}
+	
+	
+	/**
 	 * Adding trainer.
 	 * @param trainer specified trainer.
 	 * @return adding is successful.
@@ -392,11 +401,16 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	
 	@Override
 	public Matrix forward(Matrix input) {
-		Matrix output = evaluate(input, new Object[] {});
-		if (output == null || this.nextLayer == null) return output;
-		output = adaptOutputToNextInput(output, this.nextLayer);
-		Matrix.copy(output, this.nextLayer.getInput());
-		return this.nextLayer.evaluate();
+		Matrix result = evaluate(input, new Object[] {});
+		if (result == null) return result;
+		
+		MatrixLayer nextLayer = null;
+		while ((nextLayer = this.getNextLayer()) != null) {
+			result = adaptOutputToNextInput(result, nextLayer);
+			Matrix.copy(result, nextLayer.getInput());
+			result = nextLayer.evaluate();
+		}
+		return result;
 	}
 
 
@@ -532,6 +546,17 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		return this.prevLayer.backward(backwardErrors, focus, learning, learningRate);
 	}
 
+	
+	/**
+	 * Backward learning.
+	 * @param outputErrors output errors.
+	 * @param learningRate learning rate.
+	 * @return learning errors.
+	 */
+	public Matrix[] backward(Matrix[] outputErrors, double learningRate) {
+		return backward(outputErrors, null, true, learningRate);
+	}
+	
 	
 //	@Override
 //	public Matrix[] backward(Matrix[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {

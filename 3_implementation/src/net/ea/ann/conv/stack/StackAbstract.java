@@ -252,16 +252,96 @@ public abstract class StackAbstract extends LayerAbstract implements Stack {
 		if (nextStack == this.nextStack) return false;
 
 		clearNextLayers(this);
+		Stack oldNextStack = this.nextStack;
+		if (oldNextStack != null) ((StackAbstract)oldNextStack).prevStack = null;
+		this.nextStack = nextStack;
+		if (nextStack == null) return true;
 
+		Stack prevStactOfNextStack = ((StackAbstract)nextStack).prevStack;
+		if (prevStactOfNextStack != null) {
+			clearNextLayers(prevStactOfNextStack);
+			((StackAbstract)prevStactOfNextStack).nextStack = null;
+		}
+
+		((StackAbstract)nextStack).prevStack = this;
+		int k = 0;
+		if (setter != null) {
+			setter.setNextStack(this, nextStack);
+		}
+		else {
+			if (injective) {
+				int n = Math.min(size(), nextStack.size());
+				for (int i = 0; i < n; i++) {
+					Filter filter = (filters != null && k < filters.length) ? filters[k] : null;
+					get(i).setNextLayer(nextStack.get(i), newWeight(), filter);
+					k++;
+				}
+			}
+			else {
+				for (int i = 0; i < size(); i++) {
+					ElementLayer layer = get(i);
+					for (int j = 0; j < nextStack.size(); j++) {
+						Filter filter = (filters != null && k < filters.length) ? filters[k] : null;
+						layer.setNextLayer(nextStack.get(j), newWeight(), filter);
+						k++;
+					}
+				}
+			}
+		}
+		
+		return true;
+	}
+
+	
+	/**
+	 * Replacing next stack.
+	 * @param nextStack next stack.
+	 * @return true if setting is successful.
+	 */
+	protected boolean replaceNextStack(Stack nextStack) {
+		return replaceNextStack(nextStack, null, false);
+	}
+
+	
+	/**
+	 * Replacing next stack.
+	 * @param nextStack next stack.
+	 * @param injective if this parameter is true, there is only one connection between two layers.
+	 * @param filters array of filters.
+	 * @return true if setting is successful.
+	 */
+	protected boolean replaceNextStack(Stack nextStack, boolean injective, Filter...filters) {
+		return replaceNextStack(nextStack, null, injective, filters);
+	}
+	
+	
+	/**
+	 * Replacing next stack.
+	 * @param nextStack next stack.
+	 * @param setter specified setter.
+	 * @param injective if this parameter is true, there is only one connection between two layers.
+	 * @param filters array of filters.
+	 * @return true if setting is successful.
+	 */
+	private boolean replaceNextStack(Stack nextStack, NextStackSetter setter, boolean injective, Filter...filters) {
+		if (nextStack == this.nextStack) return false;
+
+		clearNextLayers(this);
 		Stack oldNextStack = this.nextStack;
 		Stack oldNextNextStack = null;
 		if (oldNextStack != null) {
 			oldNextNextStack = oldNextStack.getNextStack();
 			clearNextLayers(oldNextStack);
+			((StackAbstract)oldNextStack).prevStack = null;
 		}
-
 		this.nextStack = nextStack;
 		if (nextStack == null) return true;
+
+		Stack prevStactOfNextStack = ((StackAbstract)nextStack).prevStack;
+		if (prevStactOfNextStack != null) {
+			clearNextLayers(prevStactOfNextStack);
+			((StackAbstract)prevStactOfNextStack).nextStack = null;
+		}
 
 		clearNextLayers(nextStack);
 		((StackAbstract)nextStack).prevStack = this;
@@ -320,17 +400,6 @@ public abstract class StackAbstract extends LayerAbstract implements Stack {
 		return true;
 	}
 
-	
-	/**
-	 * Setting next stack.
-	 * @param nextStack next stack.
-	 * @param setter specified setter.
-	 * @return true if setting is successful.
-	 */
-	protected boolean setNextStack(Stack nextStack, NextStackSetter setter) {
-		return setNextStack(nextStack, setter, false);
-	}
-	
 	
 	@Override
 	public boolean setNextLayer(ConvLayer nextLayer) {

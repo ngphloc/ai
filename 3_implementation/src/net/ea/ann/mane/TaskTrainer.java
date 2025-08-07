@@ -7,8 +7,6 @@
  */
 package net.ea.ann.mane;
 
-import java.io.Serializable;
-
 import net.ea.ann.core.value.Matrix;
 
 /**
@@ -19,7 +17,7 @@ import net.ea.ann.core.value.Matrix;
  *
  */
 @FunctionalInterface
-public interface TaskTrainer extends Serializable, Cloneable {
+public interface TaskTrainer {
 
 
 	/**
@@ -32,5 +30,17 @@ public interface TaskTrainer extends Serializable, Cloneable {
 	 */
 	Matrix[] train(MatrixLayer layer, Iterable<Matrix[]> inouts, boolean propagate, double learningRate);
 
+	
+	/**
+	 * Learning layer as matrix neural network.
+	 * @param layer layer as matrix neural network.
+	 * @param inouts sample as collection of input and output whose each element is an 2-component array of input (the first) and output (the second).
+	 * @param learningRate learning rate.
+	 * @return learning biases.
+	 */
+	default Matrix[] train(MatrixLayer layer, Iterable<Matrix[]> inouts, double learningRate) {
+		return train(layer, inouts, true, learningRate);
+	}
+	
 	
 }

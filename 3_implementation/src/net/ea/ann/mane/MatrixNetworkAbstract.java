@@ -256,9 +256,10 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 	/**
 	 * Calculating the last bias which is often the negative of output error, often multiplied with gradient.
+	 * Derived class can override this method but it is better to apply the method {@link #setLikelihoodGradient(LikelihoodGradient)} into changing how to calculate the bias (error). 
 	 * @param output computed or predicted output.
-	 * @param realOutput real output from environment.
-	 * @param outputLayer output layer.
+	 * @param realOutput real output from environment. It is can be null.
+	 * @param outputLayer output layer. It is can be null.
 	 * @return the last bias.
 	 */
 	protected Matrix calcOutputError(Matrix output, Matrix realOutput, MatrixLayerAbstract outputLayer) {

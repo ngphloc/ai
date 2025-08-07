@@ -17,8 +17,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -61,7 +59,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.text.NumberFormatter;
 
-import net.ea.ann.adapter.classifier.ui.ClassifierUI;
 import net.ea.ann.adapter.gen.GenModel;
 import net.ea.ann.adapter.gen.GenModelAbstract;
 import net.ea.ann.adapter.gen.GenModelRemote;
@@ -73,7 +70,7 @@ import net.ea.ann.adapter.gen.beans.GAN;
 import net.ea.ann.adapter.gen.beans.VAE;
 import net.ea.ann.adapter.ui.ImagePathListExt;
 import net.ea.ann.classifier.Classifier;
-import net.ea.ann.classifier.ClassifierImpl;
+import net.ea.ann.classifier.StackClassifier;
 import net.ea.ann.conv.Content;
 import net.ea.ann.conv.ContentAssoc;
 import net.ea.ann.core.NetworkAbstract;
@@ -117,6 +114,18 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	 * Serial version UID for serializable class. 
 	 */
 	private static final long serialVersionUID = 1L;
+
+	
+	/**
+	 * Magiconic project.
+	 */
+	protected static final String MAGICONIC = "Magiconic";
+	
+	
+	/**
+	 * AVA sub-project.
+	 */
+	protected static final String AVA = "AVA";
 
 	
 	/**
@@ -465,6 +474,12 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	
 	
 	/**
+	 * Navigator panel.
+	 */
+	protected JPanel navigator;
+	
+	
+	/**
 	 * Label of model name.
 	 */
 	protected JLabel lblModelName;
@@ -705,23 +720,10 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	
 	
 	/**
-	 * Default constructor with generative model.
-	 * @param gm generative model.
+	 * Default constructor.
 	 */
-	public GenUI(GenModelRemote gm) {
-		this(gm, false);
-	}
-	
-	
-	/**
-	 * Constructor with generative model and exclusive mode.
-	 * @param gm generative model.
-	 * @param exclusive exclusive mode.
-	 */
-	public GenUI(GenModelRemote gm, boolean exclusive) {
-		super("Generative AI");
-		this.gm = gm;
-		this.exclusive = exclusive;
+	GenUI() {
+		super("Generator \"" + AVA + "\" of project \"" + MAGICONIC + "\"");
 	    this.resultDir = Paths.get(WORKING_TESTRESULT);
 		
 		setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -731,18 +733,37 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		setSize(FRAME_SIZE);
 		setLocationRelativeTo(null);
 		setLayout(new BorderLayout());
-
+	}
+	
+	
+	/**
+	 * Constructor with generative model and exclusive mode.
+	 * @param gm generative model.
+	 * @param exclusive exclusive mode.
+	 */
+	public GenUI(GenModelRemote gm, boolean exclusive) {
+		this();
+		this.gm = gm;
+		this.exclusive = exclusive;
+	    
 		JMenuBar mnuBar = createMenuBar();
 	    if (mnuBar != null) setJMenuBar(mnuBar);
-	    
 	    initGUI();
 	    
 	    try {
 	    	if (gm != null && isLocalGenModel()) gm.addSetupListener(this);
 	    } catch (Throwable e) {Util.trace(e);}
-	    
 	}
 
+	
+	/**
+	 * Constructor with generative model.
+	 * @param gm generative model.
+	 */
+	public GenUI(GenModelRemote gm) {
+		this(gm, false);
+	}
+	
 	
 	/**
 	 * Getting this UI.
@@ -757,7 +778,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	 * Checking whether the internal generative model is local.
 	 * @return whether the internal generative model is local.
 	 */
-	private boolean isLocalGenModel() {
+	boolean isLocalGenModel() {
 		return gm != null && gm instanceof GenModel;
 	}
 	
@@ -765,20 +786,20 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Initialize user interface.
 	 */
-	protected void initGUI() {
+	void initGUI() {
 		JPanel header = createHeader();
 		if (header != null) add(header, BorderLayout.NORTH);
 		
-		JPanel navigator = createNavigator();
+		this.navigator = createNavigator();
 
-		if (navigator == null) {
+		if (this.navigator == null) {
 			JPanel body = createBody();
 			if (body != null) add(body, BorderLayout.CENTER);
 		}
 		else {
 			JPanel body = createBody();
 			if (body != null) {
-				JSplitPane splitter = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, navigator, body);
+				JSplitPane splitter = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, this.navigator, body);
 				splitter.setOneTouchExpandable(true);
 				splitter.setDividerLocation(SPLITTER_DIVISION_LOCATION);
 				add(splitter, BorderLayout.CENTER);
@@ -843,7 +864,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Updating controls.
 	 */
-	private void updateControls() {
+	void updateControls() {
 		enableControls(!isRunning());
 		
 		baseRasters.setEnabled(true);
@@ -917,7 +938,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		right.add(paneModelName);
 		this.lblModelName = new JLabel();
 		try {
-			this.lblModelName.setText(gm.queryName());
+			if (gm != null) this.lblModelName.setText(gm.queryName());
 		} catch (Throwable e) {Util.trace(e);}
 		paneModelName.add(this.lblModelName, BorderLayout.CENTER);
 		
@@ -1283,33 +1304,12 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		recoverFooter.add(this.btnRecoverClearRasters);
 
 		this.chkRecoverToTest = new JCheckBox("Test");
-		this.chkRecoverToTest.addMouseListener(new MouseAdapter() {
-
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				super.mouseClicked(e);
-				
-				if (chkRecoverToTest.isSelected()) {
-					setGenDir(Paths.get(WORKING_RECOVER));
-					if (lblGen != null) lblGen.setText(RECOVERED_LABEL_TEXT);
-					
-					setRecoverDir(Paths.get(WORKING_TEST));
-					if (lblRecover != null) lblRecover.setText(TEST_LABEL_TEXT);
-				}
-				else {
-					setGenDir(Paths.get(WORKING_GEN));
-					if (lblGen != null) lblGen.setText(GEN_LABEL_TEXT);
-					
-					setRecoverDir(Paths.get(WORKING_RECOVER));
-					if (lblRecover != null) lblRecover.setText(RECOVERING_LABEL_TEXT);
-				}
-			}
-			
-		});
-//		this.chkRecoverToTest.addChangeListener(new ChangeListener() {
-//			
+//		this.chkRecoverToTest.addMouseListener(new MouseAdapter() {
+//
 //			@Override
-//			public void stateChanged(ChangeEvent e) {
+//			public void mouseClicked(MouseEvent e) {
+//				super.mouseClicked(e);
+//				
 //				if (chkRecoverToTest.isSelected()) {
 //					setGenDir(Paths.get(WORKING_RECOVER));
 //					if (lblGen != null) lblGen.setText(RECOVERED_LABEL_TEXT);
@@ -1327,6 +1327,27 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 //			}
 //			
 //		});
+		this.chkRecoverToTest.addChangeListener(new ChangeListener() {
+			
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				if (chkRecoverToTest.isSelected()) {
+					setGenDir(Paths.get(WORKING_RECOVER));
+					if (lblGen != null) lblGen.setText(RECOVERED_LABEL_TEXT);
+					
+					setRecoverDir(Paths.get(WORKING_TEST));
+					if (lblRecover != null) lblRecover.setText(TEST_LABEL_TEXT);
+				}
+				else {
+					setGenDir(Paths.get(WORKING_GEN));
+					if (lblGen != null) lblGen.setText(GEN_LABEL_TEXT);
+					
+					setRecoverDir(Paths.get(WORKING_RECOVER));
+					if (lblRecover != null) lblRecover.setText(RECOVERING_LABEL_TEXT);
+				}
+			}
+			
+		});
 		recoverFooter.add(chkRecoverToTest);
 
 		return recoverView;
@@ -1338,12 +1359,27 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	 * @return body panel.
 	 */
 	private JPanel createBody() {
-		JPanel body = new JPanel(new BorderLayout());
+		this.baseView = createBaseView();
+		this.genView = createGenView();
 		
-		this.baseView = new JPanel(new BorderLayout());
+		JPanel body = new JPanel(new BorderLayout());
+		JSplitPane splitter = new JSplitPane(JSplitPane.VERTICAL_SPLIT, this.baseView, this.genView);
+		splitter.setOneTouchExpandable(true);
+		splitter.setDividerLocation(SPLITTER_DIVISION_LOCATION);
+		body.add(splitter, BorderLayout.CENTER);
+		return body;
+	}
 
+	
+	/**
+	 * Creating base view.
+	 * @return base view.
+	 */
+	private JPanel createBaseView() {
+		JPanel baseView = new JPanel(new BorderLayout());
+		
 		JPanel baseHeader = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		this.baseView.add(baseHeader, BorderLayout.NORTH);
+		baseView.add(baseHeader, BorderLayout.NORTH);
 
 		JPanel paneTextBase = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		baseHeader.add(paneTextBase);
@@ -1351,10 +1387,10 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		paneTextBase.add(this.lblBase);
 		
 		this.baseRasters.setModal(false);
-		this.baseView.add(new JScrollPane(this.baseRasters), BorderLayout.CENTER);
+		baseView.add(new JScrollPane(this.baseRasters), BorderLayout.CENTER);
 		
 		JPanel baseFooter = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-		this.baseView.add(baseFooter, BorderLayout.SOUTH);
+		baseView.add(baseFooter, BorderLayout.SOUTH);
 		
 		this.btnBaseAddRasters = UIUtil.makeIconButton(
 			"add-16x16.png",
@@ -1387,11 +1423,20 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 			});
 		this.btnBaseClearRasters.setMargin(new Insets(0, 0 , 0, 0));
 		baseFooter.add(this.btnBaseClearRasters);
-
-		this.genView = new JPanel(new BorderLayout());
+		
+		return baseView;
+	}
+	
+	
+	/**
+	 * Creating generation view.
+	 * @return generation view.
+	 */
+	private JPanel createGenView() {
+		JPanel genView = new JPanel(new BorderLayout());
 		
 		JPanel genHeader = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		this.genView.add(genHeader, BorderLayout.NORTH);
+		genView.add(genHeader, BorderLayout.NORTH);
 		
 		JPanel paneTextGen = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		genHeader.add(paneTextGen);
@@ -1399,10 +1444,10 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		paneTextGen.add(this.lblGen);
 
 		this.genRasters.setModal(false);
-		this.genView.add(new JScrollPane(this.genRasters), BorderLayout.CENTER);
+		genView.add(new JScrollPane(this.genRasters), BorderLayout.CENTER);
 		
 		JPanel genFooter = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-		this.genView.add(genFooter, BorderLayout.SOUTH);
+		genView.add(genFooter, BorderLayout.SOUTH);
 
 		this.btnGenSave = UIUtil.makeIconButton(
 			"save-16x16.png",
@@ -1468,14 +1513,9 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		this.btnGenGen.setMargin(new Insets(0, 0 , 0, 0));
 		genFooter.add(this.btnGenGen);
 
-		JSplitPane splitter = new JSplitPane(JSplitPane.VERTICAL_SPLIT, this.baseView, this.genView);
-		splitter.setOneTouchExpandable(true);
-		splitter.setDividerLocation(SPLITTER_DIVISION_LOCATION);
-		body.add(splitter, BorderLayout.CENTER);
-
-		return body;
+		return genView;
 	}
-
+	
 	
 	/**
 	 * Creating footer panel.
@@ -1501,7 +1541,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	 * Creating main menu bar.
 	 * @return main menu bar.
 	 */
-	protected JMenuBar createMenuBar() {
+	JMenuBar createMenuBar() {
 		JMenuBar mnBar = new JMenuBar();
 		
 		JMenu mnFile = new JMenu("File");
@@ -2152,9 +2192,9 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Resetting all things.
 	 */
-	private void reset() {
+	void reset() {
 		try {
-			this.lblModelName.setText(gm.queryName());
+			if (gm != null) this.lblModelName.setText(gm.queryName());
 		} catch (Throwable e) {Util.trace(e);}
 		txtBaseDir.setText(Paths.get(WORKING_BASE).toString());
 		chkLoad3D.setSelected(false);
@@ -2749,7 +2789,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Recovering rasters.
 	 */
-	private void recover() {
+	void recover() {
 		genRasters.clearItems();
 		List<Raster> bRasters = Util.newList(0);
 		List<Raster> rRasters = Util.newList(0);
@@ -2956,9 +2996,10 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		
 		@Override
 		protected Classifier getClassifier() {
+			if (gm == null) return (classifier = null);
 			try {
 				boolean isNorm = gm.queryConfig().getAsBoolean(Raster.NORM_FIELD);
-				return classifier != null ? classifier : ClassifierImpl.create(gm.getRasterChannel(), isNorm);
+				return classifier != null ? classifier : StackClassifier.create(gm.getRasterChannel(), isNorm);
 			} catch (Throwable e) {Util.trace(e);}
 			return (classifier = null);
 		}

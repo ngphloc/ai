@@ -130,7 +130,7 @@ public class GANImpl extends GANAbstract {
 	/**
 	 * Initialize with X dimension and Z dimension as well as hidden neurons.
 	 * @param xDim X dimension.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronDecode number of decoded hidden neurons.
 	 * @param nHiddenNeuronAdversarial number of adversarial hidden neurons.
 	 * @return true if initialization is successful.
@@ -151,7 +151,7 @@ public class GANImpl extends GANAbstract {
 	/**
 	 * Initialize with X dimension and Z dimension as well as hidden neurons.
 	 * @param xDim X dimension.
-	 * @param zDim Z dimension
+	 * @param zDim Z dimension where z is random data to generate data X.
 	 * @param nHiddenNeuronDecode number of decoded hidden neurons.
 	 * @return true if initialization is successful.
 	 */

@@ -400,7 +400,6 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 		
 		/**
 		 * Setting next layer (2nd). This method is ignored when setting network from left to right.
-		 * Indeed this method is the same to method {@link #setNextLayer(LayerStandard, LayerStandard)}.
 		 * @param nextLayer next layer.
 		 * @param nextNextLayer next layer of the next layer.
 		 */
@@ -522,8 +521,8 @@ public abstract class LayerStandardAbstract extends LayerAbstract implements Lay
 			clearNextNeurons(prevLayerOfNextLayer);
 			((LayerStandardImpl)prevLayerOfNextLayer).nextLayer = null;
 		}
-		clearNextNeurons(nextLayer);
 		
+		clearNextNeurons(nextLayer);
 		((LayerStandardImpl)nextLayer).prevLayer = this;
 		if (setter != null) {
 			setter.setNextLayer(this, nextLayer);

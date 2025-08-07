@@ -7,8 +7,6 @@
  */
 package net.ea.ann.raster;
 
-import java.io.Serializable;
-
 /**
  * This class represents 3D point.
  * 
@@ -16,7 +14,7 @@ import java.io.Serializable;
  * @version 1.0
  *
  */
-public class Point extends java.awt.Point implements Serializable, Cloneable {
+public class Point extends java.awt.Point {
 
 
 	/**

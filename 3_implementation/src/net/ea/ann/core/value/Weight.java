@@ -7,7 +7,6 @@
  */
 package net.ea.ann.core.value;
 
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -24,7 +23,7 @@ import net.ea.ann.core.value.vector.WeightValueVectorImpl;
  * @version 1.0
  *
  */
-public class Weight implements Serializable, Cloneable, TextParsable {
+public class Weight implements TextParsable {
 
 
 	/**
