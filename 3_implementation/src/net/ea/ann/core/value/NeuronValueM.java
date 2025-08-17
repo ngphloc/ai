@@ -456,6 +456,23 @@ abstract class NeuronValueM0 implements Matrix {
 
 
 	@Override
+	public Matrix getColumns(int column, int range) {
+		column = column < 0 ? 0 : column;
+		range = column + range <= this.columns() ? range : this.columns() - column;
+		if (range <= 0) return null;
+
+		int m = this.rows();
+		double[][] newMatrixData = new double[m][range];
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j < range; j++) {
+				newMatrixData[i][j] = this.data[i][column + j];
+			}
+		}
+		return wrap(newMatrixData);
+	}
+
+	
+	@Override
 	public Matrix transpose() {
 		if (data == null) return null;
 		int m = data.length, n = data[0].length;
@@ -652,23 +669,6 @@ abstract class NeuronValueM0 implements Matrix {
 	}
 
 
-	@Override
-	public Matrix extractVertical(int columnIndex, int range) {
-		columnIndex = columnIndex < 0 ? 0 : columnIndex;
-		range = columnIndex + range <= this.columns() ? range : this.columns() - columnIndex;
-		if (range <= 0) return null;
-
-		int m = this.rows();
-		double[][] newMatrixData = new double[m][range];
-		for (int i = 0; i < m; i++) {
-			for (int j = 0; j < range; j++) {
-				newMatrixData[i][j] = this.data[i][columnIndex + j];
-			}
-		}
-		return wrap(newMatrixData);
-	}
-
-	
 	@Override
 	public Matrix vec() {
 		if (this.columns() == 1) return this;

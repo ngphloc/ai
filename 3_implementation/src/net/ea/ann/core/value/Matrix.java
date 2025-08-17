@@ -77,6 +77,15 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
+	 * Extracting a sub-matrix at specified column index.
+	 * @param column specified column index.
+	 * @param range specified range.
+	 * @return sub-matrix extracted at specified column index.
+	 */
+	Matrix getColumns(int column, int range);
+
+
+	/**
 	 * Transposing this matrix.
 	 * @return transposed matrix.
 	 */
@@ -339,15 +348,6 @@ public interface Matrix extends NeuronValueCreator {
 	}
 
 	
-	/**
-	 * Extracting a sub-matrix at specified column index.
-	 * @param columnIndex specified column index.
-	 * @param range specified range.
-	 * @return sub-matrix extracted at specified column index.
-	 */
-	Matrix extractVertical(int columnIndex, int range);
-
-
 	/**
 	 * Vectorization of matrix.
 	 * @return vectorized vector.

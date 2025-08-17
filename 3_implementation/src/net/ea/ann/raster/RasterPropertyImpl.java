@@ -46,8 +46,19 @@ public class RasterPropertyImpl implements RasterProperty {
 	 * @param property other property.
 	 */
 	public RasterPropertyImpl(RasterProperty property) {
+		if (property == null || property.getLabelCount() == 0) throw new IllegalArgumentException("Illegal parameter");
 		int n = property.getLabelCount();
 		for (int i = 0; i < n; i++) this.labels.add(property.getLabel(i));
+	}
+	
+	
+	/**
+	 * Constructor with array of labels.
+	 * @param labels array of labels.
+	 */
+	public RasterPropertyImpl(Label...labels) {
+		if (labels == null || labels.length == 0) throw new IllegalArgumentException("Illegal parameter");
+		for (int i = 0; i < labels.length; i++) this.labels.add(labels[i]);
 	}
 	
 	
@@ -78,6 +89,14 @@ public class RasterPropertyImpl implements RasterProperty {
 	@Override
 	public void setLabel(Label label) {
 		if (label == null) this.labels.set(0, label);
+	}
+
+
+	@Override
+	public void setLabels(Label...labels) {
+		if (labels == null || labels.length == 0) return;
+		this.labels.clear();
+		for (int i = 0; i < labels.length; i++) this.labels.add(labels[i]);
 	}
 
 

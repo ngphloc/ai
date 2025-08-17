@@ -325,7 +325,7 @@ public class Attention implements Cloneable, Serializable {
 		for (int i = 0; i < heads.length; i++) {
 			Attention0 head = heads[i];
 			int n = head.A.columns();
-			Matrix ERRORi = ERROR.extractVertical(index, n);
+			Matrix ERRORi = ERROR.getColumns(index, n);
 			head.learn(ERRORi, learningRate);
 			index += n;
 		}

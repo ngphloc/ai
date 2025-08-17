@@ -143,6 +143,13 @@ public interface RasterProperty extends Serializable, Cloneable {
 
 	
 	/**
+	 * Setting labels.
+	 * @param labels labels.
+	 */
+	void setLabels(Label...labels);
+	
+	
+	/**
 	 * Setting label at specified index.
 	 * @param index index.
 	 * @param label label.

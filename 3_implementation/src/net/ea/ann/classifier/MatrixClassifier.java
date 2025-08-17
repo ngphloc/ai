@@ -18,16 +18,17 @@ import java.util.Set;
 
 import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
-import net.ea.ann.core.Record;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.generator.GeneratorWeighted;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterProperty;
+import net.ea.ann.raster.RasterWrapperProperty;
 import net.ea.ann.raster.RasterProperty.Label;
 
 /**
@@ -37,7 +38,7 @@ import net.ea.ann.raster.RasterProperty.Label;
  * @version 1.0
  *
  */
-public abstract class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
+public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 
 	
 	/**
@@ -248,6 +249,25 @@ public abstract class MatrixClassifier extends MatrixNetworkImpl implements Clas
 	}
 
 	
+	@Override
+	public NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException {
+		return learnRaster(sample);
+	}
+
+	
+	@Override
+	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
+		List<Matrix[]> newsample = prelearn(sample);
+		Matrix[] errors = learn(newsample);
+		NeuronValue[] errorArray = null;
+		for (Matrix error : errors) {
+			NeuronValue[] values = Matrix.extractValues(error);
+			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
+		}
+		return errorArray;
+	}
+
+
 	/**
 	 * Getting the number of output groups.
 	 * @return the number of output groups.
@@ -490,50 +510,163 @@ public abstract class MatrixClassifier extends MatrixNetworkImpl implements Clas
 
 	
 	/**
+	 * Getting class index of label.
+	 * @param groupIndex group index.
+	 * @param label specified label.
+	 * @return class index of label.
+	 */
+	int classOf(int groupIndex, int label) {
+		Map<Integer, Label> classMap = this.classMaps.get(groupIndex);
+		Set<Integer> classIndices = classMap.keySet();
+		for (int classIndex : classIndices) {
+			Label labelObject = classMap.get(classIndex);
+			if (labelObject.labelId == label) return classIndex;
+		}
+		return -1;
+	}
+	
+	
+	/**
+	 * Getting label of class index.
+	 * @param groupIndex group index.
+	 * @param classIndex class index.
+	 * @return label of class index.
+	 */
+	Label labelOf(int groupIndex, int classIndex) {
+		Map<Integer, Label> classMap = this.classMaps.get(groupIndex);
+		return classMap.containsKey(classIndex) ? classMap.get(classIndex) : null;
+	}
+
+
+	/**
 	 * Pre-processing for learning.
 	 * @param sample
 	 * @return new sample.
 	 */
-	List<Record> prelearn(Iterable<Raster> sample) {
+	List<Matrix[]> prelearn(Iterable<Raster> sample) {
 		this.classMaps.clear();
-		
-		List<Label> labels = Util.newList(0);
+
+		//Getting minimum count of labels.
+		int labelCount = -1;
 		List<Raster> train = Util.newList(0);
 		for (Raster raster : sample) {
 			if (raster == null) continue;
 			RasterProperty rp = raster.getProperty();
+			if (rp == null) continue;
 			int labelId = rp.getLabelId();
 			if (labelId < 0) continue;
+			int lc = rp.getLabelCount();
+			if (lc <= 0) continue;
 			
 			train.add(raster);
-			boolean found = false;
-			for (Label label : labels) {
-				if (label.labelId == labelId) {
-					found = true;
-					break;
-				}
-			}
-			if (!found) labels.add(new Label(labelId, rp.getLabelName()));
+			if (labelCount == -1)
+				labelCount = lc;
+			else
+				labelCount = labelCount < lc ? lc : labelCount;
 		}
-		if (labels.size() == 0 || train.size() == 0) return Util.newList(0);
 		
-		Label.sort(labels, true);
+		//Initializing list of label groups.
+		if (train.size() == 0 || labelCount <= 0) return Util.newList(0);
+		List<List<Label>> labelGroups = Util.newList(labelCount);
+		for (int label = 0; label < labelCount; label++) labelGroups.add(Util.newList(0));
+		
+		//Initializing labels.
+		for (Raster raster : train) {
+			RasterProperty rp = raster.getProperty();
+			for (int i = 0; i < rp.getLabelCount(); i++) {
+				Label label = rp.getLabel(i);
+				List<Label> labels = labelGroups.get(i);
+				boolean found = false;
+				for (Label lb : labels) {
+					if (lb.labelId == label.labelId) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) labels.add(label);
+			}
+		}
+		
+		//Removing empty labels and sorting labels.
+		List<List<Label>> tempLabelGroups = Util.newList(labelGroups.size());
+		tempLabelGroups.addAll(labelGroups);
+		labelGroups.clear();
+		for (List<Label> labels : tempLabelGroups) {
+			if (labels.size() == 0) continue;
+			Label.sort(labels, true);
+			labelGroups.add(labels);
+		}
+		if (labelGroups.size() == 0) return Util.newList(0);
+
+		//Adjusting the group label list so that its size is equal to group count.
 		int groupCount = getNumberOfGroups();
+		if (labelGroups.size() > groupCount) labelGroups = labelGroups.subList(0, groupCount);
+		if (labelGroups.size() < groupCount) {
+			int n = groupCount - labelGroups.size();
+			List<Label> labels = labelGroups.get(labelGroups.size()-1);
+			for (int i = 0; i < n; i++) labelGroups.add(labels);
+		}
+		
+		//Main task: setting up class maps.
 		for (int group = 0; group < groupCount; group++) {
 			Map<Integer, Label> classMap = Util.newMap(0);
-			for (int classNumber = 0; classNumber < labels.size(); classNumber++) {
-				classMap.put(classNumber, labels.get(classNumber));
+			int classCount = getNumberOfClasses(group);
+			List<Label> labels = labelGroups.get(group);
+			for (int classNumber = 0; classNumber < classCount; classNumber++) {
+				Label label = classNumber < labels.size() ? labels.get(classNumber) : labels.get(labels.size()-1);
+				if (label != null) classMap.put(classNumber, label);
 			}
-			this.classMaps.add(classMap);
+			if (classMap.size() > 0) this.classMaps.add(classMap);
 		}
+		if (this.classMaps.size() == 0) return Util.newList(0);
 		
-		return Util.newList(0);
+		//Initializing new sample.
+		List<Matrix[]> newsample = Util.newList(0);
+		MatrixLayerAbstract inputLayer = getInputLayer();
+		for (Raster raster : train) {
+			int[] classIndices = new int[getNumberOfGroups()];
+			Arrays.fill(classIndices, 0);
+			RasterProperty rp = raster.getProperty();
+			for (int i = 0; i < rp.getLabelCount(); i++) {
+				int labelId = rp.getLabelId(i);
+				int classIndex = classOf(i, labelId);
+				if (classIndex >= 0) classIndices[i] = classIndex;
+			}
+
+			Matrix input = inputLayer.toMatrix(raster);
+			Matrix output = createOutputByClass(classIndices);
+			if (input == null || output == null) continue;
+			newsample.add(new Matrix[] {input, output});
+		}
+		return newsample;
 	}
 	
 	
 	@Override
-	public NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException {
-		return learnRaster(sample);
+	public List<Raster> classify(Iterable<Raster> sample) throws RemoteException {
+		List<Raster> results = Util.newList(0);
+		for (Raster raster : sample) {
+			if (raster == null) continue;
+			try {
+				evaluate(raster);
+			} catch (Throwable e) {Util.trace(e);}
+			
+			int groupCount = getNumberOfGroups();
+			if (groupCount <= 0) continue;
+			Label[] labels = new Label[groupCount];
+			int[] classIndices = extractClass();
+			for (int group = 0; group < groupCount; group++) {
+				Label label = labelOf(group, classIndices[group]);
+				labels[group] = label != null ? label : new Label();
+			}
+			
+			RasterProperty rp = raster.getProperty().shallowDuplicate();
+			rp.setLabels(labels);
+			RasterWrapperProperty rw = new RasterWrapperProperty(raster);
+			rw.setProperty(rp);
+			results.add(rw);
+		}
+		return results;
 	}
 
 	

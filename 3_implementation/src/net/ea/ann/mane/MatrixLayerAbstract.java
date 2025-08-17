@@ -488,6 +488,17 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	/**
 	 * Extracting raster into matrix.
 	 * @param raster raster.
+	 * @return matrix.
+	 */
+	public Matrix toMatrix(Raster raster) {
+		Matrix input = getInput();
+		return input != null ? toMatrix(raster, input.rows(), input.columns()) : null;
+	}
+	
+	
+	/**
+	 * Extracting raster into matrix.
+	 * @param raster raster.
 	 * @param rows rows.
 	 * @param columns columns.
 	 * @return matrix.

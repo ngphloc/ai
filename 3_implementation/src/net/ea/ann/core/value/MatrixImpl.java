@@ -128,6 +128,22 @@ public class MatrixImpl implements Matrix {
 
 
 	@Override
+	public Matrix getColumns(int column, int range) {
+		column = column < 0 ? 0 : column;
+		range = column + range <= this.columns() ? range : this.columns() - column;
+		if (range <= 0) return null;
+
+		Matrix newMatrix = new MatrixImpl(this.rows(), range);
+		for (int i = 0; i < newMatrix.rows(); i++) {
+			for (int j = 0; j < newMatrix.columns(); j++) {
+				newMatrix.set(i, j, this.get(i, column + j));
+			}
+		}
+		return newMatrix;
+	}
+
+
+	@Override
 	public Matrix transpose() {
 		return new MatrixImpl(NeuronValue.transpose(data));
 	}
@@ -278,22 +294,6 @@ public class MatrixImpl implements Matrix {
 	}
 	
 	
-	@Override
-	public Matrix extractVertical(int columnIndex, int range) {
-		columnIndex = columnIndex < 0 ? 0 : columnIndex;
-		range = columnIndex + range <= this.columns() ? range : this.columns() - columnIndex;
-		if (range <= 0) return null;
-
-		Matrix newMatrix = new MatrixImpl(this.rows(), range);
-		for (int i = 0; i < newMatrix.rows(); i++) {
-			for (int j = 0; j < newMatrix.columns(); j++) {
-				newMatrix.set(i, j, this.get(i, columnIndex + j));
-			}
-		}
-		return newMatrix;
-	}
-
-
 	@Override
 	public Matrix vec() {
 		if (this.columns() == 1) return this;

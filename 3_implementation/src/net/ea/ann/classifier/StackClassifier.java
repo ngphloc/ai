@@ -327,6 +327,31 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 
 
 	/**
+	 * Getting class index of label.
+	 * @param label specified label.
+	 * @return class index of label.
+	 */
+	private int classOf(int label) {
+		Set<Integer> classIndices = classMap.keySet();
+		for (int classIndex : classIndices) {
+			Label labelObject = classMap.get(classIndex);
+			if (labelObject.labelId == label) return classIndex;
+		}
+		return -1;
+	}
+	
+	
+	/**
+	 * Getting label of class index.
+	 * @param classIndex class index.
+	 * @return label of class index.
+	 */
+	private Label labelOf(int classIndex) {
+		return classMap.containsKey(classIndex) ? classMap.get(classIndex) : null;
+	}
+
+
+	/**
 	 * Pre-processing for learning.
 	 * @param sample
 	 * @return new sample.
@@ -416,31 +441,6 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 			results.add(rw);
 		}
 		return results;
-	}
-
-
-	/**
-	 * Getting class number of label.
-	 * @param label specified label.
-	 * @return class number of label.
-	 */
-	private int classOf(int label) {
-		Set<Integer> classNumbers = classMap.keySet();
-		for (int classNumber : classNumbers) {
-			Label labelObject = classMap.get(classNumber);
-			if (labelObject.labelId == label) return classNumber;
-		}
-		return -1;
-	}
-	
-	
-	/**
-	 * Getting label of class number.
-	 * @param classNumber class number.
-	 * @return label of class number.
-	 */
-	private Label labelOf(int classNumber) {
-		return classMap.containsKey(classNumber) ? classMap.get(classNumber) : null;
 	}
 
 
