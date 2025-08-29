@@ -432,7 +432,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	 * @param params other parameters.
 	 * @return array as output.
 	 */
-	private Matrix evaluate(Matrix input, Object...params) {
+	Matrix evaluate(Matrix input, Object...params) {
 		MatrixLayerAbstract inputLayer = getInputLayer();
 		if (input != null) Matrix.copy(input, inputLayer.getInput());
 		if (inputLayer.getOutput() != inputLayer.getInput()) inputLayer.setOutput(inputLayer.getInput());
