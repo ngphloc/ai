@@ -566,6 +566,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 		config.put(NetworkAbstract.LEARN_ONE_FIELD, NetworkAbstract.LEARN_ONE_DEFAULT);
 		config.put(NEURON_CHANNEL_FIELD, NEURON_CHANNEL_DEFAULT);
 		config.put(RASTER_CHANNEL_FIELD, RASTER_CHANNEL_DEFAULT);
+		config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		
 		try {
 			if (gm != null) config.putAll(Util.toConfig(gm.getConfig()));

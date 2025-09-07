@@ -715,6 +715,19 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	}
 
 
+	/**
+	 * Creating classifier with neuron channel and norm flag.
+	 * @param neuronChannel specified neuron channel.
+	 * @param isNorm norm flag.
+	 * @return classifier.
+	 */
+	public static MatrixClassifier create(int neuronChannel, boolean isNorm) {
+		Function activateRef = Raster.toActivationRef(neuronChannel, isNorm);
+		Function contentActivateRef = Raster.toConvActivationRef(neuronChannel, isNorm);
+		return new MatrixClassifier(neuronChannel, activateRef, contentActivateRef, null);
+	}
+
+
 }
 
 

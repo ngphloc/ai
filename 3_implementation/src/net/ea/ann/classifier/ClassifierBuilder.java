@@ -5,20 +5,20 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.gen;
+package net.ea.ann.classifier;
 
 import java.io.Serializable;
 
 import net.ea.ann.core.function.Function;
 
 /**
- * This class provides utility methods to create convolutional generative model.
+ * This class provides utility methods to create classifier model.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public final class ConvGenModelBuilder implements Cloneable, Serializable {
+public final class ClassifierBuilder implements Cloneable, Serializable {
 
 
 	/**
@@ -43,7 +43,7 @@ public final class ConvGenModelBuilder implements Cloneable, Serializable {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public ConvGenModelBuilder(int neuronChannel) {
+	public ClassifierBuilder(int neuronChannel) {
 		this.neuronChannel = neuronChannel;
 	}
 
@@ -53,7 +53,7 @@ public final class ConvGenModelBuilder implements Cloneable, Serializable {
 	 * @param activateRef activation reference.
 	 * @return this builder.
 	 */
-	public ConvGenModelBuilder setActivateRef(Function activateRef) {
+	public ClassifierBuilder setActivateRef(Function activateRef) {
 		this.activateRef = activateRef;
 		return this;
 	}

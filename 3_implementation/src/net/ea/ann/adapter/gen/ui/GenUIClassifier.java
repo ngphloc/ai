@@ -8,8 +8,11 @@
 package net.ea.ann.adapter.gen.ui;
 
 import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
 
 import net.ea.ann.adapter.gen.GenModelRemote;
+import net.ea.ann.adapter.gen.beans.MatrixClassifier;
+import net.ea.ann.adapter.gen.beans.StackClassifier;
 import net.ea.ann.core.Util;
 
 /**
@@ -115,18 +118,50 @@ public class GenUIClassifier extends GenUI {
 
 
 	@Override
+	void changeModel() {
+		if (isRunning()) {
+			JOptionPane.showMessageDialog(this, "Some task running", "Some task running", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		
+		if (!exclusive) queryLocalGenModel(gm, this, new GenModelRemote[] {new MatrixClassifier(), new StackClassifier()}, new GenUICreator() {
+			@Override
+			public GenUI create(GenModelRemote gm) {
+				return new GenUIClassifier(gm, false);
+			}
+		});
+	}
+
+
+	@Override
 	void recover() {
 		super.recover();
 	}
 
 
 	/**
+	 * Querying local generative model.
+	 * @param initialGM initial generative model.
+	 * @param initialUI generative model UI.
+	 * @return local generative model.
+	 */
+	static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
+		return queryLocalGenModel(initialGM, initialUI, new GenModelRemote[] {new MatrixClassifier(), new StackClassifier()}, new GenUICreator() {
+			@Override
+			public GenUI create(GenModelRemote gm) {
+				return new GenUIClassifier(gm, false);
+			}
+		});
+	}
+	
+	
+	/**
 	 * Main method.
 	 * @param args arguments.
 	 */
 	public static void main(String[] args) {
-		GenUIClassifier classifier = new GenUIClassifier(null);
-		classifier.setVisible(true);
+		GenUIClassifier classifierUI = (GenUIClassifier)queryLocalGenModel(new MatrixClassifier(), null);
+		if (classifierUI != null) classifierUI.setVisible(true);
 	}
 
 

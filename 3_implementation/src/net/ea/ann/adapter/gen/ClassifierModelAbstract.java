@@ -7,6 +7,8 @@
  */
 package net.ea.ann.adapter.gen;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
@@ -22,6 +24,7 @@ import net.ea.ann.core.NetworkListener;
 import net.ea.ann.gen.GenModel.G;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.RasterAssoc;
 import net.hudup.core.alg.DuplicatableAlg;
 import net.hudup.core.alg.ExecuteAsLearnAlgAbstract;
 import net.hudup.core.alg.SetupAlgEvent;
@@ -29,6 +32,7 @@ import net.hudup.core.alg.SetupAlgEvent.Type;
 import net.hudup.core.data.DataConfig;
 import net.hudup.core.data.Dataset;
 import net.hudup.core.data.Pointer;
+import net.hudup.core.data.Profile;
 import net.hudup.core.logistic.Inspector;
 
 /**
@@ -147,6 +151,32 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	}
 
 	
+	@Override
+	public Object executeAsLearn(Object input) throws RemoteException {
+		try {
+			if (classifier != null && classifier instanceof Network) ((Network)classifier).getConfig().putAll(Util.transferToANNConfig(config));
+		} catch (Throwable e) {Util.trace(e);}
+
+		if (input == null) return null; //Running in setup method.
+
+		if (!(input instanceof Profile)) return null;
+
+		//Running in execution mode.
+		Profile profile = (Profile)input;
+		if (profile.getAttCount() < 2) return null;
+		
+		String sourceText = profile.getValueAsString(0);
+		if (sourceText == null) return null;
+		Path sourceDirectory = Paths.get(sourceText);
+		
+		List<Raster> rasters = RasterAssoc.load(sourceDirectory);
+		if (rasters.size() == 0) return null;
+
+		List<Raster> results = classifier.classify(rasters);
+		return results.size();
+	}
+
+
 	/**
 	 * Create classifier.
 	 * @return classifier.
@@ -194,6 +224,18 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 		int rasterChannel = RASTER_CHANNEL_DEFAULT;
 		if (config.containsKey(RASTER_CHANNEL_FIELD)) rasterChannel = config.getAsInt(RASTER_CHANNEL_FIELD);
 		return rasterChannel < 1 ? RASTER_CHANNEL_DEFAULT : rasterChannel;
+	}
+
+	
+	/**
+	 * Checking whether point values are normalized in rang [0, 1].
+	 * @return whether point values are normalized in rang [0, 1].
+	 */
+	protected boolean isNorm() {
+		if (config.containsKey(Raster.NORM_FIELD))
+			return config.getAsBoolean(Raster.NORM_FIELD);
+		else
+			return Raster.NORM_DEFAULT;
 	}
 
 	
@@ -266,6 +308,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 		DataConfig config = super.createDefaultConfig();
 		config.put(NEURON_CHANNEL_FIELD, NEURON_CHANNEL_DEFAULT);
 		config.put(RASTER_CHANNEL_FIELD, RASTER_CHANNEL_DEFAULT);
+		config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		
 		try {
 			if (classifier instanceof Network) config.putAll(Util.toConfig(((Network)classifier).getConfig()));

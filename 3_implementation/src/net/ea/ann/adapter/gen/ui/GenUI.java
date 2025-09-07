@@ -889,7 +889,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	 * Checking whether some task is running.
 	 * @return whether some task is running.
 	 */
-	private boolean isRunning() {
+	boolean isRunning() {
 		return runner != null && runner.isStarted();
 	}
 	
@@ -1662,12 +1662,12 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Changing model.
 	 */
-	private void changeModel() {
+	void changeModel() {
 		if (isRunning()) {
 			JOptionPane.showMessageDialog(this, "Some task running", "Some task running", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		if (!exclusive) queryLocalGenModel(gm, this);
+		if (!exclusive) queryLocalGenModel(gm, this, null, null);
 	}
 	
 	
@@ -3253,21 +3253,20 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 
 	
 	/**
-	 * Querying local generative model.
-	 * @return local generative model.
+	 * This functional interface provides method to create generative model user interface.
+	 * @author Loc Nguyen
+	 * @version 1.0
 	 */
-	public static GenUI queryLocalGenModel() {
-		return queryLocalGenModel(null, null);
-	}
-
-	
-	/**
-	 * Querying local generative model.
-	 * @param initialGM initial generative model.
-	 * @return local generative model.
-	 */
-	public static GenUI queryLocalGenModel(GenModelRemote initialGM) {
-		return queryLocalGenModel(initialGM, null);
+	@FunctionalInterface
+	protected static interface GenUICreator {
+		
+		/**
+		 * Create generative model user interface with generative model and exclusive mode.
+		 * @param gm generative model.
+		 * @return generative model user interface.
+		 */
+		GenUI create(GenModelRemote gm);
+		
 	}
 	
 	
@@ -3277,8 +3276,23 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	 * @param initialUI generative model UI.
 	 * @return local generative model.
 	 */
-	protected static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
+	static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
+		return queryLocalGenModel(initialGM, initialUI, null, null);
+	}
+	
+	
+	/**
+	 * Querying local generative model.
+	 * @param initialGM initial generative model.
+	 * @param initialUI generative model UI.
+	 * @param defaultGMs default generative models.
+	 * @param genUICreator creator to create generative model UI. It can be null.
+	 * @return local generative model.
+	 */
+	protected static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI, GenModelRemote[] defaultGMs, GenUICreator genUICreator) {
 		initialGM = (initialGM == null && initialUI != null) ? initialUI.gm : initialGM;
+		if (defaultGMs == null || defaultGMs.length == 0) defaultGMs = new GenModelRemote[] {new VAE(), new GAN(), new AVA(), new AVAExt()};
+		
 		int ret = JOptionPane.showConfirmDialog(initialUI, "Would you like to query automatically?", "Automatical query", JOptionPane.OK_CANCEL_OPTION);
 		List<GenModelRemote> gmList = Util.newList(0);
 		if (ret == JOptionPane.OK_OPTION) {
@@ -3287,14 +3301,11 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 			}
 			catch (Throwable e) {
 				Util.trace(e);
-				return new GenUI(new VAE(), false);
+				return genUICreator != null ? genUICreator.create(defaultGMs[0]) : new GenUI(defaultGMs[0], false);
 			}
 		}
 		else {
-			gmList.add(new VAE());
-			gmList.add(new GAN());
-			gmList.add(new AVA());
-			gmList.add(new AVAExt());
+			gmList.addAll(Arrays.asList(defaultGMs));
 		}
 		if (gmList.size() == 0) return initialUI;
 		
@@ -3364,7 +3375,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
         	return initialUI;
         }
         else
-        	return new GenUI(gm, false);
+        	return genUICreator != null ? genUICreator.create(gm) : new GenUI(gm, false);
 	}
 	
 	
@@ -3373,7 +3384,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	 * @param args arguments.
 	 */
 	public static void main(String[] args) {
-		GenUI genUI = queryLocalGenModel(new VAE());
+		GenUI genUI = queryLocalGenModel(new VAE(), null);
 		if (genUI != null) genUI.setVisible(true);
 	}
 	

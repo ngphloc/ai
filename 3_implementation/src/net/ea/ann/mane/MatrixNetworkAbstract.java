@@ -111,8 +111,8 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 			this.neuronChannel = neuronChannel = 1;
 		else
 			this.neuronChannel = neuronChannel;
-		this.activateRef = activateRef == null ? (activateRef = Raster.toActivationRef(this.neuronChannel, true)) : activateRef;
-		this.convActivateRef = convActivateRef == null ? (convActivateRef = Raster.toConvActivationRef(this.neuronChannel, true)) : convActivateRef;
+		this.activateRef = activateRef == null ? (activateRef = Raster.toActivationRef(this.neuronChannel, isNorm())) : activateRef;
+		this.convActivateRef = convActivateRef == null ? (convActivateRef = Raster.toConvActivationRef(this.neuronChannel, isNorm())) : convActivateRef;
 	}
 	
 

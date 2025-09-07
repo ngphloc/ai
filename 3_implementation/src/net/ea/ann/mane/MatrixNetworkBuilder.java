@@ -48,4 +48,15 @@ public final class MatrixNetworkBuilder implements Cloneable, Serializable {
 	}
 
 	
+	/**
+	 * Setting activation reference.
+	 * @param activateRef activation reference.
+	 * @return this builder.
+	 */
+	public MatrixNetworkBuilder setActivateRef(Function activateRef) {
+		this.activateRef = activateRef;
+		return this;
+	}
+
+
 }
