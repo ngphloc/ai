@@ -46,7 +46,7 @@ public class StackClassifier extends ClassifierModelAbstract {
 
 	
 	@Override
-	protected Classifier createClassifier() {
+	protected Classifier createGenModel() {
 		try {
 			return net.ea.ann.classifier.StackClassifier.create(getNeuronChannel(), isNorm());
 		} catch (Throwable e) {Util.trace(e);}

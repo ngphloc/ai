@@ -27,9 +27,11 @@ import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
-import net.ea.ann.raster.RasterWrapperProperty;
 import net.ea.ann.raster.RasterProperty.Label;
+import net.ea.ann.raster.RasterWrapperProperty;
+import net.ea.ann.raster.Size;
 
 /**
  * This class is default implementation of classifier within context of matrix neural network.
@@ -50,7 +52,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	/**
 	 * Default value for by-column flag.
 	 */
-	public final static String BYCOLUMN_FIELD = "maclass";
+	public final static String BYCOLUMN_FIELD = "mac_bycolumn";
 
 	
 	/**
@@ -63,7 +65,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * Field of the number elements of a combination.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
-	public static final String COMB_NUMBER_FIELD = "maclass_comb_number";
+	public static final String COMB_NUMBER_FIELD = "mac_comb_number";
 	
 	
 	/**
@@ -72,6 +74,56 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 */
 	public static final int COMB_NUMBER_DEFAULT = GeneratorWeighted.COMB_NUMBER_DEFAULT;
 	
+	
+	/**
+	 * Field for filter ignorance.
+	 */
+	public static final String FILTER_IGNORE_FIELD = "mac_filter_ignore";
+	
+	
+	/**
+	 * Default value for filter ignorance.
+	 */
+	public static final boolean FILTER_IGNORE_DEFAULT = false;
+
+	
+	
+	
+	/**
+	 * Field for filter stride.
+	 */
+	public static final String FILTER_STRIDE_FIELD = "mac_filter_stride";
+	
+	
+	/**
+	 * Default value for filter stride.
+	 */
+	public static final int FILTER_STRIDE_DEFAULT = MatrixNetworkImpl.BASE_DEFAULT;
+
+	
+	/**
+	 * Field for depth.
+	 */
+	public static final String DEPTH_FIELD = "mac_depth";
+	
+	
+	/**
+	 * Default value for depth.
+	 */
+	public static final int DEPTH_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT;
+
+	
+	/**
+	 * Field for dual mode.
+	 */
+	public static final String DUAL_FIELD = "mac_dual";
+	
+	
+	/**
+	 * Default value for dual mode.
+	 */
+	public static final boolean DUAL_DEFAULT = false;
+
 	
 	/**
 	 * List of outputs-classes maps. For an outputs-classes map whose each element is a subtask which is a combination given classes.
@@ -104,6 +156,12 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 		config.put(BYCOLUMN_FIELD, BYCOLUMN_DEFAULT);
 		config.put(COMB_NUMBER_FIELD, COMB_NUMBER_DEFAULT);
+		config.put(FILTER_IGNORE_FIELD, FILTER_IGNORE_DEFAULT);
+		config.put(FILTER_STRIDE_FIELD, FILTER_STRIDE_DEFAULT);
+		config.put(DEPTH_FIELD, DEPTH_DEFAULT);
+		config.put(DUAL_FIELD, DUAL_DEFAULT);
+		
+		setTrainer(new TaskTrainerLossEntropy());
 	}
 
 	
@@ -146,24 +204,22 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	}
 
 
-	/**
-	 * Initializing matrix neural network.
-	 * @param inputSize1 input size 1.
-	 * @param outputSize1 output size 1.
-	 * @param filter1 filter 1.
-	 * @param depth1 the number 1 of hidden layers plus output layer.
-	 * @param dual1 dual mode 1.
-	 * @param nCoreClasses2 the number of rows and columns of core classes.
-	 * @param depth2 the number 2 of hidden layers plus output layer.
-	 * @return true if initialization is successful.
+	/*
+	 * Note, nCoreClasses2 the number of rows and columns of core classes.
 	 */
+	@Override
 	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
 		if (!configClassInfo(nCoreClasses2)) return false;
 		
-		int nClass = paramIsByColumn() ? nCoreClasses2.height : nCoreClasses2.width;
-		int nClassCount = paramIsByColumn() ? nCoreClasses2.width : nCoreClasses2.height;
-		Dimension outputSize2 = paramIsByColumn() ? new Dimension(nClassCount, nClass) : new Dimension(nClass, nClassCount);
-		if (!initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
+		int outputCount = this.outputClassMaps.get(0).size();
+		int groupCount = paramIsByColumn() ? nCoreClasses2.width : nCoreClasses2.height;
+		Dimension outputSize2 = paramIsByColumn() ? new Dimension(groupCount, outputCount) : new Dimension(outputCount, groupCount);
+		boolean initialized = false;
+		if (paramIsFilterIgnore())
+			initialized = super.initialize(inputSize1, outputSize2, (Filter2D)null, depth1, false, null, 0);
+		else
+			initialized = super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2);
+		if (!initialized) return false;
 		if (this.outputClassMaps.size() != this.classOutputMaps.size()) return false;
 		
 		Matrix output = getOutput();
@@ -177,6 +233,16 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 		}
 	}
 
+	
+	/*
+	 * Note, nCoreClasses2 the number of rows and columns of core classes.
+	 */
+	@Override
+	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Dimension filterStride1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
+		Filter2D filter1 = defaultFilter(filterStride1);
+		return initialize(inputSize1, outputSize1, filter1, depth1, dual1, nCoreClasses2, depth2);
+	}
+	
 	
 	/**
 	 * Configure class information.
@@ -599,14 +665,28 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 		if (labelGroups.size() == 0) return Util.newList(0);
 
 		//Adjusting the group label list so that its size is equal to group count.
-		int groupCount = getNumberOfGroups();
+		int groupCount = labelGroups.size();
 		if (labelGroups.size() > groupCount) labelGroups = labelGroups.subList(0, groupCount);
 		if (labelGroups.size() < groupCount) {
 			int n = groupCount - labelGroups.size();
 			List<Label> labels = labelGroups.get(labelGroups.size()-1);
 			for (int i = 0; i < n; i++) labelGroups.add(labels);
 		}
-		
+
+		//Initializing matrix network.
+		int maxClassCount = labelGroups.get(0).size();
+		for (List<Label> labels : labelGroups) {
+			if (maxClassCount < labels.size()) maxClassCount = labels.size();
+		}
+		Size size = RasterAssoc.getAverageSize(train);
+		Dimension inputSize = new Dimension(size.width, size.height);
+		Dimension filterStride = new Dimension(paramGetFilterStride(), paramGetFilterStride());
+		int depth = paramGetDepth();
+		boolean dual = paramIsDual();
+		Dimension nCoreClasses = paramIsByColumn() ? new Dimension(groupCount, maxClassCount) : new Dimension(maxClassCount, groupCount);
+		if (!initialize(inputSize, null, filterStride, depth, dual, nCoreClasses, depth))
+			return Util.newList(0);
+
 		//Main task: setting up class maps.
 		for (int group = 0; group < groupCount; group++) {
 			Map<Integer, Label> classMap = Util.newMap(0);
@@ -715,6 +795,98 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	}
 
 
+	/**
+	 * Checking filter ignorance.
+	 * @return filter ignorance.
+	 */
+	boolean paramIsFilterIgnore() {
+		if (config.containsKey(FILTER_IGNORE_FIELD))
+			return config.getAsBoolean(FILTER_IGNORE_FIELD);
+		else
+			return FILTER_IGNORE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting filter ignorance.
+	 * @param filterIgnore filter ignorance.
+	 * @return this matrix classifier.
+	 */
+	MatrixClassifier paramFilterIgnore(boolean filterIgnore) {
+		config.put(FILTER_IGNORE_FIELD, filterIgnore);
+		return this;
+	}
+
+	
+	
+	
+	/**
+	 * Getting filter stride.
+	 * @return filter stride.
+	 */
+	int paramGetFilterStride() {
+		int filterStride = config.getAsInt(FILTER_STRIDE_FIELD);
+		return filterStride < 1 ? FILTER_STRIDE_DEFAULT : filterStride;
+	}
+	
+	
+	/**
+	 * Setting filter stride.
+	 * @param filterStride filter stride.
+	 * @return this matrix classifier.
+	 */
+	MatrixClassifier paramSetFilterStride(int filterStride) {
+		filterStride = filterStride < 1 ? FILTER_STRIDE_DEFAULT : filterStride;
+		config.put(FILTER_STRIDE_FIELD, filterStride);
+		return this;
+	}
+
+	
+	/**
+	 * Getting depth.
+	 * @return depth.
+	 */
+	int paramGetDepth() {
+		int depth = config.getAsInt(DEPTH_FIELD);
+		return depth < 1 ? DEPTH_DEFAULT : depth;
+	}
+	
+	
+	/**
+	 * Setting depth.
+	 * @param depth depth.
+	 * @return this matrix classifier.
+	 */
+	MatrixClassifier paramSetDepth(int depth) {
+		depth = depth < 1 ? DEPTH_DEFAULT : depth;
+		config.put(DEPTH_FIELD, depth);
+		return this;
+	}
+
+	
+	/**
+	 * Checking dual mode.
+	 * @return dual mode.
+	 */
+	boolean paramIsDual() {
+		if (config.containsKey(DUAL_FIELD))
+			return config.getAsBoolean(DUAL_FIELD);
+		else
+			return DUAL_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting dual mode.
+	 * @param dual dual mode.
+	 * @return this matrix classifier.
+	 */
+	MatrixClassifier paramSetDual(boolean dual) {
+		config.put(DUAL_FIELD, dual);
+		return this;
+	}
+
+	
 	/**
 	 * Creating classifier with neuron channel and norm flag.
 	 * @param neuronChannel specified neuron channel.

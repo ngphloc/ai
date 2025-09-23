@@ -158,7 +158,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @param filterStride1
 	 * @return default filter.
 	 */
-	Filter2D defaultFilter(Dimension filterStride1) {
+	protected Filter2D defaultFilter(Dimension filterStride1) {
 		if (filterStride1 == null)
 			return null;
 		else if (filterStride1.width <= 0 || filterStride1.height <= 0)

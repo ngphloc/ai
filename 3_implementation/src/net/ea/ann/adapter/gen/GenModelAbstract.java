@@ -333,10 +333,10 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	 * Creating and updating generative model.
 	 * @return generative model.
 	 */
-	protected ConvGenModel createUpdateGenModel() {
+	ConvGenModel createUpdateGenModel() {
 		try {
 			ConvGenModelAssoc assoc = new ConvGenModelAssoc(gm);
-			if (gm.getNeuronChannel() != getNeuronChannel() || gm.getRasterChannel() != getRasterChannel() || assoc.isNorm() != isNorm())
+			if (gm == null || gm.getNeuronChannel() != getNeuronChannel() || gm.getRasterChannel() != getRasterChannel() || assoc.isNorm() != isNorm())
 				gm = createGenModel();
 			gm.getConfig().putAll(Util.transferToANNConfig(config));
 		} catch (Throwable e) {Util.trace(e);}

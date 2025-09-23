@@ -99,6 +99,7 @@ public class GenUIClassifier extends GenUI {
 		this.chkAllowAdd.setEnabled(false);
 		this.chkRecoverToTest.setEnabled(false);
 		
+		this.txtGenNum.setValue(1);
 		this.lblGen.setText(CLASSIFIED_LABEL_TEXT);
 		this.btnGen.setText("Classify");
 	}
@@ -130,12 +131,6 @@ public class GenUIClassifier extends GenUI {
 				return new GenUIClassifier(gm, false);
 			}
 		});
-	}
-
-
-	@Override
-	void recover() {
-		super.recover();
 	}
 
 

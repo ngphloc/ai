@@ -40,13 +40,13 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	/**
 	 * Default filter stride.
 	 */
-	final static int BASE_DEFAULT = 2;
+	public final static int BASE_DEFAULT = 2;
 	
 	
 	/**
 	 * Default depth.
 	 */
-	final static int DEPTH_DEFAULT = 6;
+	public final static int DEPTH_DEFAULT = 6;
 
 	
 	/**
@@ -132,12 +132,12 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	/**
 	 * Initializing matrix neural network.
 	 * @param inputSize1 input size 1.
-	 * @param outputSize1 output size 1.
-	 * @param filter1 filter 1.
-	 * @param depth1 the number 1 of hidden layers plus output layer.
+	 * @param outputSize1 output size 1, which can be null.
+	 * @param filter1 filter 1, which can be null.
+	 * @param depth1 the number 1 of hidden layers plus output layer, which can be 0.
 	 * @param dual1 dual mode 1.
-	 * @param outputSize2 output size 1.
-	 * @param depth2 the number 2 of hidden layers plus output layer.
+	 * @param outputSize2 output size 1, which can be null.
+	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
@@ -152,7 +152,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		//Calculating hidden layer number 1.
 		int hBase1 = filter1 != null ? filter1.getStrideHeight() : BASE_DEFAULT;
 		int wBase1 = filter1 != null ? filter1.getStrideWidth() : BASE_DEFAULT;
-		int[][] numbers = MatrixNetworkInitializer.constructHiddenNeuronNumbers(inputSize1, outputSize1, hBase1, wBase1, depth1);
+		int[][] numbers = MatrixNetworkInitializer.constructHiddenOutputNeuronNumbers(inputSize1, outputSize1, hBase1, wBase1, depth1);
 		if (numbers == null) return false;
 		int[] heights = numbers[0];
 		int[] widths = numbers[1];
@@ -162,7 +162,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		//Calculating hidden layer number 1.
 		if (outputSize2 != null || depth2 > 0) {
 			outputSize1 = new Dimension(widths[widths.length-1], heights[heights.length-1]);
-			int[][] numbers2 = MatrixNetworkInitializer.constructHiddenNeuronNumbers(outputSize1, outputSize2, hBase1, wBase1, depth2);
+			int[][] numbers2 = MatrixNetworkInitializer.constructHiddenOutputNeuronNumbers(outputSize1, outputSize2, hBase1, wBase1, depth2);
 			if (numbers2 != null) {
 				int hLength = heights.length;
 				heights = Arrays.copyOf(heights, hLength + numbers2[0].length);
@@ -280,8 +280,8 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Dimension filterStride1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
-		Filter2D filter = defaultFilter(filterStride1);
-		return initialize(inputSize1, outputSize1, filter, depth1, dual1, outputSize2, depth2);
+		Filter2D filter1 = defaultFilter(filterStride1);
+		return initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2);
 	}
 	
 	

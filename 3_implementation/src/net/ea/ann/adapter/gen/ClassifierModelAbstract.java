@@ -78,7 +78,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	/**
 	 * Internal classifier.
 	 */
-	protected Classifier classifier = null;
+	protected Classifier gm = null;
 	
 	
 	/**
@@ -86,14 +86,14 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	 */
 	public ClassifierModelAbstract() {
 		super();
-		classifier = createClassifier();
+		gm = createGenModel();
 		
 		try {
-			if (classifier instanceof Network) config.putAll(Util.toConfig(((Network)classifier).getConfig()));
+			if (gm instanceof Network) config.putAll(Util.toConfig(((Network)gm).getConfig()));
 		} catch (Throwable e) {Util.trace(e);}
 		
 		try {
-			if (classifier instanceof Network) ((Network)classifier).addListener(this);
+			if (gm instanceof Network) ((Network)gm).addListener(this);
 		} catch (Throwable e) {Util.trace(e);}
 	}
 
@@ -113,12 +113,12 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	@Override
 	public synchronized void unsetup() throws RemoteException {
 		super.unsetup();
-		if (classifier == null) return;
+		if (gm == null) return;
 		try {
-			if (classifier instanceof StackNetworkAbstract)
-				((StackNetworkAbstract)classifier).reset();
-			else if (classifier instanceof MatrixNetworkAbstract)
-				((MatrixNetworkAbstract)classifier).reset();
+			if (gm instanceof StackNetworkAbstract)
+				((StackNetworkAbstract)gm).reset();
+			else if (gm instanceof MatrixNetworkAbstract)
+				((MatrixNetworkAbstract)gm).reset();
 		} catch (Exception e) {Util.trace(e);}
 	}
 
@@ -127,7 +127,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	public synchronized Remote export(int serverPort) throws RemoteException {
 		Remote remote = super.export(serverPort);
 		try {
-			if (classifier != null && classifier instanceof Network) ((Network)classifier).export(serverPort);
+			if (gm != null && gm instanceof Network) ((Network)gm).export(serverPort);
 		} catch (Throwable e) {Util.trace(e);}
 		return remote;
 	}
@@ -137,7 +137,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	public synchronized void unexport() throws RemoteException {
 		super.unexport();
 		try {
-			if (classifier != null && classifier instanceof Network) ((Network)classifier).unexport();
+			if (gm != null && gm instanceof Network) ((Network)gm).unexport();
 		} catch (Throwable e) {Util.trace(e);}
 	}
 
@@ -146,7 +146,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	public synchronized void forceUnexport() throws RemoteException {
 		super.forceUnexport();
 		try {
-			if (classifier != null && classifier instanceof Network) ((Network)classifier).unexport();
+			if (gm != null && gm instanceof Network) ((Network)gm).unexport();
 		} catch (Throwable e) {Util.trace(e);}
 	}
 
@@ -154,7 +154,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	@Override
 	public Object executeAsLearn(Object input) throws RemoteException {
 		try {
-			if (classifier != null && classifier instanceof Network) ((Network)classifier).getConfig().putAll(Util.transferToANNConfig(config));
+			if (gm != null && gm instanceof Network) ((Network)gm).getConfig().putAll(Util.transferToANNConfig(config));
 		} catch (Throwable e) {Util.trace(e);}
 
 		if (input == null) return null; //Running in setup method.
@@ -172,7 +172,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 		List<Raster> rasters = RasterAssoc.load(sourceDirectory);
 		if (rasters.size() == 0) return null;
 
-		List<Raster> results = classifier.classify(rasters);
+		List<Raster> results = gm.classify(rasters);
 		return results.size();
 	}
 
@@ -181,13 +181,28 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	 * Create classifier.
 	 * @return classifier.
 	 */
-	protected abstract Classifier createClassifier();
+	protected abstract Classifier createGenModel();
 
 
+	/**
+	 * Creating and updating generative model.
+	 * @return generative model.
+	 */
+	Classifier createUpdateGenModel() {
+		try {
+			if (gm == null) gm = createGenModel();
+			if (gm instanceof Network) ((Network)gm).getConfig().putAll(Util.transferToANNConfig(config));
+		} catch (Throwable e) {Util.trace(e);}
+		return gm;
+	}
+
+	
 	@Override
 	public List<Raster> genRasters(Iterable<Raster> sample, int nGens) throws RemoteException {
-		classifier.learnRaster(sample);
-		return classifier.classify(sample);
+		createUpdateGenModel();
+		
+//		classifier.learnRaster(sample);
+		return gm.classify(sample);
 	}
 
 
@@ -199,8 +214,10 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 
 	@Override
 	public List<G> recoverRasters(Iterable<Raster> sample, Iterable<Raster> rasters, int nGens) throws RemoteException {
-		classifier.learnRaster(sample);
-		List<Raster> results = classifier.classify(rasters);
+		createUpdateGenModel();
+		
+		gm.learnRaster(sample);
+		List<Raster> results = gm.classify(rasters);
 		List<G> glist = Util.newList(results.size());
 		for (Raster raster : results) {
 			G g = new G();
@@ -241,7 +258,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	
 	@Override
 	public Object getParameter() throws RemoteException {
-		return classifier;
+		return gm;
 	}
 
 
@@ -311,7 +328,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 		config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		
 		try {
-			if (classifier instanceof Network) config.putAll(Util.toConfig(((Network)classifier).getConfig()));
+			if (gm instanceof Network) config.putAll(Util.toConfig(((Network)gm).getConfig()));
 		} catch (Throwable e) {Util.trace(e);}
 
 		return config;

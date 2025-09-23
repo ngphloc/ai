@@ -46,7 +46,7 @@ public class MatrixClassifier extends ClassifierModelAbstract {
 
 	
 	@Override
-	protected Classifier createClassifier() {
+	protected Classifier createGenModel() {
 		try {
 			return net.ea.ann.classifier.MatrixClassifier.create(getNeuronChannel(), isNorm());
 		} catch (Throwable e) {Util.trace(e);}
