@@ -765,7 +765,7 @@ public abstract class ConvLayer1DAbstract extends LayerAbstract implements ConvL
 			largeLayer = (ConvLayerSingle1D)nextLayer;
 		}
 		
-		maxIteration = maxIteration > 0 ? maxIteration : Network.LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration > 0 ? maxIteration : Network.LEARN_MAX_ITERATION_MAX;
 		int iteration = 0;
 		BiasFilter filter = initialFilter;
 		while (iteration < maxIteration) {

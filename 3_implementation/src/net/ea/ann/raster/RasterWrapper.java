@@ -168,4 +168,11 @@ public class RasterWrapper implements Raster {
 	}
 	
 	
+	/**
+	 * Getting raster.
+	 * @return raster.
+	 */
+	public Raster getRaster() {return raster;}
+	
+	
 }

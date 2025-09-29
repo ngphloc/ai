@@ -23,7 +23,13 @@ public interface Network extends Remote, Cloneable, AutoCloseable {
 	/**
 	 * Default value for maximum iteration of learning neural network.
 	 */
-	final static int LEARN_MAX_ITERATION_DEFAULT = 1000;
+	final static int LEARN_MAX_ITERATION_MAX = 1000;
+
+	
+	/**
+	 * Default value for maximum iteration of learning neural network.
+	 */
+	final static int LEARN_MAX_ITERATION_DEFAULT = 1;
 
 	
 	/**
@@ -35,7 +41,7 @@ public interface Network extends Remote, Cloneable, AutoCloseable {
 	/**
 	 * Default value for learning rate.
 	 */
-	final static double LEARN_RATE_DEFAULT = 1;
+	final static double LEARN_RATE_DEFAULT = 0.1; //= 0.05
 
 	
 	/**

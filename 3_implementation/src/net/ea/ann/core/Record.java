@@ -313,27 +313,67 @@ public class Record implements Serializable, Cloneable {
 	
 	
 	/**
+	 * Getting size of collection.
+	 * @param <T> type.
+	 * @param collection collection.
+	 * @return size of collection.
+	 */
+	public static <T> int sizeOf(Iterable<T> collection) {
+		int size = 0;
+		for (T element : collection) {
+			if (element != null) size++;
+		}
+		return size;
+	}
+
+	
+	/**
+	 * Converting collection into list. 
+	 * @param <T> type.
+	 * @param collection collection.
+	 * @return list.
+	 */
+	private static <T> List<T> listOf(Iterable<T> collection) {
+		List<T> list = Util.newList(0); 
+		if (collection == null) return list;
+		for (T element : collection) {
+			if (element != null) list.add(element);
+		}
+		return list;
+	}
+	
+	
+	/**
 	 * Re-sampling records.
 	 * @param <T> type.
 	 * @param records specified records.
 	 * @param size sample size.
 	 * @return re-sampled record list.
 	 */
-	public static <T> List<T> resample(Iterable<T> records, int size) {
-		List<T> list = Util.newList(0); 
-		if (records == null) return list;
-		for (T record : records) list.add(record);
-		int n = list.size();
-		if (n == 0) return list;
-		
+	private static <T> List<T> resample(List<T> records, int size) {
+		int n = records.size();
+		if (n == 0) return records;
 		size = size < 1 || size > n ? n : size;
 		List<T> sample = Util.newList(size);
 		Random rnd = new Random();
 		for (int i = 0; i < size; i++) {
 			int index = rnd.nextInt(n);
-			sample.add(list.get(index));
+			sample.add(records.get(index));
 		}
 		return sample;
+	}
+	
+	
+	/**
+	 * Re-sampling records.
+	 * @param <T> type.
+	 * @param records specified records.
+	 * @param size sample size.
+	 * @return re-sampled record list.
+	 */
+	private static <T> List<T> resample(Iterable<T> records, int size) {
+		List<T> list = listOf(records);
+		return resample(list, size);
 	}
 
 
@@ -343,8 +383,10 @@ public class Record implements Serializable, Cloneable {
 	 * @param records specified records.
 	 * @return re-sampled record list.
 	 */
-	public static <T> List<T> resample(Iterable<T> records) {
-		return resample(records, 0);
+	public static <T> List<T> resample(Iterable<T> records, double rate) {
+		rate = 0 < rate && rate <= 1 ? rate : 1;
+		int size = (int) (rate * (double)sizeOf(records));
+		return resample(records, size);
 	}
 	
 	

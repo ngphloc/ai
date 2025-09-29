@@ -305,7 +305,7 @@ public class VAEImpl extends VAEAbstract {
 		if (encoder == null || encoder.getBackbone().size() < 2) return null;
 		if (decoder == null || decoder.getBackbone().size() < 2) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -313,10 +313,10 @@ public class VAEImpl extends VAEAbstract {
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			sample = resample(sample, iteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration);
 
-			for (Record record : sample) {
+			for (Record record : subsample) {
 				if (record == null) continue;
 				
 				try {
@@ -337,7 +337,7 @@ public class VAEImpl extends VAEAbstract {
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}
@@ -379,7 +379,7 @@ public class VAEImpl extends VAEAbstract {
 		if (encoder == null || encoder.getBackbone().size() < 2) return null;
 		if (decoder == null || decoder.getBackbone().size() < 2) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -387,14 +387,14 @@ public class VAEImpl extends VAEAbstract {
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			sample = resample(sample, iteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration);
 
 			//Learning encoder.
-			encoder.learn(sample, lr, terminatedThreshold, 1);
+			encoder.learn(subsample, lr, terminatedThreshold, 1);
 			
 			List<Record> decodeSample = Util.newList(0);
-			for (Record record : sample) {
+			for (Record record : subsample) {
 				if (record == null) continue;
 				decodeSample.add(new Record(randomizeDataZ(learnRnd), record.input));
 			}
@@ -408,7 +408,7 @@ public class VAEImpl extends VAEAbstract {
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}

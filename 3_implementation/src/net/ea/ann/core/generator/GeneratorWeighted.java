@@ -132,7 +132,7 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	 * Default value for the field of the number elements of a combination.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
-	public static final int COMB_NUMBER_DEFAULT = 2;
+	public static final int COMB_NUMBER_DEFAULT = 1;
 	
 	
 	/**
@@ -234,7 +234,11 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	private boolean configClassInfo(int nClass) {
 		if (nClass < 1) return false;
 		int comb = paramGetCombNumber();
-		if (comb < 1 || comb > nClass) return false;
+		if (comb < 1 || comb >= nClass) {
+			comb = 1;
+			paramSetCombNumber(comb);
+			return false;
+		}
 		
 		outputClassMap.clear(); //outputs-classes map whose each element is a subtask which is a combination given classes.
 		classOutputMap.clear(); //classes-outputs map whose each element is a class pointer to the subtask which is a combination given classes.

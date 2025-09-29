@@ -156,6 +156,20 @@ public class ProductFilter2D extends AbstractFilter2D implements TextParsable {
 
 	
 	/**
+	 * Calculating sum of array of kernels.
+	 * @param kernels array of kernels.
+	 * @return sum of array of kernels.
+	 */
+	public static NeuronValue[][] kernelAdd(NeuronValue[][]...kernels) {
+		if (kernels == null || kernels.length == 0) return null;
+		if (kernels.length == 1) return kernels[0];
+		NeuronValue[][] sum = kernels[0];
+		for (int i = 1; i < kernels.length; i++) sum = NeuronValue.add(sum, kernels[i]);
+		return sum;
+	}
+
+	
+	/**
 	 * Calculating mean of array of kernels.
 	 * @param kernels array of kernels.
 	 * @return mean of array of kernels.
@@ -163,22 +177,9 @@ public class ProductFilter2D extends AbstractFilter2D implements TextParsable {
 	public static NeuronValue[][] kernelMean(NeuronValue[][]...kernels) {
 		if (kernels == null || kernels.length == 0) return null;
 		if (kernels.length == 1) return kernels[0];
-		
-		int m = kernels[0].length, n = kernels[0][0].length;
-		NeuronValue[][] mean = new NeuronValue[m][n];
-		for (NeuronValue[][] kernel : kernels) {
-			for (int i = 0; i < kernel.length; i++) {
-				for (int j = 0; j < kernel[i].length; j++) {
-					if (mean[i][j] == null)
-						mean[i][j] = kernel[i][j];
-					else
-						mean[i][j] = mean[i][j].add(kernel[i][j]);
-				}
-			}
-		}
+		NeuronValue[][] mean = kernelAdd(kernels);
 		return NeuronValue.divide(mean, (double)kernels.length);
 	}
-	
 	
 	
 	/**
@@ -189,6 +190,15 @@ public class ProductFilter2D extends AbstractFilter2D implements TextParsable {
 		return weight;
 	}
 
+	
+	/**
+	 * Setting internal weight.
+	 * @param weight weight.
+	 */
+	public void setWeight(NeuronValue weight) {
+		if (weight != null) this.weight = weight;
+	}
+	
 	
 	@Override
 	public NeuronValue apply(int x, int y, ConvLayerSingle2D layer) {

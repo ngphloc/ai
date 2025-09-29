@@ -137,7 +137,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	protected ConvNetworkAbstract(int neuronChannel, Function activateRef, Id idRef) {
 		super(idRef);
 		
-		this.config.put(LEARN_MAX_ITERATION_FIELD, 1);
+		this.config.put(LEARN_MAX_ITERATION_FIELD, LEARN_MAX_ITERATION_DEFAULT);
 		this.config.put(LEARNING_FILTERS_FIELD, LEARNING_FILTERS_DEFAULT);
 		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		this.config.put(Image.ALPHA_FIELD, Image.ALPHA_DEFAULT);
@@ -617,7 +617,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	public NeuronValue[] learnOne(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return learnOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -626,7 +626,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	public NeuronValue[] learn(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return learn(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -649,7 +649,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		
 		if (convLayers.size() < 1) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -657,10 +657,10 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			sample = resample(sample, iteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration);
 
-			for (Record record : sample) {
+			for (Record record : subsample) {
 				if (record == null) continue;
 				
 				//Evaluating layers.
@@ -698,7 +698,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}
@@ -746,7 +746,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		
 		if (convLayers.size() < 1) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -754,11 +754,11 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			sample = resample(sample, iteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration);
 
 			List<Record> fnSample = Util.newList(0), rfnSample = Util.newList(0);
-			for (Record record : sample) {
+			for (Record record : subsample) {
 				NeuronValue[] fnInput = null, rfnOutput = null;
 				try {
 					//Evaluating layers.
@@ -796,7 +796,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}
@@ -832,7 +832,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	 * @param maxIteration maximum iteration.
 	 */
 	void learnFilters(double learningRate, int maxIteration) {
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
 		for (ConvLayerSingle convLayer : convLayers) {

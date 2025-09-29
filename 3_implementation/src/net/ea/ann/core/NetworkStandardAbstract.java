@@ -600,7 +600,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	public NeuronValue[] learnOne(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return learnOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -609,7 +609,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	public NeuronValue[] learn(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return learn(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 

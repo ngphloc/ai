@@ -538,7 +538,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param value value.
 	 * @return filled matrix.
 	 */
-	private static void fill(Matrix matrix, NeuronValue value) {
+	static void fill(Matrix matrix, NeuronValue value) {
 		for (int i = 0; i < matrix.rows(); i++) {
 			for (int j = 0; j < matrix.columns(); j++) matrix.set(i, j, value);
 		}

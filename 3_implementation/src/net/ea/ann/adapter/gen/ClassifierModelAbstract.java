@@ -25,6 +25,8 @@ import net.ea.ann.gen.GenModel.G;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
+import net.ea.ann.raster.RasterProperty;
+import net.ea.ann.raster.RasterWrapper;
 import net.hudup.core.alg.DuplicatableAlg;
 import net.hudup.core.alg.ExecuteAsLearnAlgAbstract;
 import net.hudup.core.alg.SetupAlgEvent;
@@ -190,7 +192,8 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	 */
 	Classifier createUpdateGenModel() {
 		try {
-			if (gm == null) gm = createGenModel();
+			if (gm == null || gm.getNeuronChannel() != getNeuronChannel())
+				gm = createGenModel();
 			if (gm instanceof Network) ((Network)gm).getConfig().putAll(Util.transferToANNConfig(config));
 		} catch (Throwable e) {Util.trace(e);}
 		return gm;
@@ -219,10 +222,32 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 		gm.learnRaster(sample);
 		List<Raster> results = gm.classify(rasters);
 		List<G> glist = Util.newList(results.size());
-		for (Raster raster : results) {
+		for (Raster result : results) {
 			G g = new G();
-			g.xgenUndefined = raster;
+			g.xgenUndefined = result;
 			glist.add(g);
+			if (!(result instanceof RasterWrapper)) continue;
+			
+			RasterWrapper wResult = (RasterWrapper)result;
+			Raster source = null;
+			for (Raster raster : rasters) {
+				if (wResult.getRaster() == raster) {
+					source = raster;
+					break;
+				}
+			}
+			if (source == null) continue;
+			
+			RasterProperty sourceProperty = source.getProperty();
+			RasterProperty resultProperty = result.getProperty();
+			int labelCount = Math.min(sourceProperty.getLabelCount(), resultProperty.getLabelCount());
+			int correct = 0;
+			for (int i = 0; i < labelCount; i++) {
+				int sourceLabelId = sourceProperty.getLabelId(i);
+				int resultLabelId = resultProperty.getLabelId(i);
+				if (sourceLabelId == resultLabelId) correct++;
+			}
+			if (labelCount > 0) g.error = 1.0 - (double)correct/(double)labelCount;
 		}
 		return glist;
 	}

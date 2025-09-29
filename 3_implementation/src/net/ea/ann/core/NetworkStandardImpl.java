@@ -164,7 +164,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 		List<LayerStandard> backbone = getBackbone();
 		if (backbone.size() < 2) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -172,10 +172,10 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			sample = resample(sample, iteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration);
 
-			for (Record record : sample) {
+			for (Record record : subsample) {
 				if (record == null) continue;
 				NeuronValue[] output = record.output != null? NeuronValue.adjustArray(record.output, backbone.get(backbone.size()-1).size(), backbone.get(backbone.size()-1)) : null;
 				
@@ -198,7 +198,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}
@@ -237,7 +237,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 		List<LayerStandard> backbone = getBackbone();
 		if (backbone.size() < 2) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -245,14 +245,14 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			sample = resample(sample, iteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration);
 
 			//Learning backbone.
-			error = bp.updateWeightsBiases(sample, backbone, lr, this);			
+			error = bp.updateWeightsBiases(subsample, backbone, lr, this);			
 			
 			//Learning rib-bone and memory.
-			learnRibMem(sample, lr);
+			learnRibMem(subsample, lr);
 		
 			iteration ++;
 			
@@ -261,7 +261,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}
@@ -347,7 +347,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	private NeuronValue[] learn(List<LayerStandard> bone, NeuronValue[] input, NeuronValue[] realOutput, boolean learningRibMem, double learningRate, double terminatedThreshold, int maxIteration) {
 		if (bone == null || bone.size() < 2) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -369,7 +369,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 			
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				break;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}
@@ -438,7 +438,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 			double learningRate, double terminatedThreshold, int maxIteration) {
 		if (bone == null || bone.size() < 2) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -463,7 +463,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 			
 			if (error == null || error.size() == 0 || (iteration >= maxIteration && maxIteration == 1))
 				break;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				NeuronValue[][] errors = error.values().toArray(new NeuronValue[][] {});
 				double errorMean = NeuronValue.normMean(errors);
 				if (errorMean < terminatedThreshold) break;

@@ -60,6 +60,31 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 
 	
 	/**
+	 * Initializing parameters.
+	 */
+	public void initParams() {
+		for (int i = 0; i < mane.layers.length; i++) {
+			MatrixLayerAbstract layer = mane.layers[i];
+			if (layer instanceof MatrixLayerImpl)
+				new MatrixLayerAssoc((MatrixLayerImpl)layer).initParams();
+		}
+	}
+	
+	
+	/**
+	 * Initializing parameters by specified value.
+	 * @param v value.
+	 */
+	public void initParams(double v) {
+		for (int i = 0; i < mane.layers.length; i++) {
+			MatrixLayerAbstract layer = mane.layers[i];
+			if (layer instanceof MatrixLayerImpl)
+				new MatrixLayerAssoc((MatrixLayerImpl)layer).initParams(v);
+		}
+	}
+
+	
+	/**
 	 * Test of transformation.
 	 * @param in input stream.
 	 * @param out output stream.
@@ -110,7 +135,7 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 		if (lr <= 0 || lr > 1) lr = defaultlr;
 		printer.println("Starting learning rate is " + lr + "\n");
 
-		int defaultMaxIteration = 3;
+		int defaultMaxIteration = Network.LEARN_MAX_ITERATION_DEFAULT;
 		int maxIteration = defaultMaxIteration;
 		printer.print("Max iteration (default " + maxIteration + "):");
 		try {

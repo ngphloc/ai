@@ -12,6 +12,7 @@ import java.rmi.NoSuchObjectException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.List;
 
 /**
  * This class is basic abstract implementation of neural network.
@@ -86,8 +87,32 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	/**
 	 * Default value of re-sampling field.
 	 */
-	public final static boolean RESAMPLE_DEFAULT = false;
+	public final static boolean RESAMPLE_DEFAULT = true;
 	
+	
+	/**
+	 * Name of re-sampling rating field.
+	 */
+	public final static String RESAMPLE_RATE_FILED = "net_resample_rate";
+	
+	
+	/**
+	 * Default value of re-sampling rating field.
+	 */
+	public final static double RESAMPLE_RATE_DEFAULT = 1;
+	
+	
+	/**
+	 * Name of pseudo-epochs field.
+	 */
+	public final static String EPOCHS_PSEUDO_FILED = "net_epochs_pseudo";
+	
+	
+	/**
+	 * Default value of pseudo-epochs field.
+	 */
+	public final static int EPOCHS_PSEUDO_DEFAULT = 1;
+
 	
 	/**
 	 * Default value of zoom-out.
@@ -165,7 +190,9 @@ public abstract class NetworkAbstract implements Network, Serializable {
 		config.put(LEARN_RATE_FIELD, LEARN_RATE_DEFAULT);
 		config.put(LEARN_TERMINATE_ERROR_FIELD, LEARN_TERMINATE_ERROR_DEFAULT);
 		config.put(RESAMPLE_FILED, RESAMPLE_DEFAULT);
+		config.put(RESAMPLE_RATE_FILED, RESAMPLE_RATE_DEFAULT);
 		config.put(LEARN_RATE_FIXED_FIELD, LEARN_RATE_FIXED_DEFAULT);
+		config.put(EPOCHS_PSEUDO_FILED, EPOCHS_PSEUDO_DEFAULT);
 
 		if (idRef != null) this.idRef = idRef;
 	}
@@ -184,18 +211,24 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	 * @param <T> record type.
 	 * @param records specified records.
 	 * @param iteration current iteration.
+	 * @param maxIteration maximum iteration
 	 * @return re-sampled sample.
 	 */
-	protected <T> Iterable<T> resample(Iterable<T> records, int iteration) {
+	protected <T> Iterable<T> resample(Iterable<T> records, int iteration, int maxIteration) {
 		if (!config.getAsBoolean(RESAMPLE_FILED)) return records;
+		double resampleRate = getResampleRate();
+		List<T> sample = Record.resample(records, resampleRate);
+		if (maxIteration <= 1) return sample;
 		
-		//Fixing here.
-		if (iteration <= 1) {
-			return records;
-		}
-		else {
-			return Record.resample(records);
-		}
+		int sampleSize = Record.sizeOf(records);
+		int batchSize = sampleSize / maxIteration;
+		if (batchSize == 0) return sample;
+		iteration = iteration < 0 ? 0 : iteration;
+		iteration = iteration >= maxIteration ? maxIteration-1 : iteration;
+		int index = iteration*batchSize;
+		int length = index + batchSize;
+		length = length >= sample.size() ? sample.size() : length;
+		return sample.subList(index, length);
 	}
 	
 	
@@ -246,6 +279,16 @@ public abstract class NetworkAbstract implements Network, Serializable {
 		return this;
 	}
 	
+	
+	/**
+	 * Getting re-sampling rate.
+	 * @return re-sampling rate.
+	 */
+	public double getResampleRate() {
+		double resampleRate = config.getAsReal(RESAMPLE_RATE_FILED);
+		return Double.isNaN(resampleRate) || resampleRate <= 0 || resampleRate > 1 ? RESAMPLE_RATE_DEFAULT : resampleRate;
+	}
+
 	
 	@Override
 	public void addListener(NetworkListener listener) throws RemoteException {

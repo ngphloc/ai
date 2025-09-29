@@ -455,7 +455,7 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 	public NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return learnRasterOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -464,7 +464,7 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return learnRaster(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 

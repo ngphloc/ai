@@ -338,7 +338,7 @@ public class GenModelLocal extends GenModelAbstract implements ConvGenModel, Con
 	public NeuronValue[] learnOne(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return bpLearnOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -347,7 +347,7 @@ public class GenModelLocal extends GenModelAbstract implements ConvGenModel, Con
 	public NeuronValue[] learn(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return bpLearn(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -356,7 +356,7 @@ public class GenModelLocal extends GenModelAbstract implements ConvGenModel, Con
 	public synchronized NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return bpLearnRasterOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -365,7 +365,7 @@ public class GenModelLocal extends GenModelAbstract implements ConvGenModel, Con
 	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = config.getAsReal(LEARN_RATE_FIELD);
+		double learningRate = getLearingRate();
 		return bpLearnRaster(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -395,7 +395,7 @@ public class GenModelLocal extends GenModelAbstract implements ConvGenModel, Con
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -403,10 +403,10 @@ public class GenModelLocal extends GenModelAbstract implements ConvGenModel, Con
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			sample = resample(sample, iteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 //			double lr = calcLearningRate(learningRate, iteration);
 
-			for (Record record : sample) {
+			for (Record record : subsample) {
 				if (record == null) continue;
 				
 				NeuronValue[] input = null;
@@ -465,7 +465,7 @@ public class GenModelLocal extends GenModelAbstract implements ConvGenModel, Con
 
 			if (error == null || error.length == 0)
 				doStarted = false;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}

@@ -346,7 +346,7 @@ public class Attention implements Cloneable, Serializable {
 		if (outputA == null) return null;
 		
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? NetworkAbstract.LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
-		maxIteration = maxIteration >= 0 ? maxIteration :  NetworkAbstract.LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  NetworkAbstract.LEARN_MAX_ITERATION_MAX;
 
 		Matrix error = null;
 		int iteration = 0;

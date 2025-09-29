@@ -194,7 +194,7 @@ public class GANImpl extends GANAbstract {
 		
 		if (decoder == null || decoder.getBackbone().size() < 2) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		int disSteps = config.getAsInt(DISCRIMINATE_STEPS_FIELD);
@@ -204,10 +204,10 @@ public class GANImpl extends GANAbstract {
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			sample = resample(sample, iteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration);
 
-			for (Record record : sample) {
+			for (Record record : subsample) {
 				if (record == null) continue;
 				
 //				//Learning decoder.
@@ -252,7 +252,7 @@ public class GANImpl extends GANAbstract {
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}
@@ -290,7 +290,7 @@ public class GANImpl extends GANAbstract {
 		
 		if (decoder == null || decoder.getBackbone().size() < 2) return null;
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_DEFAULT;
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		int disSteps = config.getAsInt(DISCRIMINATE_STEPS_FIELD);
@@ -300,14 +300,14 @@ public class GANImpl extends GANAbstract {
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			sample = resample(sample, iteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration);
 
 			//Learning decoding adversarial network.
 			for (int k = 0; k < disSteps && decodeAdv != null; k++) {
 				List<Record> decodeAdvSample = Util.newList(0);
 				int n = 0;
-				for (Record record : sample) {
+				for (Record record : subsample) {
 					if (decodeAdv.evaluateSetPrevOutputAccum(new Record(record.input))) n++;
 					
 					//Getting generated X.
@@ -329,7 +329,7 @@ public class GANImpl extends GANAbstract {
 
 			//Learning decoder.
 			List<Record> decodeSample = Util.newList(0);
-			for (Record record : sample) decodeSample.add(new Record(randomizeDataZ(learnRnd), record.input));
+			for (Record record : subsample) decodeSample.add(new Record(randomizeDataZ(learnRnd), record.input));
 			error = decoder.learn(decodeSample, lr, terminatedThreshold, 1);
 			
 			iteration ++;
@@ -339,7 +339,7 @@ public class GANImpl extends GANAbstract {
 
 			if (error == null || error.length == 0 || (iteration >= maxIteration && maxIteration == 1))
 				doStarted = false;
-			else if (terminatedThreshold > 0 && config.isBooleanValue(LEARN_TERMINATE_ERROR_FIELD)) {
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = NeuronValue.normMean(error);
 				if (errorMean < terminatedThreshold) doStarted = false;
 			}

@@ -71,7 +71,7 @@ public class ResidualNetwork extends MatrixNetworkImpl {
 
 
 	@Override
-	Matrix evaluate(Matrix input, Object... params) {
+	protected Matrix evaluate(Matrix input, Object... params) {
 		Matrix output = super.evaluate(input, params);
 		output = output.add(getInput());
 		getOutputLayer().setOutput(output);

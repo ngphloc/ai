@@ -84,7 +84,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	/**
 	 * Default value for filter ignorance.
 	 */
-	public static final boolean FILTER_IGNORE_DEFAULT = false;
+	public static final boolean FILTER_IGNORE_DEFAULT = true;
 
 	
 	
@@ -129,21 +129,27 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * List of outputs-classes maps. For an outputs-classes map whose each element is a subtask which is a combination given classes.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
-	protected List<Map<Integer, int[]>> outputClassMaps = Util.newList(0);
+	List<Map<Integer, int[]>> outputClassMaps = Util.newList(0);
 	
 	
 	/**
 	 * List of classes-outputs maps. For a classes-outputs map whose each element is a class pointer to the subtask which is a combination given classes.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
-	protected List<Map<Integer, int[]>> classOutputMaps = Util.newList(0);
+	List<Map<Integer, int[]>> classOutputMaps = Util.newList(0);
 
 	
 	/**
 	 * List of class-label maps.
 	 */
-	protected List<Map<Integer, Label>> classMaps = Util.newList(0);
+	List<Map<Integer, Label>> classMaps = Util.newList(0);
 
+	
+	/**
+	 * Output mean.
+	 */
+	Matrix outputMean = null;
+	
 	
 	/**
 	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
@@ -201,6 +207,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 		outputClassMaps.clear();
 		classOutputMaps.clear();
 		classMaps.clear();
+		outputMean = null;
 	}
 
 
@@ -279,7 +286,11 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	private boolean configClassInfo(int nClass, Map<Integer, int[]> outputClassMap, Map<Integer, int[]> classOutputMap) {
 		if (nClass < 1) return false;
 		int comb = paramGetCombNumber();
-		if (comb < 1 || comb > nClass) return false;
+		if (comb < 1 || comb >= nClass) {
+			comb = 1;
+			paramSetCombNumber(comb);
+			return false;
+		}
 		
 		outputClassMap.clear(); //outputs-classes map whose each element is a subtask which is a combination given classes.
 		classOutputMap.clear(); //classes-outputs map whose each element is a class pointer to the subtask which is a combination given classes.
@@ -526,25 +537,19 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 		int[] foundClasses = new int[groups]; 
 		for (int group = 0; group < groups; group++) {
 			double[] weights = weightsOfOutput(output, group);
-			int nClass = getNumberOfClasses(group);
-			int foundClass = -1;
-			double minDistance = Double.MAX_VALUE;
-			for (int classIndex = 0; classIndex < nClass; classIndex++) {
-				NeuronValue[] output2 = createOutputByClass(group, classIndex);
-				double[] weights2 = weightsOfOutput(output2);
-				double distance = 0;
-				for (int i = 0; i < weights.length; i++) {
-					double d = weights[i] - weights2[i];
-					distance += d*d;
-				}
-				distance = Math.sqrt(distance);
-				
-				if (distance < minDistance) {
-					minDistance = distance;
-					foundClass = classIndex;
+
+			int classCount = getNumberOfClasses(group);
+			if (this.outputMean != null) {
+				for (int classIndex = 0; classIndex < classCount; classIndex++) {
+					NeuronValue mean = paramIsByColumn() ? this.outputMean.get(classIndex, group) : this.outputMean.get(group, classIndex);
+					weights[classIndex] = Math.abs(weights[classIndex] - mean.mean()); //This line is important due to set mean as baseline for determining class.
 				}
 			}
-			
+			int foundClass = 0;
+			for (int classIndex = 1; classIndex < classCount; classIndex++) {
+				if (weights[classIndex] > weights[foundClass]) foundClass = classIndex;
+			}
+
 			foundClasses[group] = foundClass;
 		}
 		
@@ -610,8 +615,8 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @return new sample.
 	 */
 	List<Matrix[]> prelearn(Iterable<Raster> sample) {
-		this.classMaps.clear();
-
+		reset();
+		
 		//Getting minimum count of labels.
 		int labelCount = -1;
 		List<Raster> train = Util.newList(0);
@@ -688,6 +693,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 			return Util.newList(0);
 
 		//Main task: setting up class maps.
+		this.classMaps.clear();
 		for (int group = 0; group < groupCount; group++) {
 			Map<Integer, Label> classMap = Util.newMap(0);
 			int classCount = getNumberOfClasses(group);
@@ -723,6 +729,29 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	
 	
 	@Override
+	public Matrix[] learn(Iterable<Matrix[]> inouts) throws RemoteException {
+		Matrix[] errors = super.learn(inouts);
+		learnVerify(inouts);
+		return errors;
+	}
+
+	
+	/**
+	 * Verifying learning.
+	 * @param inouts learning sample.
+	 */
+	public void learnVerify(Iterable<Matrix[]> inouts) {
+		this.outputMean = null;
+		List<Matrix> outputList = Util.newList(0);
+		for (Matrix[] inout : inouts) {
+			Matrix output = evaluate(inout[0], new Object[] {});
+			if (output != null) outputList.add(output);
+		}
+		if (outputList.size() > 0) this.outputMean = Matrix.mean(outputList.toArray(new Matrix[] {}));
+	}
+
+	
+	@Override
 	public List<Raster> classify(Iterable<Raster> sample) throws RemoteException {
 		List<Raster> results = Util.newList(0);
 		for (Raster raster : sample) {
@@ -747,6 +776,12 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 			results.add(rw);
 		}
 		return results;
+	}
+
+	
+	@Override
+	public int getNeuronChannel() throws RemoteException {
+		return neuronChannel;
 	}
 
 	

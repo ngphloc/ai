@@ -533,6 +533,12 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 	}
 
 	
+	@Override
+	public int getNeuronChannel() throws RemoteException {
+		return neuronChannel;
+	}
+
+	
 	/**
 	 * Creating classifier with neuron channel, activation functions, and ID reference.
 	 * @param neuronChannel neuron channel.

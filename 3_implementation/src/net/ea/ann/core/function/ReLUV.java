@@ -140,11 +140,11 @@ public class ReLUV implements ReLU {
 	public NeuronValue derivative(NeuronValue x) {
 		int n = max.length;
 		NeuronValueV result = new NeuronValueV(n, 0.0);
-		NeuronValueV v = (NeuronValueV)x;
+//		NeuronValueV v = (NeuronValueV)x;
 		for (int i = 0; i < n; i++) {
-			if ((v.get(i) < min[i]) || (isConcernMax() && v.get(i) > max[i]))
-				result.set(i, 0);
-			else
+//			if ((v.get(i) < min[i]) || (isConcernMax() && v.get(i) > max[i]))
+//				result.set(i, 0);
+//			else
 				result.set(i, 1);
 		}
 		

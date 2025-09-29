@@ -38,10 +38,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	private static final long serialVersionUID = 1L;
 	
 	
-	/**
-	 * Very small number for initialization.
-	 */
-	protected final static double EPSILON = Network.LEARN_TERMINATED_THRESHOLD_DEFAULT;
+//	/**
+//	 * Very small number for initialization.
+//	 */
+//	protected final static double EPSILON = 0 ;//Network.LEARN_TERMINATED_THRESHOLD_DEFAULT;
 	
 	
 	/**
@@ -90,6 +90,36 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Convolutional filter bias.
 	 */
 	protected NeuronValue filterBias = null;
+	
+	
+	/**
+	 * Backward information: Accumulation of gradients of first weights.
+	 */
+	Matrix dw1Accum = null;
+	
+	
+	/**
+	 * Backward information: Accumulation of gradients of second weights.
+	 */
+	Matrix dw2Accum = null;
+	
+	
+	/**
+	 * Backward information: Accumulation of gradients of biases.
+	 */
+	Matrix dbiasAccum = null;
+	
+	
+	/**
+	 * Backward information: Accumulation of gradients of filter kernels.
+	 */
+	NeuronValue[][] dfilterKernelAccum = null;
+	
+	
+	/**
+	 * Backward information: Accumulation of gradients of filter biases.
+	 */
+	NeuronValue dfilterBiasAccum = null;
 	
 	
 	/**
@@ -145,6 +175,20 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		this.filterBias = null;
 		this.setPrevLayer(null);
 		this.setNextLayer(null);
+		
+		resetBackwardInfo();
+	}
+	
+
+	/**
+	 * Resetting backward information.
+	 */
+	void resetBackwardInfo() {
+		this.dw1Accum = null;
+		this.dw2Accum = null;
+		this.dbiasAccum = null;
+		this.dfilterKernelAccum = null;
+		this.dfilterBiasAccum = null;
 	}
 	
 	
@@ -210,8 +254,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		
 		//Initialize ones related to weights.
-		if (this.weight1 != null) Matrix.fill(this.weight1, EPSILON);
-		if (this.weight2 != null) Matrix.fill(this.weight2, EPSILON);
+//		if (this.weight1 != null) Matrix.fill(this.weight1, EPSILON);
+//		if (this.weight2 != null) Matrix.fill(this.weight2, EPSILON);
 		if (this.weight1 != null || this.weight2 != null) this.bias = newMatrix(size.height, size.width);
 		if (this.bias != null) {
 			this.input = newMatrix(size.height, size.width);
@@ -221,6 +265,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			this.output = this.input = newMatrix(size.height, size.width); //Only for input layer where both filter and weights are null and so, its input and output must be initialized.
 		}
 		
+//		new MatrixLayerAssoc(this).initParams();
 		return true;
 	}
 	
@@ -432,8 +477,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		if (this.weight1 == null && this.weight2 == null) return false;
 		
-		if (this.weight1 != null) Matrix.fill(this.weight1, EPSILON);
-		if (this.weight2 != null) Matrix.fill(this.weight2, EPSILON);
+//		if (this.weight1 != null) Matrix.fill(this.weight1, EPSILON);
+//		if (this.weight2 != null) Matrix.fill(this.weight2, EPSILON);
 		this.bias = newMatrix(size.height, size.width);
 		this.input = newMatrix(size.height, size.width);
 		this.output = newMatrix(size.height, size.width);
@@ -442,6 +487,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		this.filterBias = null;
 		this.prevInput = null;
 		
+//		new MatrixLayerAssoc(this).initParams();
 		return true;
 	}
 	
@@ -606,35 +652,55 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		
 		
 		//Update weight bias, first weight, and second weight.
-		if (this.getBias() != null && learning) {
-			Matrix biasMean = Matrix.mean(errors);
-			Matrix bias = this.getBias().add(biasMean.multiply0(learningRate));
-			this.setBias(bias);
+		if (this.getBias() != null) {
+			Matrix dbiasMean = Matrix.mean(errors);
+			if (learning) {
+				Matrix bias = this.getBias().add(dbiasMean.multiply0(learningRate));
+				this.setBias(bias);
+			}
+			else
+				this.dbiasAccum = this.dbiasAccum != null ? this.dbiasAccum.add(dbiasMean) : dbiasMean;
 		}
-		if (this.getWeight1() != null && learning) {
-			Matrix w1Mean = Matrix.mean(dW1s);
-			Matrix w1 = this.getWeight1().add(w1Mean.multiply0(learningRate));
-			this.setWeight1(w1);
+		if (this.getWeight1() != null) {
+			Matrix dw1Mean = Matrix.mean(dW1s);
+			if (learning) {
+				Matrix w1 = this.getWeight1().add(dw1Mean.multiply0(learningRate));
+				this.setWeight1(w1);
+			}
+			else
+				this.dw1Accum = this.dw1Accum != null ? this.dw1Accum.add(dw1Mean) : dw1Mean;
 		}
-		if (this.getWeight2() != null && learning) {
-			Matrix w2Mean = Matrix.mean(dW2s);
-			Matrix w2 = this.getWeight2().add(w2Mean.multiply0(learningRate));
-			this.setWeight2(w2);
+		if (this.getWeight2() != null) {
+			Matrix dw2Mean = Matrix.mean(dW2s);
+			if (learning) {
+				Matrix w2 = this.getWeight2().add(dw2Mean.multiply0(learningRate));
+				this.setWeight2(w2);
+			}
+			else
+				this.dw2Accum = this.dw2Accum != null ? this.dw2Accum.add(dw2Mean) : dw2Mean;
 		}
 		
 		//Update filter and filter bias.
-		if (this.getFilter() != null && this.isLearnFilter() && learning) {
-			NeuronValue filterErrorsMean = NeuronValue.valueMean(dFilterErrors);
-			NeuronValue filterBias = this.getFilterBias().add(filterErrorsMean.multiply(learningRate));
-			this.setFilterBias(filterBias); //Update filter bias.
+		if (this.getFilter() != null && this.isLearnFilter()) {
+			NeuronValue dfilterBiasMean = NeuronValue.valueMean(dFilterErrors);
+			if (learning) {
+				NeuronValue filterBias = this.getFilterBias().add(dfilterBiasMean.multiply(learningRate));
+				this.setFilterBias(filterBias); //Update filter bias.
+			}
+			else
+				this.dfilterBiasAccum = this.dfilterBiasAccum != null ? this.dfilterBiasAccum.add(dfilterBiasMean) : dfilterBiasMean;
 			
 			if (this.getFilter() instanceof ProductFilter2D) {
-				ProductFilter2D filter = (ProductFilter2D)this.getFilter();
-				NeuronValue[][] filterKernelsMean = ProductFilter2D.kernelMean(dFilterKernels);
-				filterKernelsMean = NeuronValue.multiply(filterKernelsMean, learningRate);
-				filter = filter.shallowClone();
-				filter.accumKernel(filterKernelsMean);
-				this.setFilter(filter); //Update filter.
+				NeuronValue[][] dfilterKernelMean = ProductFilter2D.kernelMean(dFilterKernels);
+				if (learning) {
+					ProductFilter2D filter = (ProductFilter2D)this.getFilter();
+					dfilterKernelMean = NeuronValue.multiply(dfilterKernelMean, learningRate);
+					filter = filter.shallowClone();
+					filter.accumKernel(dfilterKernelMean);
+					this.setFilter(filter); //Update filter.
+				}
+				else
+					this.dfilterKernelAccum = this.dfilterKernelAccum != null ? ProductFilter2D.kernelAdd(this.dfilterKernelAccum, dfilterKernelMean) : dfilterKernelMean;
 			}
 		}
 		
@@ -657,14 +723,67 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 
 	/**
-	 * Back-warding matrix neural network layer.
+	 * Back-warding layer as learning matrix neural network.
 	 * @param outputErrors core last errors which are core last biases.
 	 * @param learningRate learning rate.
 	 * @return training error.
 	 */
-	protected Matrix[] backward(Matrix[] outputErrors, double learningRate) {
-		 return backward(outputErrors, null, true, learningRate);
+	Matrix[] backward(Matrix[] outputErrors, double learningRate) {
+		if (outputErrors == null || outputErrors.length == 0) return null;
+		Matrix[] errors = new Matrix[outputErrors.length];
+		for (int i = 0; i < outputErrors.length; i++) {
+			errors[i] = backward(new Matrix[] {outputErrors[i]}, this, false, learningRate)[0];
+		}
+		return errors;
 	}
 
+	
+	/**
+	 * Updating parameters from backward information.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		//Update weight bias, first weight, and second weight.
+		if (this.getBias() != null && this.dbiasAccum != null) {
+			Matrix dbiasMean = this.dbiasAccum.divide0(recordCount);
+			Matrix bias = this.getBias().add(dbiasMean.multiply0(learningRate));
+			this.setBias(bias);
+			this.dbiasAccum = null;
+		}
+		if (this.getWeight1() != null && this.dw1Accum != null) {
+			Matrix dw1Mean = this.dw1Accum.divide0(recordCount);
+			Matrix w1 = this.getWeight1().add(dw1Mean.multiply0(learningRate));
+			this.setWeight1(w1);
+			this.dw1Accum = null;
+		}
+		if (this.getWeight2() != null && this.dw2Accum != null) {
+			Matrix dw2Mean = this.dw2Accum.divide0(recordCount);
+			Matrix w2 = this.getWeight2().add(dw2Mean.multiply0(learningRate));
+			this.setWeight2(w2);
+			this.dw2Accum = null;
+		}
+
+		//Update filter and filter bias.
+		if (this.getFilter() != null && this.isLearnFilter()) {
+			if (this.dfilterBiasAccum != null) {
+				NeuronValue dfilterBiasMean = this.dfilterBiasAccum.divide(recordCount);
+				NeuronValue filterBias = this.getFilterBias().add(dfilterBiasMean.multiply(learningRate));
+				this.setFilterBias(filterBias); //Update filter bias.
+				this.dfilterBiasAccum = null;
+			}
+			
+			if ((this.getFilter() instanceof ProductFilter2D) && (this.dfilterKernelAccum != null)) {
+				NeuronValue[][] dfilterKernelsMean = NeuronValue.divide(this.dfilterKernelAccum, recordCount);
+				ProductFilter2D filter = (ProductFilter2D)this.getFilter();
+				dfilterKernelsMean = NeuronValue.multiply(dfilterKernelsMean, learningRate);
+				filter = filter.shallowClone();
+				filter.accumKernel(dfilterKernelsMean);
+				this.setFilter(filter); //Update filter.
+				this.dfilterKernelAccum = null;
+			}
+		}
+	}
+	
 	
 }

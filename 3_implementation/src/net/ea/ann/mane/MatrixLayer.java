@@ -67,6 +67,7 @@ public interface MatrixLayer extends Layer {
 	 * Back-warding layer as learning matrix neural network.
 	 * @param outputErrors core last errors which are core last biases.
 	 * @param focus focused layer to stop forwarding.
+	 * @param learning learning flag.
 	 * @param learningRate learning rate.
 	 * @return training error.
 	 */
