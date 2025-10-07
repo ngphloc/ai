@@ -38,7 +38,7 @@ public interface Classifier extends Remote, Cloneable {
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException;
+	NeuronValue[] learnRasterOneByOne(Iterable<Raster> sample) throws RemoteException;
 
 
 	/**

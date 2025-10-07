@@ -614,11 +614,11 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 
 	
 	@Override
-	public NeuronValue[] learnOne(Iterable<Record> sample) throws RemoteException {
+	public NeuronValue[] learnOneByOne(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
-		return learnOne(sample, learningRate, terminatedThreshold, maxIteration);
+		double learningRate = paramGetLearningRate();
+		return learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
 	
@@ -626,7 +626,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	public NeuronValue[] learn(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
+		double learningRate = paramGetLearningRate();
 		return learn(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -642,7 +642,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	public NeuronValue[] learnOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	public NeuronValue[] learnOneByOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -658,7 +658,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			for (Record record : subsample) {
 				if (record == null) continue;
@@ -755,7 +755,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			List<Record> fnSample = Util.newList(0), rfnSample = Util.newList(0);
 			for (Record record : subsample) {

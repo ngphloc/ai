@@ -24,6 +24,12 @@ public abstract class RasterAbstract implements Raster {
 
 	
 	/**
+	 * ID of raster.
+	 */
+	protected int id = -1;
+	
+	
+	/**
 	 * Internal raster property.
 	 */
 	protected RasterProperty property = new RasterPropertyImpl();
@@ -34,6 +40,12 @@ public abstract class RasterAbstract implements Raster {
 	 */
 	protected RasterAbstract() {
 		super();
+	}
+
+
+	@Override
+	public int id() {
+		return id;
 	}
 
 

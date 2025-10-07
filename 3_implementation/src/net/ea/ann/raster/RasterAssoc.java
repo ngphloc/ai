@@ -80,6 +80,19 @@ public class RasterAssoc implements Serializable, Cloneable {
 	
 	
 	/**
+	 * Fixing raster channel.
+	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
+	 * @return fixed raster channel.
+	 */
+	public static int fixRasterChannel(int neuronChannel, int rasterChannel) {
+		if (rasterChannel <= neuronChannel) return neuronChannel;
+		int ratio = (int)(rasterChannel / neuronChannel);
+		return ratio*neuronChannel;
+	}
+	
+	
+	/**
 	 * Create raster from neuron values.
 	 * @param layer specified layer.
 	 * @param values neuron values.
@@ -388,7 +401,8 @@ public class RasterAssoc implements Serializable, Cloneable {
 	 */
 	public static String genDefaultName(String prefix, String format, int index) {
 		String name = (prefix != null && !prefix.isEmpty()) ? prefix + ".gen." : "gen.";
-		return name + System.currentTimeMillis() + (index < 0 ? "" : "_" + index) + "." + format;
+		return name + System.currentTimeMillis() + (index < 0 ? "" : "_" + index) +
+			(format != null && !format.isEmpty() ? "." + format : "");
 	}
 	
 	

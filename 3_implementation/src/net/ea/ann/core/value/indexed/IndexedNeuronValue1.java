@@ -131,6 +131,12 @@ public class IndexedNeuronValue1 implements IndexedNeuronValue {
 
 	
 	@Override
+	public NeuronValue abs() {
+		return re(v().abs());
+	}
+
+
+	@Override
 	public boolean canInvert() {
 		return v().canInvert();
 	}

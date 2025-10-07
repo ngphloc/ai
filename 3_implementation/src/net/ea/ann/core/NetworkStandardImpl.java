@@ -156,7 +156,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 	
 
 	@Override
-	public NeuronValue[] learnOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	public NeuronValue[] learnOneByOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -173,7 +173,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			for (Record record : subsample) {
 				if (record == null) continue;
@@ -246,7 +246,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			//Learning backbone.
 			error = bp.updateWeightsBiases(subsample, backbone, lr, this);			
@@ -354,7 +354,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 		NeuronValue[] error = null;
 		int iteration = 0;
 		while (maxIteration <= 0 || iteration < maxIteration) {
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			//Evaluating layers.
 			evaluate(bone, input);
@@ -445,7 +445,7 @@ public class NetworkStandardImpl extends NetworkStandardAbstract {
 		Map<Integer, NeuronValue[]> error = null;
 		int iteration = 0;
 		while (maxIteration <= 0 || iteration < maxIteration) {
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			//Learning main bone.
 			error = bp.updateWeightsBiases(bone, boneInput, boneOutput, lr);

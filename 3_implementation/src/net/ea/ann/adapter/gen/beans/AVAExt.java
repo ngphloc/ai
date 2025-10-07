@@ -41,7 +41,7 @@ public class AVAExt extends GenModelAbstract {
 		if (name != null && !name.isEmpty())
 			return name;
 		else
-			return "avaext";
+			return "gen.avaext";
 	}
 
 	

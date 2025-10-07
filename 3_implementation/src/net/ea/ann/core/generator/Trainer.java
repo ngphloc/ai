@@ -36,7 +36,7 @@ public interface Trainer extends Serializable, Cloneable {
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	NeuronValue[] learnOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration);
+	NeuronValue[] learnOneByOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration);
 	
 	
 	/**

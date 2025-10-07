@@ -10,6 +10,7 @@ package net.ea.ann.mane;
 import java.awt.Dimension;
 import java.rmi.RemoteException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import net.ea.ann.conv.filter.DeconvConvFilter;
@@ -17,6 +18,7 @@ import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
+import net.ea.ann.core.Record;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
@@ -40,13 +42,19 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	/**
 	 * Default filter stride.
 	 */
-	public final static int BASE_DEFAULT = 2;
+	public final static int BASE_DEFAULT = ZOOMOUT_DEFAULT;
 	
 	
 	/**
 	 * Default depth.
 	 */
 	public final static int DEPTH_DEFAULT = 6;
+
+	
+	/**
+	 * Default value of minimum width field.
+	 */
+	public final static int MINSIZE = 32 / BASE_DEFAULT;
 
 	
 	/**
@@ -445,16 +453,21 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	
 	@Override
 	public Matrix[] learn(Iterable<Matrix[]> inouts) throws RemoteException {
-		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
+		int maxIteration = paramGetMaxIteration();
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
+		double learningRate = paramGetLearningRate();
 		
 		int epochs = config.getAsInt(EPOCHS_PSEUDO_FILED);
 		epochs = epochs > 0 ? epochs : EPOCHS_PSEUDO_DEFAULT;
 		Matrix[] outputErrors = null;
+		Iterable<Matrix[]> sample = inouts;
 		for (int epoch = 0; epoch < epochs; epoch++) {
-			double lr = calcLearningRate(learningRate, epoch);
-			outputErrors = learn(inouts, lr, terminatedThreshold, maxIteration);
+			double lr = calcLearningRate(learningRate, epoch+1);
+			if (epoch > 0) {
+				if (!(sample instanceof List<?>)) sample = Record.listOf(sample);
+				Collections.shuffle((List<?>)sample);
+			}
+			outputErrors = learn(sample, lr, terminatedThreshold, maxIteration);
 		}
 		return outputErrors;
 	}
@@ -482,7 +495,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Matrix[]> subinouts = resample(inouts, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			if (trainers.size() == 0) {
 				List<Matrix> outputErrorList = Util.newList(0);

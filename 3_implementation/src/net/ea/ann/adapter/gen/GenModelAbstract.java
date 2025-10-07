@@ -89,7 +89,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	/**
 	 * Default value of minimum width field.
 	 */
-	public final static int XMINWIDTH_DEFAULT = ImageListItem.ICON_MINSIZE / 3;
+	public final static int XMINWIDTH_DEFAULT = ImageListItem.ICON_MINSIZE / ZOOMOUT_DEFAULT;
 
 	
 	/**
@@ -101,7 +101,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	/**
 	 * Default value of minimum height field.
 	 */
-	public final static int XMINHEIGHT_DEFAULT = ImageListItem.ICON_MINSIZE;
+	public final static int XMINHEIGHT_DEFAULT = XMINWIDTH_DEFAULT;
 
 	
 	/**
@@ -299,7 +299,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 		int count = 0;
 		for (Raster raster : rasters) {
 			ConvGenModel clonedGM = (ConvGenModel)net.ea.ann.core.Util.cloneBySerialize(gm);
-			clonedGM.learnRasterOne(Arrays.asList(raster));
+			clonedGM.learnRasterOneByOne(Arrays.asList(raster));
 			for (int k = 0; k < nRecovs; k++) {
 				G g = clonedGM.recoverRaster(raster, null, config.getAsBoolean(RECOVER_RANDOM_FIELD), true);
 				if ((g == null) || (g.xgenUndefined == null) || !(g.xgenUndefined instanceof Raster))

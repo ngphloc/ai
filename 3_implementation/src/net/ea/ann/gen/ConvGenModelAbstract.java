@@ -122,7 +122,7 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 	 */
 	protected ConvGenModelAbstract(int neuronChannel, int rasterChannel, Size size, Id idRef) {
 		super(neuronChannel, null, idRef);
-		this.rasterChannel = rasterChannel = fixRasterChannel(this.neuronChannel, rasterChannel);
+		this.rasterChannel = rasterChannel = RasterAssoc.fixRasterChannel(this.neuronChannel, rasterChannel);
 
 		this.width = size.width;
 		this.height = size.height;
@@ -452,11 +452,11 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 
 	
 	@Override
-	public NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException {
+	public NeuronValue[] learnRasterOneByOne(Iterable<Raster> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
-		return learnRasterOne(sample, learningRate, terminatedThreshold, maxIteration);
+		double learningRate = paramGetLearningRate();
+		return learnRasterOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
 	
@@ -464,7 +464,7 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
+		double learningRate = paramGetLearningRate();
 		return learnRaster(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -477,8 +477,8 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	private NeuronValue[] learnRasterOne(Iterable<Raster> sample, double learningRate, double terminatedThreshold, int maxIteration) {
-		return learnOne(RasterAssoc.toInputSample(sample), learningRate, terminatedThreshold, maxIteration);
+	private NeuronValue[] learnRasterOneByOne(Iterable<Raster> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+		return learnOneByOne(RasterAssoc.toInputSample(sample), learningRate, terminatedThreshold, maxIteration);
 	}
 
 	
@@ -649,19 +649,6 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 	
 
 	/**
-	 * Fixing raster channel.
-	 * @param neuronChannel neuron channel.
-	 * @param rasterChannel raster channel.
-	 * @return fixed raster channel.
-	 */
-	public static int fixRasterChannel(int neuronChannel, int rasterChannel) {
-		if (rasterChannel <= neuronChannel) return neuronChannel;
-		int ratio = (int)(rasterChannel / neuronChannel);
-		return ratio*neuronChannel;
-	}
-	
-	
-	/**
 	 * Recovering values (X values) from original data X.
 	 * @param model (convolutional) generative model.
 	 * @param f function on feature and data X.
@@ -735,7 +722,7 @@ public abstract class ConvGenModelAbstract extends GenModelAbstract implements C
 	 */
 	public static G reproduceRaster(ConvGenModel model, Raster raster, Cube region, boolean random, boolean calcError) {
 		try {
-			model.learnRasterOne(Arrays.asList(raster));
+			model.learnRasterOneByOne(Arrays.asList(raster));
 			return model.recoverRaster(raster, region, random, calcError);
 		} catch (Throwable e) {Util.trace(e);}
 		

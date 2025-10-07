@@ -188,7 +188,7 @@ public abstract class PixelRNNAbstract extends ConvGenModelAbstract implements P
 
 
 	@Override
-	protected NeuronValue[] learnOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	protected NeuronValue[] learnOneByOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -206,7 +206,7 @@ public abstract class PixelRNNAbstract extends ConvGenModelAbstract implements P
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			for (Record record : subsample) {
 				if (record == null) continue;
@@ -216,7 +216,7 @@ public abstract class PixelRNNAbstract extends ConvGenModelAbstract implements P
 					if (conv != null) {
 						try {
 							//Learning convolutional network.
-							if (ConvGenModelAbstract.hasLearning(conv)) conv.learnOne(Arrays.asList(record), lr, terminatedThreshold, 1);
+							if (ConvGenModelAbstract.hasLearning(conv)) conv.learnOneByOne(Arrays.asList(record), lr, terminatedThreshold, 1);
 							conv.evaluate(record);
 							input = conv.getFeatureFitChannel().getData();
 						} catch (Throwable e) {Util.trace(e);}
@@ -235,7 +235,7 @@ public abstract class PixelRNNAbstract extends ConvGenModelAbstract implements P
 				List<Record> rnnRecord = convertXToRNNInputRecord(input);
 				if (rnnRecord.size() > 0 ) {
 					List<List<Record>> rnnSample = Arrays.asList(rnnRecord);
-					error = rnn.learnOne(rnnSample, lr, terminatedThreshold, 1);
+					error = rnn.learnOneByOne(rnnSample, lr, terminatedThreshold, 1);
 					updateRNNInputMeans(rnnSample);
 				}
 			}
@@ -296,7 +296,7 @@ public abstract class PixelRNNAbstract extends ConvGenModelAbstract implements P
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			//Learning convolutional network.
 			try {

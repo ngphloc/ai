@@ -110,7 +110,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	 */
 	public ConvVAEImpl(int neuronChannel, int rasterChannel, Size size, Id idRef) {
 		super(neuronChannel, null, idRef);
-		this.rasterChannel = rasterChannel = ConvGenModelAbstract.fixRasterChannel(this.neuronChannel, rasterChannel);
+		this.rasterChannel = rasterChannel = RasterAssoc.fixRasterChannel(this.neuronChannel, rasterChannel);
 		
 		this.width = size.width;
 		this.height = size.height;
@@ -463,11 +463,11 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	
 	
 	@Override
-	public NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException {
+	public NeuronValue[] learnRasterOneByOne(Iterable<Raster> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
-		return learnRasterOne(sample, learningRate, terminatedThreshold, maxIteration);
+		double learningRate = paramGetLearningRate();
+		return learnRasterOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
 
@@ -475,13 +475,13 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
+		double learningRate = paramGetLearningRate();
 		return learnRaster(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
 
 	@Override
-	protected NeuronValue[] learnOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	protected NeuronValue[] learnOneByOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -498,7 +498,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			for (Record record : subsample) {
 				if (record == null) continue;
@@ -508,7 +508,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 					if (conv != null) {
 						try {
 							//Learning convolutional network.
-							if (ConvGenModelAbstract.hasLearning(conv)) conv.learnOne(Arrays.asList(record), lr, terminatedThreshold, 1);
+							if (ConvGenModelAbstract.hasLearning(conv)) conv.learnOneByOne(Arrays.asList(record), lr, terminatedThreshold, 1);
 							conv.evaluate(record);
 							input = conv.getFeatureFitChannel().getData();
 						} catch (Throwable e) {Util.trace(e);}
@@ -595,7 +595,7 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			//Learning convolutional network.
 			try {
@@ -688,8 +688,8 @@ public class ConvVAEImpl extends VAEImpl implements ConvVAE, FeatureToX, Feature
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	private NeuronValue[] learnRasterOne(Iterable<Raster> sample, double learningRate, double terminatedThreshold, int maxIteration) {
-		return learnOne(RasterAssoc.toInputSample(sample), learningRate, terminatedThreshold, maxIteration);
+	private NeuronValue[] learnRasterOneByOne(Iterable<Raster> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+		return learnOneByOne(RasterAssoc.toInputSample(sample), learningRate, terminatedThreshold, maxIteration);
 	}
 
 	

@@ -125,6 +125,17 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, WeightVa
 
 	
 	@Override
+	public NeuronValue abs() {
+		int m = data.length, n = data[0].length;
+		double[][] abs = new double[m][n];
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j < n; j++) abs[i][j] = Math.abs(data[i][j]);
+		}
+		return (NeuronValue)wrap(abs);
+	}
+
+
+	@Override
 	public boolean canInvert() {
 		throw new RuntimeException("Not implemented yet");
 	}
@@ -491,9 +502,7 @@ abstract class NeuronValueM0 implements Matrix {
 		int m = data.length, n = data[0].length;
 		double[][] negated = new double[m][n];
 		for (int i = 0; i < m; i++) {
-			for (int j = 0; j < n; j++) {
-				negated[i][j] = -data[i][j];
-			}
+			for (int j = 0; j < n; j++) negated[i][j] = -data[i][j];
 		}
 		return wrap(negated);
 	}

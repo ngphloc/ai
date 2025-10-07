@@ -104,6 +104,13 @@ public interface NeuronValue extends Value {
 	
 	
 	/**
+	 * Getting absolute value.
+	 * @return absolute value.
+	 */
+	NeuronValue abs();
+	
+	
+	/**
 	 * Checking whether this value can be inverted.
 	 * @return whether this value can be inverted.
 	 */
@@ -524,9 +531,7 @@ public interface NeuronValue extends Value {
 		int m = matrix.length, n = matrix[0].length;
 		NeuronValue[][] negated = new NeuronValue[m][n];
 		for (int i = 0; i < m; i++) {
-			for (int j = 0; j < n; j++) {
-				negated[i][j] = matrix[i][j].negative();
-			}
+			for (int j = 0; j < n; j++) negated[i][j] = matrix[i][j].negative();
 		}
 		return negated;
 	}
@@ -543,6 +548,36 @@ public interface NeuronValue extends Value {
 		NeuronValue[] negated = new NeuronValue[n];
 		for (int i = 0; i < n; i++) negated[i] = vector[i].negative();
 		return negated;
+	}
+
+	
+	/**
+	 * Getting absolute matrix.
+	 * @param matrix specified matrix.
+	 * @return absolute matrix.
+	 */
+	static NeuronValue[][] abs(NeuronValue[][] matrix) {
+		if (matrix == null) return null;
+		int m = matrix.length, n = matrix[0].length;
+		NeuronValue[][] abs = new NeuronValue[m][n];
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j < n; j++) abs[i][j] = matrix[i][j].abs();
+		}
+		return abs;
+	}
+
+	
+	/**
+	 * Getting absolute vector.
+	 * @param vector specified vector.
+	 * @return absolute vector.
+	 */
+	static NeuronValue[] abs(NeuronValue[] vector) {
+		if (vector == null) return null;
+		int n = vector.length;
+		NeuronValue[] abs = new NeuronValue[n];
+		for (int i = 0; i < n; i++) abs[i] = vector[i].abs();
+		return abs;
 	}
 
 	

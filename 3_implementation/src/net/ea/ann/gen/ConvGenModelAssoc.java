@@ -66,7 +66,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	/**
 	 * Batch learning one-by-one.
 	 */
-	protected boolean learnOne = false;
+	protected boolean learnOneByOne = false;
 	
 	
 	/**
@@ -76,7 +76,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 */
 	public ConvGenModelAssoc(ConvGenModel convGM, boolean learnOne) {
 		this.convGM = convGM;
-		this.learnOne = learnOne;
+		this.learnOneByOne = learnOne;
 	}
 	
 	
@@ -91,11 +91,11 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	
 	/**
 	 * Setting parameter: learning one-by-one mode.
-	 * @param learnOne one-by-one learning mode.
+	 * @param learnOneByOne one-by-one learning mode.
 	 * @return this associator.
 	 */
-	public ConvGenModelAssoc setParamLearnOne(boolean learnOne) {
-		this.learnOne = learnOne;
+	public ConvGenModelAssoc setParamLearnOneByOne(boolean learnOneByOne) {
+		this.learnOneByOne = learnOneByOne;
 		return this;
 	}
 	
@@ -177,8 +177,8 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	public List<Raster> genRasters(Iterable<Raster> sample, int nGens) {
 		List<Raster> result = Util.newList(0);
 		try {
-			if (learnOne)
-				convGM.learnRasterOne(sample);
+			if (learnOneByOne)
+				convGM.learnRasterOneByOne(sample);
 			else
 				convGM.learnRaster(sample);
 		}
@@ -337,8 +337,8 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 			index++;
 			try {
 				ConvGenModel clonedGM = (ConvGenModel)net.ea.ann.core.Util.cloneBySerialize(convGM);
-				if (learnOne)
-					clonedGM.learnRasterOne(Arrays.asList(recoverRaster));
+				if (learnOneByOne)
+					clonedGM.learnRasterOneByOne(Arrays.asList(recoverRaster));
 				else
 					clonedGM.learnRaster(Arrays.asList(recoverRaster));
 				for (int k = 0; k < nGens; k++) {
@@ -595,8 +595,8 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 			return Util.newList(0);
 		
 		try {
-			if (learnOne)
-				convGM.learnRasterOne(sample);
+			if (learnOneByOne)
+				convGM.learnRasterOneByOne(sample);
 			else
 				convGM.learnRaster(sample);
 		}
@@ -961,8 +961,8 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 			return Util.newList(0);
 		
 		try {
-			if (learnOne)
-				convGM.learnRasterOne(sample);
+			if (learnOneByOne)
+				convGM.learnRasterOneByOne(sample);
 			else
 				convGM.learnRaster(sample);
 		}
@@ -1383,8 +1383,8 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 			return Util.newList(0);
 		
 		try {
-			if (learnOne)
-				convGM.learnRasterOne(sample);
+			if (learnOneByOne)
+				convGM.learnRasterOneByOne(sample);
 			else
 				convGM.learnRaster(sample);
 		}
@@ -1464,7 +1464,7 @@ public class ConvGenModelAssoc implements Serializable, Cloneable {
 	 * @param out output stream.
 	 * @throws RemoteException if any error raises.
 	 */
-	public static void gen(InputStream in, OutputStream out) throws RemoteException {
+	public static void gen(InputStream in, OutputStream out) throws Exception {
 		@SuppressWarnings("resource")
 		Scanner scanner = new Scanner(in);
 		PrintStream printer = new PrintStream(out);

@@ -351,7 +351,7 @@ public class Attention implements Cloneable, Serializable {
 		Matrix error = null;
 		int iteration = 0;
 		while (maxIteration <= 0 || iteration < maxIteration) {
-			double lr = NetworkAbstract.calcLearningRate(learningRate, iteration, false);
+			double lr = NetworkAbstract.calcLearningRate(learningRate, iteration+1, false);
 			Matrix A = evaluate(inputY, inputY);
 			error = outputA.subtract(A);
 			learn(error, lr);

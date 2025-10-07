@@ -25,6 +25,7 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
@@ -40,7 +41,252 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
+public class MatrixClassifier extends MatrixClassifier0 {
+
+	
+	/**
+	 * Serial version UID for serializable class. 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	
+	/**
+	 * Field for adjusting.
+	 */
+	public static final String ADJUST_FIELD = "mac_adjust";
+	
+	
+	/**
+	 * Default value for adjusting.
+	 */
+	public static final boolean ADJUST_DEFAULT = true;
+
+	
+	/**
+	 * Classifier nut.
+	 */
+	MatrixNetworkImpl adjuster = null;
+	
+	
+	/**
+	 * Adjusting baseline.
+	 */
+	Matrix adjustBaseline = null;
+	
+	
+	/**
+	 * Constructor with neuron channel, raster channel, activation function, convolutional activation function, and identifier reference.
+	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 * @param idRef identifier reference.
+	 */
+	public MatrixClassifier(int neuronChannel, int rasterChannel, Function activateRef, Function convActivateRef, Id idRef) {
+		super(neuronChannel, rasterChannel, activateRef, convActivateRef, idRef);
+		config.put(ADJUST_FIELD, ADJUST_DEFAULT);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel, raster channel, activation function, and convolutional activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 */
+	public MatrixClassifier(int neuronChannel, int rasterChannel, Function activateRef, Function convActivateRef) {
+		this(neuronChannel, rasterChannel, activateRef, convActivateRef, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel, raster channel, and activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
+	 * @param activateRef activation function.
+	 */
+	public MatrixClassifier(int neuronChannel, int rasterChannel, Function activateRef) {
+		this(neuronChannel, rasterChannel, activateRef, null, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel and raster channel.
+	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
+	 */
+	public MatrixClassifier(int neuronChannel, int rasterChannel) {
+		this(neuronChannel, rasterChannel, null, null, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel.
+	 * @param neuronChannel neuron channel.
+	 */
+	public MatrixClassifier(int neuronChannel) {
+		this(neuronChannel, neuronChannel, null, null, null);
+	}
+
+
+	@Override
+	public void reset() {
+		super.reset();
+		adjuster = null;
+		adjustBaseline = null;
+	}
+
+
+	@Override
+	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
+		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, nCoreClasses2, depth2)) return false;
+		if (!paramIsAdjust() || !paramIsBaseline()) return true;
+		
+		int minAdjustDepth = Math.max((int)(Math.log(this.size())/Math.log(BASE_DEFAULT)), 1);
+		int maxAdjustDepth = Math.max(Math.max(this.size()-1, 1), minAdjustDepth);
+		int adjustDepth = Math.max(Math.max(depth1, depth2), minAdjustDepth);
+		adjustDepth = Math.min(adjustDepth, maxAdjustDepth);
+		Dimension size = this.getOutputLayer().getSize();
+		this.adjuster = new MatrixNetworkImpl(this.neuronChannel, this.activateRef, this.convActivateRef, this.idRef);
+		this.adjuster.paramSetInclude(this);
+		return new MatrixNetworkInitializer(adjuster).initialize(size, size, adjustDepth);
+	}
+
+
+	@Override
+	double[] weightsOfOutput(Matrix output, int groupIndex) {
+		if (adjuster == null) return super.weightsOfOutput(output, groupIndex);
+		NeuronValue[] values = getOutput(output, groupIndex);
+		if (this.baseline == null || this.adjustBaseline == null) return super.weightsOfOutput(output, groupIndex);
+		
+		NeuronValue zero = values[0].zero();
+		for (int classIndex = 0; classIndex < values.length; classIndex++) {
+			NeuronValue base = paramIsByColumn() ? this.baseline.get(classIndex, groupIndex) : this.baseline.get(groupIndex, classIndex);
+			NeuronValue adjustBase = paramIsByColumn() ? this.adjustBaseline.get(classIndex, groupIndex) : this.adjustBaseline.get(groupIndex, classIndex);
+			//Following code lines are important due to apply baseline into determining class.
+			NeuronValue sim = values[classIndex].subtract(base);
+			sim = sim.max(zero);
+			sim = sim.multiply(adjustBase);
+			values[classIndex] = sim;
+		}
+		return weightsOfOutput(values);
+	}
+
+
+	@Override
+	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
+		List<Matrix[]> newsample = prelearn(sample);
+		Matrix[] errors = learn(newsample);
+		
+		if (this.adjuster != null) {
+			this.adjuster.paramSetInclude(this);
+			List<Matrix[]> adjustSample = Util.newList(0);
+			for (Matrix[] inout : newsample) {
+				Matrix output = evaluate(inout[0], new Object[] {});
+				if (output != null) adjustSample.add(new Matrix[] {output, inout[1]});
+			}
+			errors = adjustSample.size() > 0 ? this.adjuster.learn(adjustSample) : errors;
+		}
+		
+		NeuronValue[] errorArray = null;
+		for (Matrix error : errors) {
+			NeuronValue[] values = Matrix.extractValues(error);
+			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
+		}
+		return errorArray;
+	}
+
+
+	@Override
+	public void learnVerify(Iterable<Matrix[]> inouts) {
+		if (adjuster == null) {
+			super.learnVerify(inouts);
+			return;
+		}
+		this.baseline = null;
+		this.adjustBaseline = null;
+		if (!paramIsBaseline()) return;
+		
+		List<Matrix> outputList = Util.newList(0);
+		for (Matrix[] inout : inouts) {
+			Matrix output = evaluate(inout[0], new Object[] {});
+			if (output != null) outputList.add(output);
+		}
+		if (outputList.size() == 0) return;
+		this.baseline = calcBaseline(outputList.toArray(new Matrix[] {}));
+		
+		List<Matrix> adjustOutputList = Util.newList(0);
+		for (Matrix output : outputList) {
+			try {
+				Matrix adjustOutput = adjuster.evaluate(output);
+				if (adjustOutput != null) adjustOutputList.add(adjustOutput);
+			} catch (Throwable e) {Util.trace(e);}
+		}
+		if (adjustOutputList.size() == 0) return;
+		this.adjustBaseline = calcBaseline(adjustOutputList.toArray(new Matrix[] {}));
+	}
+
+
+	/**
+	 * Checking adjust mode.
+	 * @return baseline mode.
+	 */
+	public boolean paramIsAdjust() {
+		if (config.containsKey(ADJUST_FIELD))
+			return config.getAsBoolean(ADJUST_FIELD);
+		else
+			return ADJUST_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting adjust mode.
+	 * @param adjust adjust mode.
+	 * @return this matrix classifier.
+	 */
+	public MatrixClassifier paramSetAdjust(boolean adjust) {
+		config.put(ADJUST_FIELD, adjust);
+		return this;
+	}
+
+	
+	/**
+	 * Creating classifier with neuron channel and norm flag.
+	 * @param neuronChannel specified neuron channel.
+	 * @param isNorm norm flag.
+	 * @return classifier.
+	 */
+	public static MatrixClassifier create(int neuronChannel, int rasterChannel, boolean isNorm) {
+		Function activateRef = Raster.toActivationRef(neuronChannel, isNorm);
+		Function contentActivateRef = Raster.toConvActivationRef(neuronChannel, isNorm);
+		return new MatrixClassifier(neuronChannel, rasterChannel, activateRef, contentActivateRef, null);
+	}
+
+
+	/**
+	 * Creating classifier with neuron channel and norm flag.
+	 * @param neuronChannel specified neuron channel.
+	 * @param isNorm norm flag.
+	 * @return classifier.
+	 */
+	public static MatrixClassifier create(int neuronChannel, boolean isNorm) {
+		return create(neuronChannel, neuronChannel, isNorm);
+	}
+	
+	
+}
+
+
+
+/**
+ * This class is basic implementation of classifier within context of matrix neural network.
+ * 
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 
 	
 	/**
@@ -76,18 +322,16 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	
 	
 	/**
-	 * Field for filter ignorance.
+	 * Field for convolutional network.
 	 */
-	public static final String FILTER_IGNORE_FIELD = "mac_filter_ignore";
+	public static final String CONV_FIELD = "mac_conv";
 	
 	
 	/**
-	 * Default value for filter ignorance.
+	 * Default value for convolutional network.
 	 */
-	public static final boolean FILTER_IGNORE_DEFAULT = true;
+	public static final boolean CONV_DEFAULT = false;
 
-	
-	
 	
 	/**
 	 * Field for filter stride.
@@ -126,6 +370,24 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 
 	
 	/**
+	 * Field for base line field.
+	 */
+	public static final String BASELINE_FIELD = "mac_baseline";
+	
+	
+	/**
+	 * Default value for base line field.
+	 */
+	public static final boolean BASELINE_DEFAULT = true;
+
+	
+	/**
+	 * Raster channel which is often larger than or equal to neuron channel.
+	 */
+	protected int rasterChannel = 1;
+
+	
+	/**
 	 * List of outputs-classes maps. For an outputs-classes map whose each element is a subtask which is a combination given classes.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
@@ -146,49 +408,65 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 
 	
 	/**
-	 * Output mean.
+	 * Baseline.
 	 */
-	Matrix outputMean = null;
+	Matrix baseline = null;
 	
 	
 	/**
-	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
+	 * Constructor with neuron channel, raster channel, activation function, convolutional activation function, and identifier reference.
 	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
 	 */
-	public MatrixClassifier(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+	public MatrixClassifier0(int neuronChannel, int rasterChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
+		this.rasterChannel = rasterChannel = RasterAssoc.fixRasterChannel(this.neuronChannel, rasterChannel);
+
 		config.put(BYCOLUMN_FIELD, BYCOLUMN_DEFAULT);
 		config.put(COMB_NUMBER_FIELD, COMB_NUMBER_DEFAULT);
-		config.put(FILTER_IGNORE_FIELD, FILTER_IGNORE_DEFAULT);
+		config.put(CONV_FIELD, CONV_DEFAULT);
 		config.put(FILTER_STRIDE_FIELD, FILTER_STRIDE_DEFAULT);
 		config.put(DEPTH_FIELD, DEPTH_DEFAULT);
 		config.put(DUAL_FIELD, DUAL_DEFAULT);
+		config.put(BASELINE_FIELD, BASELINE_DEFAULT);
 		
 		setTrainer(new TaskTrainerLossEntropy());
 	}
 
 	
 	/**
-	 * Constructor with neuron channel, activation function, and convolutional activation function.
+	 * Constructor with neuron channel, raster channel, activation function, and convolutional activation function.
 	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 */
-	public MatrixClassifier(int neuronChannel, Function activateRef, Function convActivateRef) {
-		this(neuronChannel, activateRef, convActivateRef, null);
+	public MatrixClassifier0(int neuronChannel, int rasterChannel, Function activateRef, Function convActivateRef) {
+		this(neuronChannel, rasterChannel, activateRef, convActivateRef, null);
 	}
 
 	
 	/**
-	 * Constructor with neuron channel and activation function.
+	 * Constructor with neuron channel, raster channel, and activation function.
 	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
 	 * @param activateRef activation function.
 	 */
-	public MatrixClassifier(int neuronChannel, Function activateRef) {
-		this(neuronChannel, activateRef, null, null);
+	public MatrixClassifier0(int neuronChannel, int rasterChannel, Function activateRef) {
+		this(neuronChannel, rasterChannel, activateRef, null, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel and raster channel.
+	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
+	 */
+	public MatrixClassifier0(int neuronChannel, int rasterChannel) {
+		this(neuronChannel, rasterChannel, null, null, null);
 	}
 
 	
@@ -196,8 +474,8 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public MatrixClassifier(int neuronChannel) {
-		this(neuronChannel, null, null, null);
+	public MatrixClassifier0(int neuronChannel) {
+		this(neuronChannel, neuronChannel, null, null, null);
 	}
 
 	
@@ -207,7 +485,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 		outputClassMaps.clear();
 		classOutputMaps.clear();
 		classMaps.clear();
-		outputMean = null;
+		baseline = null;
 	}
 
 
@@ -222,10 +500,10 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 		int groupCount = paramIsByColumn() ? nCoreClasses2.width : nCoreClasses2.height;
 		Dimension outputSize2 = paramIsByColumn() ? new Dimension(groupCount, outputCount) : new Dimension(outputCount, groupCount);
 		boolean initialized = false;
-		if (paramIsFilterIgnore())
-			initialized = super.initialize(inputSize1, outputSize2, (Filter2D)null, depth1, false, null, 0);
-		else
+		if (paramIsConv())
 			initialized = super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2);
+		else
+			initialized = super.initialize(inputSize1, outputSize2, (Filter2D)null, depth1, false, null, 0);
 		if (!initialized) return false;
 		if (this.outputClassMaps.size() != this.classOutputMaps.size()) return false;
 		
@@ -256,7 +534,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param nCoreClasses the number of rows and columns of core classes.
 	 * @return true if configuration is successful.
 	 */
-	protected boolean configClassInfo(Dimension nCoreClasses) {
+	private boolean configClassInfo(Dimension nCoreClasses) {
 		Map<Integer, int[]> outputClassMap = Util.newMap(0);
 		Map<Integer, int[]> classOutputMap = Util.newMap(0);
 		int nClass = paramIsByColumn() ? nCoreClasses.height : nCoreClasses.width;
@@ -327,7 +605,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 
 	
 	@Override
-	public NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException {
+	public NeuronValue[] learnRasterOneByOne(Iterable<Raster> sample) throws RemoteException {
 		return learnRaster(sample);
 	}
 
@@ -405,7 +683,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param classIndices core class indices of group, whose each element is core class index of a group.
 	 * @return output created from core class indices.
 	 */
-	public Matrix createOutputByClass(int[] classIndices) {
+	Matrix createOutputByClass(int[] classIndices) {
 		int groupCount = getNumberOfGroups();
 		if (groupCount <= 0) return null;
 		int outputCount = getNumberOfOutputs(0);
@@ -479,7 +757,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param classIndex class index.
 	 * @return output created from class index.
 	 */
-	public NeuronValue[] createOutputByClass(int groupIndex, int classIndex) {
+	NeuronValue[] createOutputByClass(int groupIndex, int classIndex) {
 		NeuronValue zero = getOutput().get(0, 0).zero();
 		NeuronValue unit = zero.unit();
 		int outputCount = getNumberOfOutputs(groupIndex);
@@ -508,25 +786,6 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	
 	
 	/**
-	 * Extracting class of output.
-	 * @return classes of output.
-	 */
-	public int[] extractClass() {
-		return extractClass(getOutput());
-	}
-
-	
-	/**
-	 * Extracting class of output, given group.
-	 * @param groupIndex specified group.
-	 * @return classes of output.
-	 */
-	public int extractClass(int groupIndex) {
-		return extractClass()[groupIndex];
-	}
-	
-	
-	/**
 	 * Extracting classes of given output.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 * @param output specified output.
@@ -539,12 +798,6 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 			double[] weights = weightsOfOutput(output, group);
 
 			int classCount = getNumberOfClasses(group);
-			if (this.outputMean != null) {
-				for (int classIndex = 0; classIndex < classCount; classIndex++) {
-					NeuronValue mean = paramIsByColumn() ? this.outputMean.get(classIndex, group) : this.outputMean.get(group, classIndex);
-					weights[classIndex] = Math.abs(weights[classIndex] - mean.mean()); //This line is important due to set mean as baseline for determining class.
-				}
-			}
 			int foundClass = 0;
 			for (int classIndex = 1; classIndex < classCount; classIndex++) {
 				if (weights[classIndex] > weights[foundClass]) foundClass = classIndex;
@@ -562,8 +815,19 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param output specified output.
 	 * @return weights of specified output.
 	 */
-	private double[] weightsOfOutput(Matrix output, int groupIndex) {
+	double[] weightsOfOutput(Matrix output, int groupIndex) {
 		NeuronValue[] values = getOutput(output, groupIndex);
+		if (this.baseline == null) return weightsOfOutput(values);
+		
+		NeuronValue zero = values[0].zero();
+		for (int classIndex = 0; classIndex < values.length; classIndex++) {
+			NeuronValue base = paramIsByColumn() ? this.baseline.get(classIndex, groupIndex) : this.baseline.get(groupIndex, classIndex);
+			//Following code lines are important due to apply baseline into determining class.
+			NeuronValue sim = values[classIndex].subtract(base);
+			sim = sim.max(zero);
+			values[classIndex] = sim;
+		}
+		
 		return weightsOfOutput(values);
 	}
 
@@ -573,7 +837,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param output specified output.
 	 * @return weights of specified output.
 	 */
-	private static double[] weightsOfOutput(NeuronValue[] output) {
+	static double[] weightsOfOutput(NeuronValue[] output) {
 		double[] weights = new double[output.length];
 		for (int i = 0; i < weights.length; i++) weights[i] = output[i].mean();
 		return weights;
@@ -586,7 +850,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param label specified label.
 	 * @return class index of label.
 	 */
-	int classOf(int groupIndex, int label) {
+	private int classOf(int groupIndex, int label) {
 		Map<Integer, Label> classMap = this.classMaps.get(groupIndex);
 		Set<Integer> classIndices = classMap.keySet();
 		for (int classIndex : classIndices) {
@@ -603,7 +867,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param classIndex class index.
 	 * @return label of class index.
 	 */
-	Label labelOf(int groupIndex, int classIndex) {
+	private Label labelOf(int groupIndex, int classIndex) {
 		Map<Integer, Label> classMap = this.classMaps.get(groupIndex);
 		return classMap.containsKey(classIndex) ? classMap.get(classIndex) : null;
 	}
@@ -741,15 +1005,33 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param inouts learning sample.
 	 */
 	public void learnVerify(Iterable<Matrix[]> inouts) {
-		this.outputMean = null;
+		this.baseline = null;
+		if (!paramIsBaseline()) return;
+		
 		List<Matrix> outputList = Util.newList(0);
 		for (Matrix[] inout : inouts) {
 			Matrix output = evaluate(inout[0], new Object[] {});
 			if (output != null) outputList.add(output);
 		}
-		if (outputList.size() > 0) this.outputMean = Matrix.mean(outputList.toArray(new Matrix[] {}));
+		if (outputList.size() == 0) return;
+		this.baseline = calcBaseline(outputList.toArray(new Matrix[] {}));
 	}
 
+
+	/**
+	 * Calculating baseline.
+	 * @param matrices array of matrices.
+	 * @return baseline.
+	 */
+	static Matrix calcBaseline(Matrix...matrices) {
+		if (matrices == null || matrices.length == 0) return null;
+		Matrix mean = Matrix.mean(matrices);
+		Matrix std = Matrix.std(matrices);
+		Matrix baseLineByMean = mean.subtract(std.multiply0(1.96));
+		Matrix baseLineByMin = Matrix.min(matrices);
+		return Matrix.max(baseLineByMean, baseLineByMin);
+	}
+	
 	
 	@Override
 	public List<Raster> classify(Iterable<Raster> sample) throws RemoteException {
@@ -763,7 +1045,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 			int groupCount = getNumberOfGroups();
 			if (groupCount <= 0) continue;
 			Label[] labels = new Label[groupCount];
-			int[] classIndices = extractClass();
+			int[] classIndices = extractClass(getOutput());
 			for (int group = 0; group < groupCount; group++) {
 				Label label = labelOf(group, classIndices[group]);
 				labels[group] = label != null ? label : new Label();
@@ -802,7 +1084,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param byColumn by-column flag.
 	 * @return this matrix classifier.
 	 */
-	MatrixClassifier paramSetByColumn(boolean byColumn) {
+	MatrixClassifier0 paramSetByColumn(boolean byColumn) {
 		config.put(BYCOLUMN_FIELD, byColumn);
 		return this;
 	}
@@ -823,7 +1105,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param combNumber the number elements of a combination.
 	 * @return this matrix classifier.
 	 */
-	MatrixClassifier paramSetCombNumber(int combNumber) {
+	MatrixClassifier0 paramSetCombNumber(int combNumber) {
 		combNumber = combNumber < 1 ? COMB_NUMBER_DEFAULT : combNumber;
 		config.put(COMB_NUMBER_FIELD, combNumber);
 		return this;
@@ -831,24 +1113,24 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 
 
 	/**
-	 * Checking filter ignorance.
-	 * @return filter ignorance.
+	 * Checking convolutional network mode.
+	 * @return convolutional network mode.
 	 */
-	boolean paramIsFilterIgnore() {
-		if (config.containsKey(FILTER_IGNORE_FIELD))
-			return config.getAsBoolean(FILTER_IGNORE_FIELD);
+	public boolean paramIsConv() {
+		if (config.containsKey(CONV_FIELD))
+			return config.getAsBoolean(CONV_FIELD);
 		else
-			return FILTER_IGNORE_DEFAULT;
+			return CONV_DEFAULT;
 	}
 	
 	
 	/**
-	 * Setting filter ignorance.
-	 * @param filterIgnore filter ignorance.
+	 * Setting convolutional network mode.
+	 * @param conv convolutional network mode.
 	 * @return this matrix classifier.
 	 */
-	MatrixClassifier paramFilterIgnore(boolean filterIgnore) {
-		config.put(FILTER_IGNORE_FIELD, filterIgnore);
+	public MatrixClassifier0 paramSetConv(boolean conv) {
+		config.put(CONV_FIELD, conv);
 		return this;
 	}
 
@@ -870,7 +1152,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param filterStride filter stride.
 	 * @return this matrix classifier.
 	 */
-	MatrixClassifier paramSetFilterStride(int filterStride) {
+	MatrixClassifier0 paramSetFilterStride(int filterStride) {
 		filterStride = filterStride < 1 ? FILTER_STRIDE_DEFAULT : filterStride;
 		config.put(FILTER_STRIDE_FIELD, filterStride);
 		return this;
@@ -892,7 +1174,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param depth depth.
 	 * @return this matrix classifier.
 	 */
-	MatrixClassifier paramSetDepth(int depth) {
+	MatrixClassifier0 paramSetDepth(int depth) {
 		depth = depth < 1 ? DEPTH_DEFAULT : depth;
 		config.put(DEPTH_FIELD, depth);
 		return this;
@@ -903,7 +1185,7 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * Checking dual mode.
 	 * @return dual mode.
 	 */
-	boolean paramIsDual() {
+	public boolean paramIsDual() {
 		if (config.containsKey(DUAL_FIELD))
 			return config.getAsBoolean(DUAL_FIELD);
 		else
@@ -916,25 +1198,35 @@ public class MatrixClassifier extends MatrixNetworkImpl implements Classifier {
 	 * @param dual dual mode.
 	 * @return this matrix classifier.
 	 */
-	MatrixClassifier paramSetDual(boolean dual) {
+	public MatrixClassifier0 paramSetDual(boolean dual) {
 		config.put(DUAL_FIELD, dual);
 		return this;
 	}
 
 	
 	/**
-	 * Creating classifier with neuron channel and norm flag.
-	 * @param neuronChannel specified neuron channel.
-	 * @param isNorm norm flag.
-	 * @return classifier.
+	 * Checking baseline mode.
+	 * @return baseline mode.
 	 */
-	public static MatrixClassifier create(int neuronChannel, boolean isNorm) {
-		Function activateRef = Raster.toActivationRef(neuronChannel, isNorm);
-		Function contentActivateRef = Raster.toConvActivationRef(neuronChannel, isNorm);
-		return new MatrixClassifier(neuronChannel, activateRef, contentActivateRef, null);
+	public boolean paramIsBaseline() {
+		if (config.containsKey(BASELINE_FIELD))
+			return config.getAsBoolean(BASELINE_FIELD);
+		else
+			return BASELINE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting baseline mode.
+	 * @param baseline baseline mode.
+	 * @return this matrix classifier.
+	 */
+	public MatrixClassifier0 paramSetBaseline(boolean baseline) {
+		config.put(BASELINE_FIELD, baseline);
+		return this;
 	}
 
-
+	
 }
 
 

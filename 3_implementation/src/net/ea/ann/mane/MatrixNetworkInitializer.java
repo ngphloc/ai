@@ -467,17 +467,19 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	static int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize, Dimension outputSize, int hBase, int wBase, int depth) {
 		if (inputSize == null) return null;
 		if (inputSize.width <= 0 || inputSize.height <= 0) return null;
-		hBase = hBase < 2 ? MatrixNetworkImpl.BASE_DEFAULT : hBase;
-		wBase = wBase < 2 ? MatrixNetworkImpl.BASE_DEFAULT : wBase;
+		hBase = hBase < MatrixNetworkImpl.BASE_DEFAULT ? MatrixNetworkImpl.BASE_DEFAULT : hBase;
+		wBase = wBase < MatrixNetworkImpl.BASE_DEFAULT ? MatrixNetworkImpl.BASE_DEFAULT : wBase;
 		
 		if (outputSize == null || outputSize.width <= 0 || outputSize.height <= 0) {
 			int H = inputSize.height, W = inputSize.width;
+			int maxBase = Math.max(Math.max(hBase, wBase), MatrixNetworkImpl.MINSIZE);
+			maxBase = Math.min(maxBase, Math.min(H, W));
 			if (depth <= 0) {
-				depth = Math.min(H, W) / Math.max(hBase, wBase);
+				depth = Math.min(H, W) / maxBase;
 				depth = Math.min(depth, MatrixNetworkImpl.DEPTH_DEFAULT);
 			}
 			else
-				depth = Math.min(depth,  Math.min(H, W) / Math.max(hBase, wBase));
+				depth = Math.min(depth, Math.min(H, W) / maxBase);
 			if (depth <= 0) return null;
 			
 			int[] heights = null, widths = null;

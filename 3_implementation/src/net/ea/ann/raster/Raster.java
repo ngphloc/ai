@@ -85,6 +85,13 @@ public interface Raster extends Serializable, Cloneable {
 	
 
 	/**
+	 * Getting ID of raster.
+	 * @return ID of raster.
+	 */
+	int id();
+	
+	
+	/**
 	 * Getting raster width.
 	 * @return raster width.
 	 */

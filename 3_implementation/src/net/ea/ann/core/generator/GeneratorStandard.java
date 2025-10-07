@@ -786,11 +786,11 @@ public class GeneratorStandard<T extends Trainer> extends NetworkStandardImpl im
 
 
 	@Override
-	public NeuronValue[] learnOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	public NeuronValue[] learnOneByOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		if (trainer != null)
-			return trainer.learnOne(sample, learningRate, terminatedThreshold, maxIteration);
+			return trainer.learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 		else
-			return super.learnOne(sample, learningRate, terminatedThreshold, maxIteration);
+			return super.learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
 

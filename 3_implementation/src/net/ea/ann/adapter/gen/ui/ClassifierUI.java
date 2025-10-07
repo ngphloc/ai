@@ -506,7 +506,7 @@ public abstract class ClassifierUI extends JFrame {
 		List<Raster> sample = trainRasters.queryItemRasters();
 		try {
 			if (config.getAsBoolean(NetworkAbstract.LEARN_ONE_FIELD))
-				classifier.learnRasterOne(sample);
+				classifier.learnRasterOneByOne(sample);
 			else
 				classifier.learnRaster(sample);
 			classify();

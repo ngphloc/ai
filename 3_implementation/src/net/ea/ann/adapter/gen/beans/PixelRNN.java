@@ -42,7 +42,7 @@ public class PixelRNN extends GenModelAbstract {
 		if (name != null && !name.isEmpty())
 			return name;
 		else
-			return "pixelrnn";
+			return "gen.pixelrnn";
 	}
 
 	

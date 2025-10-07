@@ -83,6 +83,26 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 		}
 	}
 
+
+	/**
+	 * Getting size of parameters.
+	 * @return size of parameters.
+	 */
+	public int sizeOfParams() {
+		int size = 0;
+		for (int i = 0; i < mane.layers.length; i++) {
+			if (!(mane.layers[i] instanceof MatrixLayerImpl)) continue;
+			MatrixLayerImpl layer = (MatrixLayerImpl)mane.layers[i];
+			if (layer.weight1 != null) size += layer.weight1.rows()*layer.weight1.columns();
+			if (layer.weight2 != null) size += layer.weight2.rows()*layer.weight2.columns();
+			if (layer.bias != null) size += layer.bias.rows()*layer.bias.columns();
+			
+			if (layer.filter != null) size += layer.filter.height()*layer.filter.width();
+			if (layer.filterBias != null) size++;
+		}
+		return size;
+	}
+	
 	
 	/**
 	 * Test of transformation.
@@ -90,7 +110,7 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 	 * @param out output stream.
 	 * @throws RemoteException if any error raises.
 	 */
-	public static void gen(InputStream in, OutputStream out) throws Exception {
+	public static void transform(InputStream in, OutputStream out) throws Exception {
 		@SuppressWarnings("resource")
 		Scanner scanner = new Scanner(in);
 		PrintStream printer = new PrintStream(out);
@@ -260,17 +280,5 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 		printer.println("Finished.");
 	}
 
-	
-	/**
-	 * Main method.
-	 * @param args array of arguments.
-	 */
-	public static void main(String[] args) {
-		try {
-			gen(System.in, System.out);
-		}
-		catch (Throwable e) {Util.trace(e);}
-	}
-	
 	
 }

@@ -1,0 +1,1 @@
+Accuracy = 9.98% = 998 (correct) / 10000 (total)

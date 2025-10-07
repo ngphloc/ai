@@ -1,0 +1,1 @@
+Accuracy = 10.26% = 1026 (correct) / 10000 (total)

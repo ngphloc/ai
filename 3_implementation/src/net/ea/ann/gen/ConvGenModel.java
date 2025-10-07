@@ -78,7 +78,7 @@ public interface ConvGenModel extends GenModel {
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException;
+	NeuronValue[] learnRasterOneByOne(Iterable<Raster> sample) throws RemoteException;
 
 	
 	/**

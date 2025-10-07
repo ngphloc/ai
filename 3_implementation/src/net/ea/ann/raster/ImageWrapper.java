@@ -47,6 +47,12 @@ public class ImageWrapper implements Image {
 
 	
 	/**
+	 * Flag to indicate creating image data for remote calling. Fixing later.
+	 */
+	public static boolean CREATE_IMAGEDATA_FOR_REMOTE = false;
+	
+	
+	/**
 	 * Internal transient image. Please review the serialization technique available at <a href = "https://stackoverflow.com/questions/15058663/how-to-serialize-an-object-that-includes-bufferedimages">https://stackoverflow.com/questions/15058663/how-to-serialize-an-object-that-includes-bufferedimages</a>
 	 * because there are some unexpected problems when RMI cannot serialize this BufferedImage with given {@link #readObject(ObjectInputStream)} and {@link #writeObject(ObjectOutputStream)}.
 	 */
@@ -70,7 +76,7 @@ public class ImageWrapper implements Image {
 		
 		try {
 			//The value imageData[0] is image width and the value imageData[1] is image height. Image pixels are stored from imageData[2].
-			if (this.image != null && this.imageData == null)
+			if (this.image != null && this.imageData == null && CREATE_IMAGEDATA_FOR_REMOTE)
 				this.imageData = convertFromImageToData(this.image);
 		} catch (Throwable e) {
 			this.imageData = null;

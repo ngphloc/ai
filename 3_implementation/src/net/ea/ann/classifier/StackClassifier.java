@@ -291,14 +291,14 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 
 
 	@Override
-	public NeuronValue[] learnOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	public NeuronValue[] learnOneByOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		List<Raster> rasters = RasterAssoc.toInputRasters(sample);
-		if (rasters.size() == 0) return super.learnOne(sample, learningRate, terminatedThreshold, maxIteration);
+		if (rasters.size() == 0) return super.learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 		List<Record> newSample = prelearn(rasters);
 		if (newSample.size() == 0)
-			return super.learnOne(sample, learningRate, terminatedThreshold, maxIteration);
+			return super.learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 		else
-			return super.learnOne(newSample, learningRate, terminatedThreshold, maxIteration);
+			return super.learnOneByOne(newSample, learningRate, terminatedThreshold, maxIteration);
 	}
 
 
@@ -315,8 +315,8 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 
 
 	@Override
-	public NeuronValue[] learnRasterOne(Iterable<Raster> sample) throws RemoteException {
-		return learnOne(RasterAssoc.toInputSample(sample));
+	public NeuronValue[] learnRasterOneByOne(Iterable<Raster> sample) throws RemoteException {
+		return learnOneByOne(RasterAssoc.toInputSample(sample));
 	}
 
 

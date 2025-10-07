@@ -42,7 +42,7 @@ public class NF extends GenModelAbstract {
 		if (name != null && !name.isEmpty())
 			return name;
 		else
-			return "nf";
+			return "gen.nf";
 	}
 
 	

@@ -1,0 +1,1 @@
+Accuracy = 10% = 1000 (correct) / 10000 (total)

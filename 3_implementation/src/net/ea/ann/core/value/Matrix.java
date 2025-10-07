@@ -448,6 +448,48 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
+	 * Determining minimum matrix.
+	 * @param matrices array of matrices.
+	 * @return minimum matrix.
+	 */
+	static Matrix min(Matrix...matrices) {
+		if (matrices == null || matrices.length == 0) return null;
+		Matrix min = matrices[0];
+		for (int i = 1; i < matrices.length; i++) {
+			for (int row = 0; row < min.rows(); row++) {
+				for (int column = 0; column < min.columns(); column++) {
+					NeuronValue v1 = min.get(row, column);
+					NeuronValue v2 = matrices[i].get(row, column);
+					min.set(row, column, v1.min(v2));
+				}
+			}
+		}
+		return min;
+	}
+	
+	
+	/**
+	 * Determining minimum matrix.
+	 * @param matrices array of matrices.
+	 * @return minimum matrix.
+	 */
+	static Matrix max(Matrix...matrices) {
+		if (matrices == null || matrices.length == 0) return null;
+		Matrix max = matrices[0];
+		for (int i = 1; i < matrices.length; i++) {
+			for (int row = 0; row < max.rows(); row++) {
+				for (int column = 0; column < max.columns(); column++) {
+					NeuronValue v1 = max.get(row, column);
+					NeuronValue v2 = matrices[i].get(row, column);
+					max.set(row, column, v1.max(v2));
+				}
+			}
+		}
+		return max;
+	}
+
+	
+	/**
 	 * Calculating mean matrix.
 	 * @param matrices array of matrices.
 	 * @return mean matrix.
@@ -457,6 +499,35 @@ public interface Matrix extends NeuronValueCreator {
 		Matrix mean = matrices[0];
 		for (int i = 1; i < matrices.length; i++) mean = mean.add(matrices[i]);
 		return mean.divide0(matrices.length);
+	}
+	
+	
+	/**
+	 * Calculating standard deviation matrix.
+	 * @param matrices array of matrices.
+	 * @return standard deviation matrix.
+	 */
+	static Matrix std(Matrix...matrices) {
+		if (matrices == null || matrices.length == 0) return null;
+		Matrix mean = mean(matrices);
+		Matrix[] stds = new Matrix[matrices.length];
+		for (int i = 0; i < matrices.length; i++) {
+			stds[i] = mean.create(mean.rows(), mean.columns());
+			for (int row = 0; row < mean.rows(); row++) {
+				for (int column = 0; column < mean.columns(); column++) {
+					NeuronValue d = matrices[i].get(row, column).subtract(mean.get(row, column));
+					stds[i].set(row, column, d.multiply(d));
+				}
+			}
+		}
+		
+		Matrix std = mean(stds);
+		for (int row = 0; row < std.rows(); row++) {
+			for (int column = 0; column < std.columns(); column++) {
+				std.set(row, column, std.get(row, column).sqrt());
+			}
+		}
+		return std;
 	}
 	
 	

@@ -109,10 +109,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	public MatrixLayerAbstract(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(idRef);
 		
-		if (neuronChannel < 1)
-			this.neuronChannel = neuronChannel = 1;
-		else
-			this.neuronChannel = neuronChannel;
+		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
 		this.activateRef = activateRef == null ? (activateRef = Raster.toActivationRef(this.neuronChannel, true)) : activateRef;
 		this.convActivateRef = convActivateRef == null ? (convActivateRef = Raster.toConvActivationRef(this.neuronChannel, true)) : convActivateRef;
 	}
@@ -408,7 +405,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	/**
 	 * Getting size of this layer.
 	 */
-	protected Dimension getSize() {
+	public Dimension getSize() {
 		Matrix output = queryOutput();
 		return output != null ? new Dimension(output.columns(), output.rows()) : null; 
 	}

@@ -42,7 +42,7 @@ public interface StackNetwork extends ConvNetwork {
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	NeuronValue[] learnOne(Iterable<Record> sample) throws RemoteException;
+	NeuronValue[] learnOneByOne(Iterable<Record> sample) throws RemoteException;
 	
 	
 	/**

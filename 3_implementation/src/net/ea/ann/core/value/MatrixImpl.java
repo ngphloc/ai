@@ -155,6 +155,15 @@ public class MatrixImpl implements Matrix {
 	}
 
 	
+	/**
+	 * Getting absolute matrix.
+	 * @return absolute matrix.
+	 */
+	public Matrix abs0() {
+		return new MatrixImpl(NeuronValue.abs(data));
+	}
+
+	
 	@Override
 	public Matrix add(Matrix other) {
 		return new MatrixImpl(NeuronValue.add(this.data, ((MatrixImpl)other).data));

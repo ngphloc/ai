@@ -7,13 +7,25 @@
  */
 package net.ea.ann.adapter.gen.ui;
 
+import java.io.BufferedWriter;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
+
 import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 
 import net.ea.ann.adapter.gen.GenModelRemote;
 import net.ea.ann.adapter.gen.beans.MatrixClassifier;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
+import net.ea.ann.classifier.ClassifierAssoc;
+import net.ea.ann.classifier.ClassifierAssoc.ClassifyInfo;
+import net.ea.ann.classifier.ClassifierAssoc.ClassifyParams;
+import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
+import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.RasterAssoc;
+import net.hudup.core.data.DataConfig;
 
 /**
  * This class implements classifier user interface based on generative AI user interface.
@@ -134,6 +146,68 @@ public class GenUIClassifier extends GenUI {
 	}
 
 
+	@Override
+	void recover() {
+		long beginTime = System.currentTimeMillis();
+		super.recover();
+		long endTime = System.currentTimeMillis();
+
+		List<Raster> sources = this.recoverRasters.queryItemRasters();
+		List<Raster> results = this.genRasters.queryItemRasters();
+		int n = Math.min(sources.size(), results.size());
+		if (n == 0) return;
+		try {
+			DataConfig config = gm.queryConfig();
+			ClassifyParams params = importParams(gm);
+			params.dataset = "dataset";
+			params.time = endTime - beginTime;
+			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.EPOCHS_PSEUDO_FILED))
+				params.maxIteration = config.getAsInt(net.ea.ann.classifier.MatrixClassifier.EPOCHS_PSEUDO_FILED);
+
+			String classifiedName = RasterAssoc.genDefaultName(gm.queryName() + "-" + Util.format(params.learningRate), null);
+			BufferedWriter listWriter = Files.newBufferedWriter(resultDir.resolve(classifiedName + "-" + "list" + ".csv"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+			ClassifierAssoc.saveClassifyInfo(listWriter, sources, results);
+			listWriter.close();
+			
+			ClassifyInfo info = new ClassifyInfo();
+			info.collect(sources, results);
+			BufferedWriter statWriter = Files.newBufferedWriter(resultDir.resolve(classifiedName + "-" + "stat" + ".csv"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+			ClassifierAssoc.saveClassifyInfo(statWriter, info, params);
+			statWriter.close();
+		} catch (Throwable e) {Util.trace(e);}
+		
+	}
+
+
+	/**
+	 * Extracting parameters from generative model.
+	 * @param gm generative model.
+	 * @return parameters.
+	 */
+	private static ClassifyParams importParams(GenModelRemote gm) {
+		ClassifyParams params = new ClassifyParams();
+		try {
+			DataConfig config = gm.queryConfig();
+			params.model = gm.queryName();
+			if (config.containsKey(NetworkAbstract.LEARN_RATE_FIELD))
+				params.learningRate = config.getAsReal(NetworkAbstract.LEARN_RATE_FIELD);
+			if (config.containsKey(NetworkAbstract.LEARN_MAX_ITERATION_FIELD))
+				params.batches = config.getAsInt(NetworkAbstract.LEARN_MAX_ITERATION_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.CONV_FIELD))
+				params.conv = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.CONV_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.VECTORIZED_FIELD))
+				params.vectorized = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.VECTORIZED_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.ADJUST_FIELD))
+				params.adjust = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.ADJUST_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.DUAL_FIELD))
+				params.dual = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.DUAL_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.BASELINE_FIELD))
+				params.baseline = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.BASELINE_FIELD);
+		} catch (Throwable e) {Util.trace(e);}
+		return params;
+	}
+	
+	
 	/**
 	 * Querying local generative model.
 	 * @param initialGM initial generative model.
@@ -155,8 +229,13 @@ public class GenUIClassifier extends GenUI {
 	 * @param args arguments.
 	 */
 	public static void main(String[] args) {
-		GenUIClassifier classifierUI = (GenUIClassifier)queryLocalGenModel(new MatrixClassifier(), null);
-		if (classifierUI != null) classifierUI.setVisible(true);
+		if (args == null || args.length == 0 || args[0] == null || args[0].isEmpty()) {
+			GenUIClassifier classifierUI = (GenUIClassifier)queryLocalGenModel(new MatrixClassifier(), null);
+			if (classifierUI != null) classifierUI.setVisible(true);
+		}
+		else {
+			ClassifierAssoc.classify(System.in, System.out);
+		}
 	}
 
 

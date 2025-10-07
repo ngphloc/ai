@@ -42,7 +42,7 @@ public class GAN extends GenModelAbstract {
 		if (name != null && !name.isEmpty())
 			return name;
 		else
-			return "gan";
+			return "gen.gan";
 	}
 
 	

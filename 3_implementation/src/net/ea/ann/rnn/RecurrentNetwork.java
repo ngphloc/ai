@@ -48,7 +48,7 @@ public interface RecurrentNetwork extends Network {
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	NeuronValue[] learnOne(Iterable<List<Record>> sample) throws RemoteException;
+	NeuronValue[] learnOneByOne(Iterable<List<Record>> sample) throws RemoteException;
 	
 	
 	/**

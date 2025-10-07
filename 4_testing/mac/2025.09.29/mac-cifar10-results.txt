@@ -1,0 +1,70 @@
+Training dataset: CIFAR-10 (data_batch_1.bin, data_batch_2.bin, data_batch_3.bin, data_batch_4.bin, and data_batch_5.bin; each containing 10000 images)
+Testing dataset:  CIFAR-10 (test_batch.bin containing 10000 images)
+Dataset information: The CIFAR-10 dataset consists of 60000 32x32 colour images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images. The dataset is divided into five training batches and one test batch, each with 10000 images. The test batch contains exactly 1000 randomly-selected images from each class.
+
+
+--------------------
+Learning rate: 0.1
+Epoches: 1
+Batches/epoch: 100
+
+conv, vectorized, adjust, epoch 1: Accuracy = 7.56% = 756 (correct) / 10000 (total)
+conv, vectorized, adjust, epoch 2: Accuracy = 8.19% = 819 (correct) / 10000 (total)
+conv, vectorized, adjust, epoch 3: Accuracy = 10.25% = 1025 (correct) / 10000 (total)
+conv, vectorized, adjust, epoch 4: Accuracy = 13.56% = 1356 (correct) / 10000 (total)
+conv, vectorized, adjust, epoch 5: Accuracy = 9.41% = 941 (correct) / 10000 (total)
+
+conv, vectorized, non-adjust, epoch 1: Accuracy = 10.11% = 1011 (correct) / 10000 (total)
+conv, vectorized, non-adjust, epoch 2: Accuracy = 9.17% = 917 (correct) / 10000 (total)
+conv, vectorized, non-adjust, epoch 3: Accuracy = 10% = 1000 (correct) / 10000 (total)
+conv, vectorized, non-adjust, epoch 4: Accuracy = 10.08% = 1008 (correct) / 10000 (total)
+conv, vectorized, non-adjust, epoch 5: Accuracy = 10% = 1000 (correct) / 10000 (total)
+
+conv, vectorized, non-baseline, epoch 1: Accuracy = 10% = 1000 (correct) / 10000 (total)
+conv, vectorized, non-baseline, epoch 2: Accuracy = 10% = 1000 (correct) / 10000 (total)
+conv, vectorized, non-baseline, epoch 3: Accuracy = 10% = 1000 (correct) / 10000 (total)
+conv, vectorized, non-baseline, epoch 4: Accuracy = 10% = 1000 (correct) / 10000 (total)
+conv, vectorized, non-baseline, epoch 5: Accuracy = 10% = 1000 (correct) / 10000 (total)
+
+non-conv, non-vectorized, adjust, epoch 1: Accuracy = 10.83% = 1083 (correct) / 10000 (total)
+non-conv, non-vectorized, adjust, epoch 2: Accuracy = 9.58% = 958 (correct) / 10000 (total)
+non-conv, non-vectorized, adjust, epoch 3: Accuracy = 10.01% = 1001 (correct) / 10000 (total)
+non-conv, non-vectorized, adjust, epoch 4: Accuracy = 10.26% = 1026 (correct) / 10000 (total)
+non-conv, non-vectorized, adjust, epoch 5: Accuracy = 8.94% = 894 (correct) / 10000 (total)
+
+non-conv, non-vectorized, non-adjust, epoch 1: Accuracy = 10.83% = 1083 (correct) / 10000 (total)
+non-conv, non-vectorized, non-adjust, epoch 2: Accuracy = 10.09% = 1009 (correct) / 10000 (total)
+non-conv, non-vectorized, non-adjust, epoch 3: Accuracy = 8.94% = 894 (correct) / 10000 (total)
+non-conv, non-vectorized, non-adjust, epoch 4: Accuracy = 10.15% = 1015 (correct) / 10000 (total)
+non-conv, non-vectorized, non-adjust, epoch 5: Accuracy = 9.55% = 955 (correct) / 10000 (total)
+
+
+--------------------
+Learning rate: 0.05
+Epoches: 1
+Batches/epoch: 1000
+
+conv, vectorized, adjust, epoch 1: Accuracy = 9.64% = 964 (correct) / 10000 (total)
+conv, vectorized, adjust, epoch 2: Accuracy = 10.17% = 1017 (correct) / 10000 (total)
+conv, vectorized, adjust, epoch 3: Accuracy = 11.83% = 1183 (correct) / 10000 (total)
+conv, vectorized, adjust, epoch 4: Accuracy = 10.27% = 1027 (correct) / 10000 (total)
+conv, vectorized, adjust, epoch 5: Accuracy = 10% = 1000 (correct) / 10000 (total)
+
+conv, vectorized, non-adjust, epoch 1: Accuracy = 10% = 1000 (correct) / 10000 (total)
+conv, vectorized, non-adjust, epoch 2: Accuracy = 10% = 1000 (correct) / 10000 (total)
+conv, vectorized, non-adjust, epoch 3: Accuracy = 9.98% = 998 (correct) / 10000 (total)
+conv, vectorized, non-adjust, epoch 4: Accuracy = 8.11% = 811 (correct) / 10000 (total)
+conv, vectorized, non-adjust, epoch 5: Accuracy = 10.11% = 1011 (correct) / 10000 (total)
+
+non-conv, non-vectorized, adjust, epoch 1: Accuracy = 6.49% = 649 (correct) / 10000 (total)
+non-conv, non-vectorized, adjust, epoch 2: Accuracy = 9.2% = 920 (correct) / 10000 (total)
+non-conv, non-vectorized, adjust, epoch 3: Accuracy = 11.34% = 1134 (correct) / 10000 (total)
+non-conv, non-vectorized, adjust, epoch 4: Accuracy = 11.28% = 1128 (correct) / 10000 (total)
+non-conv, non-vectorized, adjust, epoch 5: Accuracy = 10.09% = 1009 (correct) / 10000 (total)
+
+non-conv, non-vectorized, non-adjust, epoch 1: Accuracy = 10.2% = 1020 (correct) / 10000 (total)
+non-conv, non-vectorized, non-adjust, epoch 2: Accuracy = 8.96% = 896 (correct) / 10000 (total)
+non-conv, non-vectorized, non-adjust, epoch 3: Accuracy = 9.17% = 917 (correct) / 10000 (total)
+non-conv, non-vectorized, non-adjust, epoch 4: Accuracy = 13.5% = 1350 (correct) / 10000 (total)
+non-conv, non-vectorized, non-adjust, epoch 5: Accuracy = 11.14% = 1114 (correct) / 10000 (total)
+

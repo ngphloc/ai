@@ -222,6 +222,14 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 
 	
 	@Override
+	public NeuronValue abs() {
+		NeuronValueVectorImpl result = new NeuronValueVectorImpl(this.v.length, zeroValue);
+		for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].abs();
+		return result;
+	}
+
+
+	@Override
 	public boolean canInvert() {
 		if (this.v.length == 0) return false;
 		for (int i = 0; i < this.v.length; i++) {

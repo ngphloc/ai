@@ -2789,7 +2789,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Recovering rasters.
 	 */
-	private void recover() {
+	void recover() {
 		genRasters.clearItems();
 		List<Raster> bRasters = Util.newList(0);
 		List<Raster> rRasters = Util.newList(0);

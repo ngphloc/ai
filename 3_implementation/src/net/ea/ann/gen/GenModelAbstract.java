@@ -103,11 +103,11 @@ public abstract class GenModelAbstract extends NetworkAbstract implements GenMod
 	
 	
 	@Override
-	public NeuronValue[] learnOne(Iterable<Record> sample) throws RemoteException {
+	public NeuronValue[] learnOneByOne(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
-		return learnOne(sample, learningRate, terminatedThreshold, maxIteration);
+		double learningRate = paramGetLearningRate();
+		return learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
 
@@ -115,7 +115,7 @@ public abstract class GenModelAbstract extends NetworkAbstract implements GenMod
 	public NeuronValue[] learn(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
+		double learningRate = paramGetLearningRate();
 		return learn(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -128,7 +128,7 @@ public abstract class GenModelAbstract extends NetworkAbstract implements GenMod
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	protected abstract NeuronValue[] learnOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration);
+	protected abstract NeuronValue[] learnOneByOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration);
 
 		
 	/**
@@ -179,7 +179,7 @@ public abstract class GenModelAbstract extends NetworkAbstract implements GenMod
 
 	@Override
 	public synchronized G reproduce(NeuronValue[] dataX, Cube region, boolean random, boolean calcError) throws RemoteException {
-		learnOne(Arrays.asList(new Record(dataX)));
+		learnOneByOne(Arrays.asList(new Record(dataX)));
 		return recover(dataX, region, random, calcError);
 	}
 

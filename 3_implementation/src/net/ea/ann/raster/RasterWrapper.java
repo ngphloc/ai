@@ -62,6 +62,12 @@ public class RasterWrapper implements Raster {
 
 	
 	@Override
+	public int id() {
+		return raster.id();
+	}
+
+
+	@Override
 	public int getWidth() {
 		return raster.getWidth();
 	}

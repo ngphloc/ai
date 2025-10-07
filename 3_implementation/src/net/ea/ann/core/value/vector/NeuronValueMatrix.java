@@ -124,6 +124,12 @@ public class NeuronValueMatrix extends MatrixImpl implements NeuronValue {
 
 	
 	@Override
+	public NeuronValue abs() {
+		return (NeuronValue)abs0();
+	}
+
+
+	@Override
 	public boolean canInvert() {
 		throw new RuntimeException("Not implemented yet");
 	}

@@ -501,11 +501,11 @@ public abstract class RecurrentNetworkAbstract extends NetworkAbstract implement
 	
 	
 	@Override
-	public NeuronValue[] learnOne(Iterable<List<Record>> sample) throws RemoteException {
+	public NeuronValue[] learnOneByOne(Iterable<List<Record>> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
-		return learnOne(sample, learningRate, terminatedThreshold, maxIteration);
+		double learningRate = paramGetLearningRate();
+		return learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
 	
@@ -513,7 +513,7 @@ public abstract class RecurrentNetworkAbstract extends NetworkAbstract implement
 	public NeuronValue[] learn(Iterable<List<Record>> sample) throws RemoteException {
 		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
 		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
-		double learningRate = getLearingRate();
+		double learningRate = paramGetLearningRate();
 		return learn(sample, learningRate, terminatedThreshold, maxIteration);
 	}
 
@@ -526,7 +526,7 @@ public abstract class RecurrentNetworkAbstract extends NetworkAbstract implement
 	 * @param maxIteration maximum iteration.
 	 * @return learned error.
 	 */
-	public NeuronValue[] learnOne(Iterable<List<Record>> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	public NeuronValue[] learnOneByOne(Iterable<List<Record>> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -539,14 +539,14 @@ public abstract class RecurrentNetworkAbstract extends NetworkAbstract implement
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 			Iterable<List<Record>> subsample = resample(sample, iteration, maxIteration);
 
 			for (List<Record> records : subsample) {
 				if (records == null) continue;
 				for (int i = 0; i < states.size() && i < records.size(); i++) {
 					State state = states.get(i);
-					error = state.learnOne(Arrays.asList(records.get(i)), lr, terminatedThreshold, 1);
+					error = state.learnOneByOne(Arrays.asList(records.get(i)), lr, terminatedThreshold, 1);
 				}
 			}
 			
@@ -608,7 +608,7 @@ public abstract class RecurrentNetworkAbstract extends NetworkAbstract implement
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 			Iterable<List<Record>> subsample = resample(sample, iteration, maxIteration);
 
 			for (int i = 0; i < states.size(); i++) {

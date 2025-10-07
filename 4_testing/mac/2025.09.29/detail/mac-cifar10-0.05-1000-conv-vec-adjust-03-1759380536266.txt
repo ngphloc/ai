@@ -1,0 +1,1 @@
+Accuracy = 11.83% = 1183 (correct) / 10000 (total)

@@ -599,7 +599,7 @@ public abstract class ConvLayer3DAbstract extends ConvLayer2DAbstract implements
 		int iteration = 0;
 		BiasFilter filter = initialFilter;
 		while (iteration < maxIteration) {
-			double lr = NetworkAbstract.calcLearningRate(learningRate, iteration, NetworkAbstract.LEARN_RATE_FIXED_DEFAULT);
+			double lr = NetworkAbstract.calcLearningRate(learningRate, iteration+1, NetworkAbstract.LEARN_RATE_FIXED_DEFAULT);
 			filter = learnFilter(smallLayer, largeLayer, filter, learningBias, lr);
 			iteration++;
 		}

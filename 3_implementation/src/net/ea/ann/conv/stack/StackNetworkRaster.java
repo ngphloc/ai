@@ -156,8 +156,8 @@ public class StackNetworkRaster extends StackNetworkImpl {
 
 	
 	@Override
-	public NeuronValue[] learnOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
-		NeuronValue[] error0 = super.learnOne(sample, learningRate, terminatedThreshold, maxIteration);
+	public NeuronValue[] learnOneByOne(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+		NeuronValue[] error0 = super.learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
 
 		if (unifiedContentToRaster == null || stacks.size() == 0) return error0;
 		try {
@@ -173,7 +173,7 @@ public class StackNetworkRaster extends StackNetworkImpl {
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			for (Record record : subsample) {
 				if (record == null) continue;
@@ -247,7 +247,7 @@ public class StackNetworkRaster extends StackNetworkImpl {
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration);
+			double lr = calcLearningRate(learningRate, iteration+1);
 
 			List<Record> newSample = Util.newList(0);
 			for (Record record : subsample) {

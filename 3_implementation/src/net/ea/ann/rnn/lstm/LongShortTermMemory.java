@@ -7,7 +7,7 @@
  */
 package net.ea.ann.rnn.lstm;
 
-import temp.ea.ann.rnn.RecurrentNetwork;
+import net.ea.ann.rnn.RecurrentNetwork;
 
 /**
  * This interface represents long short-term memory.

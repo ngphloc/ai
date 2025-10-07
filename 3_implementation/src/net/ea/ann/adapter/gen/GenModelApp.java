@@ -14,9 +14,11 @@ import java.util.Comparator;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 
+import net.ea.ann.classifier.ClassifierAssoc;
 import net.ea.ann.conv.ConvNetworkImpl;
 import net.ea.ann.core.Util;
 import net.ea.ann.gen.ConvGenModelAssoc;
+import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.hudup.core.client.ConnectInfo;
 import net.hudup.core.client.PowerServer;
 import net.hudup.core.logistic.LogUtil;
@@ -56,9 +58,21 @@ public class GenModelApp extends ConsoleApp {
 
 	
 	/**
+	 * Name of transformation task.
+	 */
+	protected final static String MANE_TRANSFORM = "mane_transform";
+
+	
+	/**
+	 * Name of classification task.
+	 */
+	protected final static String CLASSIFY = "classification";
+
+	
+	/**
 	 * Array of task.
 	 */
-	protected final static String[] tasks = {GENAI, LEARN_FILTER};
+	protected final static String[] tasks = {GENAI, LEARN_FILTER, MANE_TRANSFORM, CLASSIFY};
 	
 	
 	/**
@@ -95,6 +109,16 @@ public class GenModelApp extends ConsoleApp {
 		case LEARN_FILTER:
 			try {
 				ConvNetworkImpl.learnFilter(((ConsoleImpl)console).getIn(), ((ConsoleImpl)console).getOut());
+			} catch (Throwable e) {Util.trace(e);}
+			break;
+		case MANE_TRANSFORM:
+			try {
+				MatrixNetworkAssoc.transform(((ConsoleImpl)console).getIn(), ((ConsoleImpl)console).getOut());
+			} catch (Throwable e) {Util.trace(e);}
+			break;
+		case CLASSIFY:
+			try {
+				ClassifierAssoc.classify(((ConsoleImpl)console).getIn(), ((ConsoleImpl)console).getOut());
 			} catch (Throwable e) {Util.trace(e);}
 			break;
 		default:

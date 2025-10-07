@@ -242,6 +242,14 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 
 	
 	@Override
+	public NeuronValue abs() {
+		NeuronValueV result = new NeuronValueV(this.v.length);
+		for (int i = 0; i < this.v.length; i++) result.v[i] = Math.abs(this.v[i]);
+		return result;
+	}
+
+
+	@Override
 	public boolean canInvert() {
 		if (this.v.length == 0) return false;
 		for (int i = 0; i < this.v.length; i++) {
@@ -684,5 +692,33 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 		return true;
 	}
 
+	
+	/**
+	 * Calculate mean.
+	 * @param values vector.
+	 * @return mean.
+	 */
+	public static double mean(double[] values) {
+		double sum = 0;
+		for (int i = 0; i < values.length; i++) sum += values[i];
+		return sum / values.length;
+	}
+	
+	
+	/**
+	 * Calculate variance.
+	 * @param values vector.
+	 * @return variance.
+	 */
+	public static double variance(double[] values) {
+		double mean = mean(values);
+		double sum = 0;
+		for (int i = 0; i < values.length; i++) {
+			double d = values[i] - mean;
+			sum += d*d;
+		}
+		return sum / values.length;
+	}
+	
 	
 }

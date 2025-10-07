@@ -41,7 +41,7 @@ public class AVA extends GenModelAbstract {
 		if (name != null && !name.isEmpty())
 			return name;
 		else
-			return "ava";
+			return "gen.ava";
 	}
 
 	

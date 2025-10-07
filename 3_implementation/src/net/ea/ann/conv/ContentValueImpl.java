@@ -351,6 +351,15 @@ public class ContentValueImpl extends ContentImpl implements ContentValue, NormS
 
 
 	@Override
+	public NeuronValue abs() {
+		NeuronValue[] thisData = this.getData();
+		NeuronValue[] newData = new NeuronValue[thisData.length];
+		for (int i = 0; i < newData.length; i++) newData[i] = thisData[i].abs();
+		return (NeuronValue)newContent(newData, this.getBias());
+	}
+
+
+	@Override
 	public boolean canInvert() {
 		NeuronValue[] thisData = this.getData();
 		if (thisData.length == 0) return false;
