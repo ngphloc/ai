@@ -160,7 +160,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		/**
 		 * Maximum iteration.
 		 */
-		public int maxIteration = Network.LEARN_MAX_ITERATION_DEFAULT;
+		public int maxIteration = MatrixNetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
 		
 		/**
 		 * Depth.
@@ -186,7 +186,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		
 		/**
 		 * Importing parameters from builder.
-		 * @param builder builder
+		 * @param builder builder.
 		 */
 		public void importParams(ClassifierBuilder builder) {
 			this.model = builder.model.toString();
@@ -364,7 +364,8 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		int dataset = defaultDataset;
 		printer.print("Dataset (0-cifar10) (default " + defaultDataset + " is cifar10):");
 		try {
-			dataset = Integer.parseInt(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) dataset = Integer.parseInt(line);
 		} catch (Throwable e) {}
 		if (Double.isNaN(dataset)) dataset = defaultDataset;
 		if (dataset <= 0) dataset = defaultDataset;
@@ -393,11 +394,12 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		Scanner scanner = new Scanner(in);
 		PrintStream printer = new PrintStream(out);
 
-		int defaultMaxIteration = 1;
+		int defaultMaxIteration = MatrixClassifier0.EPOCHS_PSEUDO_DEFAULT;
 		int maxIteration = defaultMaxIteration;
 		printer.print("Maximum iteration (default " + defaultMaxIteration + "):");
 		try {
-			maxIteration = Integer.parseInt(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) maxIteration = Integer.parseInt(line);
 		} catch (Throwable e) {}
 		if (Double.isNaN(maxIteration)) maxIteration = defaultMaxIteration;
 		if (maxIteration <= 0) maxIteration = defaultMaxIteration;
@@ -405,9 +407,10 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	
 		int defaultTrainSize = -1;
 		int trainSize = defaultTrainSize;
-		printer.print("Training size (default " + defaultTrainSize + "):");
+		printer.print("Training size (default " + defaultTrainSize + " for all):");
 		try {
-			trainSize = Integer.parseInt(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) trainSize = Integer.parseInt(line);
 		} catch (Throwable e) {}
 		if (Double.isNaN(trainSize)) trainSize = defaultTrainSize;
 		if (trainSize < 0) trainSize = defaultTrainSize;
@@ -415,7 +418,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	
 		printer.print("Enter base directory (" + Util.WORKING_DIRECTORY + "/base" + "):");
 		String base = scanner.nextLine().trim();
-		if (base.isEmpty()) base = Util.WORKING_DIRECTORY + "/base";
+		if (base.isBlank() || base.isEmpty()) base = Util.WORKING_DIRECTORY + "/base";
 		printer.println("Base directory is \"" + base + "\".\n");
 		Path baseDir = Paths.get(base);
 		if (!Files.exists(baseDir) || !Files.isDirectory(baseDir)) {
@@ -425,7 +428,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		
 		printer.print("Enter test directory (" + Util.WORKING_DIRECTORY + "/test" + "):");
 		String test = scanner.nextLine().trim();
-		if (test.isEmpty()) test = Util.WORKING_DIRECTORY + "/test";
+		if (test.isBlank() || test.isEmpty()) test = Util.WORKING_DIRECTORY + "/test";
 		printer.println("Test directory is \"" + test + "\".\n");
 		Path testDir = Paths.get(test);
 		try {
@@ -438,7 +441,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	
 		printer.print("Enter test result directory (" + Util.WORKING_DIRECTORY + "/testresult" + "):");
 		String testresult = scanner.nextLine().trim();
-		if (testresult.isEmpty()) testresult = Util.WORKING_DIRECTORY + "/testresult";
+		if (testresult.isBlank() || testresult.isEmpty()) testresult = Util.WORKING_DIRECTORY + "/testresult";
 		printer.println("Test result directory is \"" + testresult + "\".\n");
 		Path testresultDir = Paths.get(testresult);
 		try {

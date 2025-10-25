@@ -287,6 +287,30 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	}
 	
 	
+
+	/**
+	 * Getting terminated threshold.
+	 * @return terminated threshold.
+	 */
+	public double paramGetTerminatedThreshold() {
+		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
+		return Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
+	}
+	
+	
+	/**
+	 * Setting terminated threshold.
+	 * @param terminatedThreshold terminated threshold.
+	 * @return this network.
+	 */
+	public NetworkAbstract paramSetTerminatedThreshold(double terminatedThreshold) {
+		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
+		config.put(LEARN_TERMINATED_THRESHOLD_FIELD, terminatedThreshold);
+		return this;
+	}
+	
+	
+	
 	/**
 	 * Getting re-sampling rate.
 	 * @return re-sampling rate.

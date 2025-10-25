@@ -39,23 +39,31 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 
 	
 	@Override
-	public Matrix[] train(MatrixLayer layer, Iterable<Matrix[]> inouts, boolean propagate, double learningRate) {
+	public Matrix[] train(MatrixLayer layer, Iterable<Record> inouts, boolean propagate, double learningRate) {
 		List<Matrix> biases = Util.newList(0);
-		for (Matrix[] inout : inouts) {
-			Matrix input = inout[0], realOutput = inout[1];
-			if (input != null) Matrix.copy(input, layer.getInput());
+		for (Record inout : inouts) {
+			if (inout == null) continue;
+			Matrix realOutput = inout.output();
+			if (layer instanceof MatrixLayerExt) {
+				((MatrixLayerExt)layer).enterInputs(inout);
+			}
+			else {
+				Matrix input = inout.input();
+				if (input != null) Matrix.copy(input, layer.getInput());
+			}
+			
 			Matrix output = layer.evaluate();
 			Matrix bias = gradient(output, realOutput);
 			if (bias == null) continue;
 			
-			if (!(layer instanceof MatrixNetworkAbstract)) {
+			if (!(layer instanceof MatrixNetworkCore)) {
 				biases.add(bias);
 				continue;
 			}
 			
-			MatrixNetworkAbstract mane = (MatrixNetworkAbstract)layer;
-			Matrix oinput = mane.getOutputLayer().getInput();
-			Function activateRef = mane.getOutputLayer().getActivateRef();
+			MatrixNetworkCore mnc = (MatrixNetworkCore)layer;
+			Matrix oinput = mnc.getOutputLayer().getInput();
+			Function activateRef = mnc.getOutputLayer().getActivateRef();
 			if (oinput != null && activateRef != null) {
 				Matrix derivative = oinput.derivativeWise(activateRef);
 				bias = derivative.multiplyWise(bias);

@@ -525,7 +525,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 
 	@Override
-	public Matrix forward(Matrix input) {
+	public Matrix forward(Matrix...inputs) {
+		Matrix input = inputs != null && inputs.length > 0 ? inputs[0] : null;
 		if (this.prevLayer == null) {
 			if (input != null) Matrix.copy(input, this.input);
 			if (this.input != this.output) this.output = this.input;

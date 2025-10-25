@@ -75,7 +75,7 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 	/**
 	 * Name of zoom-out field.
 	 */
-	private final static String ZOOMOUT_FIELD = "classifier_zoomout";
+	private final static String ZOOMOUT_FIELD = "stac_zoomout";
 
 	
 	/**
@@ -87,7 +87,7 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 	/**
 	 * Name of getting feature field.
 	 */
-	private final static String GET_FEATURE_FIELD = "classifier_get_feature";
+	private final static String GET_FEATURE_FIELD = "stac_get_feature";
 
 	
 	/**
@@ -99,7 +99,7 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 	/**
 	 * Name of simplest field.
 	 */
-	private final static String SIMPLEST_FIELD = "classifier_simplest";
+	private final static String SIMPLEST_FIELD = "stac_simplest";
 
 	
 	/**

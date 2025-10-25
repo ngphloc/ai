@@ -57,10 +57,10 @@ public interface MatrixLayer extends Layer {
 	
 	/**
 	 * Evaluating and forwarding layer.
-	 * @param input specified input.
+	 * @param inputs specified inputs.
 	 * @return evaluated matrix as output.
 	 */
-	Matrix forward(Matrix input);
+	Matrix forward(Matrix...inputs);
 	
 	
 	/**

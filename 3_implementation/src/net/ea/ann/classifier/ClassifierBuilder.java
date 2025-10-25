@@ -123,6 +123,34 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 
 	
 	/**
+	 * Default constructor.
+	 */
+	public ClassifierBuilder() {
+		
+	}
+	
+	
+	/**
+	 * Getting neuron channel.
+	 * @return neuron channel.
+	 */
+	public int getNeuronChannel() {
+		return neuronChannel;
+	}
+	
+	
+	/**
+	 * Setting neuron channel.
+	 * @param neuronChannel neuron channel.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setNeuronChannel(int neuronChannel) {
+		this.neuronChannel = neuronChannel;
+		return this;
+	}
+	
+	
+	/**
 	 * Setting activation reference.
 	 * @param activateRef activation reference.
 	 * @return this builder.
@@ -315,7 +343,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			mac.paramSetLearningRate(learningRate);
 			mac.paramSetBatches(batches);
 			mac.paramSetConv(conv);
-			mac.setVectorized(vectorized);
+			mac.paramSetVectorized(vectorized);
 			mac.paramSetAdjust(adjust);
 			mac.paramSetDual(dual);
 			mac.paramSetBaseline(baseline);
@@ -329,12 +357,23 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Build classifier.
+	 * @param model classifier model.
+	 * @return classifier model.
+	 */
+	public Classifier build(ClassifierModel model) {
+		setModel(model);
+		return build();
+	}
+	
+	
+	/**
 	 * Creating builder by user entering.
 	 * @param in input stream.
 	 * @param out output stream.
 	 * @return builder.
 	 */
-	public static ClassifierBuilder enter(InputStream in, OutputStream out) {
+	static ClassifierBuilder enter(InputStream in, OutputStream out) {
 		@SuppressWarnings("resource")
 		Scanner scanner = new Scanner(in);
 		PrintStream printer = new PrintStream(out);
@@ -343,7 +382,8 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		int model = defaultModel;
 		printer.print("Model (0-mac, 1-stack) (default " + defaultModel + " is mac):");
 		try {
-			model = Integer.parseInt(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) model = Integer.parseInt(line);
 		} catch (Throwable e) {}
 		if (Double.isNaN(model)) model = defaultModel;
 		if (model <= 0) model = defaultModel;
@@ -353,7 +393,8 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		int rasterChannel = defaultRasterChannel;
 		printer.print("Raster channel (1, 2, 3, 4) (default " + defaultRasterChannel + "):");
 		try {
-			rasterChannel = Integer.parseInt(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) rasterChannel = Integer.parseInt(line);
 		} catch (Throwable e) {}
 		if (Double.isNaN(rasterChannel)) rasterChannel = defaultRasterChannel;
 		if (rasterChannel < defaultRasterChannel) rasterChannel = defaultRasterChannel;
@@ -363,7 +404,8 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		double lr = defaultlr;
 		printer.print("Enter starting learning rate (default " + defaultlr + "):");
 		try {
-			lr = Double.parseDouble(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) lr = Double.parseDouble(line);
 		} catch (Throwable e) {}
 		if (Double.isNaN(lr)) lr = defaultlr;
 		if (lr <= 0 || lr > 1) lr = defaultlr;
@@ -373,41 +415,42 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		int batches = defaultBatches;
 		printer.print("Batches (default " + batches + "):");
 		try {
-			batches = Integer.parseInt(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) batches = Integer.parseInt(line);
 		} catch (Throwable e) {}
 		if (Double.isNaN(batches)) batches = defaultBatches;
 		if (batches <= 0) batches = defaultBatches;
 		printer.println("Batches are " + batches + "\n");
 	
-		boolean conv = false;
+		boolean conv = MatrixClassifier0.CONV_DEFAULT;
 		printer.print("Including convolutional network (" + conv + " is default):");
 		try {
-			conv = Boolean.parseBoolean(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) conv = Boolean.parseBoolean(line);
 		} catch (Throwable e) {}
 		printer.println("Including convolutional network is " + conv + "\n");
 	
-		boolean vectorized = false;
+		boolean vectorized = MatrixNetworkAbstract.VECTORIZED_DEFAULT;
 		printer.print("Vectorization (" + vectorized + " is default):");
 		try {
-			vectorized = Boolean.parseBoolean(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) vectorized = Boolean.parseBoolean(line);
 		} catch (Throwable e) {}
 		printer.println("Vectorization is " + vectorized + "\n");
 	
-		boolean adjust = true;
+		boolean adjust = MatrixClassifier.ADJUST_DEFAULT;
 		printer.print("Adjustment (" + adjust + " is default):");
 		try {
 			String line = scanner.nextLine().trim();
-			if (line.isBlank() || line.isEmpty())
-				adjust = true;
-			else
-				adjust = Boolean.parseBoolean(line);
+			if (!line.isBlank() && !line.isEmpty()) adjust = Boolean.parseBoolean(line);
 		} catch (Throwable e) {}
 		printer.println("Adjustment is " + adjust + "\n");
 	
-		boolean dual = false;
+		boolean dual = MatrixClassifier0.DUAL_DEFAULT;
 		printer.print("Dual mode (" + dual + " is default):");
 		try {
-			dual = Boolean.parseBoolean(scanner.nextLine().trim());
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) dual = Boolean.parseBoolean(line);
 		} catch (Throwable e) {}
 		printer.println("Dual mode is " + dual + "\n");
 		

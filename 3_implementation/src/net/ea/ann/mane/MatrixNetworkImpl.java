@@ -18,7 +18,6 @@ import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
-import net.ea.ann.core.Record;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
@@ -199,7 +198,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		
 		//Vectorizing size array. 
 		Dimension[] newSizes = sizes;
-		if (isVectorized()) {
+		if (paramIsVectorized()) {
 			newSizes = new Dimension[sizes.length];
 			for (int i = 0; i < sizes.length; i++) {
 				newSizes[i] = new Dimension(1, sizes[i].height*sizes[i].width);
@@ -209,8 +208,8 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		//Initializing layer.
 		List<MatrixLayerAbstract> layers = Util.newList(sizes.length);
 		MatrixLayerImpl prevLayer = (MatrixLayerImpl)newLayer();
-		if (isVectorized()) prevLayer.setVecRows(sizes[0].height);
-		prevLayer.setLearnFilter(isLearnFilter());
+		if (paramIsVectorized()) prevLayer.setVecRows(sizes[0].height);
+		prevLayer.setLearnFilter(paramIsLearnFilter());
 		if (!new MatrixLayerInitializer(prevLayer).initialize(newSizes[0]))
 			return false;
 		layers.add(prevLayer);
@@ -221,8 +220,8 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		for (int i = 1; i < newSizes.length; i++) {
 			int thisVecRows = sizes[i].height;
 			MatrixLayerImpl layer = (MatrixLayerImpl)newLayer();
-			if (isVectorized()) layer.setVecRows(thisVecRows);
-			layer.setLearnFilter(isLearnFilter());
+			if (paramIsVectorized()) layer.setVecRows(thisVecRows);
+			layer.setLearnFilter(paramIsLearnFilter());
 			
 			thisSize = newSizes[i];
 			prevSize = filters[i-1] ? thisSize : prevSize;
@@ -238,8 +237,8 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 			
 			thisSize = prevSize;
 			MatrixLayerImpl dualLayer = (MatrixLayerImpl)newLayer();
-			if (isVectorized()) dualLayer.setVecRows(thisVecRows);
-			dualLayer.setLearnFilter(isLearnFilter());
+			if (paramIsVectorized()) dualLayer.setVecRows(thisVecRows);
+			dualLayer.setLearnFilter(paramIsLearnFilter());
 			if (!new MatrixLayerInitializer(dualLayer).initialize(thisSize, prevSize, prevLayer, null))
 				return false;
 			Dimension dualSize = dualLayer.getSize();
@@ -409,7 +408,8 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	
 	
 	@Override
-	public Matrix forward(Matrix input) {
+	public Matrix forward(Matrix...inputs) {
+		Matrix input = inputs != null && inputs.length > 0 ? inputs[0] : null;
 		Matrix result = evaluate(input, new Object[] {});
 		if (result == null) return result;
 		
@@ -452,19 +452,18 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	
 	
 	@Override
-	public Matrix[] learn(Iterable<Matrix[]> inouts) throws RemoteException {
+	public Matrix[] learn(Iterable<Record> inouts) throws RemoteException {
 		int maxIteration = paramGetMaxIteration();
-		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
+		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
-		
-		int epochs = config.getAsInt(EPOCHS_PSEUDO_FILED);
-		epochs = epochs > 0 ? epochs : EPOCHS_PSEUDO_DEFAULT;
+		int epochs = paramGetPseudoEpochs();
+
 		Matrix[] outputErrors = null;
-		Iterable<Matrix[]> sample = inouts;
+		Iterable<Record> sample = inouts;
 		for (int epoch = 0; epoch < epochs; epoch++) {
 			double lr = calcLearningRate(learningRate, epoch+1);
 			if (epoch > 0) {
-				if (!(sample instanceof List<?>)) sample = Record.listOf(sample);
+				if (!(sample instanceof List<?>)) sample = net.ea.ann.core.Record.listOf(sample);
 				Collections.shuffle((List<?>)sample);
 			}
 			outputErrors = learn(sample, lr, terminatedThreshold, maxIteration);
@@ -475,13 +474,13 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 
 	/**
 	 * Learning matrix neural network.
-	 * @param inouts sample as collection of input and output whose each element is an 2-component array of input (the first) and output (the second).
+	 * @param inouts sample as collection of input and output.
 	 * @param learningRate learning rate.
 	 * @param terminatedThreshold terminated threshold.
 	 * @param maxIteration maximum iteration.
 	 * @return learning errors.
 	 */
-	private Matrix[] learn(Iterable<Matrix[]> inouts, double learningRate, double terminatedThreshold, int maxIteration) {
+	private Matrix[] learn(Iterable<Record> inouts, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -494,16 +493,16 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			Iterable<Matrix[]> subinouts = resample(inouts, iteration, maxIteration); //Re-sampling.
+			Iterable<Record> subinouts = resample(inouts, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
 			if (trainers.size() == 0) {
 				List<Matrix> outputErrorList = Util.newList(0);
-				for (Matrix[] inout : subinouts) {
-					Matrix input = inout[0], realOutput = inout[1];
+				for (Record inout : subinouts) {
+					Matrix input = inout.input(), realOutput = inout.output();
 					Matrix output = evaluate(input, new Object[] {});
 					Matrix error = calcOutputError(output, realOutput, getOutputLayer());
-					outputErrorList.add(error);
+					if (error != null) outputErrorList.add(error);
 				}
 				outputErrors = outputErrorList.toArray(new Matrix[] {});
 				outputErrors = backward(outputErrors, this, true, lr);
@@ -553,7 +552,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	
 	@Override
 	public Matrix[] backward(Matrix[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-		if (!validate() || outputErrors == null) return null;
+		if (!validate() || outputErrors == null || outputErrors.length == 0) return null;
 		if (focus == null) learning = true;
 		
 		outputErrors = Arrays.copyOf(outputErrors, outputErrors.length);
@@ -592,161 +591,4 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	}
 	
 	
-//	@Override
-//	public Matrix[] backward(Matrix[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-//		if (!validate()) return null;
-//		if (outputErrors == null || outputErrors.length == 0) return null;
-//		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
-//		if (focus == null) learning = true;
-//		if (learning) focus = null;
-//
-//		Matrix[] errors = new Matrix[outputErrors.length];
-//		Matrix[] nextErrors = new Matrix[outputErrors.length];
-//		Matrix[] dW1s = new Matrix[outputErrors.length];
-//		Matrix[] dW2s = new Matrix[outputErrors.length];
-//		NeuronValue[] dFilterErrors = new NeuronValue[outputErrors.length];
-//		NeuronValue[][][] dFilterKernels = new NeuronValue[outputErrors.length][][];
-//		
-//		//Browsing backward layers.
-//		for (int i = layers.length-1; i >= 0; i--) {
-//			MatrixLayerAbstract layer = layers[i];
-//			MatrixLayerAbstract prevLayer = layers[i-1];
-//			MatrixLayerAbstract nextLayer = layers[i+1];
-//			
-//			//Browsing errors.
-//			for (int j = 0; j < outputErrors.length; j++) {
-//				if (i == layers.length-1) {
-//					//Getting errors from environment.
-//					errors[j] = outputErrors[j];
-//					
-//					//Training adapter here.
-//				}
-//				else {
-//					if (nextLayer.getFilter() == null) {
-//						Matrix input = layer.getInput(); //X'k-1
-//						Matrix output = layer.queryOutput(); //Xk
-//						Matrix derivative = input != null ? input.derivativeWise(layer.getActivateRef()) : null;
-//						
-//						//Updating errors based on weights.
-//						Matrix nextW1T = nextLayer.getWeight1();
-//						Matrix nextW2 = nextLayer.getWeight2();
-//						nextW1T = (nextW1T != null) ? nextW1T.transpose() : output.createIdentity(output.rows());
-//						nextW2 = (nextW2 != null) ? nextW2 : output.createIdentity(output.columns());
-//						
-//						Matrix[] errorArray = new Matrix[nextW2.rows()];
-//						Matrix vecNextError = nextErrors[j].vec(); //Please pay attention to this code line.
-//						for (int row = 0; row < errorArray.length; row++) {
-//							//errorArray[row] = Matrix.kroneckerProductMutilply(nextW2, nextW1T, row, vecNextError);
-//							errorArray[row] = nextW2.kroneckerProductRowOf(nextW1T, row).multiply(vecNextError); //Faster.
-//						}
-//						errors[j] = Matrix.concatV(errorArray);
-//						errors[j] = derivative != null ? derivative.multiplyWise(errors[j]) : errors[j];
-//					}
-//					else {
-//						errors[j] = nextErrors[j]; //Please pay attention to this code line.
-//					}
-//					
-//				} //Calculating errors[j]
-//
-//				//Updating nextErrors[j] by filter.
-//				if (layer.getFilter() != null) {
-//					ConvLayerSingle2D prevLayer2D = prevLayer.matrixToConvLayer(prevLayer.queryOutput());
-//					ConvLayerSingle2D errorj = layer.matrixToConvLayer(errors[j]);
-//					NeuronValueRaster dValues = prevLayer2D.dValue(errorj, layer.getFilter());
-//					//Please pay attention to this code line to assign current errors to next errors.
-//					nextErrors[j] = prevLayer.arrayToMatrix(dValues.getValues(), prevLayer2D.getHeight(), prevLayer2D.getWidth());
-//					
-//					if (layer.isLearnFilter()) {
-//						dFilterErrors[j] = dValues.getCountValues() > 0 ? Matrix.valueSum(nextErrors[j]).divide(dValues.getCountValues()) :
-//							nextErrors[j].get(0, 0).zero(); //Filter errors.
-//						dFilterKernels[j] = prevLayer2D.dKernel(errorj, layer.getFilter()); //Filter kernel errors.
-//					}
-//				}
-//
-//				//Update weight errors[j].
-//				if (layer.containsWeights()) {
-//					Matrix W1 = layer.getWeight1();
-//					Matrix W2 = layer.getWeight2();
-//					Matrix prevInput = layer.getPrevInput();
-//					prevInput = prevInput != null ? prevInput : prevLayer.queryOutput(); //Xk-1
-//					
-//					Matrix vecError = errors[j].vec();
-//					if (W1 != null) {
-//						Matrix XW2 = W2 != null ? prevInput.multiply(W2) : prevInput;
-//						Matrix I = W1.createIdentity(W1.rows());
-//						Matrix[] W1s = new Matrix[XW2.rows()];
-//						for (int row = 0; row < W1s.length; row++) {
-//							//W1s[row] = Matrix.kroneckerProductMutilply(XW2, I, row, vecError); //Lower but consuming less memory.
-//							W1s[row] = XW2.kroneckerProductRowOf(I, row).multiply(vecError); //Faster.
-//						}
-//						dW1s[j] = Matrix.concatV(W1s);
-//					}
-//					
-//					if (W2 != null) {
-//						Matrix W1XT = W1 != null ? W1.multiply(prevInput) : prevInput;
-//						W1XT = W1XT.transpose();
-//						Matrix I = W2.createIdentity(W2.columns());
-//						Matrix[] W2s = new Matrix[I.rows()];
-//						for (int row = 0; row < W2s.length; row++) {
-//							//W2s[row] = Matrix.kroneckerProductMutilply(I, W1XT, row, vecError); //Lower but consuming less memory.
-//							W2s[row] = I.kroneckerProductRowOf(W1XT, row).multiply(vecError); //Faster.
-//						}
-//						dW2s[j] = Matrix.concatV(W2s);
-//					}
-//				} //Updating error of W1 and W2
-//				
-//			} //End browsing errors.
-//			
-//			
-//			//Update weight bias, first weight, and second weight.
-//			if (layer.getBias() != null && learning) {
-//				Matrix biasMean = Matrix.mean(errors);
-//				Matrix bias = layer.getBias().add(biasMean.multiply0(learningRate));
-//				layer.setBias(bias);
-//			}
-//			if (layer.getWeight1() != null && learning) {
-//				Matrix w1Mean = Matrix.mean(dW1s);
-//				Matrix w1 = layer.getWeight1().add(w1Mean.multiply0(learningRate));
-//				layer.setWeight1(w1);
-//			}
-//			if (layer.getWeight2() != null && learning) {
-//				Matrix w2Mean = Matrix.mean(dW2s);
-//				Matrix w2 = layer.getWeight2().add(w2Mean.multiply0(learningRate));
-//				layer.setWeight2(w2);
-//			}
-//			
-//			//Update filter and filter bias.
-//			if (layer.getFilter() != null && layer.isLearnFilter() && learning) {
-//				NeuronValue filterErrorsMean = NeuronValue.valueMean(dFilterErrors);
-//				NeuronValue filterBias = layer.getFilterBias().add(filterErrorsMean.multiply(learningRate));
-//				layer.setFilterBias(filterBias); //Update filter bias.
-//				
-//				if (layer.getFilter() instanceof ProductFilter2D) {
-//					ProductFilter2D filter = (ProductFilter2D)layer.getFilter();
-//					NeuronValue[][] filterKernelsMean = ProductFilter2D.kernelMean(dFilterKernels);
-//					filterKernelsMean = NeuronValue.multiply(filterKernelsMean, learningRate);
-//					filter = filter.shallowClone();
-//					filter.accumKernel(filterKernelsMean);
-//					layer.setFilter(filter); //Update filter.
-//				}
-//			}
-//			
-//			//Please pay attention to this code line to assign current errors to next errors.
-//			if (layer.getFilter() == null) nextErrors = errors;
-//		}
-//
-//		//Returning errors if there is no previous layers;
-//		if (nextErrors == null || prevLayer == null) return nextErrors;
-//		//Stop at focused layer.
-//		if (this == focus) return nextErrors;
-//		
-//		//Browsing backward layers.
-//		Matrix[] backwardErrors = new Matrix[nextErrors.length];
-//		for (int i = 0; i < outputErrors.length; i++) {
-//			backwardErrors[i] = adaptInputToPrevOutput(outputErrors[i], prevLayer);
-//		}
-//		return prevLayer.backward(backwardErrors, focus, learning, learningRate);
-//	}
-	
-
 }

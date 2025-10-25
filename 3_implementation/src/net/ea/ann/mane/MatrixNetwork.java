@@ -19,7 +19,7 @@ import net.ea.ann.core.value.Matrix;
  * @version 1.0
  *
  */
-public interface MatrixNetwork extends Network {
+public interface MatrixNetwork extends Network, MatrixNetworkCore {
 
 	
 	/**
@@ -33,11 +33,11 @@ public interface MatrixNetwork extends Network {
 
 	/**
 	 * Learning matrix neural network.
-	 * @param inouts sample as collection of input and output whose each element is an 2-component array of input (the first) and output (the second).
+	 * @param inouts sample as collection of input and output.
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	Matrix[] learn(Iterable<Matrix[]> inouts) throws RemoteException;
+	Matrix[] learn(Iterable<Record> inouts) throws RemoteException;
 
 
 }

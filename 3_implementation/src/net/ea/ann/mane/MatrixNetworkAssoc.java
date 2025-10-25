@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 
 import net.ea.ann.conv.filter.Filter2D;
@@ -61,13 +62,22 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 	
 	/**
 	 * Initializing parameters.
+	 * @param rnd randomizer.
 	 */
-	public void initParams() {
+	public void initParams(Random rnd) {
 		for (int i = 0; i < mane.layers.length; i++) {
 			MatrixLayerAbstract layer = mane.layers[i];
 			if (layer instanceof MatrixLayerImpl)
-				new MatrixLayerAssoc((MatrixLayerImpl)layer).initParams();
+				new MatrixLayerAssoc((MatrixLayerImpl)layer).initParams(rnd);
 		}
+	}
+	
+	
+	/**
+	 * Initializing parameters.
+	 */
+	public void initParams() {
+		initParams(new Random());
 	}
 	
 	
@@ -232,7 +242,7 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 		MatrixNetworkImpl mane = new MatrixNetworkImpl(defaultRasterChannel);
 		mane.getConfig().put(NetworkAbstract.LEARN_MAX_ITERATION_FIELD, maxIteration);
 		mane.getConfig().put(NetworkAbstract.LEARN_RATE_FIELD, lr);
-		mane.setVectorized(vectorized);
+		mane.paramSetVectorized(vectorized);
 		Filter2D filter = filtering ? mane.defaultFilter(new Size(MatrixNetworkImpl.BASE_DEFAULT, MatrixNetworkImpl.BASE_DEFAULT)) : null;
 		//
 		Size sourceSize = RasterAssoc.getAverageSize(sourceRasters).divide(zoomOut);

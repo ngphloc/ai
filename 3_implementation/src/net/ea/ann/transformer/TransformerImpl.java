@@ -7,21 +7,34 @@
  */
 package net.ea.ann.transformer;
 
+import java.awt.Dimension;
 import java.rmi.RemoteException;
+import java.util.Collections;
+import java.util.List;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
+import net.ea.ann.core.NetworkDoEvent.Type;
+import net.ea.ann.core.NetworkDoEventImpl;
+import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
-import net.ea.ann.mane.MatrixNetwork;
+import net.ea.ann.mane.MatrixLayer;
+import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.MatrixLayerExt;
+import net.ea.ann.mane.MatrixNetworkCore;
+import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.mane.TaskTrainer;
+import net.ea.ann.transformer.TransformerBasic.Decoder;
+import net.ea.ann.transformer.TransformerBasic.Encoder;
 
 /**
- * This class implements simplest transformer.
+ * This class implements default transformer.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class TransformerImpl extends NetworkAbstract implements Transformer {
+public class TransformerImpl extends NetworkAbstract implements Transformer, MatrixLayerExt, MatrixNetworkCore {
 
 
 	/**
@@ -31,50 +44,635 @@ public class TransformerImpl extends NetworkAbstract implements Transformer {
 
 	
 	/**
-	 * Internal attention.
+	 * Neuron channel.
 	 */
-	protected Attention attention = null;
+	protected int neuronChannel = 1;
+
+	
+	/**
+	 * Transformer encoder.
+	 */
+	protected Encoder encoder = null;
 	
 	
 	/**
-	 * Feed forward network.
+	 * Transformer decoder.
 	 */
-	protected MatrixNetwork ffn = null;
+	protected Decoder decoder = null;
+
+	
+	/**
+	 * Previous layer.
+	 */
+	protected MatrixLayer prevLayer = null;
 	
 	
 	/**
-	 * Add & norm component.
+	 * Next layer.
 	 */
-	protected AddNorm addNorm = null;
-	
+	protected MatrixLayer nextLayer = null;
+
 	
 	/**
-	 * Constructor with ID reference.
+	 * List of trainers.
+	 */
+	protected List<TaskTrainer> trainers = Util.newList(0);
+
+	
+	/**
+	 * Constructor with neuron channel and ID reference.
+	 * @param neuronChannel neuron channel.
 	 * @param idRef ID reference.
 	 */
-	protected TransformerImpl(Id idRef) {
+	public TransformerImpl(int neuronChannel, Id idRef) {
 		super(idRef);
+		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
 	}
 
 	
 	/**
-	 * Default constructor.
+	 * Default constructor with neuron channel.
+	 * @param neuronChannel neuron channel.
 	 */
-	protected TransformerImpl() {
-		this(new Id());
+	public TransformerImpl(int neuronChannel) {
+		this(neuronChannel, null);
 	}
 
 	
 	@Override
-	public Matrix evaluate(Matrix input1, Matrix input2) throws RemoteException {
-		throw new RuntimeException("Method MatrixNetworkImpl.evaluate(Matrix) not implemented yet");
+	public Id getIdRef() {
+		return idRef;
+	}
+
+
+	@Override
+	public int id() {
+		return idRef.get();
+	}
+
+	
+	/**
+	 * Validating transformer block.
+	 * @return true if transformer block is valid.
+	 */
+	public boolean validate() {
+		return encoder != null || decoder != null;
+	}
+
+	
+	/**
+	 * Resetting transformer.
+	 */
+	public void reset() {
+		encoder = null;
+		decoder = null;
+	}
+	
+
+	/**
+	 * Creating encoder.
+	 * @return encoder.
+	 */
+	protected Encoder createEncoder() {
+		return new Encoder(this.neuronChannel, this.idRef);
+	}
+	
+	
+	/**
+	 * Creating decoder.
+	 * @return decoder.
+	 */
+	protected Decoder createDecoder() {
+		return new Decoder(this.neuronChannel, this.idRef);
+	}
+
+	
+	/**
+	 * Initializing transformer.
+	 * @param he number of heads (encoder). Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
+	 * @param ne sample size (encoder).
+	 * @param dme model dimension (encoder). Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * @param dke key dimension (encoder). Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
+	 * @param dve value dimension (encoder). Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
+	 * @param hd number of heads (decoder). Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
+	 * @param nd sample size (decoder).
+	 * @param dmd model dimension (decoder). Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * @param dkd key dimension (decoder). Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
+	 * @param dvd value dimension (decoder). Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
+	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
+	 * @param nBlocks number of blocks. Default number of blocks is {@link #BLOCKS_NUMBER_DEFAULT}
+	 * @return true if initialization is successful.
+	 */
+	private boolean initialize(int he, int ne, int dme, int dke, int dve, int hd, int nd, int dmd, int dkd, int dvd, int ffnDepth, int nBlocks) {
+		nBlocks = nBlocks > 0 ? nBlocks : TransformerBasic.BLOCKS_NUMBER_DEFAULT;
+		int XBlockIndex = nd > 0 && dmd > 0 && nBlocks > 1 ? 1 : -1;
+		this.encoder = null;
+		this.decoder = null;
+		
+		if (XBlockIndex < 0) {
+			this.encoder = createEncoder();
+			if (!this.encoder.initialize(he, ne, dme, dke, dve, ffnDepth, nBlocks)) return false;
+		}
+		else {
+			this.encoder = createEncoder();
+			if (!this.encoder.initialize(he, ne, dme, dke, dve, ffnDepth, nBlocks)) return false;
+			this.decoder = createDecoder();
+			if (!this.decoder.initialize(hd, nd, dmd, dkd, dvd, ne, dme, ffnDepth, nBlocks, XBlockIndex)) return false;
+			this.decoder.setXBlockAttach(this.encoder);
+		}
+		return validate();
+	}
+	
+	
+	/**
+	 * Initializing transformer.
+	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
+	 * @param n sample size.
+	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
+	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
+	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
+	 * @param nBlocks number of blocks. Default number of blocks is {@link #BLOCKS_NUMBER_DEFAULT}
+	 * @return true if initialization is successful.
+	 */
+	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks) {
+		return initialize(h, n, dm, dk, dv, h, n, dm, dk, dv, ffnDepth, nBlocks);
+	}
+	
+	
+	/**
+	 * Initializing transformer.
+	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
+	 * @param n sample size.
+	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
+	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
+	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
+	 * @param nBlocks number of blocks. Default number of blocks is {@link #BLOCKS_NUMBER_DEFAULT}
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks) {
+		return initialize(h, n, dm, dk, dv, 0, 0, 0, 0, 0, ffnDepth, nBlocks);
+	}
+
+	
+	/**
+	 * Getting encoder.
+	 * @return encoder.
+	 */
+	public TransformerBasic.Encoder encoder() {return encoder;}
+	
+	
+	/**
+	 * Getting decoder.
+	 * @return decoder.
+	 */
+	public TransformerBasic.Decoder decoder() {return decoder;}
+
+	
+	@Override
+	public MatrixLayer getPrevLayer() {
+		return prevLayer;
+	}
+
+
+	@Override
+	public MatrixLayer getNextLayer() {
+		return nextLayer;
 	}
 
 	
 	@Override
-	public Matrix learn(Matrix input1, Matrix input2, Matrix output) throws RemoteException {
-		throw new RuntimeException("Method MatrixNetworkImpl.learn(Matrix, Matrix) not implemented yet");
+	public Matrix getInput() {
+		return validate() ? (decoder != null ? decoder.getInput() : encoder.getInput()) : null;
+	}
+	
+	/**
+	 * Setting Y input data, X input data, and input mask.
+	 * @param inputY Y input data.
+	 * @param inputX X input data.
+	 * @param inputMask input mask.
+	 */
+	protected void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
+		if (!validate())
+			return;
+		else if (encoder != null && decoder != null) {
+			encoder.enterInputs(inputX, null, null);
+			decoder.enterInputs(inputY, null, inputMask);
+		}
+		else if (encoder != null && decoder == null) {
+			encoder.enterInputs(inputX != null ? inputX : inputY, null, inputMask);
+		}
+		else if (encoder == null && decoder != null) {
+			decoder.enterInputs(inputY != null ? inputY : inputX, null, inputMask);
+		}
+	}
+	
+	
+	/**
+	 * Setting input data and input mask.
+	 * @param input input data.
+	 * @param inputMask input mask.
+	 */
+	protected void enterInputs(Matrix input, boolean[][] inputMask) {
+		enterInputs(input, null, inputMask);
 	}
 
 	
+	@Override
+	public void enterInputs(net.ea.ann.mane.Record record) {
+		Matrix inputY = record.input();
+		Matrix inputX = record.input2();
+		Object extraInput = record.extraInput();
+		boolean[][] inputMask = (extraInput != null) && (extraInput instanceof boolean[][]) ? (boolean[][])extraInput : null;
+		enterInputs(inputY, inputX, inputMask);
+	}
+
+	
+	@Override
+	public Matrix getOutput() {
+		return validate() ? (decoder != null ? decoder.getOutput() : encoder.getOutput()) : null;
+	}
+
+
+	@Override
+	public MatrixLayerAbstract getOutputLayer() {
+		return validate() ? (decoder != null ? decoder.getOutputLayer() : encoder.getOutputLayer()) : null;
+	}
+	
+	
+	/**
+	 * Getting output head.
+	 * @return output head.
+	 */
+	public MatrixNetworkImpl getOutputHead() {
+		if (!validate())
+			return null;
+		else if (encoder != null && decoder != null) {
+			return decoder.getOutputHead();
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.getOutputHead();
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.getOutputHead();
+		}
+		else
+			return null;
+	}
+
+	
+	/**
+	 * Setting output head.
+	 * @param head output head.
+	 */
+	public boolean setOutputHead(MatrixNetworkImpl head) {
+		if (!validate())
+			return false;
+		else if (encoder != null && decoder != null) {
+			return decoder.setOutputHead(head);
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.setOutputHead(head);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.setOutputHead(head);
+		}
+		else
+			return false;
+	}
+
+	
+	/**
+	 * Setting output head.
+	 * @param headOutputSize head output size.
+	 * @param headDepth head depth.
+	 * @return true if setting is successful.
+	 */
+	public boolean setOutputHead(Dimension headOutputSize, int headDepth) {
+		if (!validate())
+			return false;
+		else if (encoder != null && decoder != null) {
+			return decoder.setOutputHead(headOutputSize, headDepth);
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.setOutputHead(headOutputSize, headDepth);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.setOutputHead(headOutputSize, headDepth);
+		}
+		else
+			return false;
+	}
+
+	
+	/**
+	 * Removing output head.
+	 */
+	public void removeOutputHead() {
+		if (!validate())
+			return;
+		else if (encoder != null && decoder != null) {
+			decoder.removeOutputHead();
+		}
+		else if (encoder != null && decoder == null) {
+			encoder.removeOutputHead();
+		}
+		else if (encoder == null && decoder != null) {
+			decoder.removeOutputHead();
+		}
+	}
+	
+	
+	/**
+	 * Getting size of trainers.
+	 * @return size of trainers.
+	 */
+	int getTrainerSize() {
+		return trainers.size();
+	}
+	
+	
+	/**
+	 * Getting trainer at specified index.
+	 * @param index specified index.
+	 * @return trainer at specified index.
+	 */
+	TaskTrainer getTrainer(int index) {
+		return trainers.get(index);
+	}
+	
+	
+	/**
+	 * Getting trainer.
+	 * @return the first trainer.
+	 */
+	public TaskTrainer getTrainer() {
+		return trainers.size() > 0 ? trainers.get(0) : null;
+	}
+	
+	
+	/**
+	 * Adding trainer.
+	 * @param trainer specified trainer.
+	 * @return adding is successful.
+	 */
+	boolean addTrainer(TaskTrainer trainer) {
+		return trainers.add(trainer);
+	}
+	
+	
+	/**
+	 * Removing trainer.
+	 * @param trainer specified trainer.
+	 * @return removal is successful.
+	 */
+	boolean removeTrainer(TaskTrainer trainer) {
+		return trainers.remove(trainer);
+	}
+	
+	
+	/**
+	 * Clearing trainer.
+	 */
+	void clearTrainers() {
+		trainers.clear();
+	}
+	
+	
+	/**
+	 * Setting trainer.
+	 * @param trainer specified trainer.
+	 * @return this network.
+	 */
+	public TransformerImpl setTrainer(TaskTrainer trainer) {
+		trainers.clear();
+		if (trainer != null) trainers.add(trainer);
+		return this;
+	}
+
+
+	@Override
+	public Matrix forward(Matrix...inputs) {
+		Matrix inputY = inputs != null && inputs.length > 0 ? inputs[0] : null;
+		Matrix inputX = inputs != null && inputs.length > 1 ? inputs[1] : null;
+		Matrix result = evaluate(inputY, inputX, null, new Object[] {});
+		if (result == null) return result;
+		
+		MatrixLayer nextLayer = null;
+		while ((nextLayer = this.getNextLayer()) != null) {
+			Matrix.copy(result, nextLayer.getInput());
+			result = nextLayer.evaluate();
+		}
+		return result;
+	}
+
+
+	/**
+	 * Evaluating transformer.
+	 * @param inputY Y input.
+	 * @param inputX X input.
+	 * @param inputMatrix mask input. 
+	 * @param params additional parameters.
+	 * @return matrix as output.
+	 */
+	protected Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask, Object...params) {
+		if (!validate())
+			return null;
+		else if (encoder != null && decoder != null) {
+			Matrix A = encoder.evaluate(inputX, null, null, new Object[] {});
+			return decoder.evaluate(inputY, A, inputMask, new Object[] {});
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.evaluate(inputY, inputX, inputMask, new Object[] {});
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.evaluate(inputY, inputX, inputMask, new Object[] {});
+		}
+		else
+			return null;
+	}
+	
+	
+	/**
+	 * Evaluating transformer.
+	 * @param input input.
+	 * @param inputMatrix mask input. 
+	 * @return matrix as output.
+	 */
+	protected Matrix evaluate(Matrix input, boolean[][] inputMatrix) {
+		return evaluate(input, null, inputMatrix, new Object[] {});
+	}
+
+	
+	@Override
+	public Matrix evaluate(Record record) throws RemoteException {
+		return evaluate(record.inputY, record.inputX, record.inputMask, new Object[] {});
+	}
+
+	
+	@Override
+	public Matrix evaluate() {
+		return evaluate(null, null, null);
+	}
+
+	
+	/**
+	 * Back-warding transformer block by errors.
+	 * @param errors specified errors.
+	 * @param learningRate learning rate.
+	 * @return learning errors. The first element is main error and the second element is attached error\\.
+	 */
+	protected Error[][] backward(Error[] errors, double learningRate) {
+		if (!validate())
+			return null;
+		else if (encoder != null && decoder != null) {
+			return decoder.backward(errors, learningRate);
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.backward(errors, learningRate);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.backward(errors, learningRate);
+		}
+		else
+			return null;
+	}
+	
+	
+	@Override
+	public Matrix[] backward(Matrix[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
+		if (!learning) throw new IllegalArgumentException("Method Transformer::backward(Matrix[], MatrixLayer, boolean, double) does not support learning = false");
+		Error[] errors = Error.create(outputErrors);
+		Error[][] learnedErrors = backward(errors, learningRate);
+		if (learnedErrors == null || learnedErrors.length == 0 || learnedErrors[0] == null) return null;
+		
+		Matrix[] backwardErrors = Error.create(learnedErrors[0]);
+		if (this.prevLayer == null || this == focus)
+			return backwardErrors;
+		else
+			return this.prevLayer.backward(backwardErrors, focus, learning, learningRate);
+	}
+
+
+	/**
+	 * Back-warding layer as learning matrix neural network.
+	 * @param outputErrors core last errors which are core last biases.
+	 * @param learningRate learning rate.
+	 * @return training error.
+	 */
+	public Matrix[] backward(Matrix[] outputErrors, double learningRate) {
+		return backward(outputErrors, null, true, learningRate);
+	}
+	
+	
+	@Override
+	public Error[][] learn(Iterable<Record> sample) throws RemoteException {
+		int maxIteration = paramGetMaxIteration();
+		double terminatedThreshold = paramGetTerminatedThreshold();
+		double learningRate = paramGetLearningRate();
+		int epochs = paramGetPseudoEpochs();
+
+		Error[][] outputErrors = null;
+		Iterable<Record> newsample = sample;
+		for (int epoch = 0; epoch < epochs; epoch++) {
+			double lr = calcLearningRate(learningRate, epoch+1);
+			if (epoch > 0) {
+				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
+				Collections.shuffle((List<?>)newsample);
+			}
+			outputErrors = learn(newsample, lr, terminatedThreshold, maxIteration);
+		}
+		return outputErrors;
+	}
+
+	
+	/**
+	 * Learning transformer.
+	 * @param sample sample.
+	 * @param learningRate learning rate.
+	 * @param terminatedThreshold terminated threshold.
+	 * @param maxIteration maximum iteration.
+	 * @return learning errors. The first element is main error and the second element is attached error\\.
+	 */
+	protected Error[][] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+		if (!validate()) return null;
+		try {
+			if (isDoStarted()) return null;
+		} catch (Throwable e) {Util.trace(e);}
+		
+		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
+		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
+		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
+		
+		Error[][] outputErrors = null;
+		int iteration = 0;
+		doStarted = true;
+		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
+			double lr = calcLearningRate(learningRate, iteration+1);
+
+			if (trainers.size() == 0) {
+				List<Matrix> errorList = Util.newList(0);
+				for (Record record : subsample) {
+					Matrix A = evaluate(record.inputY, record.inputX, record.inputMask, new Object[] {});
+					Matrix error = record.outputA.subtract(A);
+					if (error != null) errorList.add(error);
+				}
+				outputErrors = backward(Error.create(errorList.toArray(new Matrix[] {})), lr);
+			}
+			else {
+				List<net.ea.ann.mane.Record> subinouts = Util.newList(0);
+				for (Record record : subsample) {
+					net.ea.ann.mane.Record mr = null;
+					if (record.inputX == null)
+						mr = new net.ea.ann.mane.Record(record.inputY, record.outputA);
+					else
+						mr = new net.ea.ann.mane.Record(record.inputY, record.outputA, record.inputX, null);
+					subinouts.add(mr);
+				}
+				Matrix[] errors = null;
+				for (TaskTrainer trainer : trainers) {
+					errors = trainer.train(this, subinouts, false, learningRate);
+				}
+				outputErrors = new Error[][] {Error.create(errors)};
+			}
+			
+			iteration ++;
+			
+			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "transformer_backpropogate",
+				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
+
+			if (outputErrors == null || outputErrors.length == 0 || (iteration >= maxIteration && maxIteration == 1))
+				doStarted = false;
+			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
+				double errorMean = Matrix.normMean(Error.create(outputErrors[0]));
+				if (errorMean < terminatedThreshold) doStarted = false;
+			}
+			
+			synchronized (this) {
+				while (doPaused) {
+					notifyAll();
+					try {
+						wait();
+					} catch (Exception e) {Util.trace(e);}
+				}
+			}
+
+		}//End while
+		
+		synchronized (this) {
+			doStarted = false;
+			doPaused = false;
+			
+			fireDoEvent(new NetworkDoEventImpl(this, Type.done, "transformer_backpropogate",
+				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
+			
+			notifyAll();
+		}
+		
+		return outputErrors;
+	}
+
+
 }

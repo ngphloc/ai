@@ -23,24 +23,20 @@ public interface Transformer extends Network {
 
 	
 	/**
-	 * Evaluating matrix neural network.
-	 * @param input1 the first input matrix.
-	 * @param input2 the second input matrix.
-	 * @return array as output.
+	 * Evaluating transformer.
+	 * @param record record.
 	 * @throws RemoteException if any error raises.
 	 */
-	Matrix evaluate(Matrix input1, Matrix input2) throws RemoteException;
+	Matrix evaluate(Record record) throws RemoteException;
 
 
 	/**
-	 * Learning matrix neural network.
-	 * @param input1 the first input matrix.
-	 * @param input2 the second input matrix.
-	 * @param output output matrix for learning.
-	 * @return learned error.
+	 * Learning transformer.
+	 * @param sample sample.
+	 * @return learning errors. The first element is main error and the second element is attached error\\.
 	 * @throws RemoteException if any error raises.
 	 */
-	Matrix learn(Matrix input1, Matrix input2, Matrix output) throws RemoteException;
+	Error[][] learn(Iterable<Record> sample) throws RemoteException;
 
 
 }

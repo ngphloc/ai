@@ -460,7 +460,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 */
 	Raster toRaster(Matrix matrix) {
 		matrix = isVectorized() ? matrix.vecInverse(vecRows) : matrix;
-		return Matrix.toRaster(matrix, neuronChannel, isNorm(), getDefaultAlpha());
+		return Matrix.toRaster(matrix, neuronChannel, paramIsNorm(), paramGetDefaultAlpha());
 	}
 
 	
@@ -502,7 +502,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 */
 	private Matrix toMatrix0(Raster raster, int rows, int columns) {
 		Matrix ref = queryOutput().create(1, 1);
-		return Matrix.toMatrix(rows, columns, raster, neuronChannel, isNorm(), ref);
+		return Matrix.toMatrix(rows, columns, raster, neuronChannel, paramIsNorm(), ref);
 	}
 
 	
@@ -588,8 +588,8 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Checking whether something normalized in rang [0, 1].
 	 * @return whether something normalized in rang [0, 1].
 	 */
-	boolean isNorm() {
-		return network != null ? network.isNorm() : Raster.NORM_DEFAULT;
+	boolean paramIsNorm() {
+		return network != null ? network.paramIsNorm() : Raster.NORM_DEFAULT;
 	}
 
 
@@ -597,8 +597,8 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting default alpha.
 	 * @return default alpha.
 	 */
-	int getDefaultAlpha() {
-		return network != null ? network.getDefaultAlpha() : Image.ALPHA_DEFAULT;
+	int paramGetDefaultAlpha() {
+		return network != null ? network.paramGetDefaultAlpha() : Image.ALPHA_DEFAULT;
 	}
 
 

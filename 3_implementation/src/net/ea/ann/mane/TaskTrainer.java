@@ -19,16 +19,16 @@ import net.ea.ann.core.value.Matrix;
 @FunctionalInterface
 public interface TaskTrainer {
 
-
+	
 	/**
 	 * Learning layer as matrix neural network.
 	 * @param layer layer as matrix neural network.
-	 * @param inouts sample as collection of input and output whose each element is an 2-component array of input (the first) and output (the second).
+	 * @param inouts sample as collection of input and output.
 	 * @param propagate propagation flag.
 	 * @param learningRate learning rate.
 	 * @return learning biases.
 	 */
-	Matrix[] train(MatrixLayer layer, Iterable<Matrix[]> inouts, boolean propagate, double learningRate);
+	Matrix[] train(MatrixLayer layer, Iterable<Record> inouts, boolean propagate, double learningRate);
 
 	
 	/**
@@ -38,7 +38,7 @@ public interface TaskTrainer {
 	 * @param learningRate learning rate.
 	 * @return learning biases.
 	 */
-	default Matrix[] train(MatrixLayer layer, Iterable<Matrix[]> inouts, double learningRate) {
+	default Matrix[] train(MatrixLayer layer, Iterable<Record> inouts, double learningRate) {
 		return train(layer, inouts, true, learningRate);
 	}
 	

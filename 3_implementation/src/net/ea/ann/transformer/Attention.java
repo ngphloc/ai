@@ -8,6 +8,8 @@
 package net.ea.ann.transformer;
 
 import java.io.Serializable;
+import java.util.List;
+import java.util.Random;
 
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
@@ -21,7 +23,7 @@ import net.ea.ann.core.value.NeuronValue;
  * @version 1.0
  *
  */
-public class Attention implements Cloneable, Serializable {
+public class Attention implements AddNorm, Cloneable, Serializable {
 
 	
 	/**
@@ -51,7 +53,7 @@ public class Attention implements Cloneable, Serializable {
 	/**
 	 * Add & norm layer.
 	 */
-	protected AddNorm addNorm = null;
+	protected AddNormNetwork addNorm = null;
 	
 	
 	/**
@@ -74,26 +76,26 @@ public class Attention implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Initializing attention with sample size, model dimension, value dimension, zero value, other sample size.
-	 * @param h number of heads.
+	 * Initializing attention with number of heads, sample size, model dimension, key dimension, value dimension, other sample size, other model dimension, and zero value.
+	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
-	 * @param dm model dimension.
-	 * @param dk key dimension.
-	 * @param dv value dimension.
+	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
+	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param m other sample size.
-	 * @param d other model dimension.
+	 * @param d other model dimension. Default other model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
 	 * @param zero zero value.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(int h, int n, int dm, int dk, int dv, NeuronValue zero, int m, int d) {
+	public boolean initialize(int h, int n, int dm, int dk, int dv, int m, int d, NeuronValue zero) {
 		if (h <= 0) return false;
 		
-		heads = new Attention0[h];
+		this.heads = new Attention0[h];
 		for (int i = 0; i < h; i++) {
 			try {
 				Attention0 head = new Attention0();
-				if (head.initialize(n, dm, dk, dv, zero, m, d))
-					heads[i] = head;
+				if (head.initialize(n, dm, dk, dv, m, d, zero))
+					this.heads[i] = head;
 				else {
 					reset();
 					return false;
@@ -101,20 +103,35 @@ public class Attention implements Cloneable, Serializable {
 			} catch (Throwable e) {Util.trace(e);}
 		}
 		
-		Matrix X = heads[0].X;
-		Matrix Y = heads[0].Y;
-		boolean[][] M = heads[0].M;
+		Matrix X = this.heads[0].X;
+		Matrix Y = this.heads[0].Y;
+		boolean[][] M = this.heads[0].M;
 		for (int i = 1; i < h; i++) {
-			Attention0 head = heads[i];
+			Attention0 head = this.heads[i];
 			head.assignInputs(M, Y, X);
 		}
 		
-		WO = Matrix.create(h*dv, dm, zero);
-		A = Matrix.create(n, dm, zero);
+		this.WO = h*dv != dm ? Matrix.create(h*dv, dm, zero) : null;
+		this.A = Matrix.create(n, dm, zero);
 		
 		return validate();
 	}
 
+	
+	/**
+	 * Initializing attention with number of heads, sample size, model dimension, key dimension, value dimension, and zero value.
+	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
+	 * @param n sample size.
+	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
+	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
+	 * @param zero zero value.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initialize(int h, int n, int dm, int dk, int dv, NeuronValue zero) {
+		return initialize(h, n, dm, dk, dv, 0, 0, zero);
+	}
+	
 	
 	/**
 	 * Checking whether this attention is valid.
@@ -126,9 +143,10 @@ public class Attention implements Cloneable, Serializable {
 			if (!heads[i].validate()) return false;
 		}
 		
-		if (WO == null || A == null) return false;
-		if (WO.rows() != h()*dv() || WO.columns() != dm()) return false;
-		if (A.rows() != n() || A.columns() != dm()) return false;
+		if (WO != null) {
+			if (WO.rows() != h()*dv() || WO.columns() != dm()) return false;
+		}
+		if (A == null || A.rows() != n() || A.columns() != dm()) return false;
 
 		//Add & Norm can be null.
 		
@@ -161,6 +179,15 @@ public class Attention implements Cloneable, Serializable {
 	 */
 	public int m() {
 		return heads.length > 0 ? heads[0].m() : 0;
+	}
+
+	
+	/**
+	 * Getting model dimension of other sample.
+	 * @return model dimension of other sample.
+	 */
+	public int d() {
+		return heads.length > 0 ? heads[0].d() : 0;
 	}
 
 	
@@ -260,10 +287,12 @@ public class Attention implements Cloneable, Serializable {
 	 * Setting Y input data and X input data.
 	 * @param inputY Y input data.
 	 * @param inputX X input data.
+	 * @param inputMask input mask.
 	 */
-	public void enterInputs(Matrix inputY, Matrix inputX) {
+	protected void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
 		if (Y() != null && inputY != null) Matrix.copy(inputY, Y());
 		if (X() != null && inputX != null) Matrix.copy(inputX, X());
+		if (M() != null && inputMask != null) NeuronValue.copy(inputMask, M());
 	}
 
 		
@@ -271,16 +300,17 @@ public class Attention implements Cloneable, Serializable {
 	 * Evaluating attention given Y input data and X input data.
 	 * @param inputY Y input data.
 	 * @param inputX X input data.
+	 * @param inputMask input mask.
 	 * @return evaluated attention.
 	 */
-	public Matrix evaluate(Matrix inputY, Matrix inputX) {
+	protected Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
 		if (!validate()) return null;
-		enterInputs(inputY, inputX);
+		enterInputs(inputY, inputX, inputMask);
 		
 		Matrix[] aList = new Matrix[heads.length];
 		for (int i = 0; i < heads.length; i++) aList[i] = heads[i].evaluate();
 		
-		Matrix eval = Matrix.concatV(aList).multiply(WO);
+		Matrix eval = WO != null ? Matrix.concatV(aList).multiply(WO) : Matrix.concatV(aList);
 		int n = A.rows();
 		int dm = A.columns();
 		for (int i = 0; i < n; i++) {
@@ -291,86 +321,83 @@ public class Attention implements Cloneable, Serializable {
 
 	
 	/**
-	 * Evaluating attention given Y input data.
-	 * @param inputY Y input data.
-	 * @return evaluated attention.
-	 */
-	public Matrix evaluate(Matrix inputY) {
-		return evaluate(inputY, null);
-	}
-	
-	
-	/**
-	 * Learning attention by error.
-	 * @param error specified error.
+	 * Back-warding attention by errors.
+	 * @param errors specified errors.
 	 * @param learningRate learning rate.
-	 * @param maxIteration maximum iterations.
+	 * @return learning errors.
 	 */
-	private void learn(Matrix error, double learningRate) {
-		if (!validate()) return;
-		if (error == null) return;
-		if (error.rows() != A.rows() || error.columns() != A.columns()) return;
-		
+	protected Error[] backward(Error[] errors, double learningRate) {
+		if (!validate() || errors == null || errors.length == 0) return null;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? NetworkAbstract.LEARN_RATE_DEFAULT : learningRate;
-
-		//Training entire weight matrix WO.
-		Matrix[] headsA = headsA();
-		Matrix As = Matrix.concatV(headsA);
-		As = As.transpose().multiply(error).multiply0(learningRate);
-		WO = WO.add(As);
-		
-		//Training every attention head with error and entire weight matrix WO.
-		Matrix ERROR = error.multiply(WO.transpose());
-		int index = 0;
-		for (int i = 0; i < heads.length; i++) {
-			Attention0 head = heads[i];
-			int n = head.A.columns();
-			Matrix ERRORi = ERROR.getColumns(index, n);
-			head.learn(ERRORi, learningRate);
-			index += n;
+		List<List<Matrix>> headErrsList = Util.newList(this.heads.length);
+		for (int i = 0; i < this.heads.length; i++) {
+			List<Matrix> headErrors = Util.newList(0);
+			headErrsList.add(headErrors);
 		}
-	}
-	
-	
-	/**
-	 * Learning by input and output.
-	 * @param inputY Y input data.
-	 * @param outputA attention output data.
-	 * @param inputX X input data.
-	 * @param learningRate learning rate.
-	 * @param terminatedThreshold  terminated threshold.
-	 * @param maxIteration maximum iterations.
-	 * @return learning error.
-	 */
-	public Matrix learn(Matrix inputY, Matrix outputA, Matrix inputX, double learningRate, double terminatedThreshold, int maxIteration) {
-		if (outputA == null) return null;
-		
-		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? NetworkAbstract.LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
-		maxIteration = maxIteration >= 0 ? maxIteration :  NetworkAbstract.LEARN_MAX_ITERATION_MAX;
 
-		Matrix error = null;
-		int iteration = 0;
-		while (maxIteration <= 0 || iteration < maxIteration) {
-			double lr = NetworkAbstract.calcLearningRate(learningRate, iteration+1, false);
-			Matrix A = evaluate(inputY, inputY);
-			error = outputA.subtract(A);
-			learn(error, lr);
+		int count = 0;
+		Matrix dWO = null;
+		Matrix[] headsA = headsA();
+		Matrix As = Matrix.concatV(headsA).transpose();
+		for (Error error : errors) {
+			if (error == null) continue;
+			Matrix err = error.error();
+			if (err == null || err.rows() != this.A.rows() || err.columns() != this.A.columns()) continue;
+			count++;
 			
-			iteration ++;
-			
-			if (error == null || error.rows() == 0 || error.columns() == 0 || (iteration >= maxIteration && maxIteration == 1))
-				break;
-			else if (terminatedThreshold > 0) {
-				double errorMean = Matrix.normMean(error);
-				if (errorMean < terminatedThreshold) break; 
+			//Calculating errors of WO.
+			if (this.WO != null) {
+				Matrix d = As.multiply(err);
+				dWO = dWO != null ? dWO.add(d) : d;
 			}
 			
+			//Calculating attention errors.
+			Matrix ERROR = err.multiply(this.WO.transpose());
+			int index = 0;
+			for (int i = 0; i < this.heads.length; i++) {
+				List<Matrix> headErrors = headErrsList.get(i);
+				int n = this.heads[i].A.columns();
+				Matrix ERRORi = ERROR.getColumns(index, n);
+				headErrors.add(ERRORi);
+				index += n;
+			}
 		}
-
-		return error;
+		if (count == 0) return null;
+		
+		//Training entire weight matrix WO.
+		if (this.WO != null) {
+			dWO = dWO.divide0(count);
+			this.WO = this.WO.add(dWO.multiply0(learningRate));
+		}
+		
+		//Training every attention head.
+		for (int i = 0; i < this.heads.length; i++) {
+			List<Matrix> headErrs = headErrsList.get(i);
+			if (headErrs.size() == 0) continue;
+			Error[] headErrors = Error.create(headErrs.toArray(new Matrix[] {}));
+			this.heads[i].backward(headErrors, learningRate);
+		}
+		
+		//Calculating output errors.
+		return null; //Fixing later.
+	}
+	
+	
+	/**
+	 * Initializing attention parameters.
+	 * @param attention attention.
+	 * @param rnd randomizer.
+	 */
+	static void initParams(Attention attention, Random rnd) {
+		if (attention.heads != null) {
+			for (Attention0 head : attention.heads) {
+				if (head != null) Attention0.initParams(head, rnd);
+			}
+		}
+		if (attention.WO != null) Matrix.fill(attention.WO, rnd);
 	}
 
-	
+
 }
 
 
@@ -398,9 +425,15 @@ class Attention0 implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Number of heads.
+	 */
+	public static final int HEADS_NUMBER_DEFAULT = 8;
+	
+	
+	/**
 	 * Default value of key dimension which is dk.
 	 */
-	public static final int KEY_DIMENSION_DEFAULT = MODEL_DIMENSION_DEFAULT/8;
+	public static final int KEY_DIMENSION_DEFAULT = MODEL_DIMENSION_DEFAULT/HEADS_NUMBER_DEFAULT;
 
 	
 	/**
@@ -466,7 +499,7 @@ class Attention0 implements Cloneable, Serializable {
 	/**
 	 * Default constructor.
 	 */
-	public Attention0() {
+	Attention0() {
 		super();
 	}
 
@@ -474,31 +507,29 @@ class Attention0 implements Cloneable, Serializable {
 	/**
 	 * Resetting attention.
 	 */
-	public void reset() {
+	void reset() {
 		X = T1 = Y = WQ = WK = WV = A = null;
 		M = null;
 	}
 	
 	
 	/**
-	 * Initializing attention with sample size, model dimension, value dimension, zero value, other sample size.
+	 * Initializing attention with sample size, model dimension, key dimension, value dimension, other sample size, other model dimension, and zero value.
 	 * @param n sample size.
-	 * @param dm model dimension.
-	 * @param dk key dimension.
-	 * @param dv value dimension.
+	 * @param dm model dimension. Default model dimension is {@link #MODEL_DIMENSION_DEFAULT}.
+	 * @param dk key dimension. Default key dimension is {@link #KEY_DIMENSION_DEFAULT}.
+	 * @param dv value dimension. Default value dimension is {@link #VALUE_DIMENSION_DEFAULT}.
 	 * @param m other sample size.
-	 * @param d other model dimension.
+	 * @param d other model dimension. Default other model dimension is {@link #MODEL_DIMENSION_DEFAULT}.
 	 * @param zero zero value.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(int n, int dm, int dk, int dv, NeuronValue zero, int m, int d) {
+	boolean initialize(int n, int dm, int dk, int dv, int m, int d, NeuronValue zero) {
 		if (n <= 0 || dm <= 0 || dv <= 0 || zero == null) return false;
-		if (m <= 0 && d > 0) return false;
-		if (m > 0 && m == n && (d <= 0 || d == dm)) {
+		if (m <= 0 || d <= 0) {
 			m = 0;
 			d = 0;
 		}
-		if (m > 0 && m != n && d <= 0 ) d = dm;
 		
 		this.X = this.T1 = this.T2 = null;
 		if (m > 0 && m != n && d != dm) {
@@ -513,6 +544,9 @@ class Attention0 implements Cloneable, Serializable {
 		else if (m > 0 && m == n && d != dm) {
 			this.X = Matrix.create(m, d, zero);
 			this.T2 = Matrix.create(d, dm, zero);
+		}
+		else if (m > 0 && m == n && d == dm) {
+			this.X = Matrix.create(m, d, zero);
 		}
 		
 		this.Y = Matrix.create(n, dm, zero);
@@ -536,7 +570,7 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param Y Y input data.
 	 * @param X X input data.
 	 */
-	protected void assignInputs(boolean[][] M, Matrix Y, Matrix X) {
+	void assignInputs(boolean[][] M, Matrix Y, Matrix X) {
 		if (X != null) this.X = X;
 		if (Y != null) this.Y = Y;
 		if (M != null) this.M = M;
@@ -586,6 +620,15 @@ class Attention0 implements Cloneable, Serializable {
 		return X != null ? X.rows() : 0;
 	}
 
+	
+	/**
+	 * Getting model dimension of other sample.
+	 * @return model dimension of other sample.
+	 */
+	public int d() {
+		return X != null ? X.columns() : 0;
+	}
+	
 	
 	/**
 	 * Getting sample size.
@@ -718,7 +761,7 @@ class Attention0 implements Cloneable, Serializable {
 		else if (T1 == null && T2 != null)
 			return X.multiply(T2);
 		else
-			return null;
+			return X;
 	}
 	
 	
@@ -828,10 +871,12 @@ class Attention0 implements Cloneable, Serializable {
 	 * Setting Y input data and X input data.
 	 * @param inputY Y input data.
 	 * @param inputX X input data.
+	 * @param inputMask input mask.
 	 */
-	public void enterInputs(Matrix inputY, Matrix inputX) {
-		Matrix.copy(inputY, Y);
+	void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
+		if (Y != null && inputY != null) Matrix.copy(inputY, Y);
 		if (X != null && inputX != null) Matrix.copy(inputX, X);
+		if (M != null && inputMask != null) NeuronValue.copy(inputMask, M);
 	}
 
 	
@@ -891,7 +936,7 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param inputX X input data.
 	 * @return evaluated attention.
 	 */
-	public Matrix evaluate() {
+	Matrix evaluate() {
 		Matrix V = calcV();
 		Matrix softmax = calcQKSoftmax();
 		Matrix eval = softmax.multiply(V);
@@ -906,77 +951,121 @@ class Attention0 implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Learning attention by error.
-	 * @param error specified error.
+	 * Learning attention by errors.
+	 * @param errors specified errors.
 	 * @param learningRate learning rate.
+	 * @return learning errors.
 	 */
-	public void learn(Matrix error, double learningRate) {
-		if (error == null) return;
-		int n = n();
-		if (error.rows() != n || error.columns() != dv()) return;
+	Error[] backward(Error[] errors, double learningRate) {
+		if (errors == null || errors.length == 0) return null;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? NetworkAbstract.LEARN_RATE_DEFAULT : learningRate;
+		
+		Matrix dW = null, dWV = null, dT1 = null, dT2 = null;
+		int count = 0;
+		int n = n();
+		Matrix V = calcV();
+		for (Error error : errors) {
+			if (error == null) continue;
+			Matrix err = error.error();
+			if (err == null || err.rows() != n || err.columns() != dv()) continue;
+			count++;
 
+			Matrix errv = err.multiply(V.transpose());
+			Matrix softmax = calcQKSoftmax();
+			Matrix[] probs = new Matrix[n];
+			for (int i = 0; i < n; i++) probs[i] = calcQKSoftmaxGradient(i);
+			
+			//Training weight query matrix and weight key matrix.
+			for (int i = 0; i < n; i++) {
+				Matrix errvi = errv.getRow(i).multiply(probs[i]);
+				Matrix d = Y().getRow(i).transpose().multiply(errvi);
+				dW = dW != null ? dW.add(d) : d;
+			}
+			
+			//Training weight value matrix.
+			Matrix dWVTemp = Y().transpose().multiply(softmax.transpose()).multiply(errv);
+			dWV = dWV != null ? dWV.add(dWVTemp) : dWVTemp;
+			
+			if (T1 == null && T2 == null) continue;
+
+			Matrix QKMean = calcK().multiply(this.WQ.transpose());
+			QKMean = QKMean.add(calcQ().multiply(this.WK.transpose()));
+			QKMean = QKMean.multiply0(0.5);
+
+			//Training the first transposition matrix T1.
+			if (this.T1 != null) {
+				Matrix[] t1s = new Matrix[n];
+				for (int i = 0; i < n; i++) {
+					Matrix errvi = errv.getRow(i).multiply(probs[i]);
+					t1s[i] = errvi.multiply(QKMean);
+					if (this.T2 != null)
+						t1s[i] = t1s[i].multiply(this.T2.transpose()).multiply(X().transpose());
+					else
+						t1s[i] = t1s[i].multiply(X().transpose());
+				}
+				Matrix dT1Temp = Matrix.concatH(t1s);
+				dT1 = dT1 != null ? dT1.add(dT1Temp) : dT1Temp;
+			}
+			
+			//Training the first transposition matrix T2.
+			if (this.T2 != null) {
+				Matrix dT2Temp = null;
+				for (int i = 0; i < n; i++) {
+					Matrix errvi = errv.getRow(i).multiply(probs[i]);
+					Matrix d = this.T1 != null ? this.T1.getRow(i).transpose().multiply(errvi) : errvi;
+					dT2Temp = dT2Temp != null ? dT2Temp.add(d) : d;
+				}
+				dT2Temp = X().transpose().multiply(dT2Temp).multiply(QKMean);
+				dT2 = dT2 != null ? dT2.add(dT2Temp) : dT2Temp;
+			}
+		}
+		if (count == 0) return null;
+		
+		if (dW != null) dW = dW.divide0(count);
+		if (dWV != null) dWV = dWV.divide0(count);
+		if (dT1 != null) dT1 = dT1.divide0(count);
+		if (dT2 != null) dT2 = dT2.divide0(count);
+		
+		//Updating weight query matrix and weight key matrix.
 		Matrix Q = calcQ();
 		Matrix K = calcK();
-		Matrix V = calcV();
-		Matrix errv = error.multiply(V.transpose());
-		Matrix softmax = calcQKSoftmax();
-
-		Matrix[] probs = new Matrix[n];
-		for (int i = 0; i < n; i++) probs[i] = calcQKSoftmaxGradient(i);
-		
-		//Training weight query matrix and weight key matrix.
-		Matrix dW = null;
-		for (int i = 0; i < n; i++) {
-			Matrix errvi = errv.getRow(i).multiply(probs[i]);
-			Matrix d = Y().getRow(i).transpose().multiply(errvi);
-			dW = dW != null ? dW.add(d) : d;
-		}
 		Matrix WQ = this.WQ.add(dW.multiply(K).multiply0(learningRate));
 		Matrix.copy(WQ, this.WQ);
 		Matrix WK = this.WK.add(dW.multiply(Q).multiply0(learningRate));
 		Matrix.copy(WK, this.WK);
 		
-		//Training weight value matrix.
-		Matrix dWV = Y().transpose().multiply(softmax.transpose()).multiply(errv);
+		//Updating weight value matrix.
 		Matrix WV = this.WV.add(dWV.multiply0(learningRate));
 		Matrix.copy(WV, this.WV);
-		
-		if (T1 == null && T2 == null) return;
-		
-		Matrix QKMean = calcK().multiply(WQ.transpose());
-		QKMean = QKMean.add(calcQ().multiply(WK.transpose()));
-		QKMean = QKMean.multiply0(0.5);
 
-		//Training the first transposition matrix T1.
-		if (T1 != null) {
-			Matrix[] t1s = new Matrix[n];
-			for (int i = 0; i < n; i++) {
-				Matrix errvi = errv.getRow(i).multiply(probs[i]);
-				t1s[i] = errvi.multiply(QKMean);
-				if (T2 != null)
-					t1s[i] = t1s[i].multiply(T2.transpose()).multiply(X().transpose());
-				else
-					t1s[i] = t1s[i].multiply(X().transpose());
-				t1s[i] = t1s[i].multiply0(learningRate);
-			}
-			Matrix T1 = Matrix.concatH(t1s);
+		//Updating the first transposition matrix T1.
+		if (this.T1 != null) {
+			Matrix T1 = this.T1.add(dT1.multiply0(learningRate));
 			Matrix.copy(T1, this.T1);
 		}
-		
-		//Training the first transposition matrix T2.
-		if (T2 != null) {
-			Matrix dT2 = null;
-			for (int i = 0; i < n; i++) {
-				Matrix errvi = errv.getRow(i).multiply(probs[i]);
-				Matrix d = T1 != null ? T1.getRow(i).transpose().multiply(errvi) : errvi;
-				dT2 = dT2 != null ? dT2.add(d) : d;
-			}
-			dT2 = X().transpose().multiply(dT2).multiply(QKMean);
+
+		//Updating the first transposition matrix T2.
+		if (this.T2 != null) {
 			Matrix T2 = this.T2.add(dT2.multiply0(learningRate));
 			Matrix.copy(T2, this.T2);
 		}
 		
+		//Calculating backward errors.
+		return null; //Fixing later.
+	}
+	
+	
+	/**
+	 * Initializing attention parameters.
+	 * @param attention attention.
+	 * @param rnd randomizer.
+	 */
+	static void initParams(Attention0 attention, Random rnd) {
+		if (attention.T1 != null) Matrix.fill(attention.T1, rnd);
+		if (attention.T2 != null) Matrix.fill(attention.T2, rnd);
+		if (attention.WQ != null) Matrix.fill(attention.WQ, rnd);
+		if (attention.WK != null) Matrix.fill(attention.WK, rnd);
+		if (attention.WV != null) Matrix.fill(attention.WV, rnd);
 	}
 	
 	

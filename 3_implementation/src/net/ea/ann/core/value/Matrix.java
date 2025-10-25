@@ -8,6 +8,7 @@
 package net.ea.ann.core.value;
 
 import java.util.List;
+import java.util.Random;
 
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
@@ -412,6 +413,25 @@ public interface Matrix extends NeuronValueCreator {
 
 	
 	/**
+	 * Calculating norm sum of matrices.
+	 * @param matrices specified matrices.
+	 * @return norm sum.
+	 */
+	static double normSum(Matrix...matrices) {
+		if (matrices == null || matrices.length == 0) return 0;
+		double sum = 0;
+		for (Matrix matrix : matrices) {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					sum += matrix.get(i, j).norm();
+				}
+			}
+		}
+		return sum;
+	}
+
+	
+	/**
 	 * Calculating norm mean of matrices.
 	 * @param matrices specified matrices.
 	 * @return norm mean.
@@ -623,10 +643,25 @@ public interface Matrix extends NeuronValueCreator {
 	 * @return filled matrix.
 	 */
 	static void fill(Matrix matrix, double v) {
-		NeuronValue value = matrix.get(0, 0).unit().multiply(v);
+		NeuronValue value = matrix.get(0, 0).valueOf(v);
 		fill(matrix, value);
 	}
 	
+	
+	/**
+	 * Filling matrix by random value.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 */
+	static void fill(Matrix matrix, Random rnd) {
+		for (int row = 0; row < matrix.rows(); row++) {
+			for (int column = 0; column < matrix.columns(); column++) {
+				NeuronValue value = matrix.get(row, column).valueOf(NeuronValue.r(rnd));
+				matrix.set(row, column, value);
+			}
+		}
+	}
+
 	
 	/**
 	 * Extracting raster into matrix.

@@ -9,6 +9,7 @@ package net.ea.ann.core.value;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
@@ -865,6 +866,20 @@ public interface NeuronValue extends Value {
 	
 	
 	/**
+	 * Finding minimum value.
+	 * @param vector specified vector.
+	 * @return minimum value.
+	 */
+	static NeuronValue min(NeuronValue[] vector) {
+		if (vector == null || vector.length == 0) return null;
+		if (vector.length == 1) return vector[0];
+		NeuronValue min = vector[0];
+		for (int i = 1; i < vector.length; i++) min = min.min(vector[i]);
+		return min;
+	}
+
+	
+	/**
 	 * Finding maximum value.
 	 * @param vector specified vector.
 	 * @return maximum value.
@@ -873,7 +888,7 @@ public interface NeuronValue extends Value {
 		if (vector == null || vector.length == 0) return null;
 		if (vector.length == 1) return vector[0];
 		NeuronValue max = vector[0];
-		for (int i = 0; i < vector.length; i++) max = max.max(vector[i]);
+		for (int i = 1; i < vector.length; i++) max = max.max(vector[i]);
 		return max;
 	}
 	
@@ -1011,17 +1026,22 @@ public interface NeuronValue extends Value {
 
 
 	/**
-	 * Calculating norm mean.
+	 * Calculating value sum.
 	 * @param array array.
-	 * @return norm mean.
+	 * @return value sum.
 	 */
-	static double normMean(NeuronValue[] array) {
-		if (array == null || array.length == 0) return 0;
-		double mean = 0;
-		for (NeuronValue value : array) mean += value.norm();
-		return mean / (double)array.length;
+	static NeuronValue valueSum(NeuronValue[] array) {
+		if (array == null || array.length == 0) return null;
+		NeuronValue sum = null;
+		for (NeuronValue value : array) {
+			if (sum == null)
+				sum = value;
+			else
+				sum = sum.add(value);
+		}
+		return sum;
 	}
-	
+
 	
 	/**
 	 * Calculating value mean.
@@ -1038,6 +1058,91 @@ public interface NeuronValue extends Value {
 				mean = mean.add(value);
 		}
 		return mean.divide((double)array.length);
+	}
+
+	
+	/**
+	 * Calculating norm sum.
+	 * @param array array.
+	 * @return norm sum.
+	 */
+	static double normSum(NeuronValue[] array) {
+		if (array == null || array.length == 0) return 0;
+		double sum = 0;
+		for (NeuronValue value : array) sum += value.norm();
+		return sum;
+	}
+
+	
+	/**
+	 * Calculating norm mean.
+	 * @param array array.
+	 * @return norm mean.
+	 */
+	static double normMean(NeuronValue[] array) {
+		if (array == null || array.length == 0) return 0;
+		double mean = 0;
+		for (NeuronValue value : array) mean += value.norm();
+		return mean / (double)array.length;
+	}
+	
+	
+	/**
+	 * Calculating value sum.
+	 * @param matrix matrix.
+	 * @return value sum.
+	 */
+	static NeuronValue valueSum(NeuronValue[][] matrix) {
+		if (matrix == null || matrix.length == 0) return null;
+		NeuronValue sum = null;
+		for (NeuronValue[] array : matrix) {
+			for (NeuronValue value : array) {
+				if (sum == null)
+					sum = value;
+				else
+					sum = sum.add(value);
+			}
+		}
+		return sum;
+	}
+
+	
+	/**
+	 * Calculating value mean.
+	 * @param matrix matrix.
+	 * @return value mean.
+	 */
+	static NeuronValue valueMean(NeuronValue[][] matrix) {
+		if (matrix == null || matrix.length == 0) return null;
+		NeuronValue mean = null;
+		int count = 0;
+		for (NeuronValue[] array : matrix) {
+			for (NeuronValue value : array) {
+				if (mean == null)
+					mean = value;
+				else
+					mean = mean.add(value);
+				count++;
+			}
+		}
+		return mean.divide((double)count);
+	}
+
+
+	/**
+	 * Calculating norm sum.
+	 * @param matrix matrix.
+	 * @return norm sum.
+	 */
+	static double normSum(NeuronValue[][] matrix) {
+		if (matrix == null || matrix.length == 0) return 0;
+		double sum = 0;
+		for (NeuronValue[] array : matrix) {
+			for (NeuronValue value : array) {
+				sum += value.norm();
+			}
+		}
+		return sum;
 	}
 
 	
@@ -1061,25 +1166,84 @@ public interface NeuronValue extends Value {
 
 
 	/**
-	 * Calculating value mean.
-	 * @param matrix matrix.
-	 * @return value mean.
+	 * Copying source matrix to target matrix.
+	 * @param source source matrix.
+	 * @param target target matrix.
 	 */
-	static NeuronValue valueMean(NeuronValue[][] matrix) {
-		if (matrix == null || matrix.length == 0) return null;
-		NeuronValue mean = null;
-		int count = 0;
-		for (NeuronValue[] array : matrix) {
-			for (NeuronValue value : array) {
-				if (mean == null)
-					mean = value;
-				else
-					mean = mean.add(value);
-				count++;
-			}
+	static void copy(NeuronValue[][] source, NeuronValue[][] target) {
+		if (source == null || target == null) return;
+		int rows = Math.min(source.length, target.length);
+		for (int i = 0; i < rows; i++) {
+			int columns = Math.min(source[i].length, target[i].length);
+			for (int j = 0; j < columns; j++) target[i][j] = source[i][j];
 		}
-		return mean.divide((double)count);
 	}
 
+	
+	/**
+	 * Copying source matrix to target matrix.
+	 * @param source source matrix.
+	 * @param target target matrix.
+	 */
+	static void copy(boolean[][] source, boolean[][] target) {
+		if (source == null || target == null) return;
+		int rows = Math.min(source.length, target.length);
+		for (int i = 0; i < rows; i++) {
+			int columns = Math.min(source[i].length, target[i].length);
+			for (int j = 0; j < columns; j++) target[i][j] = source[i][j];
+		}
+	}
 
+	
+	/**
+	 * Filling matrix by specified value.
+	 * @param matrix matrix.
+	 * @param value value.
+	 */
+	static void fill(NeuronValue[][] matrix, NeuronValue value) {
+		int rows = matrix.length;
+		for (int row = 0; row < rows; row++) {
+			int columns = matrix[row].length;
+			for (int column = 0; column < columns; column++) matrix[row][column] = value;
+		}
+	}
+
+	
+	/**
+	 * Filling matrix by specified value.
+	 * @param matrix matrix.
+	 * @param v value.
+	 */
+	static void fill(NeuronValue[][] matrix, double v) {
+		NeuronValue value = matrix[0][0].valueOf(v);
+		fill(matrix, value);
+	}
+
+	
+	/**
+	 * Filling matrix by random values.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 */
+	static void fill(NeuronValue[][] matrix, Random rnd) {
+		int rows = matrix.length;
+		for (int row = 0; row < rows; row++) {
+			int columns = matrix[row].length;
+			for (int column = 0; column < columns; column++) {
+				matrix[row][column] = matrix[row][column].valueOf(r(rnd));
+			}
+		}
+	}
+
+	
+	/**
+	 * Getting random value.
+	 * @param rnd randomizer.
+	 * @return random value.
+	 */
+	static double r(Random rnd) {
+		return rnd.nextDouble()*0.1 - 0.05;
+	}
+	
+	
 }

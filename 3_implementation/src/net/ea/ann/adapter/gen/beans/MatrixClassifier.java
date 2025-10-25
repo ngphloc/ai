@@ -41,14 +41,14 @@ public class MatrixClassifier extends ClassifierModelAbstract {
 		if (name != null && !name.isEmpty())
 			return name;
 		else
-			return "mane_classifier";
+			return "classifier.mac";
 	}
 
 	
 	@Override
 	protected Classifier createGenModel() {
 		try {
-			return net.ea.ann.classifier.MatrixClassifier.create(getNeuronChannel(), isNorm());
+			return net.ea.ann.classifier.MatrixClassifier.create(getRasterChannel(), isNorm());
 		} catch (Throwable e) {Util.trace(e);}
 		return null;
 	}

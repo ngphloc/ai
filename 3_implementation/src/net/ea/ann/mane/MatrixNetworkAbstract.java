@@ -17,6 +17,8 @@ import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
@@ -28,7 +30,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public abstract class MatrixNetworkAbstract extends NetworkAbstract implements MatrixNetwork {
+public abstract class MatrixNetworkAbstract extends NetworkAbstract implements MatrixNetwork, NeuronValueCreator {
 
 
 	/**
@@ -108,8 +110,8 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 		this.config.put(MatrixLayerAbstract.LEARN_FILTER_FIELD, MatrixLayerAbstract.LEARN_FILTER_DEFAULT);
 
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
-		this.activateRef = activateRef == null ? (activateRef = Raster.toActivationRef(this.neuronChannel, isNorm())) : activateRef;
-		this.convActivateRef = convActivateRef == null ? (convActivateRef = Raster.toConvActivationRef(this.neuronChannel, isNorm())) : convActivateRef;
+		this.activateRef = activateRef == null ? (activateRef = Raster.toActivationRef(this.neuronChannel, paramIsNorm())) : activateRef;
+		this.convActivateRef = convActivateRef == null ? (convActivateRef = Raster.toConvActivationRef(this.neuronChannel, paramIsNorm())) : convActivateRef;
 	}
 	
 
@@ -150,6 +152,12 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	protected abstract MatrixLayerAbstract newLayer();
 	
 	
+	@Override
+	public NeuronValue newNeuronValue() {
+		return newLayer().newNeuronValue();
+	}
+
+
 	/**
 	 * Default filter.
 	 * @param filterStride1
@@ -194,11 +202,8 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 */
 	public MatrixLayerAbstract getInputLayer() {return layers[0];}
 	
-	
-	/**
-	 * Getting output layer.
-	 * @return output layer.
-	 */
+
+	@Override
 	public MatrixLayerAbstract getOutputLayer() {return layers[layers.length-1];}
 
 	
@@ -237,12 +242,12 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 			Matrix input = inputLayer.getInput();
 			MatrixLayerAbstract outputLayer = getOutputLayer();
 			Matrix output = outputLayer.queryOutput();
-			List<Matrix[]> sample = Util.newList(0);
+			List<Record> sample = Util.newList(0);
 			for (Raster[] inout : inouts) {
 				Matrix matrixInput = inputLayer.toMatrix(inout[0], input.rows(), input.columns());
 				Matrix matrixOutput = outputLayer.toMatrix(inout[1], output.rows(), output.columns());
 				if (matrixInput != null && matrixOutput != null)
-					sample.add(new Matrix[] {matrixInput, matrixOutput});
+					sample.add(new Record(matrixInput, matrixOutput));
 			}
 			return sample.size() > 0 ? learn(sample) : null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -295,7 +300,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Checking whether something normalized in rang [0, 1].
 	 * @return whether something normalized in rang [0, 1].
 	 */
-	protected boolean isNorm() {
+	protected boolean paramIsNorm() {
 		if (config.containsKey(Raster.NORM_FIELD))
 			return config.getAsBoolean(Raster.NORM_FIELD);
 		else
@@ -307,7 +312,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Getting default alpha.
 	 * @return default alpha.
 	 */
-	int getDefaultAlpha() {
+	int paramGetDefaultAlpha() {
 		if (config.containsKey(Image.ALPHA_FIELD))
 			return config.getAsInt(Image.ALPHA_FIELD);
 		else
@@ -319,7 +324,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Checking whether the network is large scale.
 	 * @return whether the network is large scale.
 	 */
-	boolean isLargeScale() {
+	boolean paramIsLargeScale() {
 		if (config.containsKey(LARGE_SCALE_FIELD))
 			return config.getAsBoolean(LARGE_SCALE_FIELD);
 		else
@@ -331,20 +336,20 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Checking whether the network data is vectorized.
 	 * @return whether the network data is vectorized.
 	 */
-	public boolean isVectorized() {
+	public boolean paramIsVectorized() {
 		if (config.containsKey(VECTORIZED_FIELD))
 			return config.getAsBoolean(VECTORIZED_FIELD);
 		else
 			return VECTORIZED_DEFAULT;
 	}
 
-	
+
 	/**
 	 * Setting vectorization mode.
 	 * @param vectorized vectorization mode.
 	 * @return this network.
 	 */
-	public MatrixNetworkAbstract setVectorized(boolean vectorized) {
+	public MatrixNetworkAbstract paramSetVectorized(boolean vectorized) {
 		config.put(VECTORIZED_FIELD, vectorized);
 		return this;
 	}
@@ -354,7 +359,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Checking whether filter is learned.
 	 * @return whether filter is learned.
 	 */
-	public boolean isLearnFilter() {
+	public boolean paramIsLearnFilter() {
 		if (config.containsKey(MatrixLayerAbstract.LEARN_FILTER_FIELD))
 			return config.getAsBoolean(MatrixLayerAbstract.LEARN_FILTER_FIELD);
 		else
@@ -366,7 +371,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Setting whether filter is learned.
 	 * @param learnFilter whether filter is learned.
 	 */
-	public MatrixNetworkAbstract setLearnFilter(boolean learnFilter) {
+	public MatrixNetworkAbstract paramSetLearnFilter(boolean learnFilter) {
 		config.put(MatrixLayerAbstract.LEARN_FILTER_FIELD, learnFilter);
 		return this;
 	}
