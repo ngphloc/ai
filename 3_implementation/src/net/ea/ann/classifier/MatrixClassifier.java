@@ -23,6 +23,7 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.generator.GeneratorWeighted;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
@@ -165,7 +166,7 @@ public class MatrixClassifier extends MatrixClassifier0 {
 	@Override
 	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
 		List<Record> newsample = prelearn(sample);
-		Matrix[] errors = learn(newsample);
+		Error[] errors = learn(newsample);
 		
 		if (this.adjuster != null) {
 			this.adjuster.paramSetInclude(this);
@@ -178,8 +179,8 @@ public class MatrixClassifier extends MatrixClassifier0 {
 		}
 		
 		NeuronValue[] errorArray = null;
-		for (Matrix error : errors) {
-			NeuronValue[] values = Matrix.extractValues(error);
+		for (Error error : errors) {
+			NeuronValue[] values = Matrix.extractValues(error.error);
 			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
 		}
 		return errorArray;
@@ -684,10 +685,10 @@ class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 	@Override
 	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
 		List<Record> newsample = prelearn(sample);
-		Matrix[] errors = learn(newsample);
+		Error[] errors = learn(newsample);
 		NeuronValue[] errorArray = null;
-		for (Matrix error : errors) {
-			NeuronValue[] values = Matrix.extractValues(error);
+		for (Error error : errors) {
+			NeuronValue[] values = Matrix.extractValues(error.error);
 			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
 		}
 		return errorArray;
@@ -990,8 +991,8 @@ class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 	
 	
 	@Override
-	public Matrix[] learn(Iterable<Record> inouts) throws RemoteException {
-		Matrix[] errors = super.learn(inouts);
+	public Error[] learn(Iterable<Record> inouts) throws RemoteException {
+		Error[] errors = super.learn(inouts);
 		learnVerify(inouts);
 		return errors;
 	}

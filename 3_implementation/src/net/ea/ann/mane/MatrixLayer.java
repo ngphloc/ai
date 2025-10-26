@@ -60,7 +60,7 @@ public interface MatrixLayer extends Layer {
 	 * @param inputs specified inputs.
 	 * @return evaluated matrix as output.
 	 */
-	Matrix forward(Matrix...inputs);
+	Matrix forward(Record...inputs);
 	
 	
 	/**
@@ -71,7 +71,7 @@ public interface MatrixLayer extends Layer {
 	 * @param learningRate learning rate.
 	 * @return training error.
 	 */
-	Matrix[] backward(Matrix[] outputErrors, MatrixLayer focus, boolean learning, double learningRate);
+	Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate);
 
 	
 }

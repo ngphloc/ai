@@ -1,3 +1,10 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
 package net.ea.ann.mane;
 
 import java.io.Serializable;
@@ -66,7 +73,7 @@ public class Record implements Cloneable, Serializable {
 	/**
 	 * Extra inputs.
 	 */
-	public Object[] extraInputs = null;
+	public List<Object> extraInputs = Util.newList(0);
 	
 	
 	/**
@@ -136,6 +143,34 @@ public class Record implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Adding input and output.
+	 * @param inout pair of input and output.
+	 * @return true if adding is successful.
+	 */
+	public boolean add(Inout inout) {
+		return this.inouts.add(inout);
+	}
+	
+	
+	/**
+	 * Removing input and output at specified index.
+	 * @param index specified index.
+	 * @return previous input and output.
+	 */
+	public Inout remove(int index) {
+		return this.inouts.remove(index);
+	}
+	
+	
+	/**
+	 * Clearing inputs and outputs.
+	 */
+	public void clear() {
+		this.inouts.clear();
+	}
+	
+	
+	/**
 	 * Getting input at specified index.
 	 * @param index specified index.
 	 * @return input at specified index.
@@ -149,6 +184,30 @@ public class Record implements Cloneable, Serializable {
 	 * @return output at specified index.
 	 */
 	public Matrix output(int index) {return get(index).output;}
+
+	
+	/**
+	 * Extracting inputs.
+	 * @return inputs.
+	 */
+	public Matrix[] inputs() {
+		if (inouts.size() == 0) return null;
+		Matrix[] inputs = new Matrix[inouts.size()];
+		for (int i = 0; i < inputs.length; i++) inputs[i] = inouts.get(i).input;
+		return inputs;
+	}
+	
+	
+	/**
+	 * Extracting outputs.
+	 * @return outputs.
+	 */
+	public Matrix[] outputs() {
+		if (inouts.size() == 0) return null;
+		Matrix[] outputs = new Matrix[inouts.size()];
+		for (int i = 0; i < outputs.length; i++) outputs[i] = inouts.get(i).output;
+		return outputs;
+	}
 
 	
 	/**
@@ -185,7 +244,7 @@ public class Record implements Cloneable, Serializable {
 	 * @return extra input at specified index.
 	 */
 	public Object extraInput(int index) {
-		return extraInputs != null && extraInputs.length > 0 && index >= 0 && index < extraInputs.length ? extraInputs[index] : null; 
+		return extraInputs != null && extraInputs.size() > 0 && index >= 0 && index < extraInputs.size() ? extraInputs.get(index) : null; 
 	}
 
 	
@@ -194,7 +253,57 @@ public class Record implements Cloneable, Serializable {
 	 * @return first extra input.
 	 */
 	public Object extraInput() {
-		return extraInputs != null && extraInputs.length > 0 ? extraInputs[0] : null; 
+		return extraInputs != null && extraInputs.size() > 0 ? extraInputs.get(0) : null; 
+	}
+	
+	
+	/**
+	 * Getting second extra input.
+	 * @return second extra input.
+	 */
+	public Object extraInput2() {
+		return extraInputs != null && extraInputs.size() > 1 ? extraInputs.get(1) : null; 
+	}
+
+	
+	/**
+	 * Adding extra input.
+	 * @param extraInput extra input.
+	 * @return true if adding is successful.
+	 */
+	public boolean addExtraInput(Object extraInput) {
+		return this.extraInputs.add(extraInput);
+	}
+	
+	
+	/**
+	 * Removing extra input at specified index.
+	 * @param index specified index.
+	 * @return previous extra input.
+	 */
+	public Object removeExtraInput(int index) {
+		return this.extraInputs.remove(index);
+	}
+	
+	
+	/**
+	 * Clearing extra inputs.
+	 */
+	public void clearExtraInputs() {
+		extraInputs.clear();
+	}
+	
+	
+	/**
+	 * Creating input records.
+	 * @param inputs input matrices.
+	 * @return input records.
+	 */
+	public static Record[] createInputs(Matrix...inputs) {
+		if (inputs == null || inputs.length == 0) return null;
+		Record[] inputRecords = new Record[inputs.length];
+		for (int i = 0; i < inputs.length; i++) inputRecords[i] = new Record(inputs[i]);
+		return inputRecords;
 	}
 	
 	

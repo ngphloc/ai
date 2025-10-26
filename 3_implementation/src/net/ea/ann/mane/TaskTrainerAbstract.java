@@ -39,8 +39,8 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 
 	
 	@Override
-	public Matrix[] train(MatrixLayer layer, Iterable<Record> inouts, boolean propagate, double learningRate) {
-		List<Matrix> biases = Util.newList(0);
+	public Error[] train(MatrixLayer layer, Iterable<Record> inouts, boolean propagate, double learningRate) {
+		List<Error> biases = Util.newList(0);
 		for (Record inout : inouts) {
 			if (inout == null) continue;
 			Matrix realOutput = inout.output();
@@ -56,21 +56,21 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 			Matrix bias = gradient(output, realOutput);
 			if (bias == null) continue;
 			
-			if (!(layer instanceof MatrixNetworkCore)) {
-				biases.add(bias);
+			if (!(layer instanceof MatrixLayerExt)) {
+				biases.add(new Error(bias));
 				continue;
 			}
 			
-			MatrixNetworkCore mnc = (MatrixNetworkCore)layer;
-			Matrix oinput = mnc.getOutputLayer().getInput();
-			Function activateRef = mnc.getOutputLayer().getActivateRef();
+			MatrixLayerExt extLayer = (MatrixLayerExt)layer;
+			Matrix oinput = extLayer.getOutputLayer().getInput();
+			Function activateRef = extLayer.getOutputActivateRef();
 			if (oinput != null && activateRef != null) {
 				Matrix derivative = oinput.derivativeWise(activateRef);
 				bias = derivative.multiplyWise(bias);
 			}
-			biases.add(bias);
+			biases.add(new Error(bias));
 		}
-		Matrix[] biasArray = biases.toArray(new Matrix[] {});
+		Error[] biasArray = biases.toArray(new Error[] {});
 		
 		return layer.backward(biasArray, propagate?layer:null, true, learningRate);
 	}

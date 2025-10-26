@@ -15,13 +15,13 @@ import java.util.List;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.NetworkDoEvent.Type;
+import net.ea.ann.core.function.Function;
 import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
-import net.ea.ann.mane.MatrixNetworkCore;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.TaskTrainer;
 import net.ea.ann.transformer.TransformerBasic.Decoder;
@@ -34,7 +34,7 @@ import net.ea.ann.transformer.TransformerBasic.Encoder;
  * @version 1.0
  *
  */
-public class TransformerImpl extends NetworkAbstract implements Transformer, MatrixLayerExt, MatrixNetworkCore {
+public class TransformerImpl extends NetworkAbstract implements Transformer, MatrixLayerExt {
 
 
 	/**
@@ -176,8 +176,17 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 		else {
 			this.encoder = createEncoder();
 			if (!this.encoder.initialize(he, ne, dme, dke, dve, ffnDepth, nBlocks)) return false;
-			this.decoder = createDecoder();
-			if (!this.decoder.initialize(hd, nd, dmd, dkd, dvd, ne, dme, ffnDepth, nBlocks, XBlockIndex)) return false;
+			ne = this.encoder.blocks[0].attention.n();
+			dme = this.encoder.blocks[0].attention.dm();
+			if (ne != nd || dme != dmd) {
+				if (!this.encoder.setOutputAdapter(new Dimension(dmd, nd), ffnDepth)) return false;
+				this.decoder = createDecoder();
+				if (!this.decoder.initialize(hd, nd, dmd, dkd, dvd, nd, dmd, ffnDepth, nBlocks, XBlockIndex)) return false;
+			}
+			else {
+				this.decoder = createDecoder();
+				if (!this.decoder.initialize(hd, nd, dmd, dkd, dvd, ne, dme, ffnDepth, nBlocks, XBlockIndex)) return false;
+			}
 			this.decoder.setXBlockAttach(this.encoder);
 		}
 		return validate();
@@ -301,21 +310,28 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	}
 	
 	
+	@Override
+	public Function getOutputActivateRef() {
+		MatrixLayerAbstract outputLayer = getOutputLayer();
+		return outputLayer != null ? outputLayer.getActivateRef() : null;
+	}
+
+	
 	/**
-	 * Getting output head.
-	 * @return output head.
+	 * Getting output adapter.
+	 * @return output adapter.
 	 */
-	public MatrixNetworkImpl getOutputHead() {
+	public MatrixNetworkImpl getOutputAdapter() {
 		if (!validate())
 			return null;
 		else if (encoder != null && decoder != null) {
-			return decoder.getOutputHead();
+			return decoder.getOutputAdapter();
 		}
 		else if (encoder != null && decoder == null) {
-			return encoder.getOutputHead();
+			return encoder.getOutputAdapter();
 		}
 		else if (encoder == null && decoder != null) {
-			return decoder.getOutputHead();
+			return decoder.getOutputAdapter();
 		}
 		else
 			return null;
@@ -323,20 +339,20 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 
 	
 	/**
-	 * Setting output head.
-	 * @param head output head.
+	 * Setting output adapter.
+	 * @param adapter output adapter.
 	 */
-	public boolean setOutputHead(MatrixNetworkImpl head) {
+	public boolean setOutputAdapter(MatrixNetworkImpl adapter) {
 		if (!validate())
 			return false;
 		else if (encoder != null && decoder != null) {
-			return decoder.setOutputHead(head);
+			return decoder.setOutputAdapter(adapter);
 		}
 		else if (encoder != null && decoder == null) {
-			return encoder.setOutputHead(head);
+			return encoder.setOutputAdapter(adapter);
 		}
 		else if (encoder == null && decoder != null) {
-			return decoder.setOutputHead(head);
+			return decoder.setOutputAdapter(adapter);
 		}
 		else
 			return false;
@@ -344,22 +360,22 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 
 	
 	/**
-	 * Setting output head.
-	 * @param headOutputSize head output size.
-	 * @param headDepth head depth.
+	 * Setting output adapter.
+	 * @param outputAdapterOutputSize output size of output adapter.
+	 * @param outputAdapterDepth output adapter  depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputHead(Dimension headOutputSize, int headDepth) {
+	public boolean setOutputAdapter(Dimension outputAdapterOutputSize, int outputAdapterDepth) {
 		if (!validate())
 			return false;
 		else if (encoder != null && decoder != null) {
-			return decoder.setOutputHead(headOutputSize, headDepth);
+			return decoder.setOutputAdapter(outputAdapterOutputSize, outputAdapterDepth);
 		}
 		else if (encoder != null && decoder == null) {
-			return encoder.setOutputHead(headOutputSize, headDepth);
+			return encoder.setOutputAdapter(outputAdapterOutputSize, outputAdapterDepth);
 		}
 		else if (encoder == null && decoder != null) {
-			return decoder.setOutputHead(headOutputSize, headDepth);
+			return decoder.setOutputAdapter(outputAdapterOutputSize, outputAdapterDepth);
 		}
 		else
 			return false;
@@ -367,19 +383,19 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 
 	
 	/**
-	 * Removing output head.
+	 * Removing output adapter.
 	 */
-	public void removeOutputHead() {
+	public void removeOutputAdapter() {
 		if (!validate())
 			return;
 		else if (encoder != null && decoder != null) {
-			decoder.removeOutputHead();
+			decoder.removeOutputAdapter();
 		}
 		else if (encoder != null && decoder == null) {
-			encoder.removeOutputHead();
+			encoder.removeOutputAdapter();
 		}
 		else if (encoder == null && decoder != null) {
-			decoder.removeOutputHead();
+			decoder.removeOutputAdapter();
 		}
 	}
 	
@@ -453,10 +469,12 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 
 
 	@Override
-	public Matrix forward(Matrix...inputs) {
-		Matrix inputY = inputs != null && inputs.length > 0 ? inputs[0] : null;
-		Matrix inputX = inputs != null && inputs.length > 1 ? inputs[1] : null;
-		Matrix result = evaluate(inputY, inputX, null, new Object[] {});
+	public Matrix forward(net.ea.ann.mane.Record...inputs) {
+		Matrix inputY = inputs != null && inputs.length > 0 ? inputs[0].input() : null;
+		Matrix inputX = inputs != null && inputs.length > 0 ? inputs[0].input2() : null;
+		Object extraInput = inputs != null && inputs.length > 0 ? inputs[0].extraInput() : null;
+		boolean[][] inputMask = (extraInput != null) && (extraInput instanceof boolean[][]) ? (boolean[][])extraInput : null;
+		Matrix result = evaluate(inputY, inputX, inputMask, new Object[] {});
 		if (result == null) return result;
 		
 		MatrixLayer nextLayer = null;
@@ -472,7 +490,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * Evaluating transformer.
 	 * @param inputY Y input.
 	 * @param inputX X input.
-	 * @param inputMatrix mask input. 
+	 * @param inputMask mask input. 
 	 * @param params additional parameters.
 	 * @return matrix as output.
 	 */
@@ -497,11 +515,11 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	/**
 	 * Evaluating transformer.
 	 * @param input input.
-	 * @param inputMatrix mask input. 
+	 * @param inputMask mask input. 
 	 * @return matrix as output.
 	 */
-	protected Matrix evaluate(Matrix input, boolean[][] inputMatrix) {
-		return evaluate(input, null, inputMatrix, new Object[] {});
+	protected Matrix evaluate(Matrix input, boolean[][] inputMask) {
+		return evaluate(input, null, inputMask, new Object[] {});
 	}
 
 	
@@ -541,13 +559,13 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	
 	
 	@Override
-	public Matrix[] backward(Matrix[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
+	public net.ea.ann.mane.Error[] backward(net.ea.ann.mane.Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		if (!learning) throw new IllegalArgumentException("Method Transformer::backward(Matrix[], MatrixLayer, boolean, double) does not support learning = false");
 		Error[] errors = Error.create(outputErrors);
 		Error[][] learnedErrors = backward(errors, learningRate);
 		if (learnedErrors == null || learnedErrors.length == 0 || learnedErrors[0] == null) return null;
 		
-		Matrix[] backwardErrors = Error.create(learnedErrors[0]);
+		net.ea.ann.mane.Error[] backwardErrors = Error.create2(learnedErrors[0]);
 		if (this.prevLayer == null || this == focus)
 			return backwardErrors;
 		else
@@ -561,7 +579,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param learningRate learning rate.
 	 * @return training error.
 	 */
-	public Matrix[] backward(Matrix[] outputErrors, double learningRate) {
+	public net.ea.ann.mane.Error[] backward(net.ea.ann.mane.Error[] outputErrors, double learningRate) {
 		return backward(outputErrors, null, true, learningRate);
 	}
 	
@@ -631,7 +649,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 						mr = new net.ea.ann.mane.Record(record.inputY, record.outputA, record.inputX, null);
 					subinouts.add(mr);
 				}
-				Matrix[] errors = null;
+				net.ea.ann.mane.Error[] errors = null;
 				for (TaskTrainer trainer : trainers) {
 					errors = trainer.train(this, subinouts, false, learningRate);
 				}

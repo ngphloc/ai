@@ -1,3 +1,10 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
 package net.ea.ann.transformer;
 
 import java.io.Serializable;
@@ -90,6 +97,8 @@ public class Record implements Cloneable, Serializable {
 	 * Creating record with Y input data, X input data, and input mask.
 	 * @param inputY Y input data.
 	 * @param inputX X input data.
+	 * @param inputMask input mask.
+	 * @return input record.
 	 */
 	public static Record createInput(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
 		Record record = new Record();
@@ -101,13 +110,34 @@ public class Record implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Creating record with attention output.
-	 * @param outputA attention output.
-	 * @return record with attention output.
+	 * Creating record with Y input data and X input data.
+	 * @param inputY Y input data.
+	 * @param inputX X input data.
+	 * @return input record.
 	 */
-	public static Record createOutput(Matrix outputA) {
+	public static Record createInput(Matrix inputY, Matrix inputX) {
+		return createInput(inputY, inputX, null);
+	}
+
+	
+	/**
+	 * Creating record with input data.
+	 * @param input input data.
+	 * @return input record.
+	 */
+	public static Record createInput(Matrix input) {
+		return createInput(input, null, null);
+	}
+
+	
+	/**
+	 * Creating record with output.
+	 * @param output output.
+	 * @return output.
+	 */
+	public static Record createOutput(Matrix output) {
 		Record record = new Record();
-		record.outputA = outputA;
+		record.outputA = output;
 		return record;
 	}
 	

@@ -19,7 +19,7 @@ import net.ea.ann.core.value.Matrix;
  * @version 1.0
  *
  */
-public interface MatrixNetwork extends Network, MatrixNetworkCore {
+public interface MatrixNetwork extends Network {
 
 	
 	/**
@@ -37,7 +37,7 @@ public interface MatrixNetwork extends Network, MatrixNetworkCore {
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	Matrix[] learn(Iterable<Record> inouts) throws RemoteException;
+	Error[] learn(Iterable<Record> inouts) throws RemoteException;
 
 
 }

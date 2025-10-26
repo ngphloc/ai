@@ -7,8 +7,6 @@
  */
 package net.ea.ann.mane;
 
-import net.ea.ann.core.value.Matrix;
-
 /**
  * This interface specifies trainer applying into learning matrix neural network for specific task such as classification and reinforcement learning.
  * 
@@ -28,7 +26,7 @@ public interface TaskTrainer {
 	 * @param learningRate learning rate.
 	 * @return learning biases.
 	 */
-	Matrix[] train(MatrixLayer layer, Iterable<Record> inouts, boolean propagate, double learningRate);
+	Error[] train(MatrixLayer layer, Iterable<Record> inouts, boolean propagate, double learningRate);
 
 	
 	/**
@@ -38,7 +36,7 @@ public interface TaskTrainer {
 	 * @param learningRate learning rate.
 	 * @return learning biases.
 	 */
-	default Matrix[] train(MatrixLayer layer, Iterable<Record> inouts, double learningRate) {
+	default Error[] train(MatrixLayer layer, Iterable<Record> inouts, double learningRate) {
 		return train(layer, inouts, true, learningRate);
 	}
 	

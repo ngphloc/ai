@@ -7,6 +7,8 @@
  */
 package net.ea.ann.mane;
 
+import net.ea.ann.core.function.Function;
+
 /**
  * This interface extensive represents layer in matrix neural network.
  * 
@@ -22,5 +24,20 @@ public interface MatrixLayerExt extends MatrixLayer {
 	 * @param record record.
 	 */
 	void enterInputs(Record record);
+	
+	
+	/**
+	 * Getting output layer.
+	 * @return output layer.
+	 */
+	MatrixLayer getOutputLayer();
+
+
+	/**
+	 * Getting output activation function.
+	 * @return output activation function.
+	 */
+	Function getOutputActivateRef();
+
 	
 }

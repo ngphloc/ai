@@ -371,15 +371,23 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		}
 		
 		//Training every attention head.
+		List<Error[]> headOutputErrorsList = Util.newList(0);
 		for (int i = 0; i < this.heads.length; i++) {
 			List<Matrix> headErrs = headErrsList.get(i);
 			if (headErrs.size() == 0) continue;
 			Error[] headErrors = Error.create(headErrs.toArray(new Matrix[] {}));
-			this.heads[i].backward(headErrors, learningRate);
+			headErrors = this.heads[i].backward(headErrors, learningRate);
+			
+			if (headErrors != null) headOutputErrorsList.add(headErrors);
 		}
+		if (headOutputErrorsList.size() == 0) return null;
 		
-		//Calculating output errors.
-		return null; //Fixing later.
+		//Accumulating errors.
+		Error[] outputErrors = headOutputErrorsList.get(0);
+		for (int i = 1; i < headOutputErrorsList.size(); i++) {
+			Error.accum(outputErrors, headOutputErrorsList.get(i));
+		}
+		return outputErrors;
 	}
 	
 	
@@ -964,6 +972,8 @@ class Attention0 implements Cloneable, Serializable {
 		int count = 0;
 		int n = n();
 		Matrix V = calcV();
+		List<Matrix> YBiasList = Util.newList(0);
+		List<Matrix> XBiasList = Util.newList(0);
 		for (Error error : errors) {
 			if (error == null) continue;
 			Matrix err = error.error();
@@ -986,28 +996,49 @@ class Attention0 implements Cloneable, Serializable {
 			Matrix dWVTemp = Y().transpose().multiply(softmax.transpose()).multiply(errv);
 			dWV = dWV != null ? dWV.add(dWVTemp) : dWVTemp;
 			
-			if (T1 == null && T2 == null) continue;
-
+			//Calculating QK mean.
 			Matrix QKMean = calcK().multiply(this.WQ.transpose());
 			QKMean = QKMean.add(calcQ().multiply(this.WK.transpose()));
-			QKMean = QKMean.multiply0(0.5);
+//			QKMean = QKMean.multiply0(0.5);
+
+			//Calculating Y bias with regard to Q and K.
+			Matrix YBiasQK = null;
+			Matrix[] YBiasQKs = new Matrix[n];
+			for (int i = 0; i < n; i++) {
+				Matrix errvi = errv.getRow(i).multiply(probs[i]);
+				YBiasQKs[i] = errvi.multiply(QKMean);
+			}
+			YBiasQK = Matrix.concatH(YBiasQKs);
+			
+			//Calculating Y bias with regard to V.
+			Matrix YBiasV = softmax.transpose().multiply(err).multiply(this.WV.transpose());
+			Matrix YBias = YBiasQK.add(YBiasV);
+			YBiasList.add(YBias);
+			
+			//Updating X bias.
+			Matrix XBias = YBias;
+			if (T1 == null && T2 == null) {
+				XBiasList.add(XBias);
+				continue;
+			}
 
 			//Training the first transposition matrix T1.
 			if (this.T1 != null) {
 				Matrix[] t1s = new Matrix[n];
 				for (int i = 0; i < n; i++) {
-					Matrix errvi = errv.getRow(i).multiply(probs[i]);
-					t1s[i] = errvi.multiply(QKMean);
 					if (this.T2 != null)
-						t1s[i] = t1s[i].multiply(this.T2.transpose()).multiply(X().transpose());
+						t1s[i] = YBiasQKs[i].multiply(this.T2.transpose()).multiply(X().transpose());
 					else
-						t1s[i] = t1s[i].multiply(X().transpose());
+						t1s[i] = YBiasQKs[i].multiply(X().transpose());
 				}
 				Matrix dT1Temp = Matrix.concatH(t1s);
 				dT1 = dT1 != null ? dT1.add(dT1Temp) : dT1Temp;
+				
+				//Calculating X bias with regard to T1.
+				XBias = this.T1.transpose().multiply(XBias);
 			}
 			
-			//Training the first transposition matrix T2.
+			//Training the second transposition matrix T2.
 			if (this.T2 != null) {
 				Matrix dT2Temp = null;
 				for (int i = 0; i < n; i++) {
@@ -1017,7 +1048,12 @@ class Attention0 implements Cloneable, Serializable {
 				}
 				dT2Temp = X().transpose().multiply(dT2Temp).multiply(QKMean);
 				dT2 = dT2 != null ? dT2.add(dT2Temp) : dT2Temp;
+				
+				//Calculating X bias with regard to T2.
+				XBias = XBias.multiply(this.T2.transpose());
 			}
+			
+			XBiasList.add(XBias);
 		}
 		if (count == 0) return null;
 		
@@ -1051,7 +1087,16 @@ class Attention0 implements Cloneable, Serializable {
 		}
 		
 		//Calculating backward errors.
-		return null; //Fixing later.
+		int N = Math.max(YBiasList.size(), XBiasList.size());
+		if (N == 0) return null;
+		Error[] outputErrors = new Error[N];
+		for (int i = 0; i < N; i++) {
+			Error outputError = new Error();
+			if (i < YBiasList.size()) outputError.errorY = YBiasList.get(i); 
+			if (i < XBiasList.size()) outputError.errorX = XBiasList.get(i);
+			outputErrors[i] = outputError; 
+		}
+		return outputErrors;
 	}
 	
 	

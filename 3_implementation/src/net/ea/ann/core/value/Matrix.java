@@ -510,6 +510,19 @@ public interface Matrix extends NeuronValueCreator {
 
 	
 	/**
+	 * Calculating sum matrix.
+	 * @param matrices array of matrices.
+	 * @return sum matrix.
+	 */
+	static Matrix sum(Matrix...matrices) {
+		if (matrices == null || matrices.length == 0) return null;
+		Matrix sum = matrices[0];
+		for (int i = 1; i < matrices.length; i++) sum = sum.add(matrices[i]);
+		return sum;
+	}
+
+	
+	/**
 	 * Calculating mean matrix.
 	 * @param matrices array of matrices.
 	 * @return mean matrix.

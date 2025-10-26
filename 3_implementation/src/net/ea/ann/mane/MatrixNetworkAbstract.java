@@ -30,7 +30,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public abstract class MatrixNetworkAbstract extends NetworkAbstract implements MatrixNetwork, NeuronValueCreator {
+public abstract class MatrixNetworkAbstract extends NetworkAbstract implements MatrixNetwork, MatrixLayerExt, NeuronValueCreator {
 
 
 	/**
@@ -207,6 +207,18 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	public MatrixLayerAbstract getOutputLayer() {return layers[layers.length-1];}
 
 	
+	@Override
+	public Function getOutputActivateRef() {return layers[layers.length-1].activateRef;}
+
+
+	@Override
+	public void enterInputs(Record record) {
+		MatrixLayerAbstract inputLayer = getInputLayer();
+		Matrix input = record.input();
+		if (input != null) Matrix.copy(input, inputLayer.getInput());
+	}
+
+
 	/**
 	 * Resetting matrix neural network.
 	 */
@@ -236,7 +248,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @param inouts sample as collection of input and output whose each element is an 2-component array of input (the first) and output (the second).
 	 * @return learned error.
 	 */
-	public Matrix[] learnByRaster(Iterable<Raster[]> inouts) {
+	public Error[] learnByRaster(Iterable<Raster[]> inouts) {
 		try {
 			MatrixLayerAbstract inputLayer = getInputLayer();
 			Matrix input = inputLayer.getInput();
