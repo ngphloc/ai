@@ -33,7 +33,7 @@ public interface Transformer extends Network {
 	/**
 	 * Learning transformer.
 	 * @param sample sample.
-	 * @return learning errors. The first element is main error and the second element is attached error\\.
+	 * @return learning errors. The first element is main error and the second element is attached error, etc.
 	 * @throws RemoteException if any error raises.
 	 */
 	Error[][] learn(Iterable<Record> sample) throws RemoteException;

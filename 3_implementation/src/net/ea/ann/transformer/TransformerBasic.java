@@ -201,46 +201,53 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 	/**
 	 * Getting block at specified index.
-	 * @param index specified index.
+	 * @param blockIndex specified index.
 	 * @return block at specified index.
 	 */
-	public TransformerBlock get(int index) {
-		return size() > 0 ? blocks[index] : null;
+	public TransformerBlock get(int blockIndex) {
+		return size() > 0 ? blocks[blockIndex] : null;
 	}
 	
 	
 	/**
-	 * Getting X block index.
-	 * @return X block index.
+	 * Getting X block indices.
+	 * @return X block indices.
 	 */
-	public int getXBlockIndex() {
-		if (blocks == null) return -1;
+	public int[] getXBlockIndices() {
+		if (!validate()) return null;
+		List<Integer> indexList = Util.newList(0);
 		for (int i = 0; i < blocks.length; i++) {
-			if (blocks[i].attention.X() != null) return i;
+			if (blocks[i].attention.X() != null) indexList.add(i);
 		}
-		return -1;
+		if (indexList.size() == 0) return null;
+		
+		int[] indices = new int[indexList.size()];
+		for (int i = 0; i < indices.length; i++) indices[i] = indexList.get(i);
+		return indices;
 	}
 	
 	
 	/**
-	 * Setting transformer as attached object of X block.
-	 * @return transformer as attached object of X block.
+	 * Getting input attached transformers.
+	 * @return input attached transformers.
 	 */
-	public Transformer getXBlockAttach() {
-		int XBlockIndex = getXBlockIndex();
-		if (XBlockIndex < 0) return null;
-		Object attach = blocks[XBlockIndex].getAttach();
-		return attach instanceof Transformer ? (Transformer)attach : null;
+	public Transformer[] getInputAttaches() {
+		if (!validate()) return null;
+		List<Transformer> transformers = Util.newList(0);
+		for (int i = 0; i < size(); i++) {
+			Transformer transformer = get(i).getInputAttach();
+			if (transformer != null) transformers.add(transformer);
+		}
+		return transformers.size() > 0 ? transformers.toArray(new Transformer[] {}) : null;
 	}
 	
 	
 	/**
-	 * Setting transformer as attached object of X block.
-	 * @param transformer as attached object of X block.
+	 * Setting input attached transformer.
+	 * @param inputAttach input attached transformer.
 	 */
-	protected void setXBlockAttach(Transformer transformer) {
-		int XBlockIndex = getXBlockIndex();
-		if (XBlockIndex >= 0) blocks[XBlockIndex].setAttach(transformer);
+	boolean setInputAttach(int blockIndex, Transformer inputAttach) {
+		return validate() && blockIndex > 0 &&  blockIndex < size() ? get(blockIndex).setInputAttach(inputAttach) : false;
 	}
 	
 	
@@ -268,7 +275,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param inputX X input data.
 	 * @param inputMask input mask.
 	 */
-	protected void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
+	public void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
 		if (validate()) get(0).attention.enterInputs(inputY, inputX, inputMask);
 	}
 	
@@ -278,7 +285,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param input input data.
 	 * @param inputMask input mask.
 	 */
-	protected void enterInputs(Matrix input, boolean[][] inputMask) {
+	public void enterInputs(Matrix input, boolean[][] inputMask) {
 		enterInputs(input, null, inputMask);
 	}
 
@@ -447,9 +454,11 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	protected Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask, Object...params) {
 		if (!validate()) return null;
 		Matrix output = blocks[0].evaluate(inputY, null, inputMask);
-		int XBlockIndex = getXBlockIndex();
 		for (int i = 1; i < blocks.length; i++) {
-			output = i == XBlockIndex ? blocks[i].evaluate(output, inputX, null) : blocks[i].evaluate(output, null, null);
+			if (blocks[i].getInputAttach() != null)
+				output = blocks[i].evaluate(output, inputX, null);
+			else
+				output = blocks[i].evaluate(output, null, null);
 		}
 		return output;
 	}
@@ -487,26 +496,33 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	protected Error[][] backward(Error[] errors, double learningRate) {
 		if (!validate()) return null;
 		Error[] outputErrors = null;
-		Error[] attachOutputErrors = null;
+		List<Error[]> attachOutputErrorsList = Util.newList(0);
 		for (int i = blocks.length-1; i >= 0; i--) {
 			outputErrors = blocks[i].backward(outputErrors == null ? errors : outputErrors, learningRate);
 			
 			if (outputErrors == null || outputErrors.length == 0) continue;
-			if ((blocks[i].attach == null) || !(blocks[i].attach instanceof TransformerBasic)) continue;
+			if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
 			Error[] attachErrors = Error.createByX(outputErrors);
 			if (attachErrors == null || attachErrors.length == 0) continue;
 			
-			TransformerBasic attach = (TransformerBasic)blocks[i].attach;
+			TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
 			Error[][] merr = attach.backward(attachErrors, learningRate);
-			attachOutputErrors = merr != null && merr.length > 0 ? merr[0] : null;
+			if (merr != null && merr.length > 0 && merr[0] != null) {
+				attachOutputErrorsList.add(merr[0]);
+				System.out.println("Error in training attached transformer at block " + i + " inside method TransformerBasic#backward(Error[], double).");
+			}
 		}
 		
 		if (outputErrors == null || outputErrors.length == 0)
 			return null;
-		else if (attachOutputErrors == null || attachOutputErrors.length == 0)
+		else if (attachOutputErrorsList.size() == 0)
 			return new Error[][] {outputErrors};
-		else
-			return new Error[][] {outputErrors, attachOutputErrors};
+		else {
+			Error[][] backwardErrors = new Error[attachOutputErrorsList.size() + 1][];
+			backwardErrors[0] = outputErrors;
+			for (int i = 1; i < backwardErrors.length; i++) backwardErrors[i] = attachOutputErrorsList.get(i-1);
+			return backwardErrors;
+		}
 	}
 
 	
@@ -563,7 +579,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param learningRate learning rate.
 	 * @param terminatedThreshold terminated threshold.
 	 * @param maxIteration maximum iteration.
-	 * @return learning errors. The first element is main error and the second element is attached error\\.
+	 * @return learning errors. The first element is main error and the second element is attached error, etc.
 	 */
 	protected Error[][] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		if (!validate()) return null;
@@ -794,9 +810,9 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Attached transformer.
+	 * Input attached transformer.
 	 */
-	protected Transformer attach = null;
+	protected Transformer inputAttach = null;
 	
 	
 	/**
@@ -883,17 +899,30 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Getting attached object.
-	 * @return attached object.
+	 * Getting input attached transformer.
+	 * @return input attached transformer.
 	 */
-	Transformer getAttach() {return attach;}
+	Transformer getInputAttach() {return inputAttach;}
 	
 	
 	/**
-	 * Setting attached object.
-	 * @param attach attached object.
+	 * Setting input attached transformer.
+	 * @param inputAttach attached transformer.
+	 * @return true if setting is successful.
 	 */
-	void setAttach(Transformer attach) {this.attach = attach;}
+	boolean setInputAttach(Transformer inputAttach) {
+		if (inputAttach == null || this.attention.X() == null) return false;
+		this.inputAttach = inputAttach;
+		return true;
+	}
+	
+	
+	/**
+	 * Removing input attached transformer.
+	 */
+	void removeInputAttach() {
+		this.inputAttach = null;
+	}
 	
 	
 	/**
@@ -939,6 +968,8 @@ class TransformerBlock implements Cloneable, Serializable {
 	void reset() {
 		this.attention = null;
 		this.ffn = null;
+		this.outputAdapter = null;
+		this.inputAttach = null;
 	}
 	
 	

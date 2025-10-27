@@ -1016,9 +1016,9 @@ class Attention0 implements Cloneable, Serializable {
 			YBiasList.add(YBias);
 			
 			//Updating X bias.
-			Matrix XBias = YBias;
+			Matrix XBias = this.X != null ? YBias : null;
 			if (T1 == null && T2 == null) {
-				XBiasList.add(XBias);
+				if (XBias != null) XBiasList.add(XBias);
 				continue;
 			}
 
@@ -1034,8 +1034,8 @@ class Attention0 implements Cloneable, Serializable {
 				Matrix dT1Temp = Matrix.concatH(t1s);
 				dT1 = dT1 != null ? dT1.add(dT1Temp) : dT1Temp;
 				
-				//Calculating X bias with regard to T1.
-				XBias = this.T1.transpose().multiply(XBias);
+				//Updating X bias with regard to T1.
+				if (XBias != null) XBias = this.T1.transpose().multiply(XBias);
 			}
 			
 			//Training the second transposition matrix T2.
@@ -1049,8 +1049,8 @@ class Attention0 implements Cloneable, Serializable {
 				dT2Temp = X().transpose().multiply(dT2Temp).multiply(QKMean);
 				dT2 = dT2 != null ? dT2.add(dT2Temp) : dT2Temp;
 				
-				//Calculating X bias with regard to T2.
-				XBias = XBias.multiply(this.T2.transpose());
+				//Updating X bias with regard to T2.
+				if (XBias != null) XBias = XBias.multiply(this.T2.transpose());
 			}
 			
 			XBiasList.add(XBias);

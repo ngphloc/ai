@@ -176,9 +176,8 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 		else {
 			this.encoder = createEncoder();
 			if (!this.encoder.initialize(he, ne, dme, dke, dve, ffnDepth, nBlocks)) return false;
-			ne = this.encoder.blocks[0].attention.n();
-			dme = this.encoder.blocks[0].attention.dm();
-			if (ne != nd || dme != dmd) {
+			Dimension es = this.encoder.getOutputLayer().getSize();
+			if (es.height != nd || es.width != dmd) {
 				if (!this.encoder.setOutputAdapter(new Dimension(dmd, nd), ffnDepth)) return false;
 				this.decoder = createDecoder();
 				if (!this.decoder.initialize(hd, nd, dmd, dkd, dvd, nd, dmd, ffnDepth, nBlocks, XBlockIndex)) return false;
@@ -187,7 +186,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 				this.decoder = createDecoder();
 				if (!this.decoder.initialize(hd, nd, dmd, dkd, dvd, ne, dme, ffnDepth, nBlocks, XBlockIndex)) return false;
 			}
-			this.decoder.setXBlockAttach(this.encoder);
+			if (!this.decoder.setInputAttach(XBlockIndex, this.encoder)) return false;
 		}
 		return validate();
 	}
@@ -262,7 +261,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param inputX X input data.
 	 * @param inputMask input mask.
 	 */
-	protected void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
+	public void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
 		if (!validate())
 			return;
 		else if (encoder != null && decoder != null) {
@@ -283,7 +282,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param input input data.
 	 * @param inputMask input mask.
 	 */
-	protected void enterInputs(Matrix input, boolean[][] inputMask) {
+	public void enterInputs(Matrix input, boolean[][] inputMask) {
 		enterInputs(input, null, inputMask);
 	}
 
