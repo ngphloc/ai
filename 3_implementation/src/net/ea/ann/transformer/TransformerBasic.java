@@ -455,7 +455,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		if (!validate()) return null;
 		Matrix output = blocks[0].evaluate(inputY, null, inputMask);
 		for (int i = 1; i < blocks.length; i++) {
-			if (blocks[i].getInputAttach() != null)
+			if (blocks[i].isXBlock())
 				output = blocks[i].evaluate(output, inputX, null);
 			else
 				output = blocks[i].evaluate(output, null, null);
@@ -483,7 +483,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 	@Override
 	public Matrix evaluate() {
-		return evaluate(null, null, null);
+		return evaluate(null, null);
 	}
 
 
@@ -854,6 +854,15 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Checking whether this block has X input.
+	 * @return whether this block has X input.
+	 */
+	public boolean isXBlock() {
+		return validate() ? attention.X() != null : false;
+	}
+
+	
+	/**
 	 * Getting output adapter.
 	 * @return output adapter.
 	 */
@@ -1035,7 +1044,7 @@ class TransformerBlock implements Cloneable, Serializable {
 		Matrix A = attention.evaluate(inputY, inputX, inputMask);
 		try {
 			A = ffn.evaluate(A);
-			if (outputAdapter != null) return outputAdapter.evaluate(A);
+			if (outputAdapter != null) A = outputAdapter.evaluate(A);
 		} catch (Throwable e) {Util.trace(e);}
 		return A;
 	}

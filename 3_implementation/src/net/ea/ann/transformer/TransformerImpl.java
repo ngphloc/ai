@@ -265,14 +265,14 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 		if (!validate())
 			return;
 		else if (encoder != null && decoder != null) {
-			encoder.enterInputs(inputX, null, null);
+			encoder.enterInputs(inputX, null);
 			decoder.enterInputs(inputY, null, inputMask);
 		}
 		else if (encoder != null && decoder == null) {
-			encoder.enterInputs(inputX != null ? inputX : inputY, null, inputMask);
+			encoder.enterInputs(inputX != null ? inputX : inputY, inputMask);
 		}
 		else if (encoder == null && decoder != null) {
-			decoder.enterInputs(inputY != null ? inputY : inputX, null, inputMask);
+			decoder.enterInputs(inputY != null ? inputY : inputX, inputMask);
 		}
 	}
 	
@@ -283,7 +283,35 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param inputMask input mask.
 	 */
 	public void enterInputs(Matrix input, boolean[][] inputMask) {
-		enterInputs(input, null, inputMask);
+		if (!validate())
+			return;
+		else if (encoder != null && decoder != null) {
+			decoder.enterInputs(input, inputMask);
+		}
+		else if (encoder != null && decoder == null) {
+			encoder.enterInputs(input, inputMask);
+		}
+		else if (encoder == null && decoder != null) {
+			decoder.enterInputs(input, inputMask);
+		}
+	}
+
+	
+	/**
+	 * Setting input data.
+	 * @param input input data.
+	 */
+	public void enterInputs(Matrix input) {
+		enterInputs(input, null);
+	}
+
+	
+	/**
+	 * Setting input mask.
+	 * @param inputMask input mask.
+	 */
+	public void enterInputs(boolean[][] inputMask) {
+		enterInputs(null, inputMask);
 	}
 
 	
@@ -497,7 +525,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 		if (!validate())
 			return null;
 		else if (encoder != null && decoder != null) {
-			Matrix A = encoder.evaluate(inputX, null, null, new Object[] {});
+			Matrix A = encoder.evaluate(inputX, null);
 			return decoder.evaluate(inputY, A, inputMask, new Object[] {});
 		}
 		else if (encoder != null && decoder == null) {
@@ -518,9 +546,32 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @return matrix as output.
 	 */
 	protected Matrix evaluate(Matrix input, boolean[][] inputMask) {
-		return evaluate(input, null, inputMask, new Object[] {});
+		if (!validate())
+			return null;
+		else if (encoder != null && decoder != null) {
+			Matrix A = encoder.evaluate();
+			return decoder.evaluate(input, A, inputMask, new Object[] {});
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.evaluate(input, inputMask);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.evaluate(input, inputMask);
+		}
+		else
+			return null;
 	}
 
+	
+	/**
+	 * Evaluating transformer.
+	 * @param input input.
+	 * @return matrix as output.
+	 */
+	protected Matrix evaluate(Matrix input) {
+		return evaluate(input, null);
+	}
+	
 	
 	@Override
 	public Matrix evaluate(Record record) throws RemoteException {
@@ -530,7 +581,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	
 	@Override
 	public Matrix evaluate() {
-		return evaluate(null, null, null);
+		return evaluate(null, null);
 	}
 
 	

@@ -884,6 +884,15 @@ class Attention0 implements Cloneable, Serializable {
 	void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
 		if (Y != null && inputY != null) Matrix.copy(inputY, Y);
 		if (X != null && inputX != null) Matrix.copy(inputX, X);
+		setMask(inputMask);
+	}
+
+	
+	/**
+	 * Setting mask.
+	 * @param inputMask input mask.
+	 */
+	public void setMask(boolean[][] inputMask) {
 		if (M != null && inputMask != null) NeuronValue.copy(inputMask, M);
 	}
 
@@ -896,6 +905,7 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param masked masked flag.
 	 */
 	public void setMask(int row, int column, int range, boolean masked) {
+		if (M == null) return;
 		int n = n();
 		if (n <= 0 || row < 0 || row >= n || column < 0 || column >= n) return;
 		range = column + range <= n ? range : n - column;
@@ -910,7 +920,7 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param masked masked flag.
 	 */
 	public void setMask(int row, int column, boolean masked) {
-		M[row][column] = masked;
+		if (M != null) M[row][column] = masked;
 	}
 
 		
@@ -920,6 +930,7 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param masked masked flag.
 	 */
 	public void setMask(int row, boolean masked) {
+		if (M == null) return;
 		int n = n();
 		if (row < 0 || row >= n) return;
 		for (int j = 0; j < n; j++) M[row][j] = masked;
@@ -931,6 +942,7 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param masked masked flag.
 	 */
 	public void setMask(boolean masked) {
+		if (M == null) return;
 		int n = n();
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) M[i][j] = masked;
