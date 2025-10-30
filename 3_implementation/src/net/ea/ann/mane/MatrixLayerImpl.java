@@ -38,12 +38,6 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	private static final long serialVersionUID = 1L;
 	
 	
-//	/**
-//	 * Very small number for initialization.
-//	 */
-//	protected final static double EPSILON = 0 ;//Network.LEARN_TERMINATED_THRESHOLD_DEFAULT;
-	
-	
 	/**
 	 * The first weight matrix.
 	 */
@@ -254,8 +248,6 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		
 		//Initialize ones related to weights.
-//		if (this.weight1 != null) Matrix.fill(this.weight1, EPSILON);
-//		if (this.weight2 != null) Matrix.fill(this.weight2, EPSILON);
 		if (this.weight1 != null || this.weight2 != null) this.bias = newMatrix(size.height, size.width);
 		if (this.bias != null) {
 			this.input = newMatrix(size.height, size.width);
@@ -265,7 +257,6 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			this.output = this.input = newMatrix(size.height, size.width); //Only for input layer where both filter and weights are null and so, its input and output must be initialized.
 		}
 		
-//		new MatrixLayerAssoc(this).initParams();
 		return true;
 	}
 	
@@ -477,8 +468,6 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		if (this.weight1 == null && this.weight2 == null) return false;
 		
-//		if (this.weight1 != null) Matrix.fill(this.weight1, EPSILON);
-//		if (this.weight2 != null) Matrix.fill(this.weight2, EPSILON);
 		this.bias = newMatrix(size.height, size.width);
 		this.input = newMatrix(size.height, size.width);
 		this.output = newMatrix(size.height, size.width);
@@ -487,7 +476,6 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		this.filterBias = null;
 		this.prevInput = null;
 		
-//		new MatrixLayerAssoc(this).initParams();
 		return true;
 	}
 	
@@ -729,7 +717,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @param learningRate learning rate.
 	 * @return training error.
 	 */
-	Error[] backward(Error[] outputErrors, double learningRate) {
+	Error[] backwardThisLayerWithoutLearning(Error[] outputErrors, double learningRate) {
 		if (outputErrors == null || outputErrors.length == 0) return null;
 		Error[] errors = new Error[outputErrors.length];
 		for (int i = 0; i < outputErrors.length; i++) {

@@ -39,16 +39,16 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 
 	
 	@Override
-	public Error[] train(MatrixLayer layer, Iterable<Record> inouts, boolean propagate, double learningRate) {
+	public Error[] train(MatrixLayer layer, Iterable<Record> sample, boolean propagate, double learningRate) {
 		List<Error> biases = Util.newList(0);
-		for (Record inout : inouts) {
-			if (inout == null) continue;
-			Matrix realOutput = inout.output();
+		for (Record record : sample) {
+			if (record == null) continue;
+			Matrix realOutput = record.output();
 			if (layer instanceof MatrixLayerExt) {
-				((MatrixLayerExt)layer).enterInputs(inout);
+				((MatrixLayerExt)layer).enterInputs(record);
 			}
 			else {
-				Matrix input = inout.input();
+				Matrix input = record.input();
 				if (input != null) Matrix.copy(input, layer.getInput());
 			}
 			

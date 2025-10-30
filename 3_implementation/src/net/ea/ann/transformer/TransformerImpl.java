@@ -12,6 +12,7 @@ import java.rmi.RemoteException;
 import java.util.Collections;
 import java.util.List;
 
+import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.NetworkDoEvent.Type;
@@ -22,8 +23,10 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
+import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.TaskTrainer;
+import net.ea.ann.raster.Raster;
 import net.ea.ann.transformer.TransformerBasic.Decoder;
 import net.ea.ann.transformer.TransformerBasic.Encoder;
 
@@ -87,6 +90,8 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	public TransformerImpl(int neuronChannel, Id idRef) {
 		super(idRef);
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
+		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
+		this.config.put(MatrixNetworkAbstract.VECTORIZED_FIELD, MatrixNetworkAbstract.VECTORIZED_DEFAULT);
 	}
 
 	
@@ -134,7 +139,10 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @return encoder.
 	 */
 	protected Encoder createEncoder() {
-		return new Encoder(this.neuronChannel, this.idRef);
+		Encoder encoder = new Encoder(this.neuronChannel, this.idRef);
+		encoder.paramSetNorm(this.paramIsNorm());
+		encoder.paramSetVectorized(this.paramIsVectorized());
+		return encoder;
 	}
 	
 	
@@ -143,7 +151,10 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @return decoder.
 	 */
 	protected Decoder createDecoder() {
-		return new Decoder(this.neuronChannel, this.idRef);
+		Decoder decoder = new Decoder(this.neuronChannel, this.idRef);
+		decoder.paramSetNorm(this.paramIsNorm());
+		decoder.paramSetVectorized(this.paramIsVectorized());
+		return decoder;
 	}
 
 	
@@ -410,6 +421,60 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 
 	
 	/**
+	 * Setting output adapter.
+	 * @param middleSize middle size.
+	 * @param middleFilter middle filter.
+	 * @param middleDepth middle depth.
+	 * @param middleDual middle dual mode.
+	 * @param finalSize final size.
+	 * @param finalDepth final depth.
+	 * @return true if setting is successful.
+	 */
+	public boolean setOutputAdapter(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+		if (!validate())
+			return false;
+		else if (encoder != null && decoder != null) {
+			return decoder.setOutputAdapter(middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.setOutputAdapter(middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.setOutputAdapter(middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else
+			return false;
+	}
+	
+
+	/**
+	 * Setting output adapter.
+	 * @param middleSize middle size.
+	 * @param middleFilterStride middle filter stride.
+	 * @param middleDepth middle depth.
+	 * @param middleDual middle dual mode.
+	 * @param finalSize final size.
+	 * @param finalDepth final depth.
+	 * @return true if setting is successful.
+	 */
+	public boolean setOutputAdapter(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+		if (!validate())
+			return false;
+		else if (encoder != null && decoder != null) {
+			return decoder.setOutputAdapter(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.setOutputAdapter(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.setOutputAdapter(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else
+			return false;
+	}
+
+	
+	/**
 	 * Removing output adapter.
 	 */
 	public void removeOutputAdapter() {
@@ -545,7 +610,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param inputMask mask input. 
 	 * @return matrix as output.
 	 */
-	protected Matrix evaluate(Matrix input, boolean[][] inputMask) {
+	public Matrix evaluate(Matrix input, boolean[][] inputMask) {
 		if (!validate())
 			return null;
 		else if (encoder != null && decoder != null) {
@@ -568,7 +633,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param input input.
 	 * @return matrix as output.
 	 */
-	protected Matrix evaluate(Matrix input) {
+	public Matrix evaluate(Matrix input) {
 		return evaluate(input, null);
 	}
 	
@@ -740,6 +805,52 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 		}
 		
 		return outputErrors;
+	}
+
+
+	/**
+	 * Checking normalization mode.
+	 * @return normalization mode in rang [0, 1].
+	 */
+	public boolean paramIsNorm() {
+		if (config.containsKey(Raster.NORM_FIELD))
+			return config.getAsBoolean(Raster.NORM_FIELD);
+		else
+			return Raster.NORM_DEFAULT;
+	}
+
+
+	/**
+	 * Setting normalization mode.
+	 * @param isNorm normalization mode in rang [0, 1]..
+	 * @return this transformer.
+	 */
+	public TransformerImpl paramSetNorm(boolean isNorm) {
+		config.put(Raster.NORM_FIELD, isNorm);
+		return this;
+	}
+
+	
+	/**
+	 * Checking vectorization mode.
+	 * @return vectorization mode.
+	 */
+	public boolean paramIsVectorized() {
+		if (config.containsKey(MatrixNetworkAbstract.VECTORIZED_FIELD))
+			return config.getAsBoolean(MatrixNetworkAbstract.VECTORIZED_FIELD);
+		else
+			return MatrixNetworkAbstract.VECTORIZED_DEFAULT;
+	}
+
+
+	/**
+	 * Setting vectorization mode.
+	 * @param vectorized vectorization mode.
+	 * @return this network.
+	 */
+	public TransformerImpl paramSetVectorized(boolean vectorized) {
+		config.put(MatrixNetworkAbstract.VECTORIZED_FIELD, vectorized);
+		return this;
 	}
 
 

@@ -311,11 +311,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		for (int i = 0; i < heads.length; i++) aList[i] = heads[i].evaluate();
 		
 		Matrix eval = WO != null ? Matrix.concatV(aList).multiply(WO) : Matrix.concatV(aList);
-		int n = A.rows();
-		int dm = A.columns();
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < dm; j++) A.set(i, j, eval.get(i, j));
-		}
+		Matrix.copy(eval, A);
 		return A;
 	}
 
@@ -352,7 +348,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 			}
 			
 			//Calculating attention errors.
-			Matrix ERROR = err.multiply(this.WO.transpose());
+			Matrix ERROR = this.WO != null ? err.multiply(this.WO.transpose()) : err;
 			int index = 0;
 			for (int i = 0; i < this.heads.length; i++) {
 				List<Matrix> headErrors = headErrsList.get(i);
@@ -960,12 +956,7 @@ class Attention0 implements Cloneable, Serializable {
 		Matrix V = calcV();
 		Matrix softmax = calcQKSoftmax();
 		Matrix eval = softmax.multiply(V);
-		
-		int n = n();
-		int dv = dv();
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < dv; j++) A.set(i, j, eval.get(i, j));
-		}
+		Matrix.copy(eval, A);
 		return A;
 	}
 	

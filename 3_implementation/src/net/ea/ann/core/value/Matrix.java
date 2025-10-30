@@ -701,6 +701,20 @@ public interface Matrix extends NeuronValueCreator {
 
 	
 	/**
+	 * Extracting raster into matrix.
+	 * @param rows rows.
+	 * @param columns columns.
+	 * @param raster raster.
+	 * @param neuronChannel neuron channel.
+	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
+	 * @return matrix.
+	 */
+	static Matrix toMatrix(int rows, int columns, Raster raster, int neuronChannel, boolean isNorm) {
+		return toMatrix(rows, columns, raster, neuronChannel, isNorm, null);
+	}
+	
+	
+	/**
 	 * Extracting values of matrix as vector.
 	 * @param matrix specified matrix.
 	 * @return values of matrix as vector.

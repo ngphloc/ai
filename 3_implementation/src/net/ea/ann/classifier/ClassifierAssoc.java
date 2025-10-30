@@ -28,6 +28,7 @@ import java.util.Set;
 
 import net.ea.ann.classifier.ClassifierBuilder.ClassifierModel;
 import net.ea.ann.core.Network;
+import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.NeuronValueV;
 import net.ea.ann.mane.MatrixNetworkAbstract;
@@ -36,6 +37,7 @@ import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
+import net.ea.ann.transformer.TransformerAssoc;
 
 /**
  * This class provides utility methods for classifier.
@@ -76,8 +78,12 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		int size = 0;
 		if (classifier instanceof MatrixClassifier) {
 			MatrixClassifier mac = (MatrixClassifier)classifier;
-			size = new MatrixNetworkAssoc(mac).sizeOfParams();
+			size = new MatrixNetworkAssoc(mac.nut).sizeOfParams();
 			if (mac.adjuster != null) size += new MatrixNetworkAssoc(mac.adjuster).sizeOfParams();
+		}
+		else if (classifier instanceof TransformerClassifier) {
+			TransformerClassifier tramac = (TransformerClassifier)classifier;
+			size = new TransformerAssoc(tramac.transformer).sizeOfParams();
 		}
 		else if (classifier instanceof MatrixNetworkImpl) {
 			size = new MatrixNetworkAssoc((MatrixNetworkImpl)classifier).sizeOfParams();
@@ -93,7 +99,9 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	public int depth() {
 		int depth = 0;
 		if (classifier instanceof MatrixClassifier)
-			depth = ((MatrixClassifier)classifier).size() - 1;
+			depth = ((MatrixClassifier)classifier).nut.size() - 1;
+		else if (classifier instanceof TransformerClassifier)
+			depth = new TransformerAssoc(((TransformerClassifier)classifier).transformer).depth();
 		else if (classifier instanceof MatrixNetworkImpl)
 			depth = ((MatrixNetworkImpl)classifier).size() - 1;
 		return depth;
@@ -130,7 +138,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		/**
 		 * Including convolutional neural network.
 		 */
-		public boolean conv = MatrixClassifier0.CONV_DEFAULT;
+		public boolean conv = ClassifierAbstract.CONV_DEFAULT;
 		
 		/**
 		 * Vectorization mode.
@@ -140,17 +148,17 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		/**
 		 * Adjustment mode.
 		 */
-		public boolean adjust = MatrixClassifier.ADJUST_DEFAULT;
+		public boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
 		
 		/**
 		 * Dual mode.
 		 */
-		public boolean dual = MatrixClassifier0.DUAL_DEFAULT;
+		public boolean dual = ClassifierAbstract.DUAL_DEFAULT;
 		
 		/**
 		 * Baseline mode.
 		 */
-		public boolean baseline = MatrixClassifier0.BASELINE_DEFAULT;
+		public boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
 
 		/**
 		 * Dataset name.
@@ -394,7 +402,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		Scanner scanner = new Scanner(in);
 		PrintStream printer = new PrintStream(out);
 
-		int defaultMaxIteration = MatrixClassifier0.EPOCHS_PSEUDO_DEFAULT;
+		int defaultMaxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
 		int maxIteration = defaultMaxIteration;
 		printer.print("Maximum iteration (default " + defaultMaxIteration + "):");
 		try {

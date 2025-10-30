@@ -69,9 +69,20 @@ public interface MatrixLayer extends Layer {
 	 * @param focus focused layer to stop forwarding.
 	 * @param learning learning flag.
 	 * @param learningRate learning rate.
-	 * @return training error.
+	 * @return backward error.
 	 */
 	Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate);
 
+	
+	/**
+	 * Backward learning.
+	 * @param outputErrors output errors.
+	 * @param learningRate learning rate.
+	 * @return learning errors.
+	 */
+	default Error[] backward(Error[] outputErrors, double learningRate) {
+		return backward(outputErrors, null, true, learningRate);
+	}
+	
 	
 }

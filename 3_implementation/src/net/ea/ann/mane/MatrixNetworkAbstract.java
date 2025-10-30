@@ -160,16 +160,16 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 	/**
 	 * Default filter.
-	 * @param filterStride1
+	 * @param filterStride filter stride.
 	 * @return default filter.
 	 */
-	protected Filter2D defaultFilter(Dimension filterStride1) {
-		if (filterStride1 == null)
+	public Filter2D defaultFilter(Dimension filterStride) {
+		if (filterStride == null)
 			return null;
-		else if (filterStride1.width <= 0 || filterStride1.height <= 0)
+		else if (filterStride.width <= 0 || filterStride.height <= 0)
 			return null;
 		else
-			return ProductFilter2D.create(new Size(filterStride1), newLayer(), 1.0/(double)(filterStride1.height*filterStride1.width));
+			return ProductFilter2D.create(new Size(filterStride), newLayer(), 1.0/(double)(filterStride.height*filterStride.width));
 	}
 	
 	
@@ -245,7 +245,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 	/**
 	 * Learning matrix neural network.
-	 * @param inouts sample as collection of input and output whose each element is an 2-component array of input (the first) and output (the second).
+	 * @param inouts sample.
 	 * @return learned error.
 	 */
 	public Error[] learnByRaster(Iterable<Raster[]> inouts) {
@@ -264,7 +264,6 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 			return sample.size() > 0 ? learn(sample) : null;
 		} catch (Throwable e) {Util.trace(e);}
 		return null;
-		
 	}
 	
 	
@@ -309,10 +308,24 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 	
 	/**
-	 * Checking whether something normalized in rang [0, 1].
-	 * @return whether something normalized in rang [0, 1].
+	 * Getting activation function.
+	 * @return activation function.
 	 */
-	protected boolean paramIsNorm() {
+	public Function getActivateRef() {return activateRef;}
+	
+	
+	/**
+	 * Getting convolutional activation function.
+	 * @return convolutional activation function.
+	 */
+	public Function getConvActivateRef() {return convActivateRef;}
+	
+	
+	/**
+	 * Checking normalization mode.
+	 * @return normalization mode in rang [0, 1].
+	 */
+	public boolean paramIsNorm() {
 		if (config.containsKey(Raster.NORM_FIELD))
 			return config.getAsBoolean(Raster.NORM_FIELD);
 		else
@@ -320,6 +333,20 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	}
 
 
+	/**
+	 * Setting normalization mode.
+	 * @param isNorm normalization mode in rang [0, 1]..
+	 * @return this network.
+	 */
+	public MatrixNetworkAbstract paramSetNorm(boolean isNorm) {
+		if (paramIsNorm() == isNorm) return this;
+		this.config.put(Raster.NORM_FIELD, isNorm);
+		this.activateRef = Raster.toActivationRef(this.neuronChannel, isNorm);
+		this.convActivateRef = Raster.toConvActivationRef(this.neuronChannel, isNorm);
+		return this;
+	}
+
+	
 	/**
 	 * Getting default alpha.
 	 * @return default alpha.
@@ -345,8 +372,8 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 
 	/**
-	 * Checking whether the network data is vectorized.
-	 * @return whether the network data is vectorized.
+	 * Checking vectorization mode.
+	 * @return vectorization mode.
 	 */
 	public boolean paramIsVectorized() {
 		if (config.containsKey(VECTORIZED_FIELD))

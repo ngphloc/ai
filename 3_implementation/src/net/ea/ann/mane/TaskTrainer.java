@@ -21,23 +21,23 @@ public interface TaskTrainer {
 	/**
 	 * Learning layer as matrix neural network.
 	 * @param layer layer as matrix neural network.
-	 * @param inouts sample as collection of input and output.
+	 * @param sample sample.
 	 * @param propagate propagation flag.
 	 * @param learningRate learning rate.
 	 * @return learning biases.
 	 */
-	Error[] train(MatrixLayer layer, Iterable<Record> inouts, boolean propagate, double learningRate);
+	Error[] train(MatrixLayer layer, Iterable<Record> sample, boolean propagate, double learningRate);
 
 	
 	/**
 	 * Learning layer as matrix neural network.
 	 * @param layer layer as matrix neural network.
-	 * @param inouts sample as collection of input and output whose each element is an 2-component array of input (the first) and output (the second).
+	 * @param sample sample.
 	 * @param learningRate learning rate.
 	 * @return learning biases.
 	 */
-	default Error[] train(MatrixLayer layer, Iterable<Record> inouts, double learningRate) {
-		return train(layer, inouts, true, learningRate);
+	default Error[] train(MatrixLayer layer, Iterable<Record> sample, double learningRate) {
+		return train(layer, sample, true, learningRate);
 	}
 	
 	

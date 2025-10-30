@@ -8,7 +8,9 @@
 package net.ea.ann.transformer;
 
 import java.io.Serializable;
+import java.util.List;
 
+import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 
 /**
@@ -139,6 +141,63 @@ public class Record implements Cloneable, Serializable {
 		Record record = new Record();
 		record.outputA = output;
 		return record;
+	}
+	
+	
+	/**
+	 * Converting transformer record into matrix neural network record.
+	 * @param record transformer record.
+	 * @return matrix neural network record.
+	 */
+	public net.ea.ann.mane.Record convert() {
+		net.ea.ann.mane.Record maneRecord = new net.ea.ann.mane.Record(this.inputY, this.outputA, this.inputX, null);
+		if (this.inputMask != null) maneRecord.addExtraInput(maneRecord);
+		return maneRecord;
+	}
+	
+	
+	/**
+	 * Converting transformer records into matrix neural network records.
+	 * @param records transformer records.
+	 * @return matrix neural network records.
+	 */
+	public static List<net.ea.ann.mane.Record> convert(Iterable<Record> records) {
+		List<net.ea.ann.mane.Record> maneRecords = Util.newList(0);
+		for (Record record : records) {
+			if (record == null) continue;
+			net.ea.ann.mane.Record maneRecord = record.convert();
+			if (maneRecord != null) maneRecords.add(maneRecord);
+		}
+		return maneRecords;
+	}
+	
+	
+	/**
+	 * Creating transformer record from matrix neural network record.
+	 * @param maneRecord matrix neural network records.
+	 * @return transformer record.
+	 */
+	public static Record create(net.ea.ann.mane.Record maneRecord) {
+		Record record = new Record(maneRecord.input(), maneRecord.output(), maneRecord.input2());
+		Object extraInput = maneRecord.extraInput();
+		if ((extraInput != null) && (extraInput instanceof boolean[][])) record.inputMask = (boolean[][])extraInput;
+		return record;
+	}
+	
+	
+	/**
+	 * Creating transformer records from matrix neural network records.
+	 * @param maneRecords matrix neural network records.
+	 * @return transformer records.
+	 */
+	public static List<Record> create(Iterable<net.ea.ann.mane.Record> maneRecords) {
+		List<Record> records = Util.newList(0);
+		for (net.ea.ann.mane.Record maneRecord : maneRecords) {
+			if (maneRecord == null) continue;
+			Record record = create(maneRecord);
+			if (record != null) records.add(record);
+		}
+		return records;
 	}
 	
 	

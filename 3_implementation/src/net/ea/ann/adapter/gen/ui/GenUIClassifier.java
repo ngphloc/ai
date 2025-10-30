@@ -18,6 +18,7 @@ import javax.swing.JOptionPane;
 import net.ea.ann.adapter.gen.GenModelRemote;
 import net.ea.ann.adapter.gen.beans.MatrixClassifier;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
+import net.ea.ann.adapter.gen.beans.TransformerClassifier;
 import net.ea.ann.classifier.ClassifierAssoc;
 import net.ea.ann.classifier.ClassifierAssoc.ClassifyInfo;
 import net.ea.ann.classifier.ClassifierAssoc.ClassifyParams;
@@ -193,16 +194,16 @@ public class GenUIClassifier extends GenUI {
 				params.learningRate = config.getAsReal(NetworkAbstract.LEARN_RATE_FIELD);
 			if (config.containsKey(NetworkAbstract.LEARN_MAX_ITERATION_FIELD))
 				params.batches = config.getAsInt(NetworkAbstract.LEARN_MAX_ITERATION_FIELD);
-			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.CONV_FIELD))
-				params.conv = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.CONV_FIELD);
-			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.VECTORIZED_FIELD))
-				params.vectorized = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.VECTORIZED_FIELD);
-			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.ADJUST_FIELD))
-				params.adjust = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.ADJUST_FIELD);
-			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.DUAL_FIELD))
-				params.dual = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.DUAL_FIELD);
-			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.BASELINE_FIELD))
-				params.baseline = config.getAsBoolean(net.ea.ann.classifier.MatrixClassifier.BASELINE_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.ClassifierAbstract.CONV_FIELD))
+				params.conv = config.getAsBoolean(net.ea.ann.classifier.ClassifierAbstract.CONV_FIELD);
+			if (config.containsKey(net.ea.ann.mane.MatrixNetworkAbstract.VECTORIZED_FIELD))
+				params.vectorized = config.getAsBoolean(net.ea.ann.mane.MatrixNetworkAbstract.VECTORIZED_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.ClassifierAbstract.ADJUST_FIELD))
+				params.adjust = config.getAsBoolean(net.ea.ann.classifier.ClassifierAbstract.ADJUST_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.ClassifierAbstract.DUAL_FIELD))
+				params.dual = config.getAsBoolean(net.ea.ann.classifier.ClassifierAbstract.DUAL_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.ClassifierAbstract.BASELINE_FIELD))
+				params.baseline = config.getAsBoolean(net.ea.ann.classifier.ClassifierAbstract.BASELINE_FIELD);
 		} catch (Throwable e) {Util.trace(e);}
 		return params;
 	}
@@ -215,7 +216,7 @@ public class GenUIClassifier extends GenUI {
 	 * @return local generative model.
 	 */
 	static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
-		return queryLocalGenModel(initialGM, initialUI, new GenModelRemote[] {new MatrixClassifier(), new StackClassifier()}, new GenUICreator() {
+		return queryLocalGenModel(initialGM, initialUI, new GenModelRemote[] {new MatrixClassifier(), new TransformerClassifier(), new StackClassifier()}, new GenUICreator() {
 			@Override
 			public GenUI create(GenModelRemote gm) {
 				return new GenUIClassifier(gm, false);

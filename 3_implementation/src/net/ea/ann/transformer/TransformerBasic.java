@@ -14,8 +14,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
+import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
@@ -25,10 +27,12 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
+import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.TaskTrainer;
+import net.ea.ann.raster.Raster;
 
 /**
  * This class implements basic transformer.
@@ -90,6 +94,8 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	public TransformerBasic(int neuronChannel, Id idRef) {
 		super(idRef);
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
+		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
+		this.config.put(MatrixNetworkAbstract.VECTORIZED_FIELD, MatrixNetworkAbstract.VECTORIZED_DEFAULT);
 	}
 
 	
@@ -136,7 +142,10 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @return transformer block.
 	 */
 	protected TransformerBlock createBlock() {
-		return new TransformerBlock(this.neuronChannel, this.idRef);
+		TransformerBlock block = new TransformerBlock(this.neuronChannel, idRef);
+		block.paramSetNorm(this.paramIsNorm());
+		block.paramSetVectorized(this.paramIsVectorized());
+		return block;
 	}
 	
 	
@@ -213,7 +222,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * Getting X block indices.
 	 * @return X block indices.
 	 */
-	public int[] getXBlockIndices() {
+	public int[] getXIndices() {
 		if (!validate()) return null;
 		List<Integer> indexList = Util.newList(0);
 		for (int i = 0; i < blocks.length; i++) {
@@ -340,15 +349,45 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 	/**
 	 * Setting output adapter.
-	 * @param outputAdapterOutputSize output size of output adapter.
-	 * @param outputAdapterDepth output adapter depth.
+	 * @param outputSize output size.
+	 * @param outputDepth output depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputAdapter(Dimension outputAdapterOutputSize, int outputAdapterDepth) {
-		return validate() ? get(size()-1).setOutputAdapter(outputAdapterOutputSize, outputAdapterDepth) : false;
+	public boolean setOutputAdapter(Dimension outputSize, int outputDepth) {
+		return validate() ? get(size()-1).setOutputAdapter(outputSize, outputDepth) : false;
 	}
 
 	
+	/**
+	 * Setting output adapter.
+	 * @param middleSize middle size.
+	 * @param middleFilter middle filter.
+	 * @param middleDepth middle depth.
+	 * @param middleDual middle dual mode.
+	 * @param finalSize final size.
+	 * @param finalDepth final depth.
+	 * @return true if setting is successful.
+	 */
+	public boolean setOutputAdapter(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+		return validate() ? get(size()-1).setOutputAdapter(middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth) : false;
+	}
+	
+
+	/**
+	 * Setting output adapter.
+	 * @param middleSize middle size.
+	 * @param middleFilterStride middle filter stride.
+	 * @param middleDepth middle depth.
+	 * @param middleDual middle dual mode.
+	 * @param finalSize final size.
+	 * @param finalDepth final depth.
+	 * @return true if setting is successful.
+	 */
+	public boolean setOutputAdapter(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+		return validate() ? get(size()-1).setOutputAdapter(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth) : false;
+	}
+
+		
 	/**
 	 * Removing output adapter.
 	 */
@@ -455,7 +494,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		if (!validate()) return null;
 		Matrix output = blocks[0].evaluate(inputY, null, inputMask);
 		for (int i = 1; i < blocks.length; i++) {
-			if (blocks[i].isXBlock())
+			if (blocks[i].containsX())
 				output = blocks[i].evaluate(output, inputX, null);
 			else
 				output = blocks[i].evaluate(output, null, null);
@@ -470,7 +509,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param inputMask mask input. 
 	 * @return matrix as output.
 	 */
-	protected Matrix evaluate(Matrix input, boolean[][] inputMask) {
+	public Matrix evaluate(Matrix input, boolean[][] inputMask) {
 		return evaluate(input, null, inputMask, new Object[] {});
 	}
 
@@ -608,18 +647,10 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 				outputErrors = backward(Error.create(errorList.toArray(new Matrix[] {})), lr);
 			}
 			else {
-				List<net.ea.ann.mane.Record> subinouts = Util.newList(0);
-				for (Record record : subsample) {
-					net.ea.ann.mane.Record mr = null;
-					if (record.inputX == null)
-						mr = new net.ea.ann.mane.Record(record.inputY, record.outputA);
-					else
-						mr = new net.ea.ann.mane.Record(record.inputY, record.outputA, record.inputX, null);
-					subinouts.add(mr);
-				}
+				List<net.ea.ann.mane.Record> maneSample = Record.convert(subsample);
 				net.ea.ann.mane.Error[] errors = null;
 				for (TaskTrainer trainer : trainers) {
-					errors = trainer.train(this, subinouts, false, learningRate);
+					errors = trainer.train(this, maneSample, false, learningRate);
 				}
 				outputErrors = new Error[][] {Error.create(errors)};
 			}
@@ -661,6 +692,52 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	}
 
 
+	/**
+	 * Checking normalization mode.
+	 * @return normalization mode in rang [0, 1].
+	 */
+	boolean paramIsNorm() {
+		if (config.containsKey(Raster.NORM_FIELD))
+			return config.getAsBoolean(Raster.NORM_FIELD);
+		else
+			return Raster.NORM_DEFAULT;
+	}
+
+
+	/**
+	 * Setting normalization mode.
+	 * @param isNorm normalization mode in rang [0, 1]..
+	 * @return this transformer.
+	 */
+	TransformerBasic paramSetNorm(boolean isNorm) {
+		config.put(Raster.NORM_FIELD, isNorm);
+		return this;
+	}
+
+	
+	/**
+	 * Checking vectorization mode.
+	 * @return vectorization mode.
+	 */
+	boolean paramIsVectorized() {
+		if (config.containsKey(MatrixNetworkAbstract.VECTORIZED_FIELD))
+			return config.getAsBoolean(MatrixNetworkAbstract.VECTORIZED_FIELD);
+		else
+			return MatrixNetworkAbstract.VECTORIZED_DEFAULT;
+	}
+
+
+	/**
+	 * Setting vectorization mode.
+	 * @param vectorized vectorization mode.
+	 * @return this network.
+	 */
+	TransformerBasic paramSetVectorized(boolean vectorized) {
+		config.put(MatrixNetworkAbstract.VECTORIZED_FIELD, vectorized);
+		return this;
+	}
+
+	
 	/**
 	 * Initializing transformer parameters.
 	 * @param block transformer block.
@@ -816,18 +893,27 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Constructor with neuron channel and ID reference.
+	 * Configuration.
+	 */
+	protected NetworkConfig config = new NetworkConfig();
+	
+	
+	/**
+	 * Constructor with neuron channel, vectorization flag, and ID reference.
 	 * @param neuronChannel neuron channel.
 	 * @param idRef ID reference.
 	 */
 	TransformerBlock(int neuronChannel, Id idRef) {
 		if (idRef != null) this.idRef = idRef;
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
+
+		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
+		this.config.put(MatrixNetworkAbstract.VECTORIZED_FIELD, MatrixNetworkAbstract.VECTORIZED_DEFAULT);
 	}
 
 	
 	/**
-	 * Default constructor with neuron channel.
+	 * Default constructor with neuron channel and vectorization flag.
 	 * @param neuronChannel neuron channel.
 	 */
 	TransformerBlock(int neuronChannel) {
@@ -857,7 +943,7 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * Checking whether this block has X input.
 	 * @return whether this block has X input.
 	 */
-	public boolean isXBlock() {
+	boolean containsX() {
 		return validate() ? attention.X() != null : false;
 	}
 
@@ -875,7 +961,8 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @return true if setting is successful.
 	 */
 	boolean setOutputAdapter(MatrixNetworkImpl outputAdapter) {
-		if (outputAdapter == null || !validate()) return false;
+		if (!validate() || outputAdapter == null ||
+			outputAdapter.paramIsNorm() != this.paramIsNorm() || outputAdapter.paramIsVectorized() != this.paramIsVectorized()) return false;
 		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
 		Dimension headInputSize = outputAdapter.getInputLayer().getSize();
 		if (ffnOutputSize.height != headInputSize.height || ffnOutputSize.width != headInputSize.width) return false;
@@ -887,17 +974,58 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	/**
 	 * Setting output adapter.
-	 * @param outputAdapterOutputSize output size of output adapter.
-	 * @param outputAdapterDepth output adapter depth.
+	 * @param outputSize output size.
+	 * @param outputDepth output depth.
 	 * @return true if setting is successful.
 	 */
-	boolean setOutputAdapter(Dimension outputAdapterOutputSize, int outputAdapterDepth) {
-		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
-		MatrixNetworkImpl head = new MatrixNetworkImpl(this.neuronChannel, null, null, idRef);
-		if (!new MatrixNetworkInitializer(head).initialize(ffnOutputSize, outputAdapterOutputSize, outputAdapterDepth)) return false;
-		return setOutputAdapter(head);
+	boolean setOutputAdapter(Dimension outputSize, int outputDepth) {
+		return setOutputAdapter(null, (Filter2D)null, 0, false, outputSize, outputDepth);
 	}
 	
+	
+	/**
+	 * Setting output adapter.
+	 * @param middleSize middle size.
+	 * @param middleFilter middle filter.
+	 * @param middleDepth middle depth.
+	 * @param middleDual middle dual mode.
+	 * @param finalSize final size.
+	 * @param finalDepth final depth.
+	 * @return true if setting is successful.
+	 */
+	boolean setOutputAdapter(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+		if (finalSize == null) return false;
+		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
+		MatrixNetworkImpl outputAdapter = new MatrixNetworkImpl(this.neuronChannel, null, null, idRef);
+		outputAdapter.paramSetNorm(paramIsNorm());
+		outputAdapter.paramSetVectorized(paramIsVectorized());
+		
+		if (!new MatrixNetworkInitializer(outputAdapter).initialize(ffnOutputSize, middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth)) return false;
+		return setOutputAdapter(outputAdapter);
+	}
+
+	
+	/**
+	 * Setting output adapter.
+	 * @param middleSize middle size.
+	 * @param middleFilterStride middle filter stride.
+	 * @param middleDepth middle depth.
+	 * @param middleDual middle dual mode.
+	 * @param finalSize final size.
+	 * @param finalDepth final depth.
+	 * @return true if setting is successful.
+	 */
+	boolean setOutputAdapter(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+		if (finalSize == null) return false;
+		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
+		MatrixNetworkImpl outputAdapter = new MatrixNetworkImpl(this.neuronChannel, null, null, idRef);
+		outputAdapter.paramSetNorm(paramIsNorm());
+		outputAdapter.paramSetVectorized(paramIsVectorized());
+		
+		if (!new MatrixNetworkInitializer(outputAdapter).initialize(ffnOutputSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth)) return false;
+		return setOutputAdapter(outputAdapter);
+	}
+
 	
 	/**
 	 * Removing output adapter.
@@ -987,7 +1115,10 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @return feed-forward network.
 	 */
 	protected MatrixNetworkImpl createFFN() {
-		return new MatrixNetworkImpl(this.neuronChannel, null, null, idRef);
+		MatrixNetworkImpl ffn = new MatrixNetworkImpl(this.neuronChannel, null, null, idRef);
+		ffn.paramSetNorm(this.paramIsNorm());
+		ffn.paramSetVectorized(paramIsVectorized());
+		return ffn;
 	}
 	
 	
@@ -1062,6 +1193,52 @@ class TransformerBlock implements Cloneable, Serializable {
 		net.ea.ann.mane.Error[] ffnErrors = ffn.backward(headErrors, learningRate);
 		if (ffnErrors == null || ffnErrors.length == 0) return null;
 		return attention.backward(Error.create(ffnErrors), learningRate);
+	}
+	
+	
+	/**
+	 * Checking normalization mode.
+	 * @return normalization mode in rang [0, 1].
+	 */
+	boolean paramIsNorm() {
+		if (config.containsKey(Raster.NORM_FIELD))
+			return config.getAsBoolean(Raster.NORM_FIELD);
+		else
+			return Raster.NORM_DEFAULT;
+	}
+
+
+	/**
+	 * Setting normalization mode.
+	 * @param isNorm normalization mode in rang [0, 1]..
+	 * @return this transformer block.
+	 */
+	TransformerBlock paramSetNorm(boolean isNorm) {
+		config.put(Raster.NORM_FIELD, isNorm);
+		return this;
+	}
+
+	
+	/**
+	 * Checking vectorization mode.
+	 * @return vectorization mode.
+	 */
+	boolean paramIsVectorized() {
+		if (config.containsKey(MatrixNetworkAbstract.VECTORIZED_FIELD))
+			return config.getAsBoolean(MatrixNetworkAbstract.VECTORIZED_FIELD);
+		else
+			return MatrixNetworkAbstract.VECTORIZED_DEFAULT;
+	}
+
+
+	/**
+	 * Setting vectorization mode.
+	 * @param vectorized vectorization mode.
+	 * @return this network.
+	 */
+	TransformerBlock paramSetVectorized(boolean vectorized) {
+		config.put(MatrixNetworkAbstract.VECTORIZED_FIELD, vectorized);
+		return this;
 	}
 	
 	

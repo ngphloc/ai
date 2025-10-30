@@ -56,7 +56,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	/**
 	 * Name of neuron channel field.
 	 */
-	public final static String NEURON_CHANNEL_FIELD = "maca_neuron_channel";
+	public final static String NEURON_CHANNEL_FIELD = "classifiera_neuron_channel";
 
 	
 	/**
@@ -68,7 +68,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	/**
 	 * Name of raster channel field.
 	 */
-	public final static String RASTER_CHANNEL_FIELD = "maca_raster_channel";
+	public final static String RASTER_CHANNEL_FIELD = "classifiera_raster_channel";
 
 	
 	/**

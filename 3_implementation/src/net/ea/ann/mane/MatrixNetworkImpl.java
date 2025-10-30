@@ -305,26 +305,26 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	}
 
 
-	/**
-	 * Adapting this output to input of next layer.
-	 * @param thisOutput this output.
-	 * @param nextLayer next layer.
-	 * @return input of next layer.
-	 */
-	protected Matrix adaptOutputToNextInput(Matrix thisOutput, MatrixLayer nextLayer) {
-		return thisOutput;
-	}
-	
-	
-	/**
-	 * Adapting this input to output of previous layer.
-	 * @param thisInput this input.
-	 * @param prevLayer previous layer.
-	 * @return output of previous layer.
-	 */
-	protected Matrix adaptInputToPrevOutput(Matrix thisInput, MatrixLayer prevLayer) {
-		return thisInput;
-	}
+//	/**
+//	 * Adapting this output to input of next layer.
+//	 * @param thisOutput this output.
+//	 * @param nextLayer next layer.
+//	 * @return input of next layer.
+//	 */
+//	protected Matrix adaptOutputToNextInput(Matrix thisOutput, MatrixLayer nextLayer) {
+//		return thisOutput;
+//	}
+//	
+//	
+//	/**
+//	 * Adapting this input to output of previous layer.
+//	 * @param thisInput this input.
+//	 * @param prevLayer previous layer.
+//	 * @return output of previous layer.
+//	 */
+//	protected Matrix adaptInputToPrevOutput(Matrix thisInput, MatrixLayer prevLayer) {
+//		return thisInput;
+//	}
 	
 	
 	@Override
@@ -415,7 +415,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		
 		MatrixLayer nextLayer = null;
 		while ((nextLayer = this.getNextLayer()) != null) {
-			result = adaptOutputToNextInput(result, nextLayer);
+//			result = adaptOutputToNextInput(result, nextLayer);
 			Matrix.copy(result, nextLayer.getInput());
 			result = nextLayer.evaluate();
 		}
@@ -452,21 +452,21 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	
 	
 	@Override
-	public Error[] learn(Iterable<Record> inouts) throws RemoteException {
+	public Error[] learn(Iterable<Record> sample) throws RemoteException {
 		int maxIteration = paramGetMaxIteration();
 		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
 		int epochs = paramGetPseudoEpochs();
 
 		Error[] outputErrors = null;
-		Iterable<Record> sample = inouts;
+		Iterable<Record> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
 			double lr = calcLearningRate(learningRate, epoch+1);
 			if (epoch > 0) {
-				if (!(sample instanceof List<?>)) sample = net.ea.ann.core.Record.listOf(sample);
-				Collections.shuffle((List<?>)sample);
+				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
+				Collections.shuffle((List<?>)newsample);
 			}
-			outputErrors = learn(sample, lr, terminatedThreshold, maxIteration);
+			outputErrors = learn(newsample, lr, terminatedThreshold, maxIteration);
 		}
 		return outputErrors;
 	}
@@ -474,13 +474,13 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 
 	/**
 	 * Learning matrix neural network.
-	 * @param inouts sample as collection of input and output.
+	 * @param sample sample.
 	 * @param learningRate learning rate.
 	 * @param terminatedThreshold terminated threshold.
 	 * @param maxIteration maximum iteration.
 	 * @return learning errors.
 	 */
-	private Error[] learn(Iterable<Record> inouts, double learningRate, double terminatedThreshold, int maxIteration) {
+	private Error[] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
@@ -493,13 +493,13 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			Iterable<Record> subinouts = resample(inouts, iteration, maxIteration); //Re-sampling.
+			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
 			if (trainers.size() == 0) {
 				List<Matrix> outputErrorList = Util.newList(0);
-				for (Record inout : subinouts) {
-					Matrix input = inout.input(), realOutput = inout.output();
+				for (Record record : subsample) {
+					Matrix input = record.input(), realOutput = record.output();
 					Matrix output = evaluate(input, new Object[] {});
 					Matrix error = calcOutputError(output, realOutput, getOutputLayer());
 					if (error != null) outputErrorList.add(error);
@@ -509,7 +509,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 			}
 			else {
 				for (TaskTrainer trainer : trainers) {
-					outputErrors = trainer.train(this, subinouts, false, learningRate);
+					outputErrors = trainer.train(this, subsample, false, learningRate);
 				}
 			}
 			
@@ -563,7 +563,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 			}
 			MatrixLayerImpl layer = (MatrixLayerImpl)layers[i];
 			layer.resetBackwardInfo();
-			outputErrors = layer.backward(outputErrors, learningRate);
+			outputErrors = layer.backwardThisLayerWithoutLearning(outputErrors, learningRate);
 		}
 		for (int i = layers.length-1; i >= 0; i--) {
 			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) continue;
@@ -573,22 +573,13 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		
 		if (outputErrors == null || this.prevLayer == null || this == focus) return outputErrors;
 		
-		Error[] backwardErrors = new Error[outputErrors.length];
-		for (int i = 0; i < outputErrors.length; i++)
-			backwardErrors[i] = new Error(adaptInputToPrevOutput(outputErrors[i].error, this.prevLayer));
-		return this.prevLayer.backward(backwardErrors, focus, learning, learningRate);
+//		Error[] backwardErrors = new Error[outputErrors.length];
+//		for (int i = 0; i < outputErrors.length; i++) {
+//			backwardErrors[i] = new Error(adaptInputToPrevOutput(outputErrors[i].error, this.prevLayer));
+//		}
+//		return this.prevLayer.backward(backwardErrors, focus, learning, learningRate);
+		return this.prevLayer.backward(outputErrors, focus, learning, learningRate);
 	}
 
-	
-	/**
-	 * Backward learning.
-	 * @param outputErrors output errors.
-	 * @param learningRate learning rate.
-	 * @return learning errors.
-	 */
-	public Error[] backward(Error[] outputErrors, double learningRate) {
-		return backward(outputErrors, null, true, learningRate);
-	}
-	
 	
 }

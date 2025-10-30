@@ -431,19 +431,31 @@ public class ProductFilter2D extends AbstractFilter2D implements TextParsable {
 	 * @param v specified value.
 	 * @return product filter.
 	 */
-	public static ProductFilter2D create(Size size, NeuronValueCreator creator, double v) {
+	public static ProductFilter2D create(Size size, NeuronValue value) {
 		if (size.width < 1) size.width = 1;
 		if (size.height < 1) size.height = 1;
 		
-		NeuronValue source = creator.newNeuronValue();
-		NeuronValue value = v == 0 ? source.zero() : source.valueOf(v);
 		NeuronValue[][] kernel = new NeuronValue[size.height][size.width];
 		for (int i = 0; i < size.height; i++) {
 			for (int j = 0; j < size.width; j++) kernel[i][j] = value;
 		}
 		
-		NeuronValue weight = source.valueOf(1.0);
+		NeuronValue weight = value.valueOf(1.0);
 		return new ProductFilter2D(kernel, weight);
+	}
+
+	
+	/**
+	 * Creating product filter with size.
+	 * @param size kernel size.
+	 * @param creator to create neuron value.
+	 * @param v specified value.
+	 * @return product filter.
+	 */
+	public static ProductFilter2D create(Size size, NeuronValueCreator creator, double v) {
+		NeuronValue source = creator.newNeuronValue();
+		NeuronValue value = v == 0 ? source.zero() : source.valueOf(v);
+		return create(size, value);
 	}
 	
 	

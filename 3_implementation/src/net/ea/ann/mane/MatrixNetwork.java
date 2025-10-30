@@ -33,11 +33,11 @@ public interface MatrixNetwork extends Network {
 
 	/**
 	 * Learning matrix neural network.
-	 * @param inouts sample as collection of input and output.
+	 * @param sample sample.
 	 * @return learned error.
 	 * @throws RemoteException if any error raises.
 	 */
-	Error[] learn(Iterable<Record> inouts) throws RemoteException;
+	Error[] learn(Iterable<Record> sample) throws RemoteException;
 
 
 }

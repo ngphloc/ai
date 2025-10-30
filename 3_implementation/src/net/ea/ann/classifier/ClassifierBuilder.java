@@ -16,6 +16,7 @@ import java.util.Scanner;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.mane.MatrixNetworkAbstract;
+import net.ea.ann.transformer.TransformerBasic;
 
 /**
  * This class provides utility methods to create classifier model.
@@ -44,6 +45,12 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		 * Matrix neural network classifier.
 		 */
 		mac,
+		
+		/**
+		 * Transformer classifier.
+		 */
+		tramac,
+
 		
 		/**
 		 * Stack network classifier.
@@ -86,7 +93,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	/**
 	 * Including convolutional neural network.
 	 */
-	protected boolean conv = MatrixClassifier0.CONV_DEFAULT;
+	protected boolean conv = ClassifierAbstract.CONV_DEFAULT;
 	
 	
 	/**
@@ -98,20 +105,26 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	/**
 	 * Adjustment mode.
 	 */
-	protected boolean adjust = MatrixClassifier.ADJUST_DEFAULT;
+	protected boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
 	
 	
 	/**
 	 * Dual mode.
 	 */
-	protected boolean dual = MatrixClassifier0.DUAL_DEFAULT;
+	protected boolean dual = ClassifierAbstract.DUAL_DEFAULT;
 	
 	
 	/**
 	 * Baseline mode.
 	 */
-	protected boolean baseline = MatrixClassifier0.BASELINE_DEFAULT;
+	protected boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
 
+	
+	/**
+	 * Number of blocks.
+	 */
+	protected int blocks = TransformerBasic.BLOCKS_NUMBER_DEFAULT;
+	
 	
 	/**
 	 * Constructor with neuron channel.
@@ -322,6 +335,26 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Getting blocks.
+	 * @return blocks.
+	 */
+	public int getBlocks() {
+		return blocks;
+	}
+	
+	
+	/**
+	 * Setting blocks.
+	 * @param batches blocks.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setBlocks(int blocks) {
+		this.blocks = blocks;
+		return this;
+	}
+
+	
+	/**
 	 * Build classifier.
 	 * @return classifier.
 	 */
@@ -330,6 +363,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		switch (model) {
 		case mac:
 			classifier = MatrixClassifier.create(neuronChannel, true); 
+			break;
+		case tramac:
+			classifier = TransformerClassifier.create(neuronChannel, true); 
 			break;
 		case stack:
 			classifier = StackClassifier.create(neuronChannel, true);
@@ -347,6 +383,17 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			mac.paramSetAdjust(adjust);
 			mac.paramSetDual(dual);
 			mac.paramSetBaseline(baseline);
+		}
+		else if (classifier instanceof TransformerClassifier) {
+			TransformerClassifier tramac = (TransformerClassifier)classifier;
+			tramac.paramSetLearningRate(learningRate);
+			tramac.paramSetBatches(batches);
+			tramac.paramSetConv(conv);
+			tramac.paramSetVectorized(vectorized);
+			tramac.paramSetAdjust(adjust);
+			tramac.paramSetDual(dual);
+			tramac.paramSetBaseline(baseline);
+			tramac.paramSetBlocksNumber(blocks);
 		}
 		else if (classifier instanceof StackClassifier) {
 			
@@ -380,7 +427,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		
 		int defaultModel = 0;
 		int model = defaultModel;
-		printer.print("Model (0-mac, 1-stack) (default " + defaultModel + " is mac):");
+		printer.print("Model (0-mac, 1-tramac, 2-stack) (default " + defaultModel + " is mac):");
 		try {
 			String line = scanner.nextLine().trim();
 			if (!line.isBlank() && !line.isEmpty()) model = Integer.parseInt(line);
@@ -422,7 +469,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		if (batches <= 0) batches = defaultBatches;
 		printer.println("Batches are " + batches + "\n");
 	
-		boolean conv = MatrixClassifier0.CONV_DEFAULT;
+		boolean conv = ClassifierAbstract.CONV_DEFAULT;
 		printer.print("Including convolutional network (" + conv + " is default):");
 		try {
 			String line = scanner.nextLine().trim();
@@ -438,7 +485,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		} catch (Throwable e) {}
 		printer.println("Vectorization is " + vectorized + "\n");
 	
-		boolean adjust = MatrixClassifier.ADJUST_DEFAULT;
+		boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
 		printer.print("Adjustment (" + adjust + " is default):");
 		try {
 			String line = scanner.nextLine().trim();
@@ -446,7 +493,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		} catch (Throwable e) {}
 		printer.println("Adjustment is " + adjust + "\n");
 	
-		boolean dual = MatrixClassifier0.DUAL_DEFAULT;
+		boolean dual = ClassifierAbstract.DUAL_DEFAULT;
 		printer.print("Dual mode (" + dual + " is default):");
 		try {
 			String line = scanner.nextLine().trim();
@@ -454,12 +501,26 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		} catch (Throwable e) {}
 		printer.println("Dual mode is " + dual + "\n");
 		
+		int defaultBlocks = TransformerBasic.BLOCKS_NUMBER_DEFAULT;
+		int blocks = defaultBlocks;
+		printer.print("Blocks (default " + defaultBlocks + "):");
+		try {
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) blocks = Integer.parseInt(line);
+		} catch (Throwable e) {}
+		if (Double.isNaN(blocks)) blocks = defaultBlocks;
+		if (blocks <= 0) blocks = defaultBlocks;
+		printer.println("Blocks are " + blocks + "\n");
+
 		ClassifierBuilder builder = new ClassifierBuilder(rasterChannel);
 		switch (model) {
 		case 0:
 			builder.setModel(ClassifierModel.mac);
 			break;
 		case 1:
+			builder.setModel(ClassifierModel.tramac);
+			break;
+		case 2:
 			builder.setModel(ClassifierModel.stack);
 			break;
 		default:
@@ -472,6 +533,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setVectorized(vectorized);
 		builder.setAdjust(adjust);
 		builder.setDual(dual);
+		builder.setBlocks(blocks);
 		return builder;
 	}
 	

@@ -16,7 +16,6 @@ import net.ea.ann.raster.Raster;
 
 /**
  * This interface represents classifier.
- * 
  * @author Loc Nguyen
  * @version 1.0
  *
