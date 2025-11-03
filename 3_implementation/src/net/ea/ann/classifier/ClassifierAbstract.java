@@ -724,9 +724,10 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Evaluating input.
 	 * @param input input.
+	 * @param params additional parameters.
 	 * @return evaluated output.
 	 */
-	protected abstract Matrix evaluate(Matrix input);
+	protected abstract Matrix evaluate(Matrix input, Object...params);
 	
 	
 	@Override
@@ -743,7 +744,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 
 		NeuronValue[] errorArray = null;
 		for (Error error : errors) {
-			NeuronValue[] values = Matrix.extractValues(error.error);
+			NeuronValue[] values = Matrix.extractValues(error.error());
 			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
 		}
 		return errorArray;

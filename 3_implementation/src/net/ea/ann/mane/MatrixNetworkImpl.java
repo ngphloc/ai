@@ -56,6 +56,26 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	public final static int MINSIZE = 32 / BASE_DEFAULT;
 
 	
+//	/**
+//	 * History size.
+//	 */
+//	@Deprecated
+//	public final static int HISTORY_SIZE = 1000;
+//	
+//	
+//	/**
+//	 * Field of history mode.
+//	 */
+//	@Deprecated
+//	public final static String HISTORY_MODE_FIELD = "mane_hist_mode";
+	
+	
+	/**
+	 * Default value of history mode.
+	 */
+	public final static boolean HISTORY_MODE_DEFAULT = false;
+	
+	
 	/**
 	 * Previous layer.
 	 */
@@ -74,6 +94,13 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	protected List<TaskTrainer> trainers = Util.newList(0);
 	
 	
+//	/**
+//	 * History of evaluations.
+//	 */
+//	@Deprecated
+//	private List<Inout> history = Util.newList(0);
+	
+	
 	/**
 	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
 	 * @param neuronChannel neuron channel.
@@ -83,6 +110,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	 */
 	public MatrixNetworkImpl(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
+//		this.config.put(HISTORY_MODE_FIELD, HISTORY_MODE_DEFAULT);
 	}
 	
 
@@ -136,6 +164,13 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	}
 	
 	
+	@Override
+	public void reset() {
+		super.reset();
+//		history.clear();
+	}
+
+
 	/**
 	 * Initializing matrix neural network.
 	 * @param inputSize1 input size 1.
@@ -272,6 +307,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		}
 		
 		new MatrixNetworkAssoc(this).initParams();
+//		history.clear();
 		return true;
 	}
 	
@@ -305,26 +341,26 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	}
 
 
-//	/**
-//	 * Adapting this output to input of next layer.
-//	 * @param thisOutput this output.
-//	 * @param nextLayer next layer.
-//	 * @return input of next layer.
-//	 */
-//	protected Matrix adaptOutputToNextInput(Matrix thisOutput, MatrixLayer nextLayer) {
-//		return thisOutput;
-//	}
-//	
-//	
-//	/**
-//	 * Adapting this input to output of previous layer.
-//	 * @param thisInput this input.
-//	 * @param prevLayer previous layer.
-//	 * @return output of previous layer.
-//	 */
-//	protected Matrix adaptInputToPrevOutput(Matrix thisInput, MatrixLayer prevLayer) {
-//		return thisInput;
-//	}
+	/**
+	 * Adapting this output to input of next layer.
+	 * @param thisOutput this output.
+	 * @param nextLayer next layer.
+	 * @return input of next layer.
+	 */
+	protected Matrix adaptOutputToNextInput(Matrix thisOutput, MatrixLayer nextLayer) {
+		return thisOutput;
+	}
+	
+	
+	/**
+	 * Adapting this input to output of previous layer.
+	 * @param thisInput this input.
+	 * @param prevLayer previous layer.
+	 * @return output of previous layer.
+	 */
+	protected Matrix adaptInputToPrevOutput(Matrix thisInput, MatrixLayer prevLayer) {
+		return thisInput;
+	}
 	
 	
 	@Override
@@ -410,12 +446,12 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	@Override
 	public Matrix forward(Record...inputs) {
 		Matrix input = inputs != null && inputs.length > 0 ? inputs[0].input() : null;
-		Matrix result = evaluate(input, new Object[] {});
+		Matrix result = evaluate0(input, inputs[0].params.toArray(new Object[] {}));
 		if (result == null) return result;
 		
 		MatrixLayer nextLayer = null;
 		while ((nextLayer = this.getNextLayer()) != null) {
-//			result = adaptOutputToNextInput(result, nextLayer);
+			result = adaptOutputToNextInput(result, nextLayer);
 			Matrix.copy(result, nextLayer.getInput());
 			result = nextLayer.evaluate();
 		}
@@ -424,14 +460,14 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 
 
 	@Override
-	public Matrix evaluate(Matrix input) throws RemoteException {
-		return evaluate(input, new Object[] {});
+	public Matrix evaluate(Matrix input, Object...params) throws RemoteException {
+		return evaluate0(input, params);
 	}
 
 	
 	@Override
-	public Matrix evaluate() {
-		return evaluate(null, new Object[] {});
+	public Matrix evaluate(Object...params) {
+		return evaluate0(null, params);
 	}
 
 
@@ -441,14 +477,40 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	 * @param params other parameters.
 	 * @return array as output.
 	 */
-	protected Matrix evaluate(Matrix input, Object...params) {
+	public Matrix evaluate0(Matrix input, Object...params) {
+//		if (!paramIsHistoryMode()) history.clear();
+		
 		MatrixLayerAbstract inputLayer = getInputLayer();
 		if (input != null) Matrix.copy(input, inputLayer.getInput());
 		if (inputLayer.getOutput() != inputLayer.getInput()) inputLayer.setOutput(inputLayer.getInput());
 		
 		for (int i = 1; i < layers.length; i++) layers[i].evaluate();
-		return getOutputLayer().queryOutput();
+		Matrix output = getOutputLayer().queryOutput();
+		
+		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
+			((Error)params[0]).addLayerOInput(this);
+		}
+		
+//		if (output == null || !paramIsHistoryMode()) return output;
+//		if (history.size() > HISTORY_SIZE) history.clear();
+//		history.add(new Inout(getOutputLayer().queryInput(), output));
+		return output;
 	}
+	
+	
+//	/**
+//	 * Getting history input.
+//	 * @param output history output.
+//	 * @return history input of specified output.
+//	 */
+//	@Deprecated
+//	Matrix historyInputOf(Matrix output) {
+//		for (int i = history.size()-1; i >= 0; i--) {
+//			if (Matrix.refEquals(history.get(i).output, output))
+//				return history.get(i).input;
+//		}
+//		return null;
+//	}
 	
 	
 	@Override
@@ -497,15 +559,18 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 			double lr = calcLearningRate(learningRate, iteration+1);
 
 			if (trainers.size() == 0) {
-				List<Matrix> outputErrorList = Util.newList(0);
+				List<Error> outputErrorList = Util.newList(0);
 				for (Record record : subsample) {
 					Matrix input = record.input(), realOutput = record.output();
-					Matrix output = evaluate(input, new Object[] {});
-					Matrix error = calcOutputError(output, realOutput, getOutputLayer());
-					if (error != null) outputErrorList.add(error);
+					Error error = new Error((Matrix)null);
+					Matrix output = evaluate0(input, new Object[] {error});
+					Matrix err = calcOutputError(output, realOutput, getOutputLayer());
+					if (err != null) {
+						error.errorSet(err);
+						outputErrorList.add(error);
+					}
 				}
-				outputErrors = Error.create(outputErrorList);
-				outputErrors = backward(outputErrors, this, true, lr);
+				outputErrors = backward(outputErrorList.toArray(new Error[] {}), this, true, lr);
 			}
 			else {
 				for (TaskTrainer trainer : trainers) {
@@ -555,7 +620,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		if (!validate() || outputErrors == null || outputErrors.length == 0) return null;
 		if (focus == null) learning = true;
 		
-		outputErrors = Arrays.copyOf(outputErrors, outputErrors.length);
+//		outputErrors = Arrays.copyOf(outputErrors, outputErrors.length);
 		for (int i = layers.length-1; i >= 0; i--) {
 			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) {
 				outputErrors = layers[i].backward(outputErrors, layers[i], learning, learningRate);
@@ -573,13 +638,40 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 		
 		if (outputErrors == null || this.prevLayer == null || this == focus) return outputErrors;
 		
-//		Error[] backwardErrors = new Error[outputErrors.length];
-//		for (int i = 0; i < outputErrors.length; i++) {
-//			backwardErrors[i] = new Error(adaptInputToPrevOutput(outputErrors[i].error, this.prevLayer));
-//		}
-//		return this.prevLayer.backward(backwardErrors, focus, learning, learningRate);
+		//Adapting backward errors.
+//		Error[] backwardErrors = Arrays.copyOf(outputErrors, outputErrors.length);
+		for (int i = 0; i < outputErrors.length; i++) {
+			outputErrors[i].errorSet(adaptInputToPrevOutput(outputErrors[i].error(), this.prevLayer));
+		}
+		if (!(this.prevLayer instanceof MatrixLayerExt)) return this.prevLayer.backward(outputErrors, focus, learning, learningRate);
+		
+		Error.adjustErrors(this.prevLayer, outputErrors);
 		return this.prevLayer.backward(outputErrors, focus, learning, learningRate);
 	}
 
 	
+//	/**
+//	 * Getting history mode.
+//	 * @return history mode.
+//	 */
+//	@Deprecated
+//	boolean paramIsHistoryMode() {
+//		if (config.containsKey(HISTORY_MODE_FIELD))
+//			return config.getAsBoolean(HISTORY_MODE_FIELD);
+//		else
+//			return HISTORY_MODE_DEFAULT;
+//	}
+//
+//	
+//	/**
+//	 * Setting history mode.
+//	 * @param historyMode history mode.
+//	 */
+//	@Deprecated
+//	MatrixNetworkAbstract paramSetHistoryMode(boolean historyMode) {
+//		config.put(HISTORY_MODE_FIELD, historyMode);
+//		return this;
+//	}
+
+
 }

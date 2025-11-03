@@ -11,7 +11,6 @@ import java.io.Serializable;
 import java.util.List;
 
 import net.ea.ann.core.Util;
-import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 
 /**
@@ -52,23 +51,13 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 				if (input != null) Matrix.copy(input, layer.getInput());
 			}
 			
-			Matrix output = layer.evaluate();
-			Matrix bias = gradient(output, realOutput);
-			if (bias == null) continue;
-			
-			if (!(layer instanceof MatrixLayerExt)) {
-				biases.add(new Error(bias));
-				continue;
+			Error bias = new Error((Matrix)null);
+			Matrix output = layer.evaluate(bias);
+			Matrix err = gradient(output, realOutput);
+			if (err != null) {
+				bias.errorSet(err);
+				biases.add(bias);
 			}
-			
-			MatrixLayerExt extLayer = (MatrixLayerExt)layer;
-			Matrix oinput = extLayer.getOutputLayer().getInput();
-			Function activateRef = extLayer.getOutputActivateRef();
-			if (oinput != null && activateRef != null) {
-				Matrix derivative = oinput.derivativeWise(activateRef);
-				bias = derivative.multiplyWise(bias);
-			}
-			biases.add(new Error(bias));
 		}
 		Error[] biasArray = biases.toArray(new Error[] {});
 		

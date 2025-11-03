@@ -170,9 +170,9 @@ public class SoftmaxV implements Softmax {
 
 	
 	/**
-	 * Calculating softmax of specified array.
+	 * Calculating soft-max of specified array.
 	 * @param all array.
-	 * @return softmax of specified array.
+	 * @return soft-max of specified array.
 	 */
 	public static NeuronValue[] softmax(NeuronValue[] all) {
 		if (all == null || all.length == 0) return null;
@@ -193,9 +193,9 @@ public class SoftmaxV implements Softmax {
 	
 	
 	/**
-	 * Calculating softmax derivative on diagonal of specified array.
+	 * Calculating soft-max derivative on diagonal of specified array.
 	 * @param all specified array.
-	 * @return softmax derivative of specified array.
+	 * @return soft-max derivative of specified array.
 	 */
 	public static NeuronValue[] softmaxDerivativeDiagonal(NeuronValue[] all) {
 		NeuronValue[] softmax = softmax(all);

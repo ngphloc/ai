@@ -77,6 +77,12 @@ public class Record implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Additional parameters.
+	 */
+	public List<Object> params = Util.newList(0);
+	
+	
+	/**
 	 * Default constructor.
 	 */
 	public Record() {
@@ -151,6 +157,25 @@ public class Record implements Cloneable, Serializable {
 		return this.inouts.add(inout);
 	}
 	
+	
+	/**
+	 * Adding input and output.
+	 * @param input input.
+	 * @param output output.
+	 */
+	public boolean add(Matrix input, Matrix output) {
+		return add(new Inout(input, output));
+	}
+	
+	
+	/**
+	 * Adding input.
+	 * @param input input.
+	 */
+	public boolean add(Matrix input) {
+		return add(new Inout(input, null));
+	}
+
 	
 	/**
 	 * Removing input and output at specified index.
@@ -239,11 +264,18 @@ public class Record implements Cloneable, Serializable {
 
 	
 	/**
+	 * Getting size of extra inputs.
+	 * @return size of extra inputs.
+	 */
+	public int getExtraInputSize() {return extraInputs.size();}
+	
+	
+	/**
 	 * Getting extra input at specified index.
 	 * @param index specified index.
 	 * @return extra input at specified index.
 	 */
-	public Object extraInput(int index) {
+	public Object getExtraInput(int index) {
 		return extraInputs != null && extraInputs.size() > 0 && index >= 0 && index < extraInputs.size() ? extraInputs.get(index) : null; 
 	}
 

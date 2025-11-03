@@ -157,7 +157,7 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 		
 		NeuronValue[] errorArray = null;
 		for (Error error : errors) {
-			NeuronValue[] values = Matrix.extractValues(error.error);
+			NeuronValue[] values = Matrix.extractValues(error.error());
 			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
 		}
 		return errorArray;
@@ -330,12 +330,11 @@ abstract class MatrixClassifierAbstract extends ClassifierAbstract {
 
 	
 	@Override
-	protected Matrix evaluate(Matrix input) {
+	protected Matrix evaluate(Matrix input, Object...params) {
 		try {
 			nut.getConfig().putAll(this.config);
-			return nut.evaluate(input);
 		} catch (Throwable e) {Util.trace(e);}
-		return null;
+		return nut.evaluate0(input, params);
 	}
 
 	

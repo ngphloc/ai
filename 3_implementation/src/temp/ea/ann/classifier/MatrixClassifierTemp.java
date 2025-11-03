@@ -175,7 +175,7 @@ public class MatrixClassifierTemp extends MatrixClassifier0 {
 			this.adjuster.paramSetInclude(this);
 			List<Record> adjustSample = Util.newList(0);
 			for (Record inout : newsample) {
-				Matrix output = evaluate(inout.input(), new Object[] {});
+				Matrix output = evaluate0(inout.input(), new Object[] {});
 				if (output != null) adjustSample.add(new Record(output, inout.output()));
 			}
 			errors = adjustSample.size() > 0 ? this.adjuster.learn(adjustSample) : errors;
@@ -183,7 +183,7 @@ public class MatrixClassifierTemp extends MatrixClassifier0 {
 		
 		NeuronValue[] errorArray = null;
 		for (Error error : errors) {
-			NeuronValue[] values = Matrix.extractValues(error.error);
+			NeuronValue[] values = Matrix.extractValues(error.error());
 			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
 		}
 		return errorArray;
@@ -202,7 +202,7 @@ public class MatrixClassifierTemp extends MatrixClassifier0 {
 		
 		List<Matrix> outputList = Util.newList(0);
 		for (Record inout : inouts) {
-			Matrix output = evaluate(inout.input(), new Object[] {});
+			Matrix output = evaluate0(inout.input(), new Object[] {});
 			if (output != null) outputList.add(output);
 		}
 		if (outputList.size() == 0) return;
@@ -691,7 +691,7 @@ class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 		Error[] errors = learn(newsample);
 		NeuronValue[] errorArray = null;
 		for (Error error : errors) {
-			NeuronValue[] values = Matrix.extractValues(error.error);
+			NeuronValue[] values = Matrix.extractValues(error.error());
 			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
 		}
 		return errorArray;
@@ -1011,7 +1011,7 @@ class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 		
 		List<Matrix> outputList = Util.newList(0);
 		for (Record inout : inouts) {
-			Matrix output = evaluate(inout.input(), new Object[] {});
+			Matrix output = evaluate0(inout.input(), new Object[] {});
 			if (output != null) outputList.add(output);
 		}
 		if (outputList.size() == 0) return;

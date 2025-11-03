@@ -196,6 +196,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 */
 	public MatrixLayerAbstract get(int index) {return layers[index];}
 	
+	
 	/**
 	 * Getting input layer.
 	 * @return input layer.
@@ -207,8 +208,8 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	public MatrixLayerAbstract getOutputLayer() {return layers[layers.length-1];}
 
 	
-	@Override
-	public Function getOutputActivateRef() {return layers[layers.length-1].activateRef;}
+//	@Override
+//	public Function getOutputActivateRef() {return layers[layers.length-1].activateRef;}
 
 
 	@Override

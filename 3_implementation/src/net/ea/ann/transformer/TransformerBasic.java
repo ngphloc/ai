@@ -21,7 +21,6 @@ import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
-import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.MatrixLayer;
@@ -53,7 +52,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	/**
 	 * Number of blocks.
 	 */
-	public static final int BLOCKS_NUMBER_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT;
+	public static final int BLOCKS_NUMBER_DEFAULT = 1; //MatrixNetworkImpl.DEPTH_DEFAULT;
 
 	
 	/**
@@ -240,7 +239,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * Getting input attached transformers.
 	 * @return input attached transformers.
 	 */
-	public Transformer[] getInputAttaches() {
+	Transformer[] getInputAttaches() {
 		if (!validate()) return null;
 		List<Transformer> transformers = Util.newList(0);
 		for (int i = 0; i < size(); i++) {
@@ -308,7 +307,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		enterInputs(inputY, inputX, inputMask);
 	}
 
-
+	
 	@Override
 	public Matrix getOutput() {
 		return validate() ? get(size()-1).getOutput() : null;
@@ -321,11 +320,11 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	}
 
 	
-	@Override
-	public Function getOutputActivateRef() {
-		MatrixLayerAbstract outputLayer = getOutputLayer();
-		return outputLayer != null ? outputLayer.getActivateRef() : null;
-	}
+//	@Override
+//	public Function getOutputActivateRef() {
+//		MatrixLayerAbstract outputLayer = getOutputLayer();
+//		return outputLayer != null ? outputLayer.getActivateRef() : null;
+//	}
 
 
 	/**
@@ -391,8 +390,28 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	/**
 	 * Removing output adapter.
 	 */
-	public void removeOutputAdapter() {
+	public TransformerBasic removeOutputAdapter() {
 		if (validate()) get(size()-1).removeOutputAdapter();
+		return this;
+	}
+	
+	
+	/**
+	 * Getting feed-forward network.
+	 * @return feed-forward network.
+	 */
+	MatrixNetworkImpl getOutputFFN() {
+		return validate() ? get(size()-1).ffn() : null;
+	}
+	
+	
+	/**
+	 * Setting feed-forward network.
+	 * @param ffn feed-forward network.
+	 * @return true if setting is successful.
+	 */
+	boolean setOutputFFN(MatrixNetworkImpl ffn) {
+		return validate() ? get(size()-1).setFFN(ffn) : false;
 	}
 	
 	
@@ -492,12 +511,18 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 */
 	protected Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask, Object...params) {
 		if (!validate()) return null;
-		Matrix output = blocks[0].evaluate(inputY, null, inputMask);
+		Matrix output = blocks[0].evaluate(inputY, null, inputMask, params);
+		int vecRows = blocks[0].getVecRows();
 		for (int i = 1; i < blocks.length; i++) {
+			Matrix Y = vecRows > 0 ? output.vecInverse(vecRows) : output;
 			if (blocks[i].containsX())
-				output = blocks[i].evaluate(output, inputX, null);
+				output = blocks[i].evaluate(Y, inputX, null, params);
 			else
-				output = blocks[i].evaluate(output, null, null);
+				output = blocks[i].evaluate(Y, null, null, params);
+		}
+		
+		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
+			((Error)params[0]).addLayerOInput(this);
 		}
 		return output;
 	}
@@ -506,23 +531,24 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	/**
 	 * Evaluating transformer.
 	 * @param input input.
-	 * @param inputMask mask input. 
+	 * @param inputMask mask input.
+	 * @param params additional parameters.
 	 * @return matrix as output.
 	 */
-	public Matrix evaluate(Matrix input, boolean[][] inputMask) {
-		return evaluate(input, null, inputMask, new Object[] {});
+	public Matrix evaluate(Matrix input, boolean[][] inputMask, Object...params) {
+		return evaluate(input, null, inputMask, params);
 	}
 
 	
 	@Override
 	public Matrix evaluate(Record record) throws RemoteException {
-		return evaluate(record.inputY, record.inputX, record.inputMask, new Object[] {});
+		return evaluate(record.inputY(), record.inputX(), record.inputMask(), record.params.toArray(new Object[] {}));
 	}
 
 	
 	@Override
-	public Matrix evaluate() {
-		return evaluate(null, null);
+	public Matrix evaluate(Object...params) {
+		return evaluate(null, null, params);
 	}
 
 
@@ -538,16 +564,21 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		List<Error[]> attachOutputErrorsList = Util.newList(0);
 		for (int i = blocks.length-1; i >= 0; i--) {
 			outputErrors = blocks[i].backward(outputErrors == null ? errors : outputErrors, learningRate);
+			if (i > 0) Error.adjustErrors(blocks[i-1], outputErrors);
 			
 			if (outputErrors == null || outputErrors.length == 0) continue;
 			if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
-			Error[] attachErrors = Error.createByX(outputErrors);
+			Error[] attachErrors = Error.createByAttach(outputErrors);
 			if (attachErrors == null || attachErrors.length == 0) continue;
 			
 			TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
+			Error.adjustErrors(attach, attachErrors);
 			Error[][] merr = attach.backward(attachErrors, learningRate);
 			if (merr != null && merr.length > 0 && merr[0] != null) {
+//				if (merr[0].length > 0 && merr[0][0] != null) merr[0][0].tag = attach;
 				attachOutputErrorsList.add(merr[0]);
+			}
+			else {
 				System.out.println("Error in training attached transformer at block " + i + " inside method TransformerBasic#backward(Error[], double).");
 			}
 		}
@@ -572,7 +603,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		Error[][] learnedErrors = backward(errors, learningRate);
 		if (learnedErrors == null || learnedErrors.length == 0 || learnedErrors[0] == null) return null;
 		
-		net.ea.ann.mane.Error[] backwardErrors = Error.create2(learnedErrors[0]);
+		net.ea.ann.mane.Error[] backwardErrors = Error.extract(learnedErrors[0]);
 		if (this.prevLayer == null || this == focus)
 			return backwardErrors;
 		else
@@ -638,13 +669,17 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 			double lr = calcLearningRate(learningRate, iteration+1);
 
 			if (trainers.size() == 0) {
-				List<Matrix> errorList = Util.newList(0);
+				List<Error> errorList = Util.newList(0);
 				for (Record record : subsample) {
-					Matrix A = evaluate(record.inputY, record.inputX, record.inputMask, new Object[] {});
-					Matrix error = record.outputA.subtract(A);
-					if (error != null) errorList.add(error);
+					Error error = new Error((Matrix)null);
+					Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error);
+					Matrix err = record.outputA().subtract(A);
+					if (err != null) {
+						error.errorSet(err);
+						errorList.add(error);
+					}
 				}
-				outputErrors = backward(Error.create(errorList.toArray(new Matrix[] {})), lr);
+				outputErrors = backward(errorList.toArray(new Error[] {}), lr);
 			}
 			else {
 				List<net.ea.ann.mane.Record> maneSample = Record.convert(subsample);
@@ -752,88 +787,6 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	}
 
 	
-	/**
-	 * This class represents transformer encoder.
-	 * @author Loc Nguyen
-	 * @version 1.0
-	 */
-	public static class Encoder extends TransformerBasic {
-
-		/**
-		 * Serial version UID for serializable class. 
-		 */
-		private static final long serialVersionUID = 1L;
-
-		/**
-		 * Constructor with neuron channel and ID reference.
-		 * @param neuronChannel neuron channel.
-		 * @param idRef ID reference.
-		 */
-		public Encoder(int neuronChannel, Id idRef) {
-			super(neuronChannel, idRef);
-		}
-
-		/**
-		 * Default constructor with neuron channel.
-		 * @param neuronChannel neuron channel.
-		 */
-		public Encoder(int neuronChannel) {
-			this(neuronChannel, null);
-		}
-
-		@Override
-		public boolean initialize(int h, int n, int dm, int dk, int dv, int m, int d, int ffnDepth, int nBlocks, int XBlockIndex) {
-			return super.initialize(h, n, dm, dk, dv, 0, 0, ffnDepth, nBlocks, -1);
-		}
-
-		@Override
-		public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks) {
-			return super.initialize(h, n, dm, dk, dv, 0, 0, ffnDepth, nBlocks, -1);
-		}
-		
-	}
-	
-	
-	/**
-	 * This class represents transformer decoder.
-	 * @author Loc Nguyen
-	 * @version 1.0
-	 */
-	public static class Decoder extends TransformerBasic {
-
-		/**
-		 * Serial version UID for serializable class. 
-		 */
-		private static final long serialVersionUID = 1L;
-
-		/**
-		 * Constructor with neuron channel and ID reference.
-		 * @param neuronChannel neuron channel.
-		 * @param idRef ID reference.
-		 */
-		public Decoder(int neuronChannel, Id idRef) {
-			super(neuronChannel, idRef);
-		}
-
-		/**
-		 * Default constructor with neuron channel.
-		 * @param neuronChannel neuron channel.
-		 */
-		public Decoder(int neuronChannel) {
-			this(neuronChannel, null);
-		}
-
-		@Override
-		public boolean initialize(int h, int n, int dm, int dk, int dv, int m, int d, int ffnDepth, int nBlocks, int XBlockIndex) {
-			return super.initialize(h, n, dm, dk, dv, m, d, ffnDepth, nBlocks, XBlockIndex);
-		}
-
-		@Override
-		public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks) {
-			return super.initialize(h, n, dm, dk, dv, n, dm, ffnDepth, nBlocks, 1);
-		}
-		
-	}
 
 
 }
@@ -841,7 +794,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 
 
 /**
- * This class represents a transformer block.
+ * This class represents default transformer block.
  * 
  * @author Loc Nguyen
  * @version 1.0
@@ -940,6 +893,34 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Setting feed-forward network.
+	 * @param ffn feed-forward network.
+	 * @return true if setting is true.
+	 */
+	boolean setFFN(MatrixNetworkImpl ffn) {
+		if (!validate() || ffn == null || ffn.paramIsNorm() != this.paramIsNorm() || ffn.paramIsVectorized() != this.paramIsVectorized()) return false;
+		Dimension ffnSize = ffn.getInputLayer().getSize();
+		if (this.attention.n() != ffnSize.height || this.attention.dm() != ffnSize.width) return false;
+		if (this.outputAdapter == null) {
+			this.ffn = ffn;
+			return true;
+		}
+		
+		Dimension ffnOutputSize = ffn.getOutputLayer().getSize();
+		Dimension adapterInputSize = this.outputAdapter.getInputLayer().getSize();
+		if (ffnOutputSize.height != adapterInputSize.height || ffnOutputSize.width != adapterInputSize.width) return false;
+		this.ffn = ffn;
+		return true;
+	}
+	
+	
+	/**
+	 * Removing feed-forward network.
+	 */
+	public void removeFFN() {ffn = null;}
+	
+	
+	/**
 	 * Checking whether this block has X input.
 	 * @return whether this block has X input.
 	 */
@@ -961,11 +942,10 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @return true if setting is successful.
 	 */
 	boolean setOutputAdapter(MatrixNetworkImpl outputAdapter) {
-		if (!validate() || outputAdapter == null ||
-			outputAdapter.paramIsNorm() != this.paramIsNorm() || outputAdapter.paramIsVectorized() != this.paramIsVectorized()) return false;
+		if (!validate() || outputAdapter == null || outputAdapter.paramIsNorm() != this.paramIsNorm() || outputAdapter.paramIsVectorized() != this.paramIsVectorized()) return false;
 		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
-		Dimension headInputSize = outputAdapter.getInputLayer().getSize();
-		if (ffnOutputSize.height != headInputSize.height || ffnOutputSize.width != headInputSize.width) return false;
+		Dimension adapterInputSize = outputAdapter.getInputLayer().getSize();
+		if (ffnOutputSize.height != adapterInputSize.height || ffnOutputSize.width != adapterInputSize.width) return false;
 		
 		this.outputAdapter = outputAdapter;
 		return true;
@@ -1030,16 +1010,14 @@ class TransformerBlock implements Cloneable, Serializable {
 	/**
 	 * Removing output adapter.
 	 */
-	void removeOutputAdapter() {
-		outputAdapter = null;
-	}
+	void removeOutputAdapter() {outputAdapter = null;}
 	
-	
+
 	/**
 	 * Getting input attached transformer.
 	 * @return input attached transformer.
 	 */
-	Transformer getInputAttach() {return inputAttach;}
+	public Transformer getInputAttach() {return inputAttach;}
 	
 	
 	/**
@@ -1057,9 +1035,7 @@ class TransformerBlock implements Cloneable, Serializable {
 	/**
 	 * Removing input attached transformer.
 	 */
-	void removeInputAttach() {
-		this.inputAttach = null;
-	}
+	void removeInputAttach() {this.inputAttach = null;}
 	
 	
 	/**
@@ -1071,8 +1047,10 @@ class TransformerBlock implements Cloneable, Serializable {
 			return null;
 		else if (outputAdapter != null)
 			return outputAdapter.getOutput();
-		else
+		else if (ffn != null)
 			return ffn.getOutput();
+		else
+			return attention.A();
 	}
 	
 	
@@ -1085,8 +1063,10 @@ class TransformerBlock implements Cloneable, Serializable {
 			return null;
 		else if (outputAdapter != null)
 			return outputAdapter.getOutputLayer();
-		else
+		else if (ffn != null)
 			return ffn.getOutputLayer();
+		else
+			return null;
 	}
 
 
@@ -1095,7 +1075,7 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @return true if transformer block is valid.
 	 */
 	boolean validate() {
-		return attention != null && ffn != null;
+		return attention != null && attention.validate() /*&& ffn != null*/;
 	}
 	
 	
@@ -1108,6 +1088,13 @@ class TransformerBlock implements Cloneable, Serializable {
 		this.outputAdapter = null;
 		this.inputAttach = null;
 	}
+	
+	
+	/**
+	 * Creating attention.
+	 * @return attention.
+	 */
+	protected Attention createAttention() {return new Attention();}
 	
 	
 	/**
@@ -1137,7 +1124,7 @@ class TransformerBlock implements Cloneable, Serializable {
 	boolean initialize(int h, int n, int dm, int dk, int dv, int m, int d, int ffnDepth) {
 		this.ffn = createFFN();
 		NeuronValue zero = this.ffn.newNeuronValue().zero();
-		this.attention = new Attention();
+		this.attention = createAttention();
 		if (!this.attention.initialize(h, n, dm, dk, dv, m, d, zero)) return false;
 		
 		ffnDepth = ffnDepth < 1 ? MatrixNetworkImpl.DEPTH_DEFAULT : ffnDepth;
@@ -1164,19 +1151,36 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Getting vectorization rows.
+	 * @return vectorization rows.
+	 */
+	int getVecRows() {
+		if (!validate())
+			return 0;
+		else if ((paramIsVectorized()) && (ffn != null || outputAdapter != null))
+			return ffn != null ? ffn.getOutputLayer().getVecRows() : (outputAdapter != null ? outputAdapter.getOutputLayer().getVecRows() : 0);
+		else
+			return 0;
+	}
+	
+	
+	/**
 	 * Evaluating transformer block.
 	 * @param inputY the Y input.
 	 * @param inputX the X input.
 	 * @param inputMask input mask.
+	 * @param params additional parameters.
 	 * @return array as output.
 	 */
-	Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
+	Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask, Object...params) {
 		if (!validate()) return null;
-		Matrix A = attention.evaluate(inputY, inputX, inputMask);
-		try {
-			A = ffn.evaluate(A);
-			if (outputAdapter != null) A = outputAdapter.evaluate(A);
-		} catch (Throwable e) {Util.trace(e);}
+		Matrix A = attention.evaluate(inputY, inputX, inputMask, params);
+		if (ffn == null && outputAdapter == null) return A;
+		
+		int vecRows = getVecRows();
+		if (vecRows > 0) A = A.vec();
+		if (ffn != null) A = ffn.evaluate0(A, params);
+		if (outputAdapter != null) A = outputAdapter.evaluate0(A, params);
 		return A;
 	}
 
@@ -1189,9 +1193,26 @@ class TransformerBlock implements Cloneable, Serializable {
 	 */
 	Error[] backward(Error[] errors, double learningRate) {
 		if (!validate() || errors == null || errors.length == 0) return null;
-		net.ea.ann.mane.Error[] headErrors = outputAdapter != null ? outputAdapter.backward(Error.create2(errors), learningRate) : Error.create2(errors); 
-		net.ea.ann.mane.Error[] ffnErrors = ffn.backward(headErrors, learningRate);
+		
+		//Back-warding output adapter. 
+		net.ea.ann.mane.Error[] outputAdapterErrors = Error.extract(errors);
+		if (outputAdapter != null) {
+			outputAdapterErrors = outputAdapter.backward(outputAdapterErrors, learningRate);
+			if (outputAdapterErrors == null || outputAdapterErrors.length == 0) return null;
+			if (ffn != null) net.ea.ann.mane.Error.adjustErrors(ffn, outputAdapterErrors);
+		}
+		
+		//Back-warding feed-forward network.
+		net.ea.ann.mane.Error[] ffnErrors = ffn != null ? ffn.backward(outputAdapterErrors, learningRate) : outputAdapterErrors;
 		if (ffnErrors == null || ffnErrors.length == 0) return null;
+		
+		//Back-warding attention.
+		int vecRows = getVecRows();
+		if (vecRows > 0) {
+			for (net.ea.ann.mane.Error ffnError : ffnErrors) {
+				ffnError.errorSet(ffnError.error().vecInverse(vecRows));
+			}
+		}
 		return attention.backward(Error.create(ffnErrors), learningRate);
 	}
 	

@@ -50,9 +50,10 @@ public interface MatrixLayer extends Layer {
 	
 	/**
 	 * Evaluating layer.
+	 * @param params additional parameters.
 	 * @return evaluated matrix as output.
 	 */
-	Matrix evaluate();
+	Matrix evaluate(Object...params);
 
 	
 	/**

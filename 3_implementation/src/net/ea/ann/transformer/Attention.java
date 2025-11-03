@@ -76,6 +76,13 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	
 	
 	/**
+	 * Creating head.
+	 * @return head.
+	 */
+	protected Attention0 creatHead() {return new Attention0();}
+	
+	
+	/**
 	 * Initializing attention with number of heads, sample size, model dimension, key dimension, value dimension, other sample size, other model dimension, and zero value.
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
@@ -93,7 +100,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		this.heads = new Attention0[h];
 		for (int i = 0; i < h; i++) {
 			try {
-				Attention0 head = new Attention0();
+				Attention0 head = creatHead();
 				if (head.initialize(n, dm, dk, dv, m, d, zero))
 					this.heads[i] = head;
 				else {
@@ -103,12 +110,12 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 			} catch (Throwable e) {Util.trace(e);}
 		}
 		
-		Matrix X = this.heads[0].X;
 		Matrix Y = this.heads[0].Y;
+		Matrix X = this.heads[0].X;
 		boolean[][] M = this.heads[0].M;
 		for (int i = 1; i < h; i++) {
 			Attention0 head = this.heads[i];
-			head.assignInputs(M, Y, X);
+			head.assignInputs(Y, X, M);
 		}
 		
 		this.WO = h*dv != dm ? Matrix.create(h*dv, dm, zero) : null;
@@ -284,6 +291,73 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	
 	
 	/**
+	 * Setting mask.
+	 * @param inputMask input mask.
+	 */
+	protected void setMask(boolean[][] inputMask) {
+		boolean[][] M = M();
+		if (M != null && inputMask != null) NeuronValue.copy(inputMask, M);
+	}
+
+	
+	/**
+	 * Setting mask over range.
+	 * @param row row index.
+	 * @param column column index.
+	 * @param range range.
+	 * @param masked masked flag.
+	 */
+	protected void setMask(int row, int column, int range, boolean masked) {
+		boolean[][] M = M();
+		if (M == null) return;
+		int n = n();
+		if (n <= 0 || row < 0 || row >= n || column < 0 || column >= n) return;
+		range = column + range <= n ? range : n - column;
+		for (int j = 0; j < range; j++) M[row][j+column] = masked;
+	}
+
+	
+	/**
+	 * Setting mask at specified row and column.
+	 * @param row row index.
+	 * @param column column index.
+	 * @param masked masked flag.
+	 */
+	protected void setMask(int row, int column, boolean masked) {
+		boolean[][] M = M();
+		if (M != null) M[row][column] = masked;
+	}
+
+		
+	/**
+	 * Setting mask at specified row.
+	 * @param row row index.
+	 * @param masked masked flag.
+	 */
+	protected void setMask(int row, boolean masked) {
+		boolean[][] M = M();
+		if (M == null) return;
+		int n = n();
+		if (row < 0 || row >= n) return;
+		for (int j = 0; j < n; j++) M[row][j] = masked;
+	}
+	
+	
+	/**
+	 * Setting mask over all mask matrix.
+	 * @param masked masked flag.
+	 */
+	protected void setMask(boolean masked) {
+		boolean[][] M = M();
+		if (M == null) return;
+		int n = n();
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) M[i][j] = masked;
+		}
+	}
+	
+	
+	/**
 	 * Setting Y input data and X input data.
 	 * @param inputY Y input data.
 	 * @param inputX X input data.
@@ -301,9 +375,10 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	 * @param inputY Y input data.
 	 * @param inputX X input data.
 	 * @param inputMask input mask.
+	 * @param params additional parameters.
 	 * @return evaluated attention.
 	 */
-	protected Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
+	protected Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask, Object...params) {
 		if (!validate()) return null;
 		enterInputs(inputY, inputX, inputMask);
 		
@@ -312,6 +387,10 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		
 		Matrix eval = WO != null ? Matrix.concatV(aList).multiply(WO) : Matrix.concatV(aList);
 		Matrix.copy(eval, A);
+		
+		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
+			((Error)params[0]).addLayerOInput(this, A);
+		}
 		return A;
 	}
 
@@ -370,20 +449,20 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		List<Error[]> headOutputErrorsList = Util.newList(0);
 		for (int i = 0; i < this.heads.length; i++) {
 			List<Matrix> headErrs = headErrsList.get(i);
-			if (headErrs.size() == 0) continue;
 			Error[] headErrors = Error.create(headErrs.toArray(new Matrix[] {}));
 			headErrors = this.heads[i].backward(headErrors, learningRate);
-			
-			if (headErrors != null) headOutputErrorsList.add(headErrors);
+			headOutputErrorsList.add(headErrors);
 		}
-		if (headOutputErrorsList.size() == 0) return null;
 		
 		//Accumulating errors.
 		Error[] outputErrors = headOutputErrorsList.get(0);
 		for (int i = 1; i < headOutputErrorsList.size(); i++) {
 			Error.accum(outputErrors, headOutputErrorsList.get(i));
 		}
-		return outputErrors;
+		
+		//Restoring layer inputs.
+		for (int i = 0; i < errors.length; i++) errors[i].errorSet(outputErrors[i].error());
+		return errors;
 	}
 	
 	
@@ -407,7 +486,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 
 
 /**
- * This class represents simplest attention.
+ * This class represents attention head.
  * 
  * @author Loc Nguyen
  * @version 1.0
@@ -570,14 +649,14 @@ class Attention0 implements Cloneable, Serializable {
 	
 	/**
 	 * Assigning input matrices.
-	 * @param M masked matrix.
 	 * @param Y Y input data.
 	 * @param X X input data.
+	 * @param M masked matrix.
 	 */
-	void assignInputs(boolean[][] M, Matrix Y, Matrix X) {
-		if (X != null) this.X = X;
-		if (Y != null) this.Y = Y;
-		if (M != null) this.M = M;
+	void assignInputs(Matrix Y, Matrix X, boolean[][] M) {
+		if (this.Y != null && Y != null) this.Y = Y;
+		if (this.X != null && X != null) this.X = X;
+		if (this.M != null && M != null) this.M = M;
 	}
 	
 	
@@ -880,71 +959,9 @@ class Attention0 implements Cloneable, Serializable {
 	void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
 		if (Y != null && inputY != null) Matrix.copy(inputY, Y);
 		if (X != null && inputX != null) Matrix.copy(inputX, X);
-		setMask(inputMask);
-	}
-
-	
-	/**
-	 * Setting mask.
-	 * @param inputMask input mask.
-	 */
-	public void setMask(boolean[][] inputMask) {
 		if (M != null && inputMask != null) NeuronValue.copy(inputMask, M);
 	}
 
-	
-	/**
-	 * Setting mask over range.
-	 * @param row row index.
-	 * @param column column index.
-	 * @param range range.
-	 * @param masked masked flag.
-	 */
-	public void setMask(int row, int column, int range, boolean masked) {
-		if (M == null) return;
-		int n = n();
-		if (n <= 0 || row < 0 || row >= n || column < 0 || column >= n) return;
-		range = column + range <= n ? range : n - column;
-		for (int j = 0; j < range; j++) M[row][j+column] = masked;
-	}
-
-	
-	/**
-	 * Setting mask at specified row and column.
-	 * @param row row index.
-	 * @param column column index.
-	 * @param masked masked flag.
-	 */
-	public void setMask(int row, int column, boolean masked) {
-		if (M != null) M[row][column] = masked;
-	}
-
-		
-	/**
-	 * Setting mask at specified row.
-	 * @param row row index.
-	 * @param masked masked flag.
-	 */
-	public void setMask(int row, boolean masked) {
-		if (M == null) return;
-		int n = n();
-		if (row < 0 || row >= n) return;
-		for (int j = 0; j < n; j++) M[row][j] = masked;
-	}
-	
-	
-	/**
-	 * Setting mask over all mask matrix.
-	 * @param masked masked flag.
-	 */
-	public void setMask(boolean masked) {
-		if (M == null) return;
-		int n = n();
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < n; j++) M[i][j] = masked;
-		}
-	}
-	
 	
 	/**
 	 * Evaluating attention given Y input data.
@@ -985,12 +1002,12 @@ class Attention0 implements Cloneable, Serializable {
 
 			Matrix errv = err.multiply(V.transpose());
 			Matrix softmax = calcQKSoftmax();
-			Matrix[] probs = new Matrix[n];
-			for (int i = 0; i < n; i++) probs[i] = calcQKSoftmaxGradient(i);
+			Matrix[] softmaxGrads = new Matrix[n];
+			for (int i = 0; i < n; i++) softmaxGrads[i] = calcQKSoftmaxGradient(i);
 			
 			//Training weight query matrix and weight key matrix.
 			for (int i = 0; i < n; i++) {
-				Matrix errvi = errv.getRow(i).multiply(probs[i]);
+				Matrix errvi = errv.getRow(i).multiply(softmaxGrads[i]);
 				Matrix d = Y().getRow(i).transpose().multiply(errvi);
 				dW = dW != null ? dW.add(d) : d;
 			}
@@ -1008,7 +1025,7 @@ class Attention0 implements Cloneable, Serializable {
 			Matrix YBiasQK = null;
 			Matrix[] YBiasQKs = new Matrix[n];
 			for (int i = 0; i < n; i++) {
-				Matrix errvi = errv.getRow(i).multiply(probs[i]);
+				Matrix errvi = errv.getRow(i).multiply(softmaxGrads[i]);
 				YBiasQKs[i] = errvi.multiply(QKMean);
 			}
 			YBiasQK = Matrix.concatH(YBiasQKs);
@@ -1020,7 +1037,7 @@ class Attention0 implements Cloneable, Serializable {
 			
 			//Updating X bias.
 			Matrix XBias = this.X != null ? YBias : null;
-			if (T1 == null && T2 == null) {
+			if (this.T1 == null && this.T2 == null) {
 				if (XBias != null) XBiasList.add(XBias);
 				continue;
 			}
@@ -1045,7 +1062,7 @@ class Attention0 implements Cloneable, Serializable {
 			if (this.T2 != null) {
 				Matrix dT2Temp = null;
 				for (int i = 0; i < n; i++) {
-					Matrix errvi = errv.getRow(i).multiply(probs[i]);
+					Matrix errvi = errv.getRow(i).multiply(softmaxGrads[i]);
 					Matrix d = this.T1 != null ? this.T1.getRow(i).transpose().multiply(errvi) : errvi;
 					dT2Temp = dT2Temp != null ? dT2Temp.add(d) : d;
 				}
@@ -1094,10 +1111,10 @@ class Attention0 implements Cloneable, Serializable {
 		if (N == 0) return null;
 		Error[] outputErrors = new Error[N];
 		for (int i = 0; i < N; i++) {
-			Error outputError = new Error();
-			if (i < YBiasList.size()) outputError.errorY = YBiasList.get(i); 
-			if (i < XBiasList.size()) outputError.errorX = XBiasList.get(i);
-			outputErrors[i] = outputError; 
+			Matrix errorY = null, errorX = null;
+			if (i < YBiasList.size()) errorY = YBiasList.get(i); 
+			if (i < XBiasList.size()) errorX = XBiasList.get(i);
+			outputErrors[i] = new Error(errorY, errorX); 
 		}
 		return outputErrors;
 	}

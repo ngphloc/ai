@@ -1026,6 +1026,62 @@ public interface NeuronValue extends Value {
 
 
 	/**
+	 * Checking whether two vectors are equal.
+	 * @param matrix1 vector 1.
+	 * @param matrix2 vector 2.
+	 * @return true if two matrices are equal.
+	 */
+	static boolean equals(NeuronValue[] vector1, NeuronValue[] vector2) {
+		if (vector1.length != vector2.length) return false;
+		int n = vector1.length;
+		for (int i = 0; i < n; i++) {
+			if (!vector1[i].equals(vector2[i])) return false;
+		}
+		return true;
+	}
+
+	
+	/**
+	 * Checking whether two matrices are equal.
+	 * @param matrix1 matrix 1.
+	 * @param matrix2 matrix 2.
+	 * @return true if two matrices are equal.
+	 */
+	static boolean equals(NeuronValue[][] matrix1, NeuronValue[][] matrix2) {
+		if (matrix1.length != matrix2.length) return false;
+		int rows = matrix1.length;
+		for (int row = 0; row < rows; row++) {
+			if (matrix1[row].length != matrix2[row].length) return false;
+			int columns = matrix1[row].length;
+			for (int column = 0; column < columns; column++) {
+				if (!matrix1[row][column].equals(matrix2[row][column])) return false;
+			}
+		}
+		return true;
+	}
+
+	
+	/**
+	 * Checking whether two matrices are equal in elemental reference.
+	 * @param matrix1 matrix 1.
+	 * @param matrix2 matrix 2.
+	 * @return true if two matrices are equal in elemental reference.
+	 */
+	static boolean refEquals(NeuronValue[][] matrix1, NeuronValue[][] matrix2) {
+		if (matrix1.length != matrix2.length) return false;
+		int rows = matrix1.length;
+		for (int row = 0; row < rows; row++) {
+			if (matrix1[row].length != matrix2[row].length) return false;
+			int columns = matrix1[row].length;
+			for (int column = 0; column < columns; column++) {
+				if (matrix1[row][column] != matrix2[row][column]) return false;
+			}
+		}
+		return true;
+	}
+
+	
+	/**
 	 * Calculating value sum.
 	 * @param array array.
 	 * @return value sum.

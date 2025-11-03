@@ -252,9 +252,9 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
-	 * Calculating softmax function of matrix by row.
+	 * Calculating soft-max function of matrix by row.
 	 * @param matrix matrix.
-	 * @return softmax function of matrix by row.
+	 * @return soft-max function of matrix by row.
 	 */
 	static Matrix softmaxByRow(Matrix matrix) {
 		if (matrix == null) return null;
@@ -280,9 +280,9 @@ public interface Matrix extends NeuronValueCreator {
 
 	
 	/**
-	 * Calculating softmax function of matrix by column.
+	 * Calculating soft-max function of matrix by column.
 	 * @param matrix matrix.
-	 * @return softmax function of matrix by column.
+	 * @return soft-max function of matrix by column.
 	 */
 	static Matrix softmaxByColumn(Matrix matrix) {
 		if (matrix == null) return null;
@@ -363,6 +363,42 @@ public interface Matrix extends NeuronValueCreator {
 	 */
 	Matrix vecInverse(int rows);
 	
+
+	/**
+	 * Checking whether two matrices are equal.
+	 * @param matrix1 matrix 1.
+	 * @param matrix2 matrix 2.
+	 * @return true if two matrices are equal.
+	 */
+	static boolean equals(Matrix matrix1, Matrix matrix2) {
+		if (matrix1.rows() != matrix2.rows() || matrix1.columns() != matrix2.columns()) return false;
+		int rows = matrix1.rows(), columns = matrix1.columns();
+		for (int row = 0; row < rows; row++) {
+			for (int column = 0; column < columns; column++) {
+				if (!matrix1.get(row, column).equals(matrix2.get(row, column))) return false;
+			}
+		}
+		return true;
+	}
+	
+	
+	/**
+	 * Checking whether two matrices are equal in elements reference.
+	 * @param matrix1 matrix 1.
+	 * @param matrix2 matrix 2.
+	 * @return true if two matrices are equal in elemental reference.
+	 */
+	static boolean refEquals(Matrix matrix1, Matrix matrix2) {
+		if (matrix1.rows() != matrix2.rows() || matrix1.columns() != matrix2.columns()) return false;
+		int rows = matrix1.rows(), columns = matrix1.columns();
+		for (int row = 0; row < rows; row++) {
+			for (int column = 0; column < columns; column++) {
+				if (matrix1.get(row, column) != matrix2.get(row, column)) return false;
+			}
+		}
+		return true;
+	}
+
 	
 	/**
 	 * Calculating value mean of matrices.

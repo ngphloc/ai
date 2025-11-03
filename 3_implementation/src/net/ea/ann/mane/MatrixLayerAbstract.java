@@ -256,7 +256,26 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		return this.activateRef = activateRef;
 	}
 
+	
+	/**
+	 * Getting reference to convolutional activation function.
+	 * @return reference to convolutional activation function.
+	 */
+	public Function getConvActivateRef() {
+		return convActivateRef;
+	}
+	
+	
+	/**
+	 * Setting reference to convolutional activation function.
+	 * @param activateRef reference to convolutional activation function.
+	 * @return previous function reference.
+	 */
+	protected Function setConvActivateRef(Function convActivateRef) {
+		return this.convActivateRef = convActivateRef;
+	}
 
+	
 	/**
 	 * Getting previous input value, which is for filtering by default.
 	 * @return previous input value.
@@ -282,11 +301,27 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Querying output by most, which can be previous input.
 	 * @return output by most, which can be previous input.
 	 */
-	protected Matrix queryInput() {
+	public Matrix queryInput() {
 		Matrix input = getInput();
 		return input != null ? input : getPrevInput();
 	}
 
+	
+	/**
+	 * Querying actual output by most, which can be previous input.
+	 * @return actual output by most, which can be previous input.
+	 */
+	public Matrix queryActualInput() {
+		if (containsWeights())
+			return queryInput();
+		else if (getFilter() != null) {
+			Matrix prevInput = getPrevInput();
+			return prevInput != null ? prevInput : queryInput();
+		}
+		else
+			return queryInput();
+	}
+	
 	
 	/**
 	 * Setting input value.
@@ -429,7 +464,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting vectorization rows.
 	 * @return Number of rows in case of vectorization. By default it is zero, which means that there is no vectorization by default.
 	 */
-	int getVecRows() {
+	public int getVecRows() {
 		return vecRows;
 	}
 	
@@ -438,7 +473,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Checking whether to apply vectorization.
 	 * @return whether to apply vectorization.
 	 */
-	boolean isVectorized() {
+	public boolean isVectorized() {
 		return vecRows > 0;
 	}
 	

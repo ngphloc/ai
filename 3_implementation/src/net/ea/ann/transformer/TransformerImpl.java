@@ -16,10 +16,10 @@ import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.NetworkDoEvent.Type;
-import net.ea.ann.core.function.Function;
 import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
@@ -27,17 +27,343 @@ import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.TaskTrainer;
 import net.ea.ann.raster.Raster;
-import net.ea.ann.transformer.TransformerBasic.Decoder;
-import net.ea.ann.transformer.TransformerBasic.Encoder;
+import net.ea.ann.transformer.TransformerImpl.Attention0;
+import net.ea.ann.transformer.TransformerImpl.TransformerBasic;
 
 /**
- * This class implements default transformer.
+ * This class implements extensive transformer.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class TransformerImpl extends NetworkAbstract implements Transformer, MatrixLayerExt {
+public class TransformerImpl extends TransformerAbstract {
+
+
+	/**
+	 * Serial version UID for serializable class. 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	
+	/**
+	 * Constructor with neuron channel and ID reference.
+	 * @param neuronChannel neuron channel.
+	 * @param idRef ID reference.
+	 */
+	public TransformerImpl(int neuronChannel, Id idRef) {
+		super(neuronChannel, idRef);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel.
+	 * @param neuronChannel neuron channel.
+	 */
+	public TransformerImpl(int neuronChannel) {
+		this(neuronChannel, null);
+	}
+
+
+	@Override
+	protected TransformerBasic createEncoder() {
+		Encoder encoder = new Encoder(this.neuronChannel, this.idRef);
+		encoder.paramSetNorm(this.paramIsNorm());
+		encoder.paramSetVectorized(this.paramIsVectorized());
+		return encoder;
+	}
+	
+	
+	@Override
+	protected TransformerBasic createDecoder() {
+		Decoder decoder = new Decoder(this.neuronChannel, this.idRef);
+		decoder.paramSetNorm(this.paramIsNorm());
+		decoder.paramSetVectorized(this.paramIsVectorized());
+		return decoder;
+	}
+
+	
+	/**
+	 * This class represents transformer encoder.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 */
+	public class Encoder extends TransformerBasic {
+
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Constructor with neuron channel and ID reference.
+		 * @param neuronChannel neuron channel.
+		 * @param idRef ID reference.
+		 */
+		Encoder(int neuronChannel, Id idRef) {
+			super(neuronChannel, idRef);
+		}
+
+		/**
+		 * Default constructor with neuron channel.
+		 * @param neuronChannel neuron channel.
+		 */
+		Encoder(int neuronChannel) {
+			this(neuronChannel, null);
+		}
+
+		@Override
+		public boolean initialize(int h, int n, int dm, int dk, int dv, int m, int d, int ffnDepth, int nBlocks, int XBlockIndex) {
+			return super.initialize(h, n, dm, dk, dv, 0, 0, ffnDepth, nBlocks, -1);
+		}
+
+		@Override
+		public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks) {
+			return super.initialize(h, n, dm, dk, dv, 0, 0, ffnDepth, nBlocks, -1);
+		}
+		
+	}
+	
+	
+	/**
+	 * This class represents transformer decoder.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 */
+	public class Decoder extends TransformerBasic {
+
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Constructor with neuron channel and ID reference.
+		 * @param neuronChannel neuron channel.
+		 * @param idRef ID reference.
+		 */
+		Decoder(int neuronChannel, Id idRef) {
+			super(neuronChannel, idRef);
+		}
+
+		/**
+		 * Default constructor with neuron channel.
+		 * @param neuronChannel neuron channel.
+		 */
+		Decoder(int neuronChannel) {
+			this(neuronChannel, null);
+		}
+
+		@Override
+		public boolean initialize(int h, int n, int dm, int dk, int dv, int m, int d, int ffnDepth, int nBlocks, int XBlockIndex) {
+			return super.initialize(h, n, dm, dk, dv, m, d, ffnDepth, nBlocks, XBlockIndex);
+		}
+
+		@Override
+		public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks) {
+			return super.initialize(h, n, dm, dk, dv, n, dm, ffnDepth, nBlocks, 1);
+		}
+		
+	}
+
+	
+	/**
+	 * This class implements extensive basic transformer.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 */
+	public class TransformerBasic extends net.ea.ann.transformer.TransformerBasic {
+
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Constructor with neuron channel and ID reference.
+		 * @param neuronChannel neuron channel.
+		 * @param idRef ID reference.
+		 */
+		TransformerBasic(int neuronChannel, Id idRef) {
+			super(neuronChannel, idRef);
+		}
+
+		/**
+		 * Default constructor with neuron channel.
+		 * @param neuronChannel neuron channel.
+		 */
+		TransformerBasic(int neuronChannel) {
+			this(neuronChannel, null);
+		}
+
+		@Override
+		protected net.ea.ann.transformer.TransformerBlock createBlock() {
+			TransformerBlock block = new TransformerBlock(this.neuronChannel, idRef);
+			block.paramSetNorm(this.paramIsNorm());
+			block.paramSetVectorized(this.paramIsVectorized());
+			return block;
+		}
+		
+	}
+	
+	
+	/**
+	 * This class represents extensive transformer block.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 */
+	public class TransformerBlock extends net.ea.ann.transformer.TransformerBlock {
+
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Constructor with neuron channel, vectorization flag, and ID reference.
+		 * @param neuronChannel neuron channel.
+		 * @param idRef ID reference.
+		 */
+		TransformerBlock(int neuronChannel, Id idRef) {
+			super(neuronChannel, idRef);
+		}
+
+		/**
+		 * Default constructor with neuron channel and vectorization flag.
+		 * @param neuronChannel neuron channel.
+		 */
+		TransformerBlock(int neuronChannel) {
+			this(neuronChannel, null);
+		}
+
+		@Override
+		protected net.ea.ann.transformer.Attention createAttention() {return new Attention();}
+		
+	}
+	
+	
+	/**
+	 * This class represents extensive attention.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 */
+	class Attention extends net.ea.ann.transformer.Attention {
+
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
+		
+		/**
+		 * Default constructor.
+		 */
+		Attention() {
+			super();
+		}
+
+		@Override
+		protected net.ea.ann.transformer.Attention0 creatHead() {return new Attention0();}
+
+	}
+	
+	
+	/**
+	 * This class represents extensive attention head.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 */
+	class Attention0 extends net.ea.ann.transformer.Attention0 {
+
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Y input data with regard to query weight matrix Q and key weight matrix K.
+		 */
+		protected Matrix Yqk = null;
+		
+		/**
+		 * Assigning input matrices.
+		 * @param Y Y input data.
+		 * @param X X input data.
+		 * @param M masked matrix.
+		 * @param Yqk Y input data with regard to query weight matrix Q and key weight matrix K.
+		 */
+		void assignInputs(Matrix Y, Matrix X, boolean[][] M, Matrix Yqk) {
+			super.assignInputs(Y, X, M);
+			if (this.Yqk != null && Yqk != null) this.Yqk = Yqk;
+		}
+
+		/**
+		 * Initializing attention with sample size, model dimension, key dimension, value dimension, other sample size, other model dimension, query-key Y data flag, and zero value.
+		 * @param n sample size.
+		 * @param dm model dimension. Default model dimension is {@link #MODEL_DIMENSION_DEFAULT}.
+		 * @param dk key dimension. Default key dimension is {@link #KEY_DIMENSION_DEFAULT}.
+		 * @param dv value dimension. Default value dimension is {@link #VALUE_DIMENSION_DEFAULT}.
+		 * @param m other sample size.
+		 * @param d other model dimension. Default other model dimension is {@link #MODEL_DIMENSION_DEFAULT}.
+		 * @param containsYqk flag to indicate whether to have Y data with regard to query matrix and key matrix.
+		 * @param zero zero value.
+		 * @return true if initialization is successful.
+		 */
+		boolean initialize(int n, int dm, int dk, int dv, int m, int d, boolean containsYqk, NeuronValue zero) {
+			if (!initialize(n, dm, dk, dv, m, d, zero)) return false;
+			if (!containsYqk) return validate();
+			
+			this.Y = Matrix.create(n, dm, zero);
+			return validate();
+		}
+
+			
+		@Override
+		public boolean validate() {
+			if (!super.validate()) return false;
+			if ((Yqk != null) && (Yqk.rows() != n() || Yqk.columns() != dm())) return false;
+			return true;
+		}
+
+		/**
+		 * Getting Y input data with regard to query weight matrix Q and key weight matrix K.
+		 * @return Y input data with regard to query weight matrix Q and key weight matrix K.
+		 */
+		public Matrix Yqk() {return Yqk;};
+		
+		@Override
+		public Matrix calcQ() {
+			Matrix transposedX = calcTransposedX();
+			return transposedX != null || Yqk == null ? super.calcQ() : Yqk.multiply(WQ);
+		}
+		
+		@Override
+		public Matrix calcK() {
+			Matrix transposedX = calcTransposedX();
+			return transposedX != null || Yqk == null ? super.calcK() : Yqk.multiply(WK);
+		}
+
+		/**
+		 * Default constructor.
+		 */
+		Attention0() {
+			super();
+		}
+		
+	}
+	
+	
+}
+
+
+
+/**
+ * This class implements abstract transformer.
+ * 
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+abstract class TransformerAbstract extends NetworkAbstract implements Transformer, MatrixLayerExt {
 
 
 	/**
@@ -55,13 +381,13 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	/**
 	 * Transformer encoder.
 	 */
-	protected Encoder encoder = null;
+	protected TransformerBasic encoder = null;
 	
 	
 	/**
 	 * Transformer decoder.
 	 */
-	protected Decoder decoder = null;
+	protected TransformerBasic decoder = null;
 
 	
 	/**
@@ -87,7 +413,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param neuronChannel neuron channel.
 	 * @param idRef ID reference.
 	 */
-	public TransformerImpl(int neuronChannel, Id idRef) {
+	public TransformerAbstract(int neuronChannel, Id idRef) {
 		super(idRef);
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
 		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
@@ -96,10 +422,10 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 
 	
 	/**
-	 * Default constructor with neuron channel.
+	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public TransformerImpl(int neuronChannel) {
+	public TransformerAbstract(int neuronChannel) {
 		this(neuronChannel, null);
 	}
 
@@ -138,24 +464,14 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * Creating encoder.
 	 * @return encoder.
 	 */
-	protected Encoder createEncoder() {
-		Encoder encoder = new Encoder(this.neuronChannel, this.idRef);
-		encoder.paramSetNorm(this.paramIsNorm());
-		encoder.paramSetVectorized(this.paramIsVectorized());
-		return encoder;
-	}
+	protected abstract TransformerBasic createEncoder();
 	
 	
 	/**
 	 * Creating decoder.
 	 * @return decoder.
 	 */
-	protected Decoder createDecoder() {
-		Decoder decoder = new Decoder(this.neuronChannel, this.idRef);
-		decoder.paramSetNorm(this.paramIsNorm());
-		decoder.paramSetVectorized(this.paramIsVectorized());
-		return decoder;
-	}
+	protected abstract TransformerBasic createDecoder();
 
 	
 	/**
@@ -239,14 +555,14 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * Getting encoder.
 	 * @return encoder.
 	 */
-	public TransformerBasic.Encoder encoder() {return encoder;}
+	public TransformerBasic encoder() {return encoder;}
 	
 	
 	/**
 	 * Getting decoder.
 	 * @return decoder.
 	 */
-	public TransformerBasic.Decoder decoder() {return decoder;}
+	public TransformerBasic decoder() {return decoder;}
 
 	
 	@Override
@@ -348,11 +664,11 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	}
 	
 	
-	@Override
-	public Function getOutputActivateRef() {
-		MatrixLayerAbstract outputLayer = getOutputLayer();
-		return outputLayer != null ? outputLayer.getActivateRef() : null;
-	}
+//	@Override
+//	public Function getOutputActivateRef() {
+//		MatrixLayerAbstract outputLayer = getOutputLayer();
+//		return outputLayer != null ? outputLayer.getActivateRef() : null;
+//	}
 
 	
 	/**
@@ -477,10 +793,9 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	/**
 	 * Removing output adapter.
 	 */
-	public void removeOutputAdapter() {
-		if (!validate())
-			return;
-		else if (encoder != null && decoder != null) {
+	public TransformerAbstract removeOutputAdapter() {
+		if (!validate()) return this;
+		if (encoder != null && decoder != null) {
 			decoder.removeOutputAdapter();
 		}
 		else if (encoder != null && decoder == null) {
@@ -489,8 +804,52 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 		else if (encoder == null && decoder != null) {
 			decoder.removeOutputAdapter();
 		}
+		return this;
 	}
 	
+	
+	/**
+	 * Getting feed-forward network.
+	 * @return feed-forward network.
+	 */
+	public MatrixNetworkImpl getOutputFFN() {
+		if (!validate())
+			return null;
+		else if (encoder != null && decoder != null) {
+			return decoder.getOutputFFN();
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.getOutputFFN();
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.getOutputFFN();
+		}
+		else
+			return null;
+	}
+
+	
+	/**
+	 * Setting output feed-forward network.
+	 * @param ffn feed-forward network.
+	 * @return true if setting is successful.
+	 */
+	public boolean setOutputFFN(MatrixNetworkImpl ffn) {
+		if (!validate())
+			return false;
+		else if (encoder != null && decoder != null) {
+			return decoder.setOutputFFN(ffn);
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.setOutputFFN(ffn);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.setOutputFFN(ffn);
+		}
+		else
+			return false;
+	}
+
 	
 	/**
 	 * Getting size of trainers.
@@ -553,7 +912,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param trainer specified trainer.
 	 * @return this network.
 	 */
-	public TransformerImpl setTrainer(TaskTrainer trainer) {
+	public TransformerAbstract setTrainer(TaskTrainer trainer) {
 		trainers.clear();
 		if (trainer != null) trainers.add(trainer);
 		return this;
@@ -587,66 +946,74 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @return matrix as output.
 	 */
 	protected Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask, Object...params) {
-		if (!validate())
-			return null;
-		else if (encoder != null && decoder != null) {
-			Matrix A = encoder.evaluate(inputX, null);
-			return decoder.evaluate(inputY, A, inputMask, new Object[] {});
+		if (!validate()) return null;
+		Matrix A = null;
+		if (encoder != null && decoder != null) {
+			A = encoder.evaluate(inputX, null, params);
+			A = decoder.evaluate(inputY, A, inputMask, params);
 		}
 		else if (encoder != null && decoder == null) {
-			return encoder.evaluate(inputY, inputX, inputMask, new Object[] {});
+			A = encoder.evaluate(inputY, inputX, inputMask, params);
 		}
 		else if (encoder == null && decoder != null) {
-			return decoder.evaluate(inputY, inputX, inputMask, new Object[] {});
+			A = decoder.evaluate(inputY, inputX, inputMask, params);
 		}
-		else
-			return null;
+		
+		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
+			((Error)params[0]).addLayerOInput(this);
+		}
+		return A;
 	}
 	
 	
 	/**
 	 * Evaluating transformer.
 	 * @param input input.
-	 * @param inputMask mask input. 
+	 * @param inputMask mask input.
+	 * @param params additional parameters.
 	 * @return matrix as output.
 	 */
-	public Matrix evaluate(Matrix input, boolean[][] inputMask) {
-		if (!validate())
-			return null;
-		else if (encoder != null && decoder != null) {
-			Matrix A = encoder.evaluate();
-			return decoder.evaluate(input, A, inputMask, new Object[] {});
+	public Matrix evaluate(Matrix input, boolean[][] inputMask, Object...params) {
+		if (!validate()) return null;
+		Matrix A = null;
+		if (encoder != null && decoder != null) {
+			A = encoder.evaluate(params);
+			A = decoder.evaluate(input, A, inputMask, params);
 		}
 		else if (encoder != null && decoder == null) {
-			return encoder.evaluate(input, inputMask);
+			A = encoder.evaluate(input, inputMask, params);
 		}
 		else if (encoder == null && decoder != null) {
-			return decoder.evaluate(input, inputMask);
+			A = decoder.evaluate(input, inputMask, params);
 		}
-		else
-			return null;
+		
+		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
+			((Error)params[0]).addLayerOInput(this);
+		}
+		return A;
 	}
 
 	
 	/**
 	 * Evaluating transformer.
 	 * @param input input.
+	 * @param params additional parameters
 	 * @return matrix as output.
 	 */
-	public Matrix evaluate(Matrix input) {
-		return evaluate(input, null);
+	public Matrix evaluate(Matrix input, Object...params) {
+		return evaluate(input, null, params);
 	}
 	
 	
 	@Override
 	public Matrix evaluate(Record record) throws RemoteException {
-		return evaluate(record.inputY, record.inputX, record.inputMask, new Object[] {});
+		return evaluate(record.inputY(), record.inputX(), record.inputMask(), new Object[] {});
 	}
 
 	
 	@Override
-	public Matrix evaluate() {
-		return evaluate(null, null);
+	public Matrix evaluate(Object...params) {
+		return evaluate(null, null, params);
 	}
 
 	
@@ -680,7 +1047,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 		Error[][] learnedErrors = backward(errors, learningRate);
 		if (learnedErrors == null || learnedErrors.length == 0 || learnedErrors[0] == null) return null;
 		
-		net.ea.ann.mane.Error[] backwardErrors = Error.create2(learnedErrors[0]);
+		net.ea.ann.mane.Error[] backwardErrors = Error.extract(learnedErrors[0]);
 		if (this.prevLayer == null || this == focus)
 			return backwardErrors;
 		else
@@ -746,22 +1113,26 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 			double lr = calcLearningRate(learningRate, iteration+1);
 
 			if (trainers.size() == 0) {
-				List<Matrix> errorList = Util.newList(0);
+				List<Error> errorList = Util.newList(0);
 				for (Record record : subsample) {
-					Matrix A = evaluate(record.inputY, record.inputX, record.inputMask, new Object[] {});
-					Matrix error = record.outputA.subtract(A);
-					if (error != null) errorList.add(error);
+					Error error = new Error((Matrix)null);
+					Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error);
+					Matrix err = record.outputA().subtract(A);
+					if (err != null) {
+						error.errorSet(err);
+						errorList.add(error);
+					}
 				}
-				outputErrors = backward(Error.create(errorList.toArray(new Matrix[] {})), lr);
+				outputErrors = backward(errorList.toArray(new Error[] {}), lr);
 			}
 			else {
 				List<net.ea.ann.mane.Record> subinouts = Util.newList(0);
 				for (Record record : subsample) {
 					net.ea.ann.mane.Record mr = null;
-					if (record.inputX == null)
-						mr = new net.ea.ann.mane.Record(record.inputY, record.outputA);
+					if (record.inputX() == null)
+						mr = new net.ea.ann.mane.Record(record.inputY(), record.outputA());
 					else
-						mr = new net.ea.ann.mane.Record(record.inputY, record.outputA, record.inputX, null);
+						mr = new net.ea.ann.mane.Record(record.inputY(), record.outputA(), record.inputX(), null);
 					subinouts.add(mr);
 				}
 				net.ea.ann.mane.Error[] errors = null;
@@ -825,7 +1196,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param isNorm normalization mode in rang [0, 1]..
 	 * @return this transformer.
 	 */
-	public TransformerImpl paramSetNorm(boolean isNorm) {
+	public TransformerAbstract paramSetNorm(boolean isNorm) {
 		config.put(Raster.NORM_FIELD, isNorm);
 		return this;
 	}
@@ -848,7 +1219,7 @@ public class TransformerImpl extends NetworkAbstract implements Transformer, Mat
 	 * @param vectorized vectorization mode.
 	 * @return this network.
 	 */
-	public TransformerImpl paramSetVectorized(boolean vectorized) {
+	public TransformerAbstract paramSetVectorized(boolean vectorized) {
 		config.put(MatrixNetworkAbstract.VECTORIZED_FIELD, vectorized);
 		return this;
 	}

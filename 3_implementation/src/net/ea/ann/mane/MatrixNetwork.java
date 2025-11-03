@@ -25,10 +25,11 @@ public interface MatrixNetwork extends Network {
 	/**
 	 * Evaluating matrix neural network.
 	 * @param input input matrix for evaluating.
+	 * @param params additional parameters.
 	 * @return matrix as output.
 	 * @throws RemoteException if any error raises.
 	 */
-	Matrix evaluate(Matrix input) throws RemoteException;
+	Matrix evaluate(Matrix input, Object...params) throws RemoteException;
 
 
 	/**
