@@ -46,9 +46,9 @@ public class TaskTrainerLossEntropy extends TaskTrainerAbstract {
 
 	
 	@Override
-	protected Matrix gradient(Matrix output, Matrix realOutput) {
-		return byColumn ? LikelihoodGradient.lossEntropyGradientByColumn(output, realOutput) :
-			LikelihoodGradient.lossEntropyGradientByRow(output, realOutput);
+	protected Matrix gradient(Matrix output, Matrix realOutput, Object...params) {
+		return byColumn ? LikelihoodGradient.lossEntropyGradientByColumn(output, realOutput, params) :
+			LikelihoodGradient.lossEntropyGradientByRow(output, realOutput, params);
 	}
 
 

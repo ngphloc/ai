@@ -456,6 +456,126 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 
 	
 	/**
+	 * Initializing matrix neural network.
+	 * @param inputSize1 input size 1.
+	 * @param outputSize1 output size 1, which can be null.
+	 * @param filter1 filter 1, which can be null.
+	 * @param depth1 the number 1 of hidden layers plus output layer, which can be 0.
+	 * @param dual1 dual mode 1.
+	 * @param outputSize2 output size 1, which can be null.
+	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeFixed(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+		return mane.initializeFixed(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2);		
+	}
+
+	
+	/**
+	 * Initializing matrix neural network.
+	 * @param inputSize1 input size 1.
+	 * @param outputSize1 output size 1.
+	 * @param filterStride1 filter stride 1.
+	 * @param depth1 the number 1 of hidden layers plus output layer.
+	 * @param dual1 dual mode 1.
+	 * @param outputSize2 output size 1.
+	 * @param depth2 the number 2 of hidden layers plus output layer.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeFixed(Dimension inputSize1, Dimension outputSize1, Dimension filterStride1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+		return mane.initializeFixed(inputSize1, outputSize1, filterStride1, depth1, dual1, outputSize2, depth2);		
+	}
+
+	
+	/**
+	 * Initializing matrix neural network.
+	 * @param inputSize input size.
+	 * @param outputSize output size, which can be null.
+	 * @param filter filter, which can be null.
+	 * @param depth the number of hidden layers plus output layer, which can be 0.
+	 * @param dual dual mode.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeFixed(Dimension inputSize, Dimension outputSize, Filter2D filter, int depth, boolean dual) {
+		return initializeFixed(inputSize, outputSize, filter, depth, dual, null, 0);		
+	}
+
+	
+	/**
+	 * Initializing matrix neural network.
+	 * @param inputSize input size.
+	 * @param outputSize output size.
+	 * @param filterStride filter stride.
+	 * @param depth the number of hidden layers plus output layer.
+	 * @param dual dual mode.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeFixed(Dimension inputSize, Dimension outputSize, Dimension filterStride, int depth, boolean dual) {
+		return mane.initializeFixed(inputSize, outputSize, filterStride, depth, dual, null, 0);		
+	}
+
+	
+	/**
+	 * Initializing matrix neural network.
+	 * @param inputSize input size.
+	 * @param outputSize output size, which can be null.
+	 * @param filter filter, which can be null.
+	 * @param depth the number of hidden layers plus output layer, which can be 0.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeFixed(Dimension inputSize, Dimension outputSize, Filter2D filter, int depth) {
+		return initializeFixed(inputSize, outputSize, filter, depth, false);
+	}
+
+	
+	/**
+	 * Initializing matrix neural network.
+	 * @param inputSize input size.
+	 * @param outputSize output size.
+	 * @param filterStride filter stride.
+	 * @param depth the number of hidden layers plus output layer.
+	 * @param dual dual mode.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeFixed(Dimension inputSize, Dimension outputSize, Dimension filterStride, int depth) {
+		return initializeFixed(inputSize, outputSize, filterStride, depth, false);
+	}
+
+	
+	/**
+	 * Initializing matrix neural network.
+	 * @param inputSize input size.
+	 * @param outputSize output size, which can be null.
+	 * @param depth the number of hidden layers plus output layer, which can be 0.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeFixed(Dimension inputSize, Dimension outputSize, int depth) {
+		return initializeFixed(inputSize, outputSize, (Filter2D)null, depth);
+	}
+
+	
+	/**
+	 * Initializing matrix neural network.
+	 * @param inputSize input size.
+	 * @param depth the number of hidden layers plus output layer, which can be 0.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeFixed(Dimension inputSize, int depth) {
+		return initializeFixed(inputSize, null, depth);
+	}
+
+	
+	/**
+	 * Initializing matrix neural network.
+	 * @param inputSize input size.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeFixed(Dimension inputSize) {
+		return initializeFixed(inputSize, MatrixNetworkImpl.DEPTH_DEFAULT);
+	}
+
+	
+	/**
 	 * Constructing hidden and output neuron numbers.
 	 * @param inputSize input size.
 	 * @param outputSize output size, which can be null.

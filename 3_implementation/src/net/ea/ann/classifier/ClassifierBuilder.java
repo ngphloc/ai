@@ -16,7 +16,6 @@ import java.util.Scanner;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.mane.MatrixNetworkAbstract;
-import net.ea.ann.transformer.TransformerBasic;
 
 /**
  * This class provides utility methods to create classifier model.
@@ -123,7 +122,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	/**
 	 * Number of blocks.
 	 */
-	protected int blocks = TransformerBasic.BLOCKS_NUMBER_DEFAULT;
+	protected int blocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 	
 	
 	/**
@@ -501,7 +500,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		} catch (Throwable e) {}
 		printer.println("Dual mode is " + dual + "\n");
 		
-		int defaultBlocks = TransformerBasic.BLOCKS_NUMBER_DEFAULT;
+		int defaultBlocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 		int blocks = defaultBlocks;
 		printer.print("Blocks (default " + defaultBlocks + "):");
 		try {

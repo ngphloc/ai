@@ -47,12 +47,25 @@ public class TransformerImpl extends TransformerAbstract {
 
 	
 	/**
+	 * Field for containing QK Y input data (QK-Y mode).
+	 */
+	public final static String YQK_FIELD = "transformer_yqk";
+	
+	
+	/**
+	 * Default value for containing QK Y input data (QK-Y mode).
+	 */
+	public final static boolean YQK_DEFAULT = false;
+
+	
+	/**
 	 * Constructor with neuron channel and ID reference.
 	 * @param neuronChannel neuron channel.
 	 * @param idRef ID reference.
 	 */
 	public TransformerImpl(int neuronChannel, Id idRef) {
 		super(neuronChannel, idRef);
+		config.put(YQK_FIELD, YQK_DEFAULT);
 	}
 
 	
@@ -83,6 +96,47 @@ public class TransformerImpl extends TransformerAbstract {
 	}
 
 	
+	@Override
+	boolean initialize(int he, int ne, int dme, int dke, int dve, int hd, int nd, int dmd, int dkd, int dvd, int ffnDepth, int nBlocks) {
+		if (!super.initialize(he, ne, dme, dke, dve, hd, nd, dmd, dkd, dvd, ffnDepth, nBlocks)) return false;
+		if (!paramIsQKY()) return true;
+		
+		if (encoder != null && decoder != null) {
+			decoder.addYQK();
+		}
+		else if (encoder != null && decoder == null) {
+			encoder.addYQK();
+		}
+		else if (encoder == null && decoder != null) {
+			decoder.addYQK();
+		}
+		return true;
+	}
+
+
+	/**
+	 * Checking QK-Y mode.
+	 * @return QK-Y mode.
+	 */
+	boolean paramIsQKY() {
+		if (config.containsKey(YQK_FIELD))
+			return config.getAsBoolean(YQK_FIELD);
+		else
+			return YQK_DEFAULT;
+	}
+
+
+	/**
+	 * Setting QK-Y mode.
+	 * @param Yqk QK-Y mode.
+	 * @return this transformer.
+	 */
+	TransformerImpl paramSetQKY(boolean Yqk) {
+		config.put(YQK_FIELD, Yqk);
+		return this;
+	}
+
+
 	/**
 	 * This class represents transformer encoder.
 	 * @author Loc Nguyen
@@ -204,6 +258,21 @@ public class TransformerImpl extends TransformerAbstract {
 			return block;
 		}
 		
+		/**
+		 * Adding QK Y input data.
+		 * @return QK Y input data.
+		 */
+		Matrix addYQK() {
+			if (!validate()) return null;
+			Matrix Yqk = null;
+			for (int i = 0; i < size(); i++) {
+				net.ea.ann.transformer.TransformerBlock block = get(i);
+				if (!(block instanceof TransformerBlock)) continue;
+				Yqk = ((TransformerBlock)block).addYQK();
+				
+			}
+			return Yqk;
+		}
 	}
 	
 	
@@ -239,6 +308,15 @@ public class TransformerImpl extends TransformerAbstract {
 		@Override
 		protected net.ea.ann.transformer.Attention createAttention() {return new Attention();}
 		
+		/**
+		 * Adding QK Y input data.
+		 * @return QK Y input data.
+		 */
+		Matrix addYQK() {
+			if (!validate()) return null;
+			return this.attention instanceof Attention ? ((Attention)this.attention).addYQK() : null;
+		}
+		
 	}
 	
 	
@@ -263,6 +341,24 @@ public class TransformerImpl extends TransformerAbstract {
 
 		@Override
 		protected net.ea.ann.transformer.Attention0 creatHead() {return new Attention0();}
+
+		/**
+		 * Adding QK Y input data.
+		 * @return QK Y input data.
+		 */
+		Matrix addYQK() {
+			if (!validate()) return null;
+			net.ea.ann.transformer.Attention0 head0 = head(0);
+			if (!(head0 instanceof Attention0)) return null;
+			
+			Matrix YQK = ((Attention0)head0).addYQK();
+			if (YQK == null) return null;
+			for (int i = 1; i < this.h(); i++) {
+				net.ea.ann.transformer.Attention0 head = head(i);
+				if (head instanceof Attention0) ((Attention0)head).assignYQK(YQK);
+			}
+			return YQK;
+		}
 
 	}
 	
@@ -297,26 +393,32 @@ public class TransformerImpl extends TransformerAbstract {
 		}
 
 		/**
-		 * Initializing attention with sample size, model dimension, key dimension, value dimension, other sample size, other model dimension, query-key Y data flag, and zero value.
-		 * @param n sample size.
-		 * @param dm model dimension. Default model dimension is {@link #MODEL_DIMENSION_DEFAULT}.
-		 * @param dk key dimension. Default key dimension is {@link #KEY_DIMENSION_DEFAULT}.
-		 * @param dv value dimension. Default value dimension is {@link #VALUE_DIMENSION_DEFAULT}.
-		 * @param m other sample size.
-		 * @param d other model dimension. Default other model dimension is {@link #MODEL_DIMENSION_DEFAULT}.
-		 * @param containsYqk flag to indicate whether to have Y data with regard to query matrix and key matrix.
-		 * @param zero zero value.
-		 * @return true if initialization is successful.
+		 * Adding QK Y input data.
+		 * @return QK Y input data.
 		 */
-		boolean initialize(int n, int dm, int dk, int dv, int m, int d, boolean containsYqk, NeuronValue zero) {
-			if (!initialize(n, dm, dk, dv, m, d, zero)) return false;
-			if (!containsYqk) return validate();
-			
-			this.Y = Matrix.create(n, dm, zero);
-			return validate();
+		Matrix addYQK() {
+			if (!validate()) return null;
+			int n = n(), dm = dm();
+			if (n <= 0 || dm <= 0) return null;
+			NeuronValue zero = this.Y.get(0, 0).zero();
+			return this.Y = Matrix.create(n, dm, zero);
 		}
-
+		
+		
+		/**
+		 * Assigning QK Y input data.
+		 * @param Yqk QK Y input data, which can be null.
+		 * @return true if adding is successful.
+		 */
+		boolean assignYQK(Matrix Yqk) {
+			if (!validate()) return false;
+			if (Yqk == null) this.Yqk = null;
 			
+			int n = n(), dm = dm();
+			if (n <= 0 || dm <= 0 || Yqk == null) return false;
+			return Yqk.rows() == n && Yqk.columns() == dm ? (this.Yqk = Yqk) != null : false;
+		}
+		
 		@Override
 		public boolean validate() {
 			if (!super.validate()) return false;
@@ -490,7 +592,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @param nBlocks number of blocks. Default number of blocks is {@link #BLOCKS_NUMBER_DEFAULT}
 	 * @return true if initialization is successful.
 	 */
-	private boolean initialize(int he, int ne, int dme, int dke, int dve, int hd, int nd, int dmd, int dkd, int dvd, int ffnDepth, int nBlocks) {
+	boolean initialize(int he, int ne, int dme, int dke, int dve, int hd, int nd, int dmd, int dkd, int dvd, int ffnDepth, int nBlocks) {
 		nBlocks = nBlocks > 0 ? nBlocks : TransformerBasic.BLOCKS_NUMBER_DEFAULT;
 		int XBlockIndex = nd > 0 && dmd > 0 && nBlocks > 1 ? 1 : -1;
 		this.encoder = null;

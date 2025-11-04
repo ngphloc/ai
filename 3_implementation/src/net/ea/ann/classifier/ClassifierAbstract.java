@@ -20,7 +20,6 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixNetworkAbstract;
-import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
 import net.ea.ann.raster.Raster;
@@ -92,7 +91,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Default value for filter stride.
 	 */
-	public static final int FILTER_STRIDE_DEFAULT = MatrixNetworkImpl.BASE_DEFAULT;
+	public static final int FILTER_STRIDE_DEFAULT = 1; //MatrixNetworkImpl.BASE_DEFAULT;
 
 	
 	/**
@@ -104,7 +103,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Default value for depth.
 	 */
-	public static final int DEPTH_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT;
+	public static final int DEPTH_DEFAULT = 2; //MatrixNetworkImpl.DEPTH_DEFAULT;
 
 	
 	/**
@@ -141,6 +140,18 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * Default value for adjusting.
 	 */
 	public static final boolean ADJUST_DEFAULT = false;
+
+	
+	/**
+	 * Field for sample weight.
+	 */
+	public static final String SAMPLE_WEIGHT_FIELD = "classifier_sample_weight";
+	
+	
+	/**
+	 * Default value for sample weight.
+	 */
+	public static final boolean SAMPLE_WEIGHT_DEFAULT = false;
 
 	
 	/**
@@ -194,6 +205,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		config.put(DUAL_FIELD, DUAL_DEFAULT);
 		config.put(BASELINE_FIELD, BASELINE_DEFAULT);
 		config.put(ADJUST_FIELD, ADJUST_DEFAULT);
+		config.put(SAMPLE_WEIGHT_FIELD, SAMPLE_WEIGHT_DEFAULT);
 	}
 
 	
@@ -240,11 +252,14 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @param filter1 filter 1, which can be null.
 	 * @param depth1 the number 1 of hidden layers plus output layer, which can be 0.
 	 * @param dual1 dual mode 1.
-	 * @param nCoreClasses2 the number of rows and columns of core classes.
+	 * @param outputSize2 output size 2.
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
+	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+		this.baseline = null;
+		Dimension nCoreClasses2 = outputSize2;
+		if (nCoreClasses2 == null) nCoreClasses2 = outputSize1 != null ? outputSize1 : inputSize1; 
 		return configClassInfo(nCoreClasses2);
 	}
 
@@ -256,7 +271,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @param filterStride1 filter stride 1.
 	 * @param depth1 the number 1 of hidden layers plus output layer.
 	 * @param dual1 dual mode 1.
-	 * @param outputSize2 output size 1.
+	 * @param outputSize2 output size 2.
 	 * @param depth2 the number 2 of hidden layers plus output layer.
 	 * @return true if initialization is successful.
 	 */
@@ -305,10 +320,22 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		Dimension inputSize = new Dimension(averageSize.width, averageSize.height);
 		Dimension filterStride = new Dimension(paramGetFilterStride(), paramGetFilterStride());
 		int depth = paramGetDepth();
-		boolean dual = paramIsDual();
 		Dimension nCoreClasses = paramIsByColumn() ? new Dimension(groupCount, minClassCount) : new Dimension(minClassCount, groupCount);
-		if (!initialize(inputSize, null, filterStride, depth, dual, nCoreClasses, depth))
-			return false;
+		if (paramIsConv()) {
+			depth = depth != 1 ? depth/2 : depth;
+			if (paramIsDual()) {
+				if (!initialize(inputSize, nCoreClasses, filterStride, depth, true, null, 0))
+					return false;
+			}
+			else {
+				if (!initialize(inputSize, inputSize, filterStride, depth, true, nCoreClasses, depth))
+					return false;
+			}
+		}
+		else {
+			if (!initialize(inputSize, nCoreClasses, (Filter2D)null, depth, false, null, 0))
+				return false;
+		}
 
 		//Main task: setting up class maps.
 		this.classMaps.clear();
@@ -657,7 +684,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 */
 	double[] weightsOfOutput(Matrix output, int groupIndex) {
 		NeuronValue[] values = getOutput(output, groupIndex);
-		if (this.baseline == null) return weightsOfOutput(values);
+		if (this.baseline == null) return weightsOfOutput(Matrix.softmax(values));
 		
 		NeuronValue zero = values[0].zero();
 		for (int classIndex = 0; classIndex < values.length; classIndex++) {
@@ -668,7 +695,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			values[classIndex] = sim;
 		}
 		
-		return weightsOfOutput(values);
+		return weightsOfOutput(Matrix.softmax(values));
 	}
 
 	
@@ -1095,6 +1122,30 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		config.put(ADJUST_FIELD, adjust);
 		return this;
 	}
+
+
+	/**
+	 * Checking sample weight mode.
+	 * @return sample weight mode.
+	 */
+	public boolean paramIsSampleWeight() {
+		if (config.containsKey(SAMPLE_WEIGHT_FIELD))
+			return config.getAsBoolean(SAMPLE_WEIGHT_FIELD);
+		else
+			return SAMPLE_WEIGHT_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting sample weight mode.
+	 * @param sampleWeight sample weight mode.
+	 * @return this classifier.
+	 */
+	public ClassifierAbstract paramSetSampleWeight(boolean sampleWeight) {
+		config.put(SAMPLE_WEIGHT_FIELD, sampleWeight );
+		return this;
+	}
+
 
 }
 

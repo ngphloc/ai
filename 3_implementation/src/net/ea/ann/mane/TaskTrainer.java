@@ -24,9 +24,10 @@ public interface TaskTrainer {
 	 * @param sample sample.
 	 * @param propagate propagation flag.
 	 * @param learningRate learning rate.
+	 * @param params additional parameters.
 	 * @return learning biases.
 	 */
-	Error[] train(MatrixLayer layer, Iterable<Record> sample, boolean propagate, double learningRate);
+	Error[] train(MatrixLayer layer, Iterable<Record> sample, boolean propagate, double learningRate, Object...params);
 
 	
 	/**
@@ -34,10 +35,11 @@ public interface TaskTrainer {
 	 * @param layer layer as matrix neural network.
 	 * @param sample sample.
 	 * @param learningRate learning rate.
+	 * @param params additional parameters.
 	 * @return learning biases.
 	 */
-	default Error[] train(MatrixLayer layer, Iterable<Record> sample, double learningRate) {
-		return train(layer, sample, true, learningRate);
+	default Error[] train(MatrixLayer layer, Iterable<Record> sample, double learningRate, Object...params) {
+		return train(layer, sample, true, learningRate, params);
 	}
 	
 	

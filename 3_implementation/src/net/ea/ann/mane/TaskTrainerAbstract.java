@@ -38,7 +38,7 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 
 	
 	@Override
-	public Error[] train(MatrixLayer layer, Iterable<Record> sample, boolean propagate, double learningRate) {
+	public Error[] train(MatrixLayer layer, Iterable<Record> sample, boolean propagate, double learningRate, Object...params) {
 		List<Error> biases = Util.newList(0);
 		for (Record record : sample) {
 			if (record == null) continue;
@@ -53,7 +53,7 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 			
 			Error bias = new Error((Matrix)null);
 			Matrix output = layer.evaluate(bias);
-			Matrix err = gradient(output, realOutput);
+			Matrix err = gradient(output, realOutput, params);
 			if (err != null) {
 				bias.errorSet(err);
 				biases.add(bias);
@@ -69,9 +69,10 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 	 * Calculating the optimal derivative given computed output and real output.
 	 * @param output computed or predicted output.
 	 * @param realOutput real output from environment. It can be null.
+	 * @param params additional parameters.
 	 * @return optimal derivative.
 	 */
-	protected abstract Matrix gradient(Matrix output, Matrix realOutput);
+	protected abstract Matrix gradient(Matrix output, Matrix realOutput, Object...params);
 	
 	
 }

@@ -274,12 +274,13 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @param output computed or predicted output.
 	 * @param realOutput real output from environment. It is can be null.
 	 * @param outputLayer output layer. It is can be null.
+	 * @param params additional parameters.
 	 * @return the last bias.
 	 */
-	protected Matrix calcOutputError(Matrix output, Matrix realOutput, MatrixLayerAbstract outputLayer) {
+	protected Matrix calcOutputError(Matrix output, Matrix realOutput, MatrixLayerAbstract outputLayer, Object...params) {
 		LikelihoodGradient grad = this.likelihoodGradient;
 		if (grad == null) grad = LikelihoodGradient::error;
-		Matrix error = grad.gradient(output, realOutput);
+		Matrix error = grad.gradient(output, realOutput, params);
 		
 		if (outputLayer == null) return error;
 		Matrix input = outputLayer.getInput();
@@ -288,6 +289,13 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	}
 
 	
+	/**
+	 * Defining additional parameters for output errors.
+	 * @return additional parameters for output errors.
+	 */
+	protected Object[] defineOutputErrorParams() {return null;}
+	
+
 	/**
 	 * Getting likelihood gradient.
 	 * @return likelihood gradient.

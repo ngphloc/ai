@@ -52,7 +52,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	/**
 	 * Number of blocks.
 	 */
-	public static final int BLOCKS_NUMBER_DEFAULT = 1; //MatrixNetworkImpl.DEPTH_DEFAULT;
+	public static final int BLOCKS_NUMBER_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT;
 
 	
 	/**
@@ -974,13 +974,13 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @return true if setting is successful.
 	 */
 	boolean setOutputAdapter(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		if (finalSize == null) return false;
+		if (middleSize == null && finalSize == null) return false;
 		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
 		MatrixNetworkImpl outputAdapter = new MatrixNetworkImpl(this.neuronChannel, null, null, idRef);
 		outputAdapter.paramSetNorm(paramIsNorm());
 		outputAdapter.paramSetVectorized(paramIsVectorized());
 		
-		if (!new MatrixNetworkInitializer(outputAdapter).initialize(ffnOutputSize, middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth)) return false;
+		if (!new MatrixNetworkInitializer(outputAdapter).initializeFixed(ffnOutputSize, middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth)) return false;
 		return setOutputAdapter(outputAdapter);
 	}
 
@@ -996,13 +996,13 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @return true if setting is successful.
 	 */
 	boolean setOutputAdapter(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		if (finalSize == null) return false;
+		if (middleSize == null && finalSize == null) return false;
 		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
 		MatrixNetworkImpl outputAdapter = new MatrixNetworkImpl(this.neuronChannel, null, null, idRef);
 		outputAdapter.paramSetNorm(paramIsNorm());
 		outputAdapter.paramSetVectorized(paramIsVectorized());
 		
-		if (!new MatrixNetworkInitializer(outputAdapter).initialize(ffnOutputSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth)) return false;
+		if (!new MatrixNetworkInitializer(outputAdapter).initializeFixed(ffnOutputSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth)) return false;
 		return setOutputAdapter(outputAdapter);
 	}
 

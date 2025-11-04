@@ -80,7 +80,7 @@ public class ResidualNetwork extends MatrixNetworkImpl {
 
 
 	@Override
-	protected Matrix calcOutputError(Matrix output, Matrix realOutput, MatrixLayerAbstract outputLayer) {
+	protected Matrix calcOutputError(Matrix output, Matrix realOutput, MatrixLayerAbstract outputLayer, Object...params) {
 		LikelihoodGradient grad = this.likelihoodGradient;
 		if (grad == null) grad = LikelihoodGradient::error;
 		Matrix error = grad.gradient(output, realOutput);
