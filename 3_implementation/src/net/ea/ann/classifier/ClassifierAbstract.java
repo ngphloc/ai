@@ -855,7 +855,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @return baseline.
 	 */
 	Matrix calcBaseline(Iterable<Record> sample) {
-		return paramGetCombNumber() == 1 ? calcBaselineByBaseline(sample) : calcBaselineByStat(sample);
+		return paramGetCombNumber() == 1 ? calcBaselineByBaseline(sample) : calcBaselineByBaseline(sample);
 	}
 	
 	
@@ -883,23 +883,34 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 					if (realOutputOneV[i] > realOutputOneV[maxIndex]) maxIndex = i;
 				}
 				
-				if (paramIsByColumn()) {
-					NeuronValue value = baseline.get(maxIndex, group);
-					value = value.add(outputOne[maxIndex]);
-					baseline.set(maxIndex, group, value);
-					
-					NeuronValue c = count.get(maxIndex, group);
-					c = c.add(c.unit());
-					count.set(maxIndex, group, c);
+				boolean[] indicator = new boolean[realOutputOneV.length];
+				Arrays.fill(indicator, false);
+				indicator[maxIndex] = true;
+				for (int i = 0; i < indicator.length; i++) {
+					if (indicator[i]) continue;
+					if (realOutputOneV[i] >= realOutputOneV[maxIndex] - Double.MIN_VALUE) indicator[i] = true;
 				}
-				else {
-					NeuronValue value = baseline.get(group, maxIndex);
-					value = value.add(outputOne[maxIndex]);
-					baseline.set(group, maxIndex, value);
-					
-					NeuronValue c = count.get(group, maxIndex);
-					c = c.add(c.unit());
-					count.set(group, maxIndex, c);
+				
+				for (int index = 0; index < indicator.length; index++) {
+					if (!indicator[index]) continue;
+					if (paramIsByColumn()) {
+						NeuronValue value = baseline.get(index, group);
+						value = value.add(outputOne[index]);
+						baseline.set(index, group, value);
+						
+						NeuronValue c = count.get(index, group);
+						c = c.add(c.unit());
+						count.set(index, group, c);
+					}
+					else {
+						NeuronValue value = baseline.get(group, index);
+						value = value.add(outputOne[index]);
+						baseline.set(group, index, value);
+						
+						NeuronValue c = count.get(group, index);
+						c = c.add(c.unit());
+						count.set(group, index, c);
+					}
 				}
 			}
 		} //End sample.
@@ -927,6 +938,8 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @param matrices array of matrices.
 	 * @return baseline.
 	 */
+	@SuppressWarnings("unused")
+	@Deprecated
 	private Matrix calcBaselineByStat(Iterable<Record> sample) {
 		List<Matrix> outputList = Util.newList(0);
 		for (Record record : sample) {
