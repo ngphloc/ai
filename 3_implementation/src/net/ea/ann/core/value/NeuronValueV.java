@@ -694,6 +694,18 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 
 	
 	/**
+	 * Calculate sum.
+	 * @param values vector.
+	 * @return sum.
+	 */
+	public static double sum(double[] values) {
+		double sum = 0;
+		for (int i = 0; i < values.length; i++) sum += values[i];
+		return sum;
+	}
+
+	
+	/**
 	 * Calculate mean.
 	 * @param values vector.
 	 * @return mean.
@@ -720,5 +732,18 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 		return sum / values.length;
 	}
 	
+	
+	/**
+	 * Normalizing vector.
+	 * @param values vector.
+	 * @return normalized vector.
+	 */
+	public static double[] probs(double[] values) {
+		double sum = sum(values);
+		double[] probs = new double[values.length];
+		for (int i = 0; i < values.length; i++) probs[i] = values[i] / sum;
+		return probs;
+	}
+
 	
 }

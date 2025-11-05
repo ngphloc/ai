@@ -145,32 +145,34 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 
 	
 	@Override
-	public void learnVerify(Iterable<Record> inouts) {
+	public void learnVerify(Iterable<Record> sample) {
 		if (adjuster == null) {
-			super.learnVerify(inouts);
+			super.learnVerify(sample);
 			return;
 		}
 		this.baseline = null;
 		this.adjustBaseline = null;
 		if (!paramIsBaseline()) return;
 		
-		List<Matrix> outputList = Util.newList(0);
-		for (Record inout : inouts) {
-			Matrix output = evaluate(inout.input());
-			if (output != null) outputList.add(output);
-		}
-		if (outputList.size() == 0) return;
-		this.baseline = calcBaseline(outputList.toArray(new Matrix[] {}));
-		
-		List<Matrix> adjustOutputList = Util.newList(0);
-		for (Matrix output : outputList) {
-			try {
-				Matrix adjustOutput = adjuster.evaluate(output);
-				if (adjustOutput != null) adjustOutputList.add(adjustOutput);
-			} catch (Throwable e) {Util.trace(e);}
-		}
-		if (adjustOutputList.size() == 0) return;
-		this.adjustBaseline = calcBaseline(adjustOutputList.toArray(new Matrix[] {}));
+		this.baseline = calcBaseline(sample);
+
+//		List<Matrix> outputList = Util.newList(0);
+//		for (Record inout : inouts) {
+//			Matrix output = evaluate(inout.input());
+//			if (output != null) outputList.add(output);
+//		}
+//		if (outputList.size() == 0) return;
+//		this.baseline = calcBaseline(outputList.toArray(new Matrix[] {}));
+//		
+//		List<Matrix> adjustOutputList = Util.newList(0);
+//		for (Matrix output : outputList) {
+//			try {
+//				Matrix adjustOutput = adjuster.evaluate(output);
+//				if (adjustOutput != null) adjustOutputList.add(adjustOutput);
+//			} catch (Throwable e) {Util.trace(e);}
+//		}
+//		if (adjustOutputList.size() == 0) return;
+//		this.adjustBaseline = calcBaseline(adjustOutputList.toArray(new Matrix[] {}));
 	}
 
 	
@@ -259,13 +261,17 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 		
 		int outputCount = this.outputClassMaps.get(0).size();
 		int groupCount = getNumberOfGroups();
-		Dimension nCoreClasses = paramIsByColumn() ? new Dimension(groupCount, outputCount) : new Dimension(outputCount, groupCount);
+		Dimension outputCombSize = paramIsByColumn() ? new Dimension(groupCount, outputCount) : new Dimension(outputCount, groupCount);
 		if (outputSize2 == null) {
-			if (!transformer.setOutputAdapter(nCoreClasses, filter1, depth1, dual1, outputSize2, depth2))
+			depth1 = depth1 > 1 ? depth1-1 : depth1; 
+			if (!transformer.setOutputAdapter(outputCombSize, filter1, depth1, dual1, null, 0))
 				return false;
 		}
 		else {
-			if (!transformer.setOutputAdapter(outputSize1, filter1, depth1, dual1, nCoreClasses, depth2))
+			int depth = depth1 + depth2;
+			depth = depth > 1 ? depth-1 : depth;
+			depth = depth > 1 ? depth/2 : depth;
+			if (!transformer.setOutputAdapter(outputSize1, filter1, depth, dual1, outputCombSize, depth))
 				return false;
 		}
 		

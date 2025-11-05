@@ -1,3 +1,10 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
 package net.ea.ann.classifier;
 
 import java.awt.Dimension;
@@ -322,7 +329,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		int depth = paramGetDepth();
 		Dimension nCoreClasses = paramIsByColumn() ? new Dimension(groupCount, minClassCount) : new Dimension(minClassCount, groupCount);
 		if (paramIsConv()) {
-			depth = depth != 1 ? depth/2 : depth;
+			depth = depth > 1 ? depth/2 : depth;
 			if (paramIsDual()) {
 				if (!initialize(inputSize, nCoreClasses, filterStride, depth, true, null, 0))
 					return false;
@@ -684,7 +691,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 */
 	double[] weightsOfOutput(Matrix output, int groupIndex) {
 		NeuronValue[] values = getOutput(output, groupIndex);
-		if (this.baseline == null) return weightsOfOutput(Matrix.softmax(values));
+		if (this.baseline == null) return weightsOfOutput(values/*Matrix.softmax(values)*/);
 		
 		NeuronValue zero = values[0].zero();
 		for (int classIndex = 0; classIndex < values.length; classIndex++) {
@@ -695,7 +702,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			values[classIndex] = sim;
 		}
 		
-		return weightsOfOutput(Matrix.softmax(values));
+		return weightsOfOutput(values/*Matrix.softmax(values)*/);
 	}
 
 	
@@ -838,23 +845,97 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		this.baseline = null;
 		if (!paramIsBaseline()) return;
 		
-		List<Matrix> outputList = Util.newList(0);
-		for (Record record : sample) {
-			Matrix output = evaluate(record.input());
-			if (output != null) outputList.add(output);
-		}
-		if (outputList.size() == 0) return;
-		this.baseline = calcBaseline(outputList.toArray(new Matrix[] {}));
+		this.baseline = calcBaseline(sample);
 	}
 
 
 	/**
 	 * Calculating baseline.
+	 * @param sample sample.
+	 * @return baseline.
+	 */
+	Matrix calcBaseline(Iterable<Record> sample) {
+		return paramGetCombNumber() == 1 ? calcBaselineByBaseline(sample) : calcBaselineByStat(sample);
+	}
+	
+	
+	/**
+	 * Calculating baseline.
+	 * @param sample sample.
+	 * @return baseline.
+	 */
+	private Matrix calcBaselineByBaseline(Iterable<Record> sample) {
+		Matrix baseline = getOutput().create(getOutput().rows(), getOutput().columns());
+		Matrix.fill(baseline, 0);
+		Matrix count = baseline.create(baseline.rows(), baseline.columns());
+		Matrix.fill(count, 0);
+		
+		int groups = getNumberOfGroups();
+		for (Record record : sample) {
+			Matrix output = evaluate(record.input());
+			Matrix realOutput = record.output();
+			for (int group = 0; group < groups; group++) {
+				NeuronValue[] outputOne = getOutput(output, group);
+				NeuronValue[] realOutputOne = getOutput(realOutput, group);
+				double[] realOutputOneV = weightsOfOutput(realOutputOne);
+				int maxIndex = 0;
+				for (int i = 1; i < realOutputOneV.length; i++) {
+					if (realOutputOneV[i] > realOutputOneV[maxIndex]) maxIndex = i;
+				}
+				
+				if (paramIsByColumn()) {
+					NeuronValue value = baseline.get(maxIndex, group);
+					value = value.add(outputOne[maxIndex]);
+					baseline.set(maxIndex, group, value);
+					
+					NeuronValue c = count.get(maxIndex, group);
+					c = c.add(c.unit());
+					count.set(maxIndex, group, c);
+				}
+				else {
+					NeuronValue value = baseline.get(group, maxIndex);
+					value = value.add(outputOne[maxIndex]);
+					baseline.set(group, maxIndex, value);
+					
+					NeuronValue c = count.get(group, maxIndex);
+					c = c.add(c.unit());
+					count.set(group, maxIndex, c);
+				}
+			}
+		} //End sample.
+
+		//Mean of base line.
+		for (int row = 0; row < baseline.rows(); row++) {
+			for (int column = 0; column < baseline.columns(); column++) {
+				NeuronValue value = baseline.get(row, column);
+				NeuronValue c = count.get(row, column);
+				if (c.canInvert()) {
+					value = value.divide(c);
+				}
+				else
+					value = value.unit();
+				baseline.set(row, column, value);
+			}
+		}
+		
+		return baseline;
+	}
+	
+	
+	/**
+	 * Calculating baseline.
 	 * @param matrices array of matrices.
 	 * @return baseline.
 	 */
-	static Matrix calcBaseline(Matrix...matrices) {
-		if (matrices == null || matrices.length == 0) return null;
+	private Matrix calcBaselineByStat(Iterable<Record> sample) {
+		List<Matrix> outputList = Util.newList(0);
+		for (Record record : sample) {
+			Matrix output = evaluate(record.input());
+			if (output != null) outputList.add(output);
+		}
+		if (outputList.size() == 0) return null;
+
+		Matrix[] matrices = outputList.toArray(new Matrix[] {});
 		Matrix mean = Matrix.mean(matrices);
 		Matrix std = Matrix.std(matrices);
 		Matrix baseLineByMean = mean.subtract(std.multiply0(1.96));

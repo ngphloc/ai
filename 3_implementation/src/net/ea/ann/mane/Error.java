@@ -9,6 +9,7 @@ package net.ea.ann.mane;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Set;
 
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
@@ -209,6 +210,14 @@ public class Error implements Cloneable, Serializable {
 		}
 
 		/**
+		 * Constructor with error.
+		 * @param error error.
+		 */
+		public Error0() {
+			this(null);
+		}
+
+		/**
 		 * Getting output.
 		 * @return output of current layer.
 		 */
@@ -287,6 +296,73 @@ public class Error implements Cloneable, Serializable {
 			if (sourceErrors == null || targetErrors == null) return;
 			int n = Math.min(sourceErrors.length, targetErrors.length);
 			for (int i = 0; i < n; i++) targetErrors[i].error = sourceErrors[i];
+		}
+		
+		/**
+		 * Accumulating with other error.
+		 * @param error other error.
+		 * @return accumulative error.
+		 */
+		public Error0 accum(Error0 error) {
+			if (error == null) return this;
+			Error0 result = new Error0();
+			
+			if (this.error != null && error.error != null)
+				result.error = Matrix.sum(this.error, error.error);
+			else if (this.error != null && error.error == null)
+				result.error = this.error;
+			else if (this.error == null && error.error != null)
+				result.error = error.error;
+			
+			if (this.input != null && error.input != null)
+				result.input = Matrix.sum(this.input, error.input);
+			else if (this.input != null && error.input == null)
+				result.input = this.input;
+			else if (this.input == null && error.input != null)
+				result.input = error.input;
+			
+			if (this.output != null && error.output != null)
+				result.output = Matrix.sum(this.output, error.output);
+			else if (this.output != null && error.output == null)
+				result.output = this.output;
+			else if (this.output == null && error.output != null)
+				result.output = error.output;
+
+			if (this.realOutput != null && error.realOutput != null)
+				result.realOutput = Matrix.sum(this.realOutput, error.realOutput);
+			else if (this.realOutput != null && error.realOutput == null)
+				result.realOutput = this.realOutput;
+			else if (this.realOutput == null && error.realOutput != null)
+				result.realOutput = error.realOutput;
+
+			Set<LayerInput> layerOInputs = Util.newSet(0);
+			layerOInputs.addAll(this.layerOInputs);
+			layerOInputs.addAll(error.layerOInputs);
+			result.layerOInputs.addAll(layerOInputs);
+			return result;
+		}
+		
+		
+		/**
+		 * Accumulating two arrays of errors
+		 * @param errors1 errors 1
+		 * @param errors2 errors 2
+		 * @return array of accumulated errors.
+		 */
+		public static Error0[] accum(Error0[] errors1, Error0[] errors2) {
+			if (errors1 == null) return errors2;
+			if (errors2 == null) return errors1;
+			int N = Math.max(errors1.length, errors2.length);
+			Error0[] result = new Error0[N];
+			for (int i = 0; i < N; i++) {
+				if (i < errors1.length && i < errors2.length)
+					result[i] = errors1[i].accum(errors2[i]);
+				else if (i >= errors1.length)
+					result[i] = errors2[i];
+				else if (i >= errors2.length)
+					result[i] = errors1[i];
+			}
+			return result;
 		}
 		
 		/**
@@ -696,6 +772,53 @@ public class Error implements Cloneable, Serializable {
 	}
 	
 	
+	/**
+	 * Accumulating with other error.
+	 * @param error other error.
+	 * @return accumulative error.
+	 */
+	public Error accum(Error error) {
+		if (error == null) return this;
+		int N = Math.max(this.size(), error.size());
+		if (N == 0) return null;
+		Error0[] accum0s = new Error0[N];
+		for (int i = 0; i < N; i++) {
+			Error0 accum0 = null;
+			if (i < this.size() && i < error.size())
+				accum0 = this.get(i).accum(error.get(i));
+			if (i < this.size())
+				accum0 = this.get(i); 
+			else if (i < error.size())
+				accum0 = error.get(i);
+			accum0s[i] = accum0; 
+		}
+		return new Error(accum0s);
+	}
+	
+	
+	/**
+	 * Accumulating two arrays of errors
+	 * @param errors1 errors 1
+	 * @param errors2 errors 2
+	 * @return array of accumulated errors.
+	 */
+	public static Error[] accum(Error[] errors1, Error[] errors2) {
+		if (errors1 == null) return errors2;
+		if (errors2 == null) return errors1;
+		int N = Math.max(errors1.length, errors2.length);
+		Error[] result = new Error[N];
+		for (int i = 0; i < N; i++) {
+			if (i < errors1.length && i < errors2.length)
+				result[i] = errors1[i].accum(errors2[i]);
+			else if (i < errors1.length)
+				result[i] = errors1[i];
+			else if (i < errors2.length)
+				result[i] = errors2[i];
+		}
+		return result;
+	}
+
+
 	/**
 	 * Creating errors.
 	 * @param errors source errors.

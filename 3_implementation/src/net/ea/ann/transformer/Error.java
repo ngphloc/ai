@@ -2,6 +2,7 @@ package net.ea.ann.transformer;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Set;
 
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
@@ -589,6 +590,10 @@ class Error0 implements Cloneable, Serializable {
 		else if (this.errorX == null && error.errorX != null)
 			result.errorX = error.errorX;
 		
+		Set<LayerInput> layerOInputs = Util.newSet(0);
+		layerOInputs.addAll(this.layerOInputs);
+		layerOInputs.addAll(error.layerOInputs);
+		result.layerOInputs.addAll(layerOInputs);
 		return result;
 	}
 	

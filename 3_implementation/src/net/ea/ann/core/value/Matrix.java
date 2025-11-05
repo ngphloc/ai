@@ -619,6 +619,28 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
+	 * Calculating mean absolute value of two matrices.
+	 * @param matrix1 matrix 1.
+	 * @param matrix2 matrix 2.
+	 * @return mean absolute value of two matrices.
+	 */
+	static NeuronValue mae(Matrix matrix1, Matrix matrix2) {
+		int rows = Math.min(matrix1.rows(), matrix2.rows());
+		int columns = Math.min(matrix1.columns(), matrix2.columns());
+		NeuronValue mae = null;
+		int n = 0;
+		for (int row = 0; row < rows; row++) {
+			for (int column = 0; column < columns; column++) {
+				NeuronValue d = matrix1.get(row, column).subtract(matrix2.get(row, column)).abs();
+				mae = mae != null ? mae.add(d) : d;
+				n++;
+			}
+		}
+		return mae.divide(n);
+	}
+	
+	
+	/**
 	 * Calculating standard deviation matrix.
 	 * @param matrices array of matrices.
 	 * @return standard deviation matrix.

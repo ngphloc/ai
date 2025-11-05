@@ -27,6 +27,7 @@ import java.util.Scanner;
 import java.util.Set;
 
 import net.ea.ann.classifier.ClassifierBuilder.ClassifierModel;
+import net.ea.ann.classifier.ForestClassifier.TreeModel;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
@@ -85,6 +86,10 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			TransformerClassifier tramac = (TransformerClassifier)classifier;
 			size = new TransformerAssoc(tramac.transformer).sizeOfParams();
 		}
+		else if (classifier instanceof ForestClassifier) {
+			ForestClassifier forest = (ForestClassifier)classifier;
+			size = new ForestAssoc(forest).sizeOfParams();
+		}
 		else if (classifier instanceof MatrixNetworkImpl) {
 			size = new MatrixNetworkAssoc((MatrixNetworkImpl)classifier).sizeOfParams();
 		}
@@ -102,6 +107,8 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			depth = ((MatrixClassifier)classifier).nut.size() - 1;
 		else if (classifier instanceof TransformerClassifier)
 			depth = new TransformerAssoc(((TransformerClassifier)classifier).transformer).depth();
+		else if (classifier instanceof ForestClassifier)
+			depth = new ForestAssoc((ForestClassifier)classifier).depth();
 		else if (classifier instanceof MatrixNetworkImpl)
 			depth = ((MatrixNetworkImpl)classifier).size() - 1;
 		return depth;
@@ -146,6 +153,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		public boolean vectorized = MatrixNetworkAbstract.VECTORIZED_DEFAULT;
 		
 		/**
+		 * Baseline mode.
+		 */
+		public boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
+
+		/**
 		 * Adjustment mode.
 		 */
 		public boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
@@ -156,10 +168,15 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		public boolean dual = ClassifierAbstract.DUAL_DEFAULT;
 		
 		/**
-		 * Baseline mode.
+		 * Dual mode.
 		 */
-		public boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
+		public int blocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 
+		/**
+		 * Tree model.
+		 */
+		public TreeModel treeModel = TreeModel.mac;
+		
 		/**
 		 * Dataset name.
 		 */
@@ -202,9 +219,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			this.batches = builder.batches;
 			this.conv = builder.conv;
 			this.vectorized = builder.vectorized;
+			this.baseline = builder.baseline;
 			this.adjust = builder.adjust;
 			this.dual = builder.dual;
-			this.baseline = builder.baseline;
+			this.blocks = builder.blocks;
+			this.treeModel = builder.treeModel;
 		}
 		
 	}
@@ -612,8 +631,9 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 				"~conv=" + params.conv +
 				"~vec=" + params.vectorized +
 				"~dual=" + params.dual +
+				"~baseline=" + params.baseline +
 				"~adjust=" + params.adjust +
-				"~baseline=" + params.baseline + "\n");
+				"~tree=" + params.treeModel + "\n");
 			writer.write(result.toString() + "\n");
 			writer.flush();
 		} catch (Throwable e) {Util.trace(e);}
