@@ -27,6 +27,7 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixNetworkAbstract;
+import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
 import net.ea.ann.raster.Raster;
@@ -110,7 +111,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Default value for depth.
 	 */
-	public static final int DEPTH_DEFAULT = 2; //MatrixNetworkImpl.DEPTH_DEFAULT;
+	public static final int DEPTH_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT/2;
 
 	
 	/**
@@ -349,7 +350,8 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 					return false;
 			}
 			else {
-				int depth1 = halfDepth, depth2 = depth - halfDepth;
+				int depth1 = depth - halfDepth, depth2 = halfDepth;
+				depth1 = depth1 == 0 && depth2 > 0 ? 1 : depth1;
 				if (!initialize(inputSize, inputSize, filterStride, depth1, true, nCoreClasses, depth2))
 					return false;
 			}
