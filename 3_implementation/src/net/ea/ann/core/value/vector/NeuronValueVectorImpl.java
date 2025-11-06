@@ -240,6 +240,12 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 
 	
 	@Override
+	public boolean canInvertWise() {
+		return canInvert();
+	}
+
+
+	@Override
 	public NeuronValue inverse() {
 		NeuronValueVectorImpl result = new NeuronValueVectorImpl(this.v.length, zeroValue);
 		for (int i = 0; i < this.v.length; i++) {

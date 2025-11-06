@@ -70,12 +70,40 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
+	 * Getting row vector.
+	 * @param matrix matrix.
+	 * @param row row.
+	 * @return vector.
+	 */
+	public static NeuronValue[] getRowVector(Matrix matrix, int row) {
+		int n = matrix.columns();
+		NeuronValue[] newdata = new NeuronValue[n];
+		for (int j = 0; j < n; j++) newdata[j] = matrix.get(row, j);
+		return newdata;
+	}
+
+
+	/**
 	 * Getting column as column vector.
 	 * @param column column index.
 	 * @return column as column vector.
 	 */
 	Matrix getColumn(int column);
 	
+	
+	/**
+	 * Getting column vector.
+	 * @param matrix matrix.
+	 * @param column column.
+	 * @return vector.
+	 */
+	public static NeuronValue[] getColumnVector(Matrix matrix, int column) {
+		int m = matrix.rows();
+		NeuronValue[] newdata = new NeuronValue[m];
+		for (int i = 0; i < m; i++) newdata[i] = matrix.get(i, column);
+		return newdata;
+	}
+
 	
 	/**
 	 * Extracting a sub-matrix at specified column index.

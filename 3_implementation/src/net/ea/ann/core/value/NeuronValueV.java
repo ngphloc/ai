@@ -260,6 +260,12 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 
 
 	@Override
+	public boolean canInvertWise() {
+		return canInvert();
+	}
+
+
+	@Override
 	public NeuronValue inverse() {
 		NeuronValueV result = new NeuronValueV(this.v.length);
 		for (int i = 0; i < this.v.length; i++) {

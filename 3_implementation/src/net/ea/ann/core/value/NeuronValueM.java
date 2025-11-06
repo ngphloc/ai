@@ -142,6 +142,12 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, WeightVa
 
 	
 	@Override
+	public boolean canInvertWise() {
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
 	public NeuronValue inverse() {
 		throw new RuntimeException("Not implemented yet");
 	}

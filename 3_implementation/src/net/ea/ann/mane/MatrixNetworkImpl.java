@@ -708,7 +708,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 				for (Record record : subsample) {
 					Matrix input = record.input(), realOutput = record.output();
 					Error error = new Error((Matrix)null);
-					Matrix output = evaluate0(input, new Object[] {error});
+					Matrix output = evaluate0(input, error);
 					Matrix err = params != null && params.length > 0 ? calcOutputError(output, realOutput, getOutputLayer(), params) :
 						calcOutputError(output, realOutput, getOutputLayer());
 					if (err != null) {

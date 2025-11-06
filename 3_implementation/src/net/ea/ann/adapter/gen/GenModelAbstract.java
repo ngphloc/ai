@@ -26,6 +26,7 @@ import net.ea.ann.gen.ConvGenModelAssoc;
 import net.ea.ann.gen.GenModel.G;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Raster2D;
+import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.Size;
 import net.ea.ann.raster.SizeZoom;
@@ -149,7 +150,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	/**
 	 * Default raster channel.
 	 */
-	public static final int RASTER_CHANNEL_DEFAULT = 3;
+	public static final int RASTER_CHANNEL_DEFAULT = RasterAbstract.RASTER_CHANNEL_DEFAULT;
 	
 	
 	/**

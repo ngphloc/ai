@@ -119,6 +119,13 @@ public interface NeuronValue extends Value {
 	
 	
 	/**
+	 * Checking whether this value can be wise-inverted.
+	 * @return whether this value can be wise-inverted.
+	 */
+	boolean canInvertWise();
+
+	
+	/**
 	 * Getting multiplication inverse.
 	 * @return multiplication inverse.
 	 */

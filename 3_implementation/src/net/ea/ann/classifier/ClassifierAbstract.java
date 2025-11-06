@@ -162,6 +162,18 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 
 	
 	/**
+	 * Field for cross-entropy trainer.
+	 */
+	static final String ENTROPY_TRAINER_FIELD = "classifier_entropy_trainer";
+
+	
+	/**
+	 * Default value for cross-entropy trainer.
+	 */
+	static final boolean ENTROPY_TRAINER_DEFAULT = false;
+	
+	
+	/**
 	 * Neuron channel.
 	 */
 	protected int neuronChannel = 1;
@@ -213,6 +225,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		config.put(BASELINE_FIELD, BASELINE_DEFAULT);
 		config.put(ADJUST_FIELD, ADJUST_DEFAULT);
 		config.put(SAMPLE_WEIGHT_FIELD, SAMPLE_WEIGHT_DEFAULT);
+		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
 	}
 
 	
@@ -693,18 +706,16 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 */
 	double[] weightsOfOutput(Matrix output, int groupIndex) {
 		NeuronValue[] values = getOutput(output, groupIndex);
-		if (this.baseline == null) return weightsOfOutput(values/*Matrix.softmax(values)*/);
+		values = paramIsEntropyTrainer() ? Matrix.softmax(values) : values;
+		if (this.baseline == null) return weightsOfOutput(values);
 		
-//		NeuronValue zero = values[0].zero();
 		for (int classIndex = 0; classIndex < values.length; classIndex++) {
 			NeuronValue base = paramIsByColumn() ? this.baseline.get(classIndex, groupIndex) : this.baseline.get(groupIndex, classIndex);
 			//Following code lines are important due to apply baseline into determining class.
 			NeuronValue sim = values[classIndex].subtract(base);
-//			sim = sim.max(zero);
 			values[classIndex] = sim;
 		}
-		
-		return weightsOfOutput(values/*Matrix.softmax(values)*/);
+		return weightsOfOutput(values);
 	}
 
 	
@@ -878,7 +889,6 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			Matrix output = evaluate(record.input());
 			Matrix realOutput = record.output();
 			for (int group = 0; group < groups; group++) {
-				NeuronValue[] outputOne = getOutput(output, group);
 				NeuronValue[] realOutputOne = getOutput(realOutput, group);
 				double[] realOutputOneV = weightsOfOutput(realOutputOne);
 				int maxIndex = 0;
@@ -894,6 +904,8 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 					if (realOutputOneV[i] >= realOutputOneV[maxIndex] - Double.MIN_VALUE) indicator[i] = true;
 				}
 				
+				NeuronValue[] outputOne = getOutput(output, group);
+				outputOne = paramIsEntropyTrainer() ? Matrix.softmax(outputOne) : outputOne;
 				for (int index = 0; index < indicator.length; index++) {
 					if (!indicator[index]) continue;
 					if (paramIsByColumn()) {
@@ -923,9 +935,9 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			for (int column = 0; column < baseline.columns(); column++) {
 				NeuronValue value = baseline.get(row, column);
 				NeuronValue c = count.get(row, column);
-				if (c.canInvert())
+				if (c.canInvertWise())
 					value = value.divide(c);
-				else if (paramIsNorm())
+				else if (paramIsNorm() || paramIsEntropyTrainer())
 					value = value.unit();
 				else
 					value = value.valueOf(Float.MAX_VALUE); //Improving this code line later for non-normalized case.
@@ -1241,6 +1253,29 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 */
 	public ClassifierAbstract paramSetSampleWeight(boolean sampleWeight) {
 		config.put(SAMPLE_WEIGHT_FIELD, sampleWeight );
+		return this;
+	}
+
+
+	/**
+	 * Checking cross-entropy trainer mode.
+	 * @return cross-entropy trainer weight mode.
+	 */
+	public boolean paramIsEntropyTrainer() {
+		if (config.containsKey(ENTROPY_TRAINER_FIELD))
+			return config.getAsBoolean(ENTROPY_TRAINER_FIELD);
+		else
+			return ENTROPY_TRAINER_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting cross-entropy trainer mode.
+	 * @param entropyTrainer cross-entropy trainer.
+	 * @return this classifier.
+	 */
+	public ClassifierAbstract paramSetEntropyTrainer(boolean entropyTrainer) {
+		config.put(ENTROPY_TRAINER_FIELD, entropyTrainer );
 		return this;
 	}
 

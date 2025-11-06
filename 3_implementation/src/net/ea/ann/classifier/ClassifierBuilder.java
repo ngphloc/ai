@@ -17,6 +17,7 @@ import net.ea.ann.classifier.ForestClassifier.TreeModel;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.mane.MatrixNetworkAbstract;
+import net.ea.ann.raster.RasterAbstract;
 
 /**
  * This class provides utility methods to create classifier model.
@@ -33,6 +34,12 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 */
 	private static final long serialVersionUID = 1L;
 
+	
+	/**
+	 * Default batches.
+	 */
+	public final static int DEFAULT_BATCHES = 100;
+	
 	
 	/**
 	 * This enum represents classifier model.
@@ -107,6 +114,12 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Baseline mode.
+	 */
+	protected boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
+
+	
+	/**
 	 * Adjustment mode.
 	 */
 	protected boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
@@ -121,13 +134,13 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	/**
 	 * Baseline mode.
 	 */
-	protected boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
+	protected int depth = ClassifierAbstract.DEPTH_DEFAULT;
 
 	
 	/**
-	 * Baseline mode.
+	 * Cross-entropy trainer mode.
 	 */
-	protected int depth = ClassifierAbstract.DEPTH_DEFAULT;
+	protected boolean entropyTrainer = ClassifierAbstract.ENTROPY_TRAINER_DEFAULT;
 
 	
 	/**
@@ -384,6 +397,26 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Setting baseline mode.
+	 * @param baseline baseline mode.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setBaseline(boolean baseline) {
+		this.baseline = baseline;
+		return this;
+	}
+	
+	
+	/**
+	 * Getting dual mode.
+	 * @return dual mode.
+	 */
+	public boolean isBaseline() {
+		return baseline;
+	}
+	
+	
+	/**
 	 * Getting adjustment mode.
 	 * @return adjustment mode.
 	 */
@@ -409,26 +442,6 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 */
 	public boolean isDual() {
 		return dual;
-	}
-	
-	
-	/**
-	 * Setting baseline mode.
-	 * @param baseline baseline mode.
-	 * @return this builder.
-	 */
-	public ClassifierBuilder setBaseline(boolean baseline) {
-		this.baseline = baseline;
-		return this;
-	}
-	
-	
-	/**
-	 * Getting dual mode.
-	 * @return dual mode.
-	 */
-	public boolean isBaseline() {
-		return baseline;
 	}
 	
 	
@@ -462,6 +475,26 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		return this;
 	}
 
+	
+	/**
+	 * Getting cross-entropy mode.
+	 * @return cross-entropy mode.
+	 */
+	public boolean isEntropyTrainer() {
+		return entropyTrainer;
+	}
+	
+	
+	/**
+	 * Setting cross-entropy trainer mode.
+	 * @param entropyTrainer cross-entropy trainer mode.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setEntropyTrainer(boolean entropyTrainer) {
+		this.entropyTrainer = entropyTrainer;
+		return this;
+	}
+	
 	
 	/**
 	 * Getting blocks.
@@ -537,39 +570,28 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			break;
 		}
 		
+		if (classifier instanceof ClassifierAbstract) {
+			ClassifierAbstract ca = (ClassifierAbstract)classifier;
+			ca.paramSetLearningRate(learningRate);
+			ca.paramSetBatches(batches);
+			ca.paramSetConv(conv);
+			ca.paramSetVectorized(vectorized);
+			ca.paramSetBaseline(baseline);
+			ca.paramSetAdjust(adjust);
+			ca.paramSetDual(dual);
+			ca.paramSetDepth(depth);
+			ca.paramSetEntropyTrainer(entropyTrainer);
+		}
+		
 		if (classifier instanceof MatrixClassifier) {
-			MatrixClassifier mac = (MatrixClassifier)classifier;
-			mac.paramSetLearningRate(learningRate);
-			mac.paramSetBatches(batches);
-			mac.paramSetConv(conv);
-			mac.paramSetVectorized(vectorized);
-			mac.paramSetBaseline(baseline);
-			mac.paramSetAdjust(adjust);
-			mac.paramSetDual(dual);
-			mac.paramSetDepth(depth);
+
 		}
 		else if (classifier instanceof TransformerClassifier) {
 			TransformerClassifier tramac = (TransformerClassifier)classifier;
-			tramac.paramSetLearningRate(learningRate);
-			tramac.paramSetBatches(batches);
-			tramac.paramSetConv(conv);
-			tramac.paramSetVectorized(vectorized);
-			tramac.paramSetBaseline(baseline);
-			tramac.paramSetAdjust(adjust);
-			tramac.paramSetDual(dual);
-			tramac.paramSetDepth(depth);
 			tramac.paramSetBlocksNumber(blocks);
 		}
 		else if (classifier instanceof ForestClassifier) {
 			ForestClassifier forest = (ForestClassifier)classifier;
-			forest.paramSetLearningRate(learningRate);
-			forest.paramSetBatches(batches);
-			forest.paramSetConv(conv);
-			forest.paramSetVectorized(vectorized);
-			forest.paramSetBaseline(baseline);
-			forest.paramSetAdjust(adjust);
-			forest.paramSetDual(dual);
-			forest.paramSetDepth(depth);
 			forest.paramSetBlocksNumber(blocks);
 			forest.paramSetTreeModel(treeModel);
 		}
@@ -614,7 +636,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		if (modelIndex < 0) modelIndex = defaultModelIndex;
 		printer.println("Model is " + toModel(modelIndex) + "\n");
 		
-		int defaultRasterChannel = 3;
+		int defaultRasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
 		int rasterChannel = defaultRasterChannel;
 		printer.print("Raster channel (1, 2, 3, 4) (default " + defaultRasterChannel + "):");
 		try {
@@ -636,7 +658,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		if (lr <= 0 || lr > 1) lr = defaultlr;
 		printer.println("Starting learning rate is " + lr + "\n");
 	
-		int defaultBatches = 100;
+		int defaultBatches = DEFAULT_BATCHES;
 		int batches = defaultBatches;
 		printer.print("Batches (default " + batches + "):");
 		try {
@@ -648,12 +670,12 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		printer.println("Batches are " + batches + "\n");
 	
 		boolean conv = ClassifierAbstract.CONV_DEFAULT;
-		printer.print("Including convolutional network (" + conv + " is default):");
+		printer.print("Including convolutional neural network (" + conv + " is default):");
 		try {
 			String line = scanner.nextLine().trim();
 			if (!line.isBlank() && !line.isEmpty()) conv = Boolean.parseBoolean(line);
 		} catch (Throwable e) {}
-		printer.println("Including convolutional network is " + conv + "\n");
+		printer.println("Including convolutional neural network is " + conv + "\n");
 	
 		boolean vectorized = MatrixNetworkAbstract.VECTORIZED_DEFAULT;
 		printer.print("Vectorization (" + vectorized + " is default):");
@@ -664,39 +686,57 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		printer.println("Vectorization is " + vectorized + "\n");
 	
 		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
-		printer.print("Baseline (" + baseline + " is default):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) baseline = Boolean.parseBoolean(line);
-		} catch (Throwable e) {}
-		printer.println("Baseline is " + baseline + "\n");
+		if (!baseline) {
+			printer.print("Baseline (" + baseline + " is default):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) baseline = Boolean.parseBoolean(line);
+			} catch (Throwable e) {}
+			printer.println("Baseline is " + baseline + "\n");
+		}
 
 		boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
-		printer.print("Adjustment (" + adjust + " is default):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) adjust = Boolean.parseBoolean(line);
-		} catch (Throwable e) {}
-		printer.println("Adjustment is " + adjust + "\n");
+		if (adjust) {
+			printer.print("Adjustment (" + adjust + " is default):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) adjust = Boolean.parseBoolean(line);
+			} catch (Throwable e) {}
+			printer.println("Adjustment is " + adjust + "\n");
+		}
 	
 		boolean dual = ClassifierAbstract.DUAL_DEFAULT;
-		printer.print("Dual mode (" + dual + " is default):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) dual = Boolean.parseBoolean(line);
-		} catch (Throwable e) {}
-		printer.println("Dual mode is " + dual + "\n");
+		if (conv) {
+			printer.print("Dual mode (" + dual + " is default):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) dual = Boolean.parseBoolean(line);
+			} catch (Throwable e) {}
+			printer.println("Dual mode is " + dual + "\n");
+		}
 		
 		int defaultDepth = ClassifierAbstract.DEPTH_DEFAULT;
 		int depth = defaultDepth;
-		printer.print("Depth (default " + depth + "):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) depth = Integer.parseInt(line);
-		} catch (Throwable e) {}
-		if (Double.isNaN(depth)) depth = defaultDepth;
-		if (depth <= 0) depth = defaultDepth;
-		printer.println("Depth is " + depth + "\n");
+		if (depth <= 2) {
+			printer.print("Depth (default " + depth + "):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) depth = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (Double.isNaN(depth)) depth = defaultDepth;
+			if (depth <= 0) depth = defaultDepth;
+			printer.println("Depth is " + depth + "\n");
+		}
+
+		boolean entropyTrainer = ClassifierAbstract.ENTROPY_TRAINER_DEFAULT;
+		if (!entropyTrainer) {
+			printer.print("Cross-entropy trainer mode (" + entropyTrainer + " is default):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) entropyTrainer = Boolean.parseBoolean(line);
+			} catch (Throwable e) {}
+			printer.println("Cross-entropy trainer mode is " + entropyTrainer + "\n");
+		}
 
 		ClassifierBuilder builder = new ClassifierBuilder(rasterChannel);
 		builder.setModel(modelIndex);
@@ -708,6 +748,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setAdjust(adjust);
 		builder.setDual(dual);
 		builder.setDepth(depth);
+		builder.setEntropyTrainer(entropyTrainer);
 
 		if (builder.getModel() == ClassifierModel.tramac) {
 			int defaultBlocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
@@ -736,6 +777,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			printer.println("Tree model is " + ForestClassifier.toTreeModel(treeModelIndex) + "\n");
 			builder.setTreeModel(treeModelIndex);
 		}
+		
 		return builder;
 	}
 	

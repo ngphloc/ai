@@ -136,6 +136,12 @@ public class NeuronValueMatrix extends MatrixImpl implements NeuronValue {
 
 	
 	@Override
+	public boolean canInvertWise() {
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
 	public NeuronValue inverse() {
 		throw new RuntimeException("Not implemented yet");
 	}

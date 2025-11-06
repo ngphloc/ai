@@ -95,7 +95,7 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 		this.adjustBaseline = null;
 		this.adjuster = new MatrixNetworkImpl(this.neuronChannel, nut.getActivateRef(), nut.getConvActivateRef(), this.idRef);
 		this.adjuster.paramSetInclude(this);
-		this.adjuster.setTrainer(new TaskTrainerLossEntropy());
+		if (paramIsEntropyTrainer()) this.adjuster.setTrainer(new TaskTrainerLossEntropy());
 		return new MatrixNetworkInitializer(adjuster).initialize(size, size, adjustDepth);
 	}
 
@@ -104,15 +104,14 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 	double[] weightsOfOutput(Matrix output, int groupIndex) {
 		if (adjuster == null) return super.weightsOfOutput(output, groupIndex);
 		NeuronValue[] values = getOutput(output, groupIndex);
+		values = paramIsEntropyTrainer() ? Matrix.softmax(values) : values;
 		if (this.baseline == null || this.adjustBaseline == null) return super.weightsOfOutput(output, groupIndex);
 		
-		NeuronValue zero = values[0].zero();
 		for (int classIndex = 0; classIndex < values.length; classIndex++) {
 			NeuronValue base = paramIsByColumn() ? this.baseline.get(classIndex, groupIndex) : this.baseline.get(groupIndex, classIndex);
 			NeuronValue adjustBase = paramIsByColumn() ? this.adjustBaseline.get(classIndex, groupIndex) : this.adjustBaseline.get(groupIndex, classIndex);
 			//Following code lines are important due to apply baseline into determining class.
 			NeuronValue sim = values[classIndex].subtract(base);
-			sim = sim.max(zero);
 			sim = sim.multiply(adjustBase);
 			values[classIndex] = sim;
 		}
@@ -242,7 +241,7 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 			this.config.putAll(this.transformer.getConfig());
 			this.transformer.getConfig().putAll(this.config);
 		} catch (Throwable e) {Util.trace(e);}
-		this.transformer.setTrainer(new TaskTrainerLossEntropy());
+		if (paramIsEntropyTrainer()) this.transformer.setTrainer(new TaskTrainerLossEntropy());
 	}
 
 	

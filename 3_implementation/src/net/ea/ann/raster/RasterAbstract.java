@@ -24,6 +24,12 @@ public abstract class RasterAbstract implements Raster {
 
 	
 	/**
+	 * Default raster channel.
+	 */
+	public static final int RASTER_CHANNEL_DEFAULT = 3;
+
+	
+	/**
 	 * ID of raster.
 	 */
 	protected int id = -1;

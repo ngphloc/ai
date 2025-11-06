@@ -371,6 +371,12 @@ public class ContentValueImpl extends ContentImpl implements ContentValue, NormS
 
 
 	@Override
+	public boolean canInvertWise() {
+		return canInvert();
+	}
+
+
+	@Override
 	public NeuronValue inverse() {
 		NeuronValue[] thisData = this.getData();
 		NeuronValue[] newData = new NeuronValue[thisData.length];
