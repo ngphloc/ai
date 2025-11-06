@@ -125,6 +125,12 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 
 	
 	/**
+	 * Baseline mode.
+	 */
+	protected int depth = ClassifierAbstract.DEPTH_DEFAULT;
+
+	
+	/**
 	 * Number of blocks.
 	 */
 	protected int blocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
@@ -438,6 +444,26 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Getting depth.
+	 * @return depth.
+	 */
+	public int getDepth() {
+		return depth;
+	}
+	
+	
+	/**
+	 * Setting depth.
+	 * @param depth depth.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setDepth(int depth) {
+		this.depth = depth;
+		return this;
+	}
+
+	
+	/**
 	 * Getting blocks.
 	 * @return blocks.
 	 */
@@ -520,6 +546,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			mac.paramSetBaseline(baseline);
 			mac.paramSetAdjust(adjust);
 			mac.paramSetDual(dual);
+			mac.paramSetDepth(depth);
 		}
 		else if (classifier instanceof TransformerClassifier) {
 			TransformerClassifier tramac = (TransformerClassifier)classifier;
@@ -530,6 +557,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			tramac.paramSetBaseline(baseline);
 			tramac.paramSetAdjust(adjust);
 			tramac.paramSetDual(dual);
+			tramac.paramSetDepth(depth);
 			tramac.paramSetBlocksNumber(blocks);
 		}
 		else if (classifier instanceof ForestClassifier) {
@@ -541,6 +569,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			forest.paramSetBaseline(baseline);
 			forest.paramSetAdjust(adjust);
 			forest.paramSetDual(dual);
+			forest.paramSetDepth(depth);
 			forest.paramSetBlocksNumber(blocks);
 			forest.paramSetTreeModel(treeModel);
 		}
@@ -658,16 +687,16 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		} catch (Throwable e) {}
 		printer.println("Dual mode is " + dual + "\n");
 		
-		int defaultBlocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
-		int blocks = defaultBlocks;
-		printer.print("Blocks (default " + defaultBlocks + "):");
+		int defaultDepth = ClassifierAbstract.DEPTH_DEFAULT;
+		int depth = defaultDepth;
+		printer.print("Depth (default " + depth + "):");
 		try {
 			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) blocks = Integer.parseInt(line);
+			if (!line.isBlank() && !line.isEmpty()) depth = Integer.parseInt(line);
 		} catch (Throwable e) {}
-		if (Double.isNaN(blocks)) blocks = defaultBlocks;
-		if (blocks <= 0) blocks = defaultBlocks;
-		printer.println("Blocks are " + blocks + "\n");
+		if (Double.isNaN(depth)) depth = defaultDepth;
+		if (depth <= 0) depth = defaultDepth;
+		printer.println("Depth is " + depth + "\n");
 
 		ClassifierBuilder builder = new ClassifierBuilder(rasterChannel);
 		builder.setModel(modelIndex);
@@ -678,7 +707,21 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setBaseline(baseline);
 		builder.setAdjust(adjust);
 		builder.setDual(dual);
-		builder.setBlocks(blocks);
+		builder.setDepth(depth);
+
+		if (builder.getModel() == ClassifierModel.tramac) {
+			int defaultBlocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
+			int blocks = defaultBlocks;
+			printer.print("Blocks (default " + defaultBlocks + "):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) blocks = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (Double.isNaN(blocks)) blocks = defaultBlocks;
+			if (blocks <= 0) blocks = defaultBlocks;
+			printer.println("Blocks are " + blocks + "\n");
+			builder.setBlocks(blocks);
+		}
 		
 		if (builder.getModel() == ClassifierModel.forest) {
 			int defaultTreeModelIndex = ForestClassifier.toTreeModelIndex(TreeModel.mac);

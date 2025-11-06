@@ -95,6 +95,7 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 		this.adjustBaseline = null;
 		this.adjuster = new MatrixNetworkImpl(this.neuronChannel, nut.getActivateRef(), nut.getConvActivateRef(), this.idRef);
 		this.adjuster.paramSetInclude(this);
+		this.adjuster.setTrainer(new TaskTrainerLossEntropy());
 		return new MatrixNetworkInitializer(adjuster).initialize(size, size, adjustDepth);
 	}
 
@@ -239,6 +240,7 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 		this.transformer = new TransformerImpl(this.neuronChannel, idRef);
 		try {
 			this.config.putAll(this.transformer.getConfig());
+			this.transformer.getConfig().putAll(this.config);
 		} catch (Throwable e) {Util.trace(e);}
 		this.transformer.setTrainer(new TaskTrainerLossEntropy());
 	}
@@ -263,15 +265,14 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 		int groupCount = getNumberOfGroups();
 		Dimension outputCombSize = paramIsByColumn() ? new Dimension(groupCount, outputCount) : new Dimension(outputCount, groupCount);
 		if (outputSize2 == null) {
-			depth1 = depth1 > 1 ? depth1-1 : depth1; 
-			if (!transformer.setOutputAdapter(outputCombSize, filter1, depth1, dual1, null, 0))
+			int depth = depth1 + depth2;
+			depth = depth > 1 ? depth-1 : depth;
+			if (!transformer.setOutputAdapter(outputCombSize, filter1, depth, dual1, null, 0))
 				return false;
 		}
 		else {
-			int depth = depth1 + depth2;
-			depth = depth > 1 ? depth-1 : depth;
-			depth = depth > 1 ? depth/2 : depth;
-			if (!transformer.setOutputAdapter(outputSize1, filter1, depth, dual1, outputCombSize, depth))
+			depth1 = depth1 > 1 ? depth1-1 : depth1;
+			if (!transformer.setOutputAdapter(outputSize1, filter1, depth1, dual1, outputCombSize, depth2))
 				return false;
 		}
 		

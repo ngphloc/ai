@@ -115,6 +115,7 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 		this.adjustBaseline = null;
 		this.adjuster = new MatrixNetworkImpl(this.neuronChannel, this.nut.getActivateRef(), this.nut.getConvActivateRef(), this.idRef);
 		this.adjuster.paramSetInclude(this);
+		this.adjuster.setTrainer(new TaskTrainerLossEntropy());
 		return new MatrixNetworkInitializer(adjuster).initialize(size, size, adjustDepth);
 	}
 
@@ -292,6 +293,7 @@ abstract class MatrixClassifierAbstract extends ClassifierAbstract {
 		};
 		try {
 			this.config.putAll(this.nut.getConfig());
+			this.nut.getConfig().putAll(this.config);
 		} catch (Throwable e) {Util.trace(e);}
 		this.nut.setTrainer(new TaskTrainerLossEntropy());
 	}

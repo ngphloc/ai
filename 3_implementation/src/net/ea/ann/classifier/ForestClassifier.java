@@ -130,11 +130,10 @@ public class ForestClassifier extends ClassifierAbstract {
 		for (int i = 0; i < classCount; i++) {
 			this.trees[i] = createTree();
 			if (!this.trees[i].initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
-			if (i == 0) {
-				try {
-					this.config.putAll(this.trees[i].getConfig());
-				} catch (Throwable e) {Util.trace(e);}
-			}
+			try {
+				this.trees[i].getConfig().putAll(this.config);
+				this.config.putAll(this.trees[i].getConfig());
+			} catch (Throwable e) {Util.trace(e);}
 		}
 		
 		Matrix output = this.trees[0].getOutput();

@@ -327,15 +327,17 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		Dimension inputSize = new Dimension(averageSize.width, averageSize.height);
 		Dimension filterStride = new Dimension(paramGetFilterStride(), paramGetFilterStride());
 		int depth = paramGetDepth();
+		depth = depth > 0 ? depth : 0;
 		Dimension nCoreClasses = paramIsByColumn() ? new Dimension(groupCount, minClassCount) : new Dimension(minClassCount, groupCount);
 		if (paramIsConv()) {
-			depth = depth > 1 ? depth/2 : depth;
+			int halfDepth = depth > 1 ? depth/2 : depth;
 			if (paramIsDual()) {
-				if (!initialize(inputSize, nCoreClasses, filterStride, depth, true, null, 0))
+				if (!initialize(inputSize, nCoreClasses, filterStride, halfDepth, true, null, 0))
 					return false;
 			}
 			else {
-				if (!initialize(inputSize, inputSize, filterStride, depth, true, nCoreClasses, depth))
+				int depth1 = halfDepth, depth2 = depth - halfDepth;
+				if (!initialize(inputSize, inputSize, filterStride, depth1, true, nCoreClasses, depth2))
 					return false;
 			}
 		}
@@ -693,12 +695,12 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		NeuronValue[] values = getOutput(output, groupIndex);
 		if (this.baseline == null) return weightsOfOutput(values/*Matrix.softmax(values)*/);
 		
-		NeuronValue zero = values[0].zero();
+//		NeuronValue zero = values[0].zero();
 		for (int classIndex = 0; classIndex < values.length; classIndex++) {
 			NeuronValue base = paramIsByColumn() ? this.baseline.get(classIndex, groupIndex) : this.baseline.get(groupIndex, classIndex);
 			//Following code lines are important due to apply baseline into determining class.
 			NeuronValue sim = values[classIndex].subtract(base);
-			sim = sim.max(zero);
+//			sim = sim.max(zero);
 			values[classIndex] = sim;
 		}
 		
@@ -870,6 +872,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		Matrix count = baseline.create(baseline.rows(), baseline.columns());
 		Matrix.fill(count, 0);
 		
+		int combNumber = paramGetCombNumber();
 		int groups = getNumberOfGroups();
 		for (Record record : sample) {
 			Matrix output = evaluate(record.input());
@@ -887,7 +890,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 				Arrays.fill(indicator, false);
 				indicator[maxIndex] = true;
 				for (int i = 0; i < indicator.length; i++) {
-					if (indicator[i]) continue;
+					if (indicator[i] || combNumber == 1) continue;
 					if (realOutputOneV[i] >= realOutputOneV[maxIndex] - Double.MIN_VALUE) indicator[i] = true;
 				}
 				
@@ -920,11 +923,12 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			for (int column = 0; column < baseline.columns(); column++) {
 				NeuronValue value = baseline.get(row, column);
 				NeuronValue c = count.get(row, column);
-				if (c.canInvert()) {
+				if (c.canInvert())
 					value = value.divide(c);
-				}
-				else
+				else if (paramIsNorm())
 					value = value.unit();
+				else
+					value = value.valueOf(Float.MAX_VALUE); //Improving this code line later for non-normalized case.
 				baseline.set(row, column, value);
 			}
 		}
