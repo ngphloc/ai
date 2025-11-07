@@ -572,8 +572,8 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 * @param in input stream.
 	 * @param out output stream.
 	 */
-	public static void classify() {
-		classifyCIFAR10();
+	public static void classifyGen(InputStream in, OutputStream out) {
+		classifyCIFAR10Gen(in, out);
 	}
 	
 	
@@ -656,16 +656,19 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		} catch (Exception e) {Util.trace(e);}
 	
 		classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
+		printer.println("End task.");
 	}
 
 	
 	/**
 	 * Test of classification with CIFAR-10 dataset.
+	 * @param in input stream.
+	 * @param out output stream.
 	 */
-	private static void classifyCIFAR10() {
+	static void classifyCIFAR10Gen(InputStream in, OutputStream out) {
 		@SuppressWarnings("resource")
-		Scanner scanner = new Scanner(System.in);
-		PrintStream printer = new PrintStream(System.out);
+		Scanner scanner = new Scanner(in);
+		PrintStream printer = new PrintStream(out);
 
 		int defaultTrainSize = -1;
 		int trainSize = defaultTrainSize;
@@ -677,6 +680,17 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		if (Double.isNaN(trainSize)) trainSize = defaultTrainSize;
 		if (trainSize < 0) trainSize = defaultTrainSize;
 		printer.println("Training size is " + trainSize + "\n");
+
+		int defaultBatches = ClassifierBuilder.DEFAULT_BATCHES;
+		int batches = defaultBatches;
+		printer.print("Batches (default " + batches + "):");
+		try {
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) batches = Integer.parseInt(line);
+		} catch (Throwable e) {}
+		if (Double.isNaN(batches)) batches = defaultBatches;
+		if (batches <= 0) batches = defaultBatches;
+		printer.println("Batches are " + batches + "\n");
 
 		printer.print("Enter base directory (" + Util.WORKING_DIRECTORY + "/base" + "):");
 		String base = scanner.nextLine().trim();
@@ -722,7 +736,8 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			});
 		} catch (Exception e) {Util.trace(e);}
 		
-		classifyCIFAR10(baseRastersList, testRastersList, testresultDir);
+		classifyCIFAR10(baseRastersList, testRastersList, testresultDir, batches);
+		printer.println("End task.");
 	}
 	
 	
@@ -732,12 +747,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 * @param testRastersList list of testing dataset.
 	 * @param testresultDir testing result directory.
 	 */
-	private static void classifyCIFAR10(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir) {
+	private static void classifyCIFAR10(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int batches) {
 		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
 		int maxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
 		int rasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
 		double learningRate = Network.LEARN_RATE_DEFAULT;
-		int batches = ClassifierBuilder.DEFAULT_BATCHES;
 		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
 		boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
 		boolean dual = ClassifierAbstract.DUAL_DEFAULT;
@@ -756,7 +770,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		}
 
 		boolean[] vectorizeds = new boolean[] {false, true};
-		int[] depths = new int[] {2};
+		int[] depths = new int[] {2, 3, 5};
 		boolean[] entropyTrainers = new boolean[] {false, true};
 		ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.mac, ClassifierModel.tramac};
 		boolean[] convs = new boolean[] {false, true};
@@ -769,7 +783,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 					for (ClassifierModel model : models) {
 						builder.setModel(model);
 						for (boolean conv : convs) {
-							if (conv && model != ClassifierModel.mac) continue;
+//							if (conv && model != ClassifierModel.mac) continue;
 							System.out.println("Training " +
 								("vectorized=" + vectorized) +
 								(", depth=" + depth) +
@@ -804,7 +818,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			System.out.println("Batches are re-calculated as " + builder.getBatches() + "\n");
 		}
 	
-		Classifier classifier = builder.build();
+		Classifier classifier = null;
 		ClassifyInfo info = new ClassifyInfo();
 		long time = 0;
 		SimpleDateFormat df = new SimpleDateFormat(Util.DATE_FORMAT);
@@ -813,6 +827,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			for (List<Raster> baseRasters : baseRastersList) {
 				for (List<Raster> sources : testRastersList) {
 					try {
+						classifier = builder.build();
 						long beginTime = System.currentTimeMillis();
 						classifier.learnRaster(baseRasters);
 						List<Raster> results = classifier.classify(sources);
@@ -823,6 +838,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 						infoOne.collect(sources, results);
 						info.accum(infoOne);
 					} catch (Throwable e) {Util.trace(e);}
+					System.gc();
 				}
 			}
 		}
@@ -840,7 +856,6 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			BufferedWriter csvWriter = Files.newBufferedWriter(testresultDir.resolve(classifiedName + ".csv"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 			saveClassifyInfo(csvWriter, info, params);
 			csvWriter.close();
-	
 		} catch (Throwable e) {Util.trace(e);}
 	}
 

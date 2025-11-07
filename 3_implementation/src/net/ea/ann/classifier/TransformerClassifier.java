@@ -256,8 +256,19 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 
 	
 	@Override
+	public void reset() {
+		super.reset();
+		transformer.reset();
+	}
+
+
+	@Override
 	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
+		
+		try {
+			transformer.getConfig().putAll(this.config);
+		} catch (Throwable e) {Util.trace(e);}
 		TransformerInitializer initializer = new TransformerInitializer(this.transformer);
 		if (!initializer.initializeOnlyEncoder(inputSize1.height, inputSize1.width, depth1, paramGetBlocksNumber())) return false;
 		
@@ -267,12 +278,12 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 		if (outputSize2 == null) {
 			int depth = depth1 + depth2;
 			depth = depth > 1 ? depth-1 : depth;
-			if (!transformer.setOutputAdapter(outputCombSize, filter1, depth, dual1, null, 0))
+			if (!transformer.setOutputFFN(outputCombSize, filter1, depth, dual1, null, 0))
 				return false;
 		}
 		else {
 			depth1 = depth1 > 1 ? depth1-1 : depth1;
-			if (!transformer.setOutputAdapter(outputSize1, filter1, depth1, dual1, outputCombSize, depth2))
+			if (!transformer.setOutputFFN(outputSize1, filter1, depth1, dual1, outputCombSize, depth2))
 				return false;
 		}
 		
@@ -286,11 +297,6 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 				output.columns() != this.outputClassMaps.get(0).size()) return false;
 		}
 		
-		MatrixNetworkImpl outputAdapter = transformer.getOutputAdapter();
-		if (outputAdapter != null) {
-			transformer.removeOutputAdapter();
-			transformer.setOutputFFN(outputAdapter);
-		}
 		return true;
 	}
 

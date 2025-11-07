@@ -250,7 +250,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		baseline = null;
 	}
 
-
+	
 	/**
 	 * Default filter.
 	 * @param filterStride filter stride.

@@ -447,6 +447,16 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	
 
 	/**
+	 * Getting size of this layer with regard to vectorization.
+	 * @return size of this layer with regard to vectorization.
+	 */
+	public Dimension getSizeByVecRows() {
+		Dimension size = getSize();
+		return vecRows > 0 ? new Dimension(size.height/vecRows, vecRows) : size;
+	}
+	
+	
+	/**
 	 * Getting matrix neural network.
 	 * @return matrix neural network.
 	 */

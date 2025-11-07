@@ -242,8 +242,8 @@ public class GenUIClassifier extends GenUI {
 			GenUIClassifier classifierUI = (GenUIClassifier)queryLocalGenModel(new MatrixClassifier(), null);
 			if (classifierUI != null) classifierUI.setVisible(true);
 		}
-		else if (arg.equalsIgnoreCase("mane"))
-			ClassifierAssoc.classify();
+		else if (arg.equalsIgnoreCase("mane") || arg.equalsIgnoreCase("gen") || arg.equalsIgnoreCase("general"))
+			ClassifierAssoc.classifyGen(System.in, System.out);
 		else
 			ClassifierAssoc.classify(System.in, System.out);
 	}

@@ -337,6 +337,7 @@ abstract class MatrixClassifierAbstract extends ClassifierAbstract {
 	@Override
 	public void reset() {
 		super.reset();
+		nut.reset();
 		sampleWeight = null;
 	}
 
@@ -345,6 +346,9 @@ abstract class MatrixClassifierAbstract extends ClassifierAbstract {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
 		this.sampleWeight = null;
 		
+		try {
+			nut.getConfig().putAll(this.config);
+		} catch (Throwable e) {Util.trace(e);}
 		int outputCount = this.outputClassMaps.get(0).size();
 		int groupCount = getNumberOfGroups();
 		Dimension outputCombSize = paramIsByColumn() ? new Dimension(groupCount, outputCount) : new Dimension(outputCount, groupCount);

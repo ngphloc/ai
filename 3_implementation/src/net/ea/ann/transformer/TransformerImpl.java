@@ -952,7 +952,84 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 			return false;
 	}
 
+
+	/**
+	 * Setting output feed-forward network.
+	 * @param outputSize output size.
+	 * @param outputDepth output depth.
+	 * @return true if setting is successful.
+	 */
+	public boolean setOutputFFN(Dimension outputSize, int outputDepth) {
+		if (!validate())
+			return false;
+		else if (encoder != null && decoder != null) {
+			return decoder.setOutputFFN(outputSize, outputDepth);
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.setOutputFFN(outputSize, outputDepth);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.setOutputFFN(outputSize, outputDepth);
+		}
+		else
+			return false;
+	}
+
 	
+	/**
+	 * Setting output feed-forward network.
+	 * @param middleSize middle size.
+	 * @param middleFilter middle filter.
+	 * @param middleDepth middle depth.
+	 * @param middleDual middle dual mode.
+	 * @param finalSize final size.
+	 * @param finalDepth final depth.
+	 * @return true if setting is successful.
+	 */
+	public boolean setOutputFFN(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+		if (!validate())
+			return false;
+		else if (encoder != null && decoder != null) {
+			return decoder.setOutputFFN(middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.setOutputFFN(middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.setOutputFFN(middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else
+			return false;
+	}
+	
+
+	/**
+	 * Setting output feed-forward network.
+	 * @param middleSize middle size.
+	 * @param middleFilterStride middle filter stride.
+	 * @param middleDepth middle depth.
+	 * @param middleDual middle dual mode.
+	 * @param finalSize final size.
+	 * @param finalDepth final depth.
+	 * @return true if setting is successful.
+	 */
+	public boolean setOutputFFN(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+		if (!validate())
+			return false;
+		else if (encoder != null && decoder != null) {
+			return decoder.setOutputFFN(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else if (encoder != null && decoder == null) {
+			return encoder.setOutputFFN(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else if (encoder == null && decoder != null) {
+			return decoder.setOutputFFN(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
+		}
+		else
+			return false;
+	}
+
+		
 	/**
 	 * Getting size of trainers.
 	 * @return size of trainers.

@@ -66,13 +66,19 @@ public class GenModelApp extends ConsoleApp {
 	/**
 	 * Name of classification task.
 	 */
-	protected final static String CLASSIFY = "classification";
+	protected final static String CLASSIFY = "classify";
+
+	
+	/**
+	 * Name of general classification task.
+	 */
+	protected final static String CLASSIFY_GENERALIZE = "classify_generalize";
 
 	
 	/**
 	 * Array of task.
 	 */
-	protected final static String[] tasks = {GENAI, LEARN_FILTER, MANE_TRANSFORM, CLASSIFY};
+	protected final static String[] tasks = {GENAI, LEARN_FILTER, MANE_TRANSFORM, CLASSIFY, CLASSIFY_GENERALIZE};
 	
 	
 	/**
@@ -119,6 +125,11 @@ public class GenModelApp extends ConsoleApp {
 		case CLASSIFY:
 			try {
 				ClassifierAssoc.classify(((ConsoleImpl)console).getIn(), ((ConsoleImpl)console).getOut());
+			} catch (Throwable e) {Util.trace(e);}
+			break;
+		case CLASSIFY_GENERALIZE:
+			try {
+				ClassifierAssoc.classifyGen(((ConsoleImpl)console).getIn(), ((ConsoleImpl)console).getOut());
 			} catch (Throwable e) {Util.trace(e);}
 			break;
 		default:

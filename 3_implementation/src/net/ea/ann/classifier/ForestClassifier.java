@@ -116,6 +116,7 @@ public class ForestClassifier extends ClassifierAbstract {
 	public void reset() {
 		super.reset();
 		this.trees = null;
+		this.output = null;
 	}
 
 
@@ -129,9 +130,11 @@ public class ForestClassifier extends ClassifierAbstract {
 		this.trees = new ClassifierAbstract[classCount];
 		for (int i = 0; i < classCount; i++) {
 			this.trees[i] = createTree();
-			if (!this.trees[i].initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
 			try {
 				this.trees[i].getConfig().putAll(this.config);
+			} catch (Throwable e) {Util.trace(e);}
+			if (!this.trees[i].initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
+			try {
 				this.config.putAll(this.trees[i].getConfig());
 			} catch (Throwable e) {Util.trace(e);}
 		}
