@@ -10,7 +10,6 @@ package net.ea.ann.core.function;
 import net.ea.ann.core.LayerStandard;
 import net.ea.ann.core.NeuronStandard;
 import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.core.value.NeuronValue1;
 
 /**
  * This class represents soft-max function with scalar variable.
@@ -80,37 +79,7 @@ public class Softmax1 implements Softmax {
 
 	@Override
 	public NeuronValue evaluate(NeuronValue x) {
-		if (x == null) return null;
-		NeuronValue[] all = getAllValues();
-		if (all == null || all.length == 0) return null;
-		
-		NeuronValue max = NeuronValue.max(all);
-		max = max != null ? max : all[0].zero();
-		NeuronValue[] array = new NeuronValue[all.length];
-		boolean finite = true;
-		for (int i = 0; i < array.length; i++) {
-			array[i] = all[i].subtract(max).exp();
-			double v = ((NeuronValue1)array[i]).get();
-			if (Double.isInfinite(v) || v > Float.MAX_VALUE)
-				array[i] = new NeuronValue1(Float.MAX_VALUE);
-			finite = finite && Double.isFinite(v);
-		}
-		if (!finite)
-			return x.valueOf(1.0/(double)all.length);
-		
-		NeuronValue zero = x.zero();
-		NeuronValue sum = zero;
-		for (NeuronValue v : array) sum = sum.add(v);
-		if (sum.equals(zero))
-			return x.valueOf(1.0/(double)all.length);
-
-		NeuronValue xexp = x.subtract(max).exp();
-		double v = ((NeuronValue1)xexp).get();
-		if (Double.isInfinite(v) || v > Float.MAX_VALUE)
-			xexp = x.valueOf(Float.MAX_VALUE);
-		
-		NeuronValue1 value = (NeuronValue1)xexp.divide(sum);
-		return value.get() > 1 ? value.unit() : value;
+		return Softmax.softmax(getAllValues(), x);
 	}
 
 	

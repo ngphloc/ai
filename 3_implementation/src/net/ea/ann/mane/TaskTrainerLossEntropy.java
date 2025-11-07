@@ -7,6 +7,7 @@
  */
 package net.ea.ann.mane;
 
+import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.value.Matrix;
 
 /**
@@ -54,7 +55,7 @@ public class TaskTrainerLossEntropy extends TaskTrainerAbstract {
 
 	@Override
 	public Matrix convert(Matrix output) {
-		return byColumn ? Matrix.softmaxByColumn(output) : Matrix.softmaxByRow(output);
+		return byColumn ? Softmax.softmaxByColumn(output) : Softmax.softmaxByRow(output);
 	}
 
 	

@@ -657,6 +657,15 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 	}
 
 
+	/**
+	 * Getting values.
+	 * @return values.
+	 */
+	public double[] v() {
+		return this.v;
+	}
+	
+	
 	@Override
 	public String toText() {
 		if (v == null || v.length == 0) return "";

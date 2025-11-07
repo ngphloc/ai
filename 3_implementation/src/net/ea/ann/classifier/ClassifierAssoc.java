@@ -36,6 +36,7 @@ import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
 import net.ea.ann.transformer.TransformerAssoc;
@@ -378,169 +379,6 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Test of classification.
-	 * @param in input stream.
-	 * @param out output stream.
-	 */
-	public static void classify(InputStream in, OutputStream out) {
-		@SuppressWarnings("resource")
-		Scanner scanner = new Scanner(in);
-		PrintStream printer = new PrintStream(out);
-
-		int defaultDataset = 0;
-		int dataset = defaultDataset;
-		printer.print("Dataset (0-cifar10) (default " + defaultDataset + " is cifar10):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) dataset = Integer.parseInt(line);
-		} catch (Throwable e) {}
-		if (Double.isNaN(dataset)) dataset = defaultDataset;
-		if (dataset <= 0) dataset = defaultDataset;
-		printer.println("Dataset is " + dataset + "\n");
-
-		switch (dataset) {
-		case 0:
-			classifyCIFAR10(in, out);
-			break;
-		default:
-			classifyCIFAR10(in, out);
-			break;
-		}
-	}
-
-	
-	/**
-	 * Test of classification with CIFAR-10 dataset.
-	 * @param in input stream.
-	 * @param out output stream.
-	 */
-	static void classifyCIFAR10(InputStream in, OutputStream out) {
-		ClassifierBuilder builder = ClassifierBuilder.enter(in, out);
-		if (builder == null) return;
-		@SuppressWarnings("resource")
-		Scanner scanner = new Scanner(in);
-		PrintStream printer = new PrintStream(out);
-
-		int defaultMaxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
-		int maxIteration = defaultMaxIteration;
-		printer.print("Maximum iteration (default " + defaultMaxIteration + "):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) maxIteration = Integer.parseInt(line);
-		} catch (Throwable e) {}
-		if (Double.isNaN(maxIteration)) maxIteration = defaultMaxIteration;
-		if (maxIteration <= 0) maxIteration = defaultMaxIteration;
-		printer.println("Maximum iteration is " + maxIteration + "\n");
-	
-		int defaultTrainSize = -1;
-		int trainSize = defaultTrainSize;
-		printer.print("Training size (default " + defaultTrainSize + " for all):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) trainSize = Integer.parseInt(line);
-		} catch (Throwable e) {}
-		if (Double.isNaN(trainSize)) trainSize = defaultTrainSize;
-		if (trainSize < 0) trainSize = defaultTrainSize;
-		printer.println("Training size is " + trainSize + "\n");
-	
-		printer.print("Enter base directory (" + Util.WORKING_DIRECTORY + "/base" + "):");
-		String base = scanner.nextLine().trim();
-		if (base.isBlank() || base.isEmpty()) base = Util.WORKING_DIRECTORY + "/base";
-		printer.println("Base directory is \"" + base + "\".\n");
-		Path baseDir = Paths.get(base);
-		if (!Files.exists(baseDir) || !Files.isDirectory(baseDir)) {
-			printer.println("Wrong base directory");
-			return;
-		}
-		
-		printer.print("Enter test directory (" + Util.WORKING_DIRECTORY + "/test" + "):");
-		String test = scanner.nextLine().trim();
-		if (test.isBlank() || test.isEmpty()) test = Util.WORKING_DIRECTORY + "/test";
-		printer.println("Test directory is \"" + test + "\".\n");
-		Path testDir = Paths.get(test);
-		try {
-			if (!Files.exists(testDir)) Files.createDirectory(testDir);
-			if (!Files.isDirectory(testDir)) {
-				printer.println("Wrong test directory");
-				return;
-			}
-		} catch (Throwable e) {Util.trace(e);}
-	
-		printer.print("Enter test result directory (" + Util.WORKING_DIRECTORY + "/testresult" + "):");
-		String testresult = scanner.nextLine().trim();
-		if (testresult.isBlank() || testresult.isEmpty()) testresult = Util.WORKING_DIRECTORY + "/testresult";
-		printer.println("Test result directory is \"" + testresult + "\".\n");
-		Path testresultDir = Paths.get(testresult);
-		try {
-			if (!Files.exists(testresultDir)) Files.createDirectory(testresultDir);
-		} catch (Throwable e) {Util.trace(e);}
-		
-		List<List<Raster>> baseRastersList = Util.newList(0);
-		List<List<Raster>> testRastersList = Util.newList(0);
-		try {
-			final int size = trainSize;
-			Files.list(baseDir).filter(Files::isRegularFile).forEach((basePath) -> {
-				List<Raster> baseRasters = RasterAssoc.loadCIFAR(basePath, size);
-				if (baseRasters.size() > 0) baseRastersList.add(baseRasters);
-			});
-	
-			Files.list(testDir).filter(Files::isRegularFile).forEach((testPath) -> {
-				List<Raster> testRasters = RasterAssoc.loadCIFAR(testPath, size);
-				if (testRasters.size() > 0) testRastersList.add(testRasters);
-			});
-		} catch (Exception e) {Util.trace(e);}
-		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
-	
-		int minBaseSize = baseRastersList.get(0).size();
-		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());
-		if (builder.getBatches() > minBaseSize) {
-			builder.setBatches(1);
-			printer.println("Batches are re-calculated as " + builder.getBatches() + "\n");
-		}
-	
-		Classifier classifier = builder.build();
-		ClassifyInfo info = new ClassifyInfo();
-		long time = 0;
-		SimpleDateFormat df = new SimpleDateFormat(Util.DATE_FORMAT);
-		System.out.println("Begin task at " + df.format(new Date()));
-		for (int iteration = 0; iteration < maxIteration; iteration++) {
-			for (List<Raster> baseRasters : baseRastersList) {
-				for (List<Raster> sources : testRastersList) {
-					try {
-						long beginTime = System.currentTimeMillis();
-						classifier.learnRaster(baseRasters);
-						List<Raster> results = classifier.classify(sources);
-						long endTime = System.currentTimeMillis();
-						time += endTime - beginTime;
-						
-						ClassifyInfo infoOne = new ClassifyInfo();
-						infoOne.collect(sources, results);
-						info.accum(infoOne);
-					} catch (Throwable e) {Util.trace(e);}
-				}
-			}
-		}
-		System.out.println("End task at " + df.format(new Date()));
-	
-		ClassifyParams params = new ClassifyParams();
-		params.importParams(builder);
-		params.dataset = "cifar10";
-		params.maxIteration = maxIteration;
-		params.depth = new ClassifierAssoc(classifier).depth();
-		params.paramSize = new ClassifierAssoc(classifier).sizeOfParams();
-		params.time = time;
-		try {
-			String classifiedName = RasterAssoc.genDefaultName(params.model + "-" + Util.format(params.learningRate) + "-" + "stat", null);
-			BufferedWriter csvWriter = Files.newBufferedWriter(testresultDir.resolve(classifiedName + ".csv"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-			saveClassifyInfo(csvWriter, info, params);
-			csvWriter.close();
-	
-		} catch (Throwable e) {Util.trace(e);}
-			
-	}
-
-
-	/**
 	 * Saving classification information.
 	 * @param writer writer.
 	 * @param info classification information.
@@ -630,9 +468,9 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			result.append("model=" + params.model + "~dataset=" + params.dataset +
 				"~conv=" + params.conv +
 				"~vec=" + params.vectorized +
-				"~dual=" + params.dual +
 				"~baseline=" + params.baseline +
 				"~adjust=" + params.adjust +
+				"~dual=" + params.dual +
 				"~tree=" + params.treeModel + "\n");
 			writer.write(result.toString() + "\n");
 			writer.flush();
@@ -694,8 +532,317 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			} catch (Throwable e) {Util.trace(e);}
 		}
 
-	
 	}
 	
 	
+	/**
+	 * Test of classification.
+	 * @param in input stream.
+	 * @param out output stream.
+	 */
+	public static void classify(InputStream in, OutputStream out) {
+		@SuppressWarnings("resource")
+		Scanner scanner = new Scanner(in);
+		PrintStream printer = new PrintStream(out);
+
+		int defaultDataset = 0;
+		int dataset = defaultDataset;
+		printer.print("Dataset (0-cifar10) (default " + defaultDataset + " is cifar10):");
+		try {
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) dataset = Integer.parseInt(line);
+		} catch (Throwable e) {}
+		if (Double.isNaN(dataset)) dataset = defaultDataset;
+		if (dataset <= 0) dataset = defaultDataset;
+		printer.println("Dataset is " + dataset + "\n");
+
+		switch (dataset) {
+		case 0:
+			classifyCIFAR10(in, out);
+			break;
+		default:
+			classifyCIFAR10(in, out);
+			break;
+		}
+	}
+
+	
+	/**
+	 * Test of classification.
+	 * @param in input stream.
+	 * @param out output stream.
+	 */
+	public static void classify() {
+		classifyCIFAR10();
+	}
+	
+	
+	/**
+	 * Test of classification with CIFAR-10 dataset.
+	 * @param in input stream.
+	 * @param out output stream.
+	 */
+	static void classifyCIFAR10(InputStream in, OutputStream out) {
+		ClassifierBuilder builder = ClassifierBuilder.enter(in, out);
+		if (builder == null) return;
+		@SuppressWarnings("resource")
+		Scanner scanner = new Scanner(in);
+		PrintStream printer = new PrintStream(out);
+
+		int defaultMaxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
+		int maxIteration = defaultMaxIteration;
+		printer.print("Maximum iteration (default " + defaultMaxIteration + "):");
+		try {
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) maxIteration = Integer.parseInt(line);
+		} catch (Throwable e) {}
+		if (Double.isNaN(maxIteration)) maxIteration = defaultMaxIteration;
+		if (maxIteration <= 0) maxIteration = defaultMaxIteration;
+		printer.println("Maximum iteration is " + maxIteration + "\n");
+	
+		int defaultTrainSize = -1;
+		int trainSize = defaultTrainSize;
+		printer.print("Training size (default " + defaultTrainSize + " for all):");
+		try {
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) trainSize = Integer.parseInt(line);
+		} catch (Throwable e) {}
+		if (Double.isNaN(trainSize)) trainSize = defaultTrainSize;
+		if (trainSize < 0) trainSize = defaultTrainSize;
+		printer.println("Training size is " + trainSize + "\n");
+	
+		printer.print("Enter base directory (" + Util.WORKING_DIRECTORY + "/base" + "):");
+		String base = scanner.nextLine().trim();
+		if (base.isBlank() || base.isEmpty()) base = Util.WORKING_DIRECTORY + "/base";
+		printer.println("Base directory is \"" + base + "\".\n");
+		Path baseDir = Paths.get(base);
+		if (!Files.exists(baseDir) || !Files.isDirectory(baseDir)) {
+			printer.println("Wrong base directory");
+			return;
+		}
+		
+		printer.print("Enter test directory (" + Util.WORKING_DIRECTORY + "/test" + "):");
+		String test = scanner.nextLine().trim();
+		if (test.isBlank() || test.isEmpty()) test = Util.WORKING_DIRECTORY + "/test";
+		printer.println("Test directory is \"" + test + "\".\n");
+		Path testDir = Paths.get(test);
+		if (!Files.exists(testDir) || !Files.isDirectory(testDir)) {
+			printer.println("Wrong test directory");
+			return;
+		}
+	
+		printer.print("Enter test result directory (" + Util.WORKING_DIRECTORY + "/testresult" + "):");
+		String testresult = scanner.nextLine().trim();
+		if (testresult.isBlank() || testresult.isEmpty()) testresult = Util.WORKING_DIRECTORY + "/testresult";
+		printer.println("Test result directory is \"" + testresult + "\".\n");
+		Path testresultDir = Paths.get(testresult);
+		try {
+			if (!Files.exists(testresultDir)) Files.createDirectory(testresultDir);
+		} catch (Throwable e) {Util.trace(e);}
+		
+		List<List<Raster>> baseRastersList = Util.newList(0);
+		List<List<Raster>> testRastersList = Util.newList(0);
+		try {
+			final int size = trainSize;
+			Files.list(baseDir).filter(Files::isRegularFile).forEach((basePath) -> {
+				List<Raster> baseRasters = RasterAssoc.loadCIFAR(basePath, size);
+				if (baseRasters.size() > 0) baseRastersList.add(baseRasters);
+			});
+	
+			Files.list(testDir).filter(Files::isRegularFile).forEach((testPath) -> {
+				List<Raster> testRasters = RasterAssoc.loadCIFAR(testPath, size);
+				if (testRasters.size() > 0) testRastersList.add(testRasters);
+			});
+		} catch (Exception e) {Util.trace(e);}
+	
+		classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
+	}
+
+	
+	/**
+	 * Test of classification with CIFAR-10 dataset.
+	 */
+	private static void classifyCIFAR10() {
+		@SuppressWarnings("resource")
+		Scanner scanner = new Scanner(System.in);
+		PrintStream printer = new PrintStream(System.out);
+
+		int defaultTrainSize = -1;
+		int trainSize = defaultTrainSize;
+		printer.print("Training size (default " + defaultTrainSize + " for all):");
+		try {
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) trainSize = Integer.parseInt(line);
+		} catch (Throwable e) {}
+		if (Double.isNaN(trainSize)) trainSize = defaultTrainSize;
+		if (trainSize < 0) trainSize = defaultTrainSize;
+		printer.println("Training size is " + trainSize + "\n");
+
+		printer.print("Enter base directory (" + Util.WORKING_DIRECTORY + "/base" + "):");
+		String base = scanner.nextLine().trim();
+		if (base.isBlank() || base.isEmpty()) base = Util.WORKING_DIRECTORY + "/base";
+		printer.println("Base directory is \"" + base + "\".\n");
+		Path baseDir = Paths.get(base);
+		if (!Files.exists(baseDir) || !Files.isDirectory(baseDir)) {
+			printer.println("Wrong base directory");
+			return;
+		}
+		
+		printer.print("Enter test directory (" + Util.WORKING_DIRECTORY + "/test" + "):");
+		String test = scanner.nextLine().trim();
+		if (test.isBlank() || test.isEmpty()) test = Util.WORKING_DIRECTORY + "/test";
+		printer.println("Test directory is \"" + test + "\".\n");
+		Path testDir = Paths.get(test);
+		if (!Files.exists(testDir) || !Files.isDirectory(testDir)) {
+			printer.println("Wrong test directory");
+			return;
+		}
+	
+		printer.print("Enter test result directory (" + Util.WORKING_DIRECTORY + "/testresult" + "):");
+		String testresult = scanner.nextLine().trim();
+		if (testresult.isBlank() || testresult.isEmpty()) testresult = Util.WORKING_DIRECTORY + "/testresult";
+		printer.println("Test result directory is \"" + testresult + "\".\n");
+		Path testresultDir = Paths.get(testresult);
+		try {
+			if (!Files.exists(testresultDir)) Files.createDirectory(testresultDir);
+		} catch (Throwable e) {Util.trace(e);}
+
+		List<List<Raster>> baseRastersList = Util.newList(0);
+		List<List<Raster>> testRastersList = Util.newList(0);
+		try {
+			final int size = trainSize;
+			Files.list(baseDir).filter(Files::isRegularFile).forEach((basePath) -> {
+				List<Raster> baseRasters = RasterAssoc.loadCIFAR(basePath, size);
+				if (baseRasters.size() > 0) baseRastersList.add(baseRasters);
+			});
+	
+			Files.list(testDir).filter(Files::isRegularFile).forEach((testPath) -> {
+				List<Raster> testRasters = RasterAssoc.loadCIFAR(testPath, size);
+				if (testRasters.size() > 0) testRastersList.add(testRasters);
+			});
+		} catch (Exception e) {Util.trace(e);}
+		
+		classifyCIFAR10(baseRastersList, testRastersList, testresultDir);
+	}
+	
+	
+	/**
+	 * Test of classification with CIFAR-10 dataset.
+	 * @param baseRastersList list of base datasets.
+	 * @param testRastersList list of testing dataset.
+	 * @param testresultDir testing result directory.
+	 */
+	private static void classifyCIFAR10(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir) {
+		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
+		int maxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
+		int rasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
+		double learningRate = Network.LEARN_RATE_DEFAULT;
+		int batches = ClassifierBuilder.DEFAULT_BATCHES;
+		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
+		boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
+		boolean dual = ClassifierAbstract.DUAL_DEFAULT;
+		ClassifierBuilder builder = new ClassifierBuilder(rasterChannel);
+		builder.setLearningRate(learningRate);
+		builder.setBatches(batches);
+		builder.setBaseline(baseline);
+		builder.setAdjust(adjust);
+		builder.setDual(dual);
+
+		int minBaseSize = baseRastersList.get(0).size();
+		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());
+		if (builder.getBatches() > minBaseSize) {
+			builder.setBatches(1);
+			System.out.println("Batches are re-calculated as " + builder.getBatches() + "\n");
+		}
+
+		boolean[] vectorizeds = new boolean[] {false, true};
+		int[] depths = new int[] {2};
+		boolean[] entropyTrainers = new boolean[] {false, true};
+		ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.mac, ClassifierModel.tramac};
+		boolean[] convs = new boolean[] {false, true};
+		for (boolean vectorized : vectorizeds) {
+			builder.setVectorized(vectorized);
+			for (int depth : depths) {
+				builder.setDepth(depth);
+				for (boolean entropyTrainer : entropyTrainers) {
+					builder.setEntropyTrainer(entropyTrainer);
+					for (ClassifierModel model : models) {
+						builder.setModel(model);
+						for (boolean conv : convs) {
+							if (conv && model != ClassifierModel.mac) continue;
+							System.out.println("Training " +
+								("vectorized=" + vectorized) +
+								(", depth=" + depth) +
+								(", entropy=" + entropyTrainer) +
+								(", model=" + model) +
+								(", conv=" + conv));
+							builder.setConv(conv);
+							classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
+							System.out.println("\n");
+						} //End for CNN.
+					} //End for models.
+				} //End for entropy trainers.
+			} //End for depth.
+		} //End for vectorizations.
+	}
+	
+	
+	/**
+	 * Test of classification with CIFAR-10 dataset.
+	 * @param builder classifier builder.
+	 * @param baseRastersList list of base datasets.
+	 * @param testRastersList list of testing dataset.
+	 * @param testresultDir testing result directory.
+	 * @param maxIteration maximum iteration.
+	 */
+	private static void classifyCIFAR10(ClassifierBuilder builder, List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int maxIteration) {
+		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
+		int minBaseSize = baseRastersList.get(0).size();
+		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());
+		if (builder.getBatches() > minBaseSize) {
+			builder.setBatches(1);
+			System.out.println("Batches are re-calculated as " + builder.getBatches() + "\n");
+		}
+	
+		Classifier classifier = builder.build();
+		ClassifyInfo info = new ClassifyInfo();
+		long time = 0;
+		SimpleDateFormat df = new SimpleDateFormat(Util.DATE_FORMAT);
+		System.out.println("Begin task at " + df.format(new Date()));
+		for (int iteration = 0; iteration < maxIteration; iteration++) {
+			for (List<Raster> baseRasters : baseRastersList) {
+				for (List<Raster> sources : testRastersList) {
+					try {
+						long beginTime = System.currentTimeMillis();
+						classifier.learnRaster(baseRasters);
+						List<Raster> results = classifier.classify(sources);
+						long endTime = System.currentTimeMillis();
+						time += endTime - beginTime;
+						
+						ClassifyInfo infoOne = new ClassifyInfo();
+						infoOne.collect(sources, results);
+						info.accum(infoOne);
+					} catch (Throwable e) {Util.trace(e);}
+				}
+			}
+		}
+		System.out.println("End task at " + df.format(new Date()));
+	
+		ClassifyParams params = new ClassifyParams();
+		params.importParams(builder);
+		params.dataset = "cifar10";
+		params.maxIteration = maxIteration;
+		params.depth = new ClassifierAssoc(classifier).depth();
+		params.paramSize = new ClassifierAssoc(classifier).sizeOfParams();
+		params.time = time;
+		try {
+			String classifiedName = RasterAssoc.genDefaultName(params.model + "-" + Util.format(params.learningRate) + "-" + "stat", null);
+			BufferedWriter csvWriter = Files.newBufferedWriter(testresultDir.resolve(classifiedName + ".csv"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+			saveClassifyInfo(csvWriter, info, params);
+			csvWriter.close();
+	
+		} catch (Throwable e) {Util.trace(e);}
+	}
+
+
 }

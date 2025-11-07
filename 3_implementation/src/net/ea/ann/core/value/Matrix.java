@@ -280,109 +280,6 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
-	 * Calculating soft-max function of vector.
-	 * @param values vector.
-	 * @return soft-max function of vector.
-	 */
-	static NeuronValue[] softmax(NeuronValue...values) {
-		if (values == null || values.length == 0) return null;
-		NeuronValue[] softmax = new NeuronValue[values.length];
-		NeuronValue sum = values[0].zero();
-		NeuronValue max = NeuronValue.max(values);
-		for (int i = 0; i < values.length; i++) {
-			softmax[i] = values[i].subtract(max).exp();
-			sum = sum.add(softmax[i]);
-		}
-		for (int i = 0; i < values.length; i++) {
-			softmax[i] = softmax[i].divide(sum);
-		}
-		return softmax;
-	}
-	
-	
-	/**
-	 * Calculating soft-max function of matrix by row.
-	 * @param matrix matrix.
-	 * @return soft-max function of matrix by row.
-	 */
-	static Matrix softmaxByRow(Matrix matrix) {
-		if (matrix == null) return null;
-		Matrix softmax = matrix.create(matrix.rows(), matrix.columns());
-		NeuronValue max = valueMax(matrix);
-		NeuronValue zero = max.zero();
-		for (int row = 0; row < matrix.rows(); row++) {
-			NeuronValue[] exps = new NeuronValue[matrix.columns()];
-			NeuronValue sum = zero;
-			for (int column = 0; column < matrix.columns(); column++) {
-				exps[column] = matrix.get(row, column).subtract(max).exp();
-				sum = sum.add(exps[column]);
-			}
-			
-			for (int column = 0; column < matrix.columns(); column++) {
-				NeuronValue value = exps[column].divide(sum);
-				softmax.set(row, column, value);
-			}
-		}
-		
-		return softmax;
-	}
-
-	
-	/**
-	 * Calculating inverse soft-max function of matrix by row.
-	 * @param matrix matrix.
-	 * @return inverse soft-max function of matrix by row.
-	 */
-	static Matrix softmaxByRowInverse(Matrix matrix) {
-		Matrix unitMatrix = matrix.create(matrix.rows(), matrix.columns());
-		NeuronValue unit = matrix.get(0, 0).unit();
-		Matrix.fill(unitMatrix, unit);
-		return softmaxByRow(unitMatrix.subtract(matrix));
-	}
-	
-	
-	/**
-	 * Calculating soft-max function of matrix by column.
-	 * @param matrix matrix.
-	 * @return soft-max function of matrix by column.
-	 */
-	static Matrix softmaxByColumn(Matrix matrix) {
-		if (matrix == null) return null;
-		Matrix softmax = matrix.create(matrix.rows(), matrix.columns());
-		NeuronValue max = valueMax(matrix);
-		NeuronValue zero = max.zero();
-		for (int column = 0; column < matrix.columns(); column++) {
-			NeuronValue[] exps = new NeuronValue[matrix.rows()];
-			NeuronValue sum = zero;
-			for (int row = 0; row < matrix.rows(); row++) {
-				exps[row] = matrix.get(row, column).subtract(max).exp();
-				sum = sum.add(exps[row]);
-			}
-			
-			for (int row = 0; row < matrix.rows(); row++) {
-				NeuronValue value = exps[row].divide(sum);
-				softmax.set(row, column, value);
-			}
-		}
-		
-		return softmax;
-	}
-	
-	
-	/**
-	 * Calculating inverse soft-max function of matrix by column.
-	 * @param matrix matrix.
-	 * @return inverse soft-max function of matrix by column.
-	 */
-	static Matrix softmaxByColumnInverse(Matrix matrix) {
-		Matrix unitMatrix = matrix.create(matrix.rows(), matrix.columns());
-		NeuronValue unit = matrix.get(0, 0).unit();
-		Matrix.fill(unitMatrix, unit);
-		return softmaxByColumn(unitMatrix.subtract(matrix));
-	}
-
-	
-	/**
 	 * Concatenating many matrices into one matrix by horizontal, excluding this matrix.
 	 * @param matrices array of matrices.
 	 * @return concatenated matrix.
@@ -728,6 +625,32 @@ public interface Matrix extends NeuronValueCreator {
 
 
 	/**
+	 * Creating row matrix by vector.
+	 * @param vector vector.
+	 * @return row matrix.
+	 */
+	static Matrix createRowMatrix(NeuronValue[] vector) {
+		if (vector == null || vector.length == 0) return null;
+		Matrix matrix = create(1, vector.length, vector[0]);
+		for (int column = 0; column < vector.length; column++) matrix.set(0, column, vector[column]);
+		return matrix;
+	}
+	
+	
+	/**
+	 * Creating column matrix by vector.
+	 * @param vector vector.
+	 * @return column matrix.
+	 */
+	static Matrix createColumnMatrix(NeuronValue[] vector) {
+		if (vector == null || vector.length == 0) return null;
+		Matrix matrix = create(vector.length, 1, vector[0]);
+		for (int row = 0; row < vector.length; row++) matrix.set(row, 0, vector[row]);
+		return matrix;
+	}
+
+	
+	/**
 	 * Creating identity matrix.
 	 * @param n rows and columns.
 	 * @return identity matrix.
@@ -846,6 +769,20 @@ public interface Matrix extends NeuronValueCreator {
 		return toMatrix(rows, columns, raster, neuronChannel, isNorm, null);
 	}
 	
+	
+	/**
+	 * Extracting values of matrix as vector.
+	 * @param matrix specified matrix.
+	 * @return values of matrix as vector.
+	 */
+	static NeuronValue[][] extractData(Matrix matrix) {
+		NeuronValue[][] data = new NeuronValue[matrix.rows()][matrix.columns()];
+		for (int row = 0; row < matrix.rows(); row++) {
+			for (int column = 0; column < matrix.columns(); column++) data[row][column] = matrix.get(row, column);
+		}
+		return data;
+	}
+
 	
 	/**
 	 * Extracting values of matrix as vector.

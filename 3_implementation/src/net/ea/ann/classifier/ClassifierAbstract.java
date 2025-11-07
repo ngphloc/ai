@@ -21,6 +21,7 @@ import net.ea.ann.conv.filter.ProductFilter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
+import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.generator.GeneratorWeighted;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
@@ -111,7 +112,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Default value for depth.
 	 */
-	public static final int DEPTH_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT/2;
+	public static final int DEPTH_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT/3;
 
 	
 	/**
@@ -352,7 +353,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			else {
 				int depth1 = depth - halfDepth, depth2 = halfDepth;
 				depth1 = depth1 == 0 && depth2 > 0 ? 1 : depth1;
-				if (!initialize(inputSize, inputSize, filterStride, depth1, true, nCoreClasses, depth2))
+				if (!initialize(inputSize, inputSize, filterStride, depth1, false, nCoreClasses, depth2))
 					return false;
 			}
 		}
@@ -708,7 +709,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 */
 	double[] weightsOfOutput(Matrix output, int groupIndex) {
 		NeuronValue[] values = getOutput(output, groupIndex);
-		values = paramIsEntropyTrainer() ? Matrix.softmax(values) : values;
+		values = paramIsEntropyTrainer() ? Softmax.softmax(values) : values;
 		if (this.baseline == null) return weightsOfOutput(values);
 		
 		for (int classIndex = 0; classIndex < values.length; classIndex++) {
@@ -907,7 +908,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 				}
 				
 				NeuronValue[] outputOne = getOutput(output, group);
-				outputOne = paramIsEntropyTrainer() ? Matrix.softmax(outputOne) : outputOne;
+				outputOne = paramIsEntropyTrainer() ? Softmax.softmax(outputOne) : outputOne;
 				for (int index = 0; index < indicator.length; index++) {
 					if (!indicator[index]) continue;
 					if (paramIsByColumn()) {

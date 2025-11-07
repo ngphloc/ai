@@ -695,7 +695,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			printer.println("Baseline is " + baseline + "\n");
 		}
 
-		boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
+		boolean adjust = baseline ? ClassifierAbstract.ADJUST_DEFAULT : false;
 		if (adjust) {
 			printer.print("Adjustment (" + adjust + " is default):");
 			try {
@@ -705,7 +705,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			printer.println("Adjustment is " + adjust + "\n");
 		}
 	
-		boolean dual = ClassifierAbstract.DUAL_DEFAULT;
+		boolean dual = conv ? ClassifierAbstract.DUAL_DEFAULT : false;
 		if (conv) {
 			printer.print("Dual mode (" + dual + " is default):");
 			try {

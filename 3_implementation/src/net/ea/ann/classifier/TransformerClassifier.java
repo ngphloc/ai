@@ -14,6 +14,7 @@ import java.util.List;
 import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
+import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
@@ -104,7 +105,7 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 	double[] weightsOfOutput(Matrix output, int groupIndex) {
 		if (adjuster == null) return super.weightsOfOutput(output, groupIndex);
 		NeuronValue[] values = getOutput(output, groupIndex);
-		values = paramIsEntropyTrainer() ? Matrix.softmax(values) : values;
+		values = paramIsEntropyTrainer() ? Softmax.softmax(values) : values;
 		if (this.baseline == null || this.adjustBaseline == null) return super.weightsOfOutput(output, groupIndex);
 		
 		for (int classIndex = 0; classIndex < values.length; classIndex++) {

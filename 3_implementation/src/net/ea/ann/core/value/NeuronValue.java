@@ -1229,6 +1229,47 @@ public interface NeuronValue extends Value {
 
 
 	/**
+	 * Calculating mean absolute value of two vectors.
+	 * @param vector1 vector 1.
+	 * @param vector2 vector 2.
+	 * @return mean absolute value of two vectors.
+	 */
+	static NeuronValue mae(NeuronValue[] vector1, NeuronValue[] vector2) {
+		int length = Math.min(vector1.length, vector2.length);
+		NeuronValue mae = null;
+		int n = 0;
+		for (int index = 0; index < length; index++) {
+			NeuronValue d = vector1[index].subtract(vector2[index]).abs();
+			mae = mae != null ? mae.add(d) : d;
+			n++;
+		}
+		return mae.divide(n);
+	}
+
+	
+	/**
+	 * Calculating mean absolute value of two matrices.
+	 * @param matrix1 matrix 1.
+	 * @param matrix2 matrix 2.
+	 * @return mean absolute value of two matrices.
+	 */
+	static NeuronValue mae(NeuronValue[][] matrix1, NeuronValue[][] matrix2) {
+		int rows = Math.min(matrix1.length, matrix2.length);
+		NeuronValue mae = null;
+		int n = 0;
+		for (int row = 0; row < rows; row++) {
+			int columns = Math.min(matrix1[row].length, matrix2[row].length);
+			for (int column = 0; column < columns; column++) {
+				NeuronValue d = matrix1[row][column].subtract(matrix2[row][column]).abs();
+				mae = mae != null ? mae.add(d) : d;
+				n++;
+			}
+		}
+		return mae.divide(n);
+	}
+	
+
+	/**
 	 * Copying source matrix to target matrix.
 	 * @param source source matrix.
 	 * @param target target matrix.

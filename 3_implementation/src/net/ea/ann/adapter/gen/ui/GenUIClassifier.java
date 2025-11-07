@@ -231,13 +231,21 @@ public class GenUIClassifier extends GenUI {
 	 * @param args arguments.
 	 */
 	public static void main(String[] args) {
-		if (args == null || args.length == 0 || args[0] == null || args[0].isEmpty()) {
+		String arg = null;
+		if (args != null && args.length > 0 && args[0] != null && !args[0].isEmpty()) {
+			arg = args[0].trim();
+			arg = arg.replaceAll("-", "");
+			if (arg.isBlank() || arg.isEmpty()) arg = null;
+		}
+
+		if (arg == null) {
 			GenUIClassifier classifierUI = (GenUIClassifier)queryLocalGenModel(new MatrixClassifier(), null);
 			if (classifierUI != null) classifierUI.setVisible(true);
 		}
-		else {
+		else if (arg.equalsIgnoreCase("mane"))
+			ClassifierAssoc.classify();
+		else
 			ClassifierAssoc.classify(System.in, System.out);
-		}
 	}
 
 

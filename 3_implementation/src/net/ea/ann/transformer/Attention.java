@@ -254,6 +254,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	
 	/**
 	 * Getting masked matrix.
+	 * If an element of this masked matrix is true, the corresponding value is ignored (masked).
 	 * @return masked matrix.
 	 */
 	public boolean[][] M() {
@@ -551,6 +552,7 @@ class Attention0 implements Cloneable, Serializable {
 	
 	/**
 	 * Masked matrix.
+	 * If an element of this masked matrix is true, the corresponding value is ignored (masked).
 	 */
 	protected boolean[][] M = null;
 	
@@ -787,6 +789,7 @@ class Attention0 implements Cloneable, Serializable {
 	
 	/**
 	 * Getting masked matrix.
+	 * If an element of this masked matrix is true, the corresponding value is ignored (masked).
 	 * @return masked matrix.
 	 */
 	public boolean[][] M() {
