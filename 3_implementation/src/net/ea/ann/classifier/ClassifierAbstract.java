@@ -20,6 +20,7 @@ import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.conv.filter.ProductFilter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
+import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.generator.GeneratorWeighted;
@@ -166,13 +167,25 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Field for cross-entropy trainer.
 	 */
-	static final String ENTROPY_TRAINER_FIELD = "classifier_entropy_trainer";
+	public static final String ENTROPY_TRAINER_FIELD = "classifier_entropy_trainer";
 
 	
 	/**
 	 * Default value for cross-entropy trainer.
 	 */
-	static final boolean ENTROPY_TRAINER_DEFAULT = false;
+	public static final boolean ENTROPY_TRAINER_DEFAULT = true;
+	
+	
+	/**
+	 * Field for creating adjuster mode.
+	 */
+	static final String CREATE_ADJUSTER_FIELD = "classifier_create_adjuster";
+	
+	
+	/**
+	 * Default value for creating adjuster mode.
+	 */
+	static final boolean CREATE_ADJUSTER_DEFAULT = false;
 	
 	
 	/**
@@ -228,6 +241,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		config.put(ADJUST_FIELD, ADJUST_DEFAULT);
 		config.put(SAMPLE_WEIGHT_FIELD, SAMPLE_WEIGHT_DEFAULT);
 		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
+		config.put(CREATE_ADJUSTER_FIELD, CREATE_ADJUSTER_DEFAULT);
 	}
 
 	
@@ -268,6 +282,24 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 
 		
 	/**
+	 * Updating configuration.
+	 */
+	void updateConfig() { }
+
+	
+	/**
+	 * Updating configuration.
+	 * @param config configuration.
+	 */
+	void updateConfig(NetworkConfig config) {
+		try {
+			this.config.putAll(config);
+		} catch (Throwable e) {Util.trace(e);}
+		updateConfig();
+	}
+
+	
+	/**
 	 * Initializing classifier.
 	 * @param inputSize1 input size 1.
 	 * @param outputSize1 output size 1, which can be null.
@@ -279,7 +311,9 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @return true if initialization is successful.
 	 */
 	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+		updateConfig();
 		this.baseline = null;
+		
 		Dimension nCoreClasses2 = outputSize2;
 		if (nCoreClasses2 == null) nCoreClasses2 = outputSize1 != null ? outputSize1 : inputSize1; 
 		return configClassInfo(nCoreClasses2);
@@ -871,20 +905,11 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @return baseline.
 	 */
 	Matrix calcBaseline(Iterable<Record> sample) {
-		return paramGetCombNumber() == 1 ? calcBaselineByBaseline(sample) : calcBaselineByBaseline(sample);
-	}
-	
-	
-	/**
-	 * Calculating baseline.
-	 * @param sample sample.
-	 * @return baseline.
-	 */
-	private Matrix calcBaselineByBaseline(Iterable<Record> sample) {
-		Matrix baseline = getOutput().create(getOutput().rows(), getOutput().columns());
+		Matrix o = getOutput();
+		Matrix baseline = o.create(o.rows(), o.columns());
 		Matrix.fill(baseline, 0);
-		Matrix count = baseline.create(baseline.rows(), baseline.columns());
-		Matrix.fill(count, 0);
+		Matrix countBaseline = baseline.create(baseline.rows(), baseline.columns());
+		Matrix.fill(countBaseline, 0);
 		
 		int combNumber = paramGetCombNumber();
 		int groups = getNumberOfGroups();
@@ -911,23 +936,18 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 				outputOne = paramIsEntropyTrainer() ? Softmax.softmax(outputOne) : outputOne;
 				for (int index = 0; index < indicator.length; index++) {
 					if (!indicator[index]) continue;
+					NeuronValue unit = countBaseline.get(0, 0).unit();
 					if (paramIsByColumn()) {
-						NeuronValue value = baseline.get(index, group);
-						value = value.add(outputOne[index]);
+						NeuronValue value = baseline.get(index, group).add(outputOne[index]);
 						baseline.set(index, group, value);
-						
-						NeuronValue c = count.get(index, group);
-						c = c.add(c.unit());
-						count.set(index, group, c);
+						NeuronValue c = countBaseline.get(index, group).add(unit);
+						countBaseline.set(index, group, c);
 					}
 					else {
-						NeuronValue value = baseline.get(group, index);
-						value = value.add(outputOne[index]);
+						NeuronValue value = baseline.get(group, index).add(outputOne[index]);
 						baseline.set(group, index, value);
-						
-						NeuronValue c = count.get(group, index);
-						c = c.add(c.unit());
-						count.set(group, index, c);
+						NeuronValue c = countBaseline.get(group, index).add(unit);
+						countBaseline.set(group, index, c);
 					}
 				}
 			}
@@ -937,7 +957,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		for (int row = 0; row < baseline.rows(); row++) {
 			for (int column = 0; column < baseline.columns(); column++) {
 				NeuronValue value = baseline.get(row, column);
-				NeuronValue c = count.get(row, column);
+				NeuronValue c = countBaseline.get(row, column);
 				if (c.canInvertWise())
 					value = value.divide(c);
 				else if (paramIsNorm() || paramIsEntropyTrainer())
@@ -947,34 +967,216 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 				baseline.set(row, column, value);
 			}
 		}
-		
 		return baseline;
 	}
 	
 	
+//	/**
+//	 * Calculating baseline.
+//	 * @param matrices array of matrices.
+//	 * @return baseline.
+//	 */
+//	@SuppressWarnings("unused")
+//	@Deprecated
+//	private Matrix calcBaselineByStat(Iterable<Record> sample) {
+//		List<Matrix> outputList = Util.newList(0);
+//		for (Record record : sample) {
+//			Matrix output = evaluate(record.input());
+//			if (output != null) outputList.add(output);
+//		}
+//		if (outputList.size() == 0) return null;
+//
+//		Matrix[] matrices = outputList.toArray(new Matrix[] {});
+//		Matrix mean = Matrix.mean(matrices);
+//		Matrix std = Matrix.std(matrices);
+//		Matrix baseLineByMean = mean.subtract(std.multiply0(1.96));
+//		Matrix baseLineByMin = Matrix.min(matrices);
+//		return Matrix.max(baseLineByMean, baseLineByMin);
+//	}
+	
+	
 	/**
-	 * Calculating baseline.
-	 * @param matrices array of matrices.
-	 * @return baseline.
+	 * Calculating adjusted line.
+	 * @param sample sample.
+	 * @param adjuster adjuster.
+	 * @return adjusted line.
 	 */
 	@SuppressWarnings("unused")
 	@Deprecated
-	private Matrix calcBaselineByStat(Iterable<Record> sample) {
-		List<Matrix> outputList = Util.newList(0);
+	private Matrix calcAdjustline(Iterable<Record> sample, MatrixNetworkImpl adjuster) {
+		Matrix o = getOutput();
+		Matrix adjustline = o.create(o.rows(), o.columns());
+		Matrix.fill(adjustline, 0);
+		Matrix countAdjustline = adjustline.create(adjustline.rows(), adjustline.columns());
+		Matrix.fill(countAdjustline, 0);
+
 		for (Record record : sample) {
 			Matrix output = evaluate(record.input());
-			if (output != null) outputList.add(output);
-		}
-		if (outputList.size() == 0) return null;
+			Matrix adjustOutput = null;
+			try {
+				adjustOutput = adjuster != null ? adjuster.evaluate(output) : output;
+			} catch (Throwable e) {Util.trace(e);}
 
-		Matrix[] matrices = outputList.toArray(new Matrix[] {});
-		Matrix mean = Matrix.mean(matrices);
-		Matrix std = Matrix.std(matrices);
-		Matrix baseLineByMean = mean.subtract(std.multiply0(1.96));
-		Matrix baseLineByMin = Matrix.min(matrices);
-		return Matrix.max(baseLineByMean, baseLineByMin);
+			int groups = getNumberOfGroups();
+			for (int group = 0; group < groups; group++) {
+				NeuronValue[] adjustOutputOne = getOutput(adjustOutput, group);
+				adjustOutputOne = paramIsEntropyTrainer() ? Softmax.softmax(adjustOutputOne) : adjustOutputOne;
+				for (int index = 0; index < adjustOutputOne.length; index++) {
+					NeuronValue unit = countAdjustline.get(0, 0).unit();
+					if (paramIsByColumn()) {
+						NeuronValue value = adjustline.get(index, group).add(adjustOutputOne[index]);
+						adjustline.set(index, group, value);
+						NeuronValue c = countAdjustline.get(index, group).add(unit);
+						countAdjustline.set(index, group, c);
+					}
+					else {
+						NeuronValue value = adjustline.get(group, index).add(adjustOutputOne[index]);
+						adjustline.set(group, index, value);
+						NeuronValue c = countAdjustline.get(group, index).add(unit);
+						countAdjustline.set(group, index, c);
+					}
+				}
+			}
+		} //End sample
+		
+		//Mean of adjusted line.
+		for (int row = 0; row < adjustline.rows(); row++) {
+			for (int column = 0; column < adjustline.columns(); column++) {
+				NeuronValue value = adjustline.get(row, column);
+				NeuronValue c = countAdjustline.get(row, column);
+				if (c.canInvertWise())
+					value = value.divide(c);
+				else
+					value = value.zero();
+				adjustline.set(row, column, value);
+			}
+		}
+		adjustline = paramIsByColumn() ? Softmax.softmaxByColumn(adjustline) : Softmax.softmaxByRow(adjustline);
+		return adjustline;
 	}
 	
+
+	/**
+	 * Calculating baseline and adjusted line.
+	 * @param sample sample.
+	 * @param adjuster adjuster.
+	 * @return baseline and adjusted line..
+	 */
+	Matrix[] calcBaselineAdjust(Iterable<Record> sample, MatrixNetworkImpl adjuster) {
+		Matrix o = getOutput();
+		Matrix baseline = o.create(o.rows(), o.columns());
+		Matrix.fill(baseline, 0);
+		Matrix countBaseline = baseline.create(baseline.rows(), baseline.columns());
+		Matrix.fill(countBaseline, 0);
+		
+		Matrix adjustline = o.create(o.rows(), o.columns());
+		Matrix.fill(adjustline, 0);
+		Matrix countAdjustline = adjustline.create(adjustline.rows(), adjustline.columns());
+		Matrix.fill(countAdjustline, 0);
+		
+		int combNumber = paramGetCombNumber();
+		int groups = getNumberOfGroups();
+		for (Record record : sample) {
+			Matrix output = evaluate(record.input());
+			Matrix realOutput = record.output();
+			for (int group = 0; group < groups; group++) {
+				NeuronValue[] realOutputOne = getOutput(realOutput, group);
+				double[] realOutputOneV = weightsOfOutput(realOutputOne);
+				int maxIndex = 0;
+				for (int i = 1; i < realOutputOneV.length; i++) {
+					if (realOutputOneV[i] > realOutputOneV[maxIndex]) maxIndex = i;
+				}
+				
+				boolean[] indicator = new boolean[realOutputOneV.length];
+				Arrays.fill(indicator, false);
+				indicator[maxIndex] = true;
+				for (int i = 0; i < indicator.length; i++) {
+					if (indicator[i] || combNumber == 1) continue;
+					if (realOutputOneV[i] >= realOutputOneV[maxIndex] - Double.MIN_VALUE) indicator[i] = true;
+				}
+				
+				//Calculating base line.
+				NeuronValue[] outputOne = getOutput(output, group);
+				outputOne = paramIsEntropyTrainer() ? Softmax.softmax(outputOne) : outputOne;
+				for (int index = 0; index < indicator.length; index++) {
+					if (!indicator[index]) continue;
+					NeuronValue unit = countBaseline.get(0, 0).unit();
+					if (paramIsByColumn()) {
+						NeuronValue value = baseline.get(index, group).add(outputOne[index]);
+						baseline.set(index, group, value);
+						NeuronValue c = countBaseline.get(index, group).add(unit);
+						countBaseline.set(index, group, c);
+					}
+					else {
+						NeuronValue value = baseline.get(group, index).add(outputOne[index]);
+						baseline.set(group, index, value);
+						NeuronValue c = countBaseline.get(group, index).add(unit);
+						countBaseline.set(group, index, c);
+					}
+				}
+				
+				//Calculating adjusted line.
+				Matrix adjustOutput = adjuster != null ? adjuster.evaluate0(output) : output;
+				NeuronValue[] adjustOutputOne = null;
+				if (adjustOutput == output)
+					adjustOutputOne = outputOne;
+				else {
+					adjustOutputOne = getOutput(adjustOutput, group);
+					adjustOutputOne = paramIsEntropyTrainer() ? Softmax.softmax(adjustOutputOne) : adjustOutputOne;
+				}
+				for (int index = 0; index < adjustOutputOne.length; index++) {
+					NeuronValue unit = countAdjustline.get(0, 0).unit();
+					if (paramIsByColumn()) {
+						NeuronValue value = adjustline.get(index, group).add(adjustOutputOne[index]);
+						adjustline.set(index, group, value);
+						NeuronValue c = countAdjustline.get(index, group).add(unit);
+						countAdjustline.set(index, group, c);
+					}
+					else {
+						NeuronValue value = adjustline.get(group, index).add(adjustOutputOne[index]);
+						adjustline.set(group, index, value);
+						NeuronValue c = countAdjustline.get(group, index).add(unit);
+						countAdjustline.set(group, index, c);
+					}
+				}
+				
+			}
+		} //End sample.
+
+		//Mean of base line.
+		for (int row = 0; row < baseline.rows(); row++) {
+			for (int column = 0; column < baseline.columns(); column++) {
+				NeuronValue value = baseline.get(row, column);
+				NeuronValue c = countBaseline.get(row, column);
+				if (c.canInvertWise())
+					value = value.divide(c);
+				else if (paramIsNorm() || paramIsEntropyTrainer())
+					value = value.unit();
+				else {
+					value = value.valueOf(Float.MAX_VALUE); //Improving this code line later for non-normalized case.
+					System.out.println("Improving this code line later for non-normalized case.");
+				}
+				baseline.set(row, column, value);
+			}
+		}
+		
+		//Mean of adjusted line.
+		for (int row = 0; row < adjustline.rows(); row++) {
+			for (int column = 0; column < adjustline.columns(); column++) {
+				NeuronValue value = adjustline.get(row, column);
+				NeuronValue c = countAdjustline.get(row, column);
+				if (c.canInvertWise())
+					value = value.divide(c);
+				else
+					value = value.zero();
+				adjustline.set(row, column, value);
+			}
+		}
+		adjustline = paramIsByColumn() ? Softmax.softmaxByColumn(adjustline) : Softmax.softmaxByRow(adjustline);
+		
+		return new Matrix[] {baseline, adjustline};
+	}
+
 	
 	@Override
 	public List<Raster> classify(Iterable<Raster> sample) throws RemoteException {
@@ -1279,6 +1481,29 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 */
 	public ClassifierAbstract paramSetEntropyTrainer(boolean entropyTrainer) {
 		config.put(ENTROPY_TRAINER_FIELD, entropyTrainer );
+		return this;
+	}
+
+
+	/**
+	 * Checking creating adjuster mode.
+	 * @return creating adjuster mode.
+	 */
+	public boolean paramIsCreateAdjuster() {
+		if (config.containsKey(CREATE_ADJUSTER_FIELD))
+			return config.getAsBoolean(CREATE_ADJUSTER_FIELD);
+		else
+			return CREATE_ADJUSTER_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting creating adjuster mode.
+	 * @param createAdjuster creating adjuster mode.
+	 * @return this classifier.
+	 */
+	public ClassifierAbstract paramSetCreateAdjuster(boolean createAdjuster) {
+		config.put(CREATE_ADJUSTER_FIELD, createAdjuster);
 		return this;
 	}
 

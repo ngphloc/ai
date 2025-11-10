@@ -15,16 +15,19 @@ import java.util.List;
 import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 
+import net.ea.ann.adapter.gen.ClassifierModelAbstract;
 import net.ea.ann.adapter.gen.GenModelRemote;
 import net.ea.ann.adapter.gen.beans.ForestClassifier;
 import net.ea.ann.adapter.gen.beans.MatrixClassifier;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
 import net.ea.ann.adapter.gen.beans.TransformerClassifier;
+import net.ea.ann.classifier.ClassifierAbstract;
 import net.ea.ann.classifier.ClassifierAssoc;
 import net.ea.ann.classifier.ClassifierAssoc.ClassifyInfo;
 import net.ea.ann.classifier.ClassifierAssoc.ClassifyParams;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
+import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.hudup.core.data.DataConfig;
@@ -180,7 +183,7 @@ public class GenUIClassifier extends GenUI {
 		
 	}
 
-
+	
 	/**
 	 * Extracting parameters from generative model.
 	 * @param gm generative model.
@@ -190,21 +193,27 @@ public class GenUIClassifier extends GenUI {
 		ClassifyParams params = new ClassifyParams();
 		try {
 			DataConfig config = gm.queryConfig();
-			params.model = gm.queryName();
+			params.model = ClassifierModelAbstract.extractClassifierModel(gm);
 			if (config.containsKey(NetworkAbstract.LEARN_RATE_FIELD))
 				params.learningRate = config.getAsReal(NetworkAbstract.LEARN_RATE_FIELD);
 			if (config.containsKey(NetworkAbstract.LEARN_MAX_ITERATION_FIELD))
 				params.batches = config.getAsInt(NetworkAbstract.LEARN_MAX_ITERATION_FIELD);
-			if (config.containsKey(net.ea.ann.classifier.ClassifierAbstract.CONV_FIELD))
-				params.conv = config.getAsBoolean(net.ea.ann.classifier.ClassifierAbstract.CONV_FIELD);
-			if (config.containsKey(net.ea.ann.mane.MatrixNetworkAbstract.VECTORIZED_FIELD))
-				params.vectorized = config.getAsBoolean(net.ea.ann.mane.MatrixNetworkAbstract.VECTORIZED_FIELD);
-			if (config.containsKey(net.ea.ann.classifier.ClassifierAbstract.ADJUST_FIELD))
-				params.adjust = config.getAsBoolean(net.ea.ann.classifier.ClassifierAbstract.ADJUST_FIELD);
-			if (config.containsKey(net.ea.ann.classifier.ClassifierAbstract.DUAL_FIELD))
-				params.dual = config.getAsBoolean(net.ea.ann.classifier.ClassifierAbstract.DUAL_FIELD);
-			if (config.containsKey(net.ea.ann.classifier.ClassifierAbstract.BASELINE_FIELD))
-				params.baseline = config.getAsBoolean(net.ea.ann.classifier.ClassifierAbstract.BASELINE_FIELD);
+			if (config.containsKey(ClassifierAbstract.CONV_FIELD))
+				params.conv = config.getAsBoolean(ClassifierAbstract.CONV_FIELD);
+			if (config.containsKey(MatrixNetworkAbstract.VECTORIZED_FIELD))
+				params.vectorized = config.getAsBoolean(MatrixNetworkAbstract.VECTORIZED_FIELD);
+			if (config.containsKey(ClassifierAbstract.BASELINE_FIELD))
+				params.baseline = config.getAsBoolean(ClassifierAbstract.BASELINE_FIELD);
+			if (config.containsKey(ClassifierAbstract.ADJUST_FIELD))
+				params.adjust = config.getAsBoolean(ClassifierAbstract.ADJUST_FIELD);
+			if (config.containsKey(ClassifierAbstract.DUAL_FIELD))
+				params.dual = config.getAsBoolean(ClassifierAbstract.DUAL_FIELD);
+			if (config.containsKey(ClassifierAbstract.ENTROPY_TRAINER_FIELD))
+				params.entropyTrainer = config.getAsBoolean(ClassifierAbstract.ENTROPY_TRAINER_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.TransformerClassifier.BLOCKS_NUMBER_FIELD))
+				params.blocks = config.getAsInt(net.ea.ann.classifier.TransformerClassifier.BLOCKS_NUMBER_FIELD);
+			if (config.containsKey(net.ea.ann.classifier.ForestClassifier.TREE_MODEL_FIELD))
+				params.treeModel = net.ea.ann.classifier.ForestClassifier.toTreeModel(config.getAsInt(net.ea.ann.classifier.ForestClassifier.TREE_MODEL_FIELD));
 		} catch (Throwable e) {Util.trace(e);}
 		return params;
 	}

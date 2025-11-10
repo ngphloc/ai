@@ -14,8 +14,13 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 import net.ea.ann.adapter.Util;
+import net.ea.ann.adapter.gen.beans.ForestClassifier;
+import net.ea.ann.adapter.gen.beans.MatrixClassifier;
+import net.ea.ann.adapter.gen.beans.StackClassifier;
+import net.ea.ann.adapter.gen.beans.TransformerClassifier;
 import net.ea.ann.adapter.gen.ui.GenUIClassifier;
 import net.ea.ann.classifier.Classifier;
+import net.ea.ann.classifier.ClassifierBuilder.ClassifierModel;
 import net.ea.ann.conv.stack.StackNetworkAbstract;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.NetworkDoEvent;
@@ -360,4 +365,23 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	}
 
 
+	/**
+	 * Extracting classifier model.
+	 * @param gm remote model.
+	 * @return classifier model.
+	 */
+	public static ClassifierModel extractClassifierModel(GenModelRemote gm) {
+		if (gm instanceof MatrixClassifier)
+			return ClassifierModel.mac;
+		else if (gm instanceof TransformerClassifier)
+			return ClassifierModel.tramac;
+		else if (gm instanceof ForestClassifier)
+			return ClassifierModel.forest;
+		else if (gm instanceof StackClassifier)
+			return ClassifierModel.stack;
+		else	
+			return ClassifierModel.mac;
+	}
+	
+	
 }

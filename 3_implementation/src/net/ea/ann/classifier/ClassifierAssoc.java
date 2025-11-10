@@ -86,6 +86,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		else if (classifier instanceof TransformerClassifier) {
 			TransformerClassifier tramac = (TransformerClassifier)classifier;
 			size = new TransformerAssoc(tramac.transformer).sizeOfParams();
+			if (tramac.adjuster != null) size += new MatrixNetworkAssoc(tramac.adjuster).sizeOfParams();
 		}
 		else if (classifier instanceof ForestClassifier) {
 			ForestClassifier forest = (ForestClassifier)classifier;
@@ -104,10 +105,16 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 */
 	public int depth() {
 		int depth = 0;
-		if (classifier instanceof MatrixClassifier)
-			depth = ((MatrixClassifier)classifier).nut.size() - 1;
-		else if (classifier instanceof TransformerClassifier)
-			depth = new TransformerAssoc(((TransformerClassifier)classifier).transformer).depth();
+		if (classifier instanceof MatrixClassifier) {
+			MatrixClassifier mac = (MatrixClassifier)classifier;
+			depth = mac.nut.size() - 1;
+			if (mac.adjuster != null) depth += mac.adjuster.size() - 1;
+		}
+		else if (classifier instanceof TransformerClassifier) {
+			TransformerClassifier tramac = (TransformerClassifier)classifier;
+			depth = new TransformerAssoc(tramac.transformer).depth();
+			if (tramac.adjuster != null) depth += tramac.adjuster.size() - 1;
+		}
 		else if (classifier instanceof ForestClassifier)
 			depth = new ForestAssoc((ForestClassifier)classifier).depth();
 		else if (classifier instanceof MatrixNetworkImpl)
@@ -131,7 +138,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		/**
 		 * Classifier model.
 		 */
-		public String model = ClassifierModel.mac.toString();
+		public ClassifierModel model = ClassifierModel.mac;
 		
 		/**
 		 * Learning rate.
@@ -168,6 +175,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		 */
 		public boolean dual = ClassifierAbstract.DUAL_DEFAULT;
 		
+		/**
+		 * Cross-entropy trainer mode.
+		 */
+		public boolean entropyTrainer = ClassifierAbstract.ENTROPY_TRAINER_DEFAULT;
+
 		/**
 		 * Dual mode.
 		 */
@@ -215,7 +227,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		 * @param builder builder.
 		 */
 		public void importParams(ClassifierBuilder builder) {
-			this.model = builder.model.toString();
+			this.model = builder.model;
 			this.learningRate = builder.learningRate;
 			this.batches = builder.batches;
 			this.conv = builder.conv;
@@ -223,6 +235,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			this.baseline = builder.baseline;
 			this.adjust = builder.adjust;
 			this.dual = builder.dual;
+			this.entropyTrainer = builder.entropyTrainer;
 			this.blocks = builder.blocks;
 			this.treeModel = builder.treeModel;
 		}
@@ -466,6 +479,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			result.append(params.depth + ", ");
 			result.append(params.paramSize + ", ");
 			result.append("model=" + params.model + "~dataset=" + params.dataset +
+				"~entropy=" + params.entropyTrainer +
 				"~conv=" + params.conv +
 				"~vec=" + params.vectorized +
 				"~baseline=" + params.baseline +
@@ -753,13 +767,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		int rasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
 		double learningRate = Network.LEARN_RATE_DEFAULT;
 		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
-		boolean adjust = ClassifierAbstract.ADJUST_DEFAULT;
 		boolean dual = ClassifierAbstract.DUAL_DEFAULT;
 		ClassifierBuilder builder = new ClassifierBuilder(rasterChannel);
 		builder.setLearningRate(learningRate);
 		builder.setBatches(batches);
 		builder.setBaseline(baseline);
-		builder.setAdjust(adjust);
 		builder.setDual(dual);
 
 		int minBaseSize = baseRastersList.get(0).size();
@@ -771,7 +783,8 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 
 		boolean[] vectorizeds = new boolean[] {false, true};
 		int[] depths = new int[] {2, 3, 5};
-		boolean[] entropyTrainers = new boolean[] {false, true};
+		boolean[] entropyTrainers = new boolean[] {true};
+		boolean[] adjusts = new boolean[] {false/*, true*/};
 		ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.mac, ClassifierModel.tramac};
 		boolean[] convs = new boolean[] {false, true};
 		for (boolean vectorized : vectorizeds) {
@@ -780,21 +793,24 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 				builder.setDepth(depth);
 				for (boolean entropyTrainer : entropyTrainers) {
 					builder.setEntropyTrainer(entropyTrainer);
-					for (ClassifierModel model : models) {
-						builder.setModel(model);
-						for (boolean conv : convs) {
-//							if (conv && model != ClassifierModel.mac) continue;
-							System.out.println("Training " +
-								("vectorized=" + vectorized) +
-								(", depth=" + depth) +
-								(", entropy=" + entropyTrainer) +
-								(", model=" + model) +
-								(", conv=" + conv));
-							builder.setConv(conv);
-							classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
-							System.out.println("\n");
-						} //End for CNN.
-					} //End for models.
+					for (boolean adjust : adjusts) {
+						builder.setAdjust(adjust);
+						for (ClassifierModel model : models) {
+							builder.setModel(model);
+							for (boolean conv : convs) {
+								System.out.println("Training " +
+									("vectorized=" + vectorized) +
+									(", depth=" + depth) +
+									(", entropy=" + entropyTrainer) +
+									(", adjust=" + adjust) +
+									(", model=" + model) +
+									(", conv=" + conv));
+								builder.setConv(conv);
+								classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
+								System.out.println("\n");
+							} //End for CNN.
+						} //End for models.
+					}
 				} //End for entropy trainers.
 			} //End for depth.
 		} //End for vectorizations.

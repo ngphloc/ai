@@ -412,7 +412,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeFixed(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+	public boolean initializeByDepth(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
 		if (inputSize1 == null || inputSize1.height <= 0 || inputSize1.width <= 0) return false;
 		if ((filter1 != null) && (filter1 instanceof DeconvConvFilter)) filter1 = null;
 		if ((filter1 != null) && (filter1.getStrideWidth() < 1 || filter1.getStrideHeight() < 1)) filter1 = null;
@@ -467,9 +467,9 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	 * @param depth2 the number 2 of hidden layers plus output layer.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeFixed(Dimension inputSize1, Dimension outputSize1, Dimension filterStride1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+	public boolean initializeByDepth(Dimension inputSize1, Dimension outputSize1, Dimension filterStride1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
 		Filter2D filter1 = defaultFilter(filterStride1);
-		return initializeFixed(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2);
+		return initializeByDepth(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2);
 	}
 
 	

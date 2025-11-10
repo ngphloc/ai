@@ -232,6 +232,34 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Converting an integer into classifier model.
+	 * @param modelIndex model index.
+	 * @return classifier model.
+	 */
+	public static ClassifierModel toModel(String modelText) {
+		ClassifierModel model = ClassifierModel.mac;
+		switch (modelText.toLowerCase()) {
+		case "mac":
+			model = ClassifierModel.mac;
+			break;
+		case "tramac":
+			model = ClassifierModel.tramac;
+			break;
+		case "forest":
+			model = ClassifierModel.forest;
+			break;
+		case "stack":
+			model = ClassifierModel.stack;
+			break;
+		default:
+			model = ClassifierModel.mac;
+			break;
+		}
+		return model;
+	}
+
+	
+	/**
 	 * Converting classifier model into integer.
 	 * @param model classifier model.
 	 * @return integer.

@@ -15,6 +15,7 @@ import java.util.List;
 import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
+import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
@@ -81,8 +82,7 @@ public class TransformerImpl extends TransformerAbstract {
 	@Override
 	protected TransformerBasic createEncoder() {
 		Encoder encoder = new Encoder(this.neuronChannel, this.idRef);
-		encoder.paramSetNorm(this.paramIsNorm());
-		encoder.paramSetVectorized(this.paramIsVectorized());
+		encoder.updateConfig(this.config);
 		return encoder;
 	}
 	
@@ -90,8 +90,7 @@ public class TransformerImpl extends TransformerAbstract {
 	@Override
 	protected TransformerBasic createDecoder() {
 		Decoder decoder = new Decoder(this.neuronChannel, this.idRef);
-		decoder.paramSetNorm(this.paramIsNorm());
-		decoder.paramSetVectorized(this.paramIsVectorized());
+		decoder.updateConfig(this.config);
 		return decoder;
 	}
 
@@ -252,10 +251,7 @@ public class TransformerImpl extends TransformerAbstract {
 
 		@Override
 		protected net.ea.ann.transformer.TransformerBlock createBlock() {
-			TransformerBlock block = new TransformerBlock(this.neuronChannel, idRef);
-			block.paramSetNorm(this.paramIsNorm());
-			block.paramSetVectorized(this.paramIsVectorized());
-			return block;
+			return new TransformerBlock(this.neuronChannel, idRef);
 		}
 		
 		/**
@@ -574,6 +570,25 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @return decoder.
 	 */
 	protected abstract TransformerBasic createDecoder();
+
+	
+	/**
+	 * Updating configuration.
+	 */
+	void updateConfig() {
+		if (encoder != null) encoder.updateConfig(this.config);
+		if (decoder != null) decoder.updateConfig(this.config);
+	}
+
+	
+	/**
+	 * Updating configuration.
+	 * @param config configuration.
+	 */
+	public void updateConfig(NetworkConfig config) {
+		this.config.putAll(config);
+		updateConfig();
+	}
 
 	
 	/**
@@ -1126,6 +1141,8 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 */
 	protected Matrix evaluate(Matrix inputY, Matrix inputX, boolean[][] inputMask, Object...params) {
 		if (!validate()) return null;
+		updateConfig();
+		
 		Matrix A = null;
 		if (encoder != null && decoder != null) {
 			A = encoder.evaluate(inputX, null, params);
@@ -1154,6 +1171,8 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 */
 	public Matrix evaluate(Matrix input, boolean[][] inputMask, Object...params) {
 		if (!validate()) return null;
+		updateConfig();
+
 		Matrix A = null;
 		if (encoder != null && decoder != null) {
 			A = encoder.evaluate(params);
@@ -1203,9 +1222,10 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @return learning errors. The first element is main error and the second element is attached error\\.
 	 */
 	protected Error[][] backward(Error[] errors, double learningRate) {
-		if (!validate())
-			return null;
-		else if (encoder != null && decoder != null) {
+		if (!validate()) return null;
+		updateConfig();
+		
+		if (encoder != null && decoder != null) {
 			return decoder.backward(errors, learningRate);
 		}
 		else if (encoder != null && decoder == null) {

@@ -4,6 +4,7 @@ import java.awt.Dimension;
 
 import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
+import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Error;
@@ -78,6 +79,18 @@ public class ForestClassifier extends ClassifierAbstract {
 		super(neuronChannel, idRef);
 		this.config.put(TransformerClassifierAbstract.BLOCKS_NUMBER_FIELD, TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT);
 		this.config.put(TREE_MODEL_FIELD, TREE_MODEL_DEFAULT);
+		
+		try {
+			MatrixClassifier mac = new MatrixClassifier(neuronChannel);
+			NetworkConfig config = mac.getConfig();
+			this.config.putAll(config);
+			mac.close();
+			
+			MatrixClassifier tramac = new MatrixClassifier(neuronChannel);
+			config = tramac.getConfig();
+			this.config.putAll(config);
+			tramac.close();
+		} catch (Throwable e) {Util.trace(e);}
 	}
 
 	
@@ -108,6 +121,7 @@ public class ForestClassifier extends ClassifierAbstract {
 			classifier = MatrixClassifier.create(this.neuronChannel, this.paramIsNorm());
 			break;
 		}
+		classifier.updateConfig(this.config);
 		return classifier;
 	}
 	
@@ -121,6 +135,14 @@ public class ForestClassifier extends ClassifierAbstract {
 
 
 	@Override
+	void updateConfig() {
+		super.updateConfig();
+		if (this.trees == null) return;
+		for (ClassifierAbstract tree : this.trees) tree.updateConfig(this.config);
+	}
+
+
+	@Override
 	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
 		this.trees = null;
@@ -130,13 +152,7 @@ public class ForestClassifier extends ClassifierAbstract {
 		this.trees = new ClassifierAbstract[classCount];
 		for (int i = 0; i < classCount; i++) {
 			this.trees[i] = createTree();
-			try {
-				this.trees[i].getConfig().putAll(this.config);
-			} catch (Throwable e) {Util.trace(e);}
 			if (!this.trees[i].initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
-			try {
-				this.config.putAll(this.trees[i].getConfig());
-			} catch (Throwable e) {Util.trace(e);}
 		}
 		
 		Matrix output = this.trees[0].getOutput();
@@ -159,6 +175,7 @@ public class ForestClassifier extends ClassifierAbstract {
 		return output;
 	}
 	
+	
 	@Override
 	protected Matrix toMatrix(Raster raster) {
 		return validate() ? trees[0].toMatrix(raster) : null;
@@ -174,9 +191,6 @@ public class ForestClassifier extends ClassifierAbstract {
 	 */
 	private Matrix evaluate(int treeIndex, Matrix input, Object...params) {
 		if (!validate() || treeIndex >= this.trees.length) return null;
-		try {
-			this.trees[treeIndex].getConfig().putAll(this.config);
-		} catch (Throwable e) {Util.trace(e);}
 		return this.trees[treeIndex].evaluate(input, params);
 	}
 	
@@ -184,28 +198,11 @@ public class ForestClassifier extends ClassifierAbstract {
 	@Override
 	protected Matrix evaluate(Matrix input, Object...params) {
 		if (!validate()) return null;
-//		Matrix output0 = evaluate(0, input, params);
-//		if (trees.length == 1) return (this.output = output0);
-//		
-//		Matrix[] otherOutputs = new Matrix[trees.length-1];
-//		double[] otherMAEs = new double[otherOutputs.length];
-//		for (int i = 0; i < otherOutputs.length; i++) {
-//			otherOutputs[i] = evaluate(i+1, input, params);
-//			otherMAEs[i] = Matrix.mae(output0, otherOutputs[i]).norm();
-//		}
-//		
-//		double[] otherProbs = NeuronValueV.probs(otherMAEs);
-//		Matrix otherOutputMean = otherOutputs[0].multiply0(otherProbs[0]);
-//		for (int i = 1; i < otherOutputs.length; i++) {
-//			Matrix output = otherOutputs[i].multiply0(otherProbs[i]);
-//			otherOutputMean = otherOutputMean.add(output);
-//		}
-//		return (this.output = Matrix.mean(output0, otherOutputMean));
-
+		updateConfig();
+		
 		Matrix finalOutput = null;
 		for (int treeIndex = 0; treeIndex < trees.length; treeIndex++) {
 			Matrix output = evaluate(treeIndex, input, params);
-			//output = paramIsByColumn() ? Matrix.softmaxByColumn(output) : Matrix.softmaxByRow(output);
 			finalOutput = finalOutput != null ? finalOutput.add(output) : output;
 		}
 		finalOutput = finalOutput.divide0(trees.length);
@@ -216,11 +213,11 @@ public class ForestClassifier extends ClassifierAbstract {
 	@Override
 	protected Error[] learn(Iterable<Record> sample) {
 		if (!validate()) return null;
+		updateConfig();
 		
 		Error[] accum = null;
 		for (ClassifierAbstract tree : this.trees) {
 			try {
-				tree.getConfig().putAll(this.config);
 				Error[] errors = tree.learn(sample);
 				accum = accum != null ? Error.accum(accum, errors) : errors;
 			} catch (Throwable e) {Util.trace(e);}
@@ -244,7 +241,7 @@ public class ForestClassifier extends ClassifierAbstract {
 	 * @param treeModelIndex tree model index.
 	 * @return tree model.
 	 */
-	static TreeModel toTreeModel(int treeModelIndex) {
+	public static TreeModel toTreeModel(int treeModelIndex) {
 		TreeModel treeModel = TreeModel.mac;
 		switch (treeModelIndex) {
 		case 0:
