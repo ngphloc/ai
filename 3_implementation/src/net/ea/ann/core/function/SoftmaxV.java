@@ -84,7 +84,7 @@ public class SoftmaxV implements Softmax {
 
 	
 	/*
-	 * Gradient on diagonal.
+	 * Derivative of one variable on the diagonal.
 	 */
 	@Override
 	public NeuronValue derivative(NeuronValue x) {
@@ -93,21 +93,6 @@ public class SoftmaxV implements Softmax {
 		NeuronValue unit = v.unit();
 		return v.multiply(unit.subtract(v));
 	}
-
-	
-//	/**
-//	 * Checking whether neuron value vector is larger than float maximum.
-//	 * @param value neuron value vector.
-//	 * @return whether neuron value vector is larger than float maximum.
-//	 */
-//	private static boolean isLargerThanFloatMax(NeuronValueV value) {
-//		if (value == null) return false;
-//		if (value.length() == 0) return false;
-//		for (int i = 0; i < value.length(); i++) {
-//			if (value.get(i) <= Float.MAX_VALUE) return false;
-//		}
-//		return true;
-//	}
 
 	
 	/**

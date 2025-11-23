@@ -9,6 +9,7 @@ package net.ea.ann.core;
 
 import java.rmi.RemoteException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -106,6 +107,7 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 			this.hiddenLayers.get(0).setRibinLayer(this.memoryLayer);
 		}
 		
+		new NetworkStandardAssoc(this).initParams();
 		return true;
 	}
 
@@ -598,19 +600,43 @@ public abstract class NetworkStandardAbstract extends NetworkAbstract implements
 	
 	@Override
 	public NeuronValue[] learnOneByOne(Iterable<Record> sample) throws RemoteException {
-		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
-		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
+		int maxIteration = paramGetMaxIteration();
+		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
-		return learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
+		int epochs = paramGetPseudoEpochs();
+
+		NeuronValue[] outputErrors = null;
+		Iterable<Record> newsample = sample;
+		for (int epoch = 0; epoch < epochs; epoch++) {
+			double lr = calcLearningRate(learningRate, epoch+1);
+			if (epoch > 0) {
+				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
+				Collections.shuffle((List<?>)newsample);
+			}
+			outputErrors =  learnOneByOne(sample, lr, terminatedThreshold, maxIteration);
+		}
+		return outputErrors;
 	}
 
 	
 	@Override
 	public NeuronValue[] learn(Iterable<Record> sample) throws RemoteException {
-		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
-		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
+		int maxIteration = paramGetMaxIteration();
+		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
-		return learn(sample, learningRate, terminatedThreshold, maxIteration);
+		int epochs = paramGetPseudoEpochs();
+
+		NeuronValue[] outputErrors = null;
+		Iterable<Record> newsample = sample;
+		for (int epoch = 0; epoch < epochs; epoch++) {
+			double lr = calcLearningRate(learningRate, epoch+1);
+			if (epoch > 0) {
+				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
+				Collections.shuffle((List<?>)newsample);
+			}
+			outputErrors =  learn(sample, lr, terminatedThreshold, maxIteration);
+		}
+		return outputErrors;
 	}
 
 

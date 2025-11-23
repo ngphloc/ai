@@ -141,11 +141,8 @@ public class ProductFilter2D extends AbstractFilter2D implements TextParsable {
 		return kernel;
 	}
 	
-	
-	/**
-	 * Adding accumulatively kernel.  
-	 * @param kernel specified kernel.
-	 */
+
+	@Override
 	public void accumKernel(NeuronValue[][] kernel) {
 		for (int i = 0; i < kernel.length; i++) {
 			for (int j = 0; j < kernel[i].length; j++) {
@@ -154,33 +151,6 @@ public class ProductFilter2D extends AbstractFilter2D implements TextParsable {
 		}
 	}
 
-	
-	/**
-	 * Calculating sum of array of kernels.
-	 * @param kernels array of kernels.
-	 * @return sum of array of kernels.
-	 */
-	public static NeuronValue[][] kernelAdd(NeuronValue[][]...kernels) {
-		if (kernels == null || kernels.length == 0) return null;
-		if (kernels.length == 1) return kernels[0];
-		NeuronValue[][] sum = kernels[0];
-		for (int i = 1; i < kernels.length; i++) sum = NeuronValue.add(sum, kernels[i]);
-		return sum;
-	}
-
-	
-	/**
-	 * Calculating mean of array of kernels.
-	 * @param kernels array of kernels.
-	 * @return mean of array of kernels.
-	 */
-	public static NeuronValue[][] kernelMean(NeuronValue[][]...kernels) {
-		if (kernels == null || kernels.length == 0) return null;
-		if (kernels.length == 1) return kernels[0];
-		NeuronValue[][] mean = kernelAdd(kernels);
-		return NeuronValue.divide(mean, (double)kernels.length);
-	}
-	
 	
 	/**
 	 * Getting internal weight.
@@ -337,16 +307,12 @@ public class ProductFilter2D extends AbstractFilter2D implements TextParsable {
 		return dValue;
 	}
 
-	
-	/**
-	 * Shallow cloning specified filter.
-	 * @return cloned filter.
-	 */
+
+	@Override
 	public ProductFilter2D shallowClone() {
 		NeuronValue[][] newKernel = new NeuronValue[this.height()][this.width()];
 		for (int i = 0; i < kernel.length; i++) {
-			for (int j = 0; j < kernel[i].length; j++)
-				newKernel[i][j] = this.kernel[i][j];
+			for (int j = 0; j < kernel[i].length; j++) newKernel[i][j] = this.kernel[i][j];
 		}
 		ProductFilter2D newFilter = new ProductFilter2D(newKernel, this.weight);
 		newFilter.strideWidth = this.strideWidth;

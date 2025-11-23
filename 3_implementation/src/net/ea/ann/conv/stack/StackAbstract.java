@@ -21,7 +21,6 @@ import net.ea.ann.core.LayerAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.Weight;
-import net.ea.ann.raster.Size;
 
 /**
  * This class is an abstract implementation of stack of convolutional layers. It is a convolutional layer too.
@@ -480,7 +479,7 @@ public abstract class StackAbstract extends LayerAbstract implements Stack {
 	public static Content newContent(int index, Stack stack) {
 		if (index < 0 || index >= stack.size()) return null;
 		Content content = stack.get(index).getContent();
-		return stack.newContent(content.getActivateRef(), new Size(content.getWidth(), content.getHeight(), content.getDepth(), 1), content.getFilter());
+		return stack.newContent(content.getActivateRef(), content.getSize(), content.getFilter());
 	}
 
 	

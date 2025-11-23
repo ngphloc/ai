@@ -9,6 +9,7 @@ package net.ea.ann.core;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Random;
 
 import net.ea.ann.core.value.NeuronValue;
 
@@ -233,4 +234,24 @@ public class LayerStandardAssoc implements Serializable, Cloneable {
 	}
 
 
+	/**
+	 * Initializing parameters by specified value.
+	 * @param v value.
+	 */
+	public void initParams(double v) {
+		LayerStandardAbstract std = std();
+		for (NeuronStandard neuron : std.neurons) new NeuronStandardAssoc(neuron).initParams(v);
+	}
+
+
+	/**
+	 * Initializing parameters.
+	 * @param rnd randomizer.
+	 */
+	public void initParams(Random rnd) {
+		LayerStandardAbstract std = std();
+		for (NeuronStandard neuron : std.neurons) new NeuronStandardAssoc(neuron).initParams(rnd);
+	}
+
+	
 }

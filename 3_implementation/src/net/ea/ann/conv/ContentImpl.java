@@ -492,6 +492,12 @@ public class ContentImpl extends ConvLayer4DImpl implements Content {
 	}
 
 
+	@Override
+	public Content[] backward(Content[] nextContentErrors, double learningRate) {
+		return (Content[])backward((ConvLayerSingle[])nextContentErrors, learningRate);
+	}
+
+
 	/**
 	 * Aggregating a collection of contents.
 	 * The important feature of this method is that these contents may not have the same size.

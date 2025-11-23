@@ -12,6 +12,7 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
+import net.ea.ann.raster.Size;
 
 /**
  * This class is the default implementation of convolutional layer in 3D space.
@@ -89,6 +90,12 @@ public class ConvLayer3DImpl extends ConvLayer3DAbstract {
 	}
 
 	
+	@Override
+	public ConvLayerSingle newLayer(Size size) {
+		return create(neuronChannel, activateRef, size.width, size.height, size.depth, filter, idRef);
+	}
+
+
 	/**
 	 * Creating convolutional layer with neuron channel, activation function, width, height, depth, filter, and ID reference.
 	 * @param neuronChannel neuron channel or depth.

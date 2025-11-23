@@ -13,14 +13,12 @@ import net.ea.ann.conv.ConvLayer2DAbstract;
 import net.ea.ann.conv.ConvLayerSingle2D;
 import net.ea.ann.conv.ConvNeuron;
 import net.ea.ann.conv.filter.Filter2D;
-import net.ea.ann.conv.filter.ProductFilter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.NeuronValueRaster;
-import net.ea.ann.raster.Size;
 
 /**
  * This class implements layer in matrix neural network.
@@ -408,8 +406,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (strideHeight == 0 || strideWidth == 0) return false;
 		Dimension filterStride = new Dimension(strideWidth, strideHeight);
 		
-		this.filter = getNetwork() != null ? getNetwork().defaultFilter(filterStride) :
-			ProductFilter2D.create(new Size(filterStride), this, 1.0/(double)(filterStride.height*filterStride.width));
+		this.filter = getNetwork().defaultFilter(filterStride);
 		if (isVectorized()) {
 			int height = getVecRows();
 			int width = size.height / height;
@@ -679,18 +676,15 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			else
 				this.dfilterBiasAccum = this.dfilterBiasAccum != null ? this.dfilterBiasAccum.add(dfilterBiasMean) : dfilterBiasMean;
 			
-			if (this.getFilter() instanceof ProductFilter2D) {
-				NeuronValue[][] dfilterKernelMean = ProductFilter2D.kernelMean(dFilterKernels);
-				if (learning) {
-					ProductFilter2D filter = (ProductFilter2D)this.getFilter();
-					dfilterKernelMean = NeuronValue.multiply(dfilterKernelMean, learningRate);
-					filter = filter.shallowClone();
-					filter.accumKernel(dfilterKernelMean);
-					this.setFilter(filter); //Update filter.
-				}
-				else
-					this.dfilterKernelAccum = this.dfilterKernelAccum != null ? ProductFilter2D.kernelAdd(this.dfilterKernelAccum, dfilterKernelMean) : dfilterKernelMean;
+			NeuronValue[][] dfilterKernelMean = Filter2D.kernelMean(dFilterKernels);
+			if (learning) {
+				dfilterKernelMean = NeuronValue.multiply(dfilterKernelMean, learningRate);
+				Filter2D filter = this.getFilter().shallowClone();
+				filter.accumKernel(dfilterKernelMean);
+				this.setFilter(filter); //Update filter.
 			}
+			else
+				this.dfilterKernelAccum = this.dfilterKernelAccum != null ? Filter2D.kernelAdd(this.dfilterKernelAccum, dfilterKernelMean) : dfilterKernelMean;
 		}
 		
 		//Please pay attention to this code line to assign current errors to output errors.
@@ -718,6 +712,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @return training error.
 	 */
 	Error[] backwardThisLayerWithoutLearning(Error[] outputErrors, double learningRate) {
+		resetBackwardInfo();
 		if (outputErrors == null || outputErrors.length == 0) return null;
 		Error[] errors = new Error[outputErrors.length];
 		for (int i = 0; i < outputErrors.length; i++) {
@@ -762,16 +757,17 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				this.dfilterBiasAccum = null;
 			}
 			
-			if ((this.getFilter() instanceof ProductFilter2D) && (this.dfilterKernelAccum != null)) {
+			if (this.dfilterKernelAccum != null) {
 				NeuronValue[][] dfilterKernelsMean = NeuronValue.divide(this.dfilterKernelAccum, recordCount);
-				ProductFilter2D filter = (ProductFilter2D)this.getFilter();
 				dfilterKernelsMean = NeuronValue.multiply(dfilterKernelsMean, learningRate);
-				filter = filter.shallowClone();
+				Filter2D filter = this.getFilter().shallowClone();
 				filter.accumKernel(dfilterKernelsMean);
 				this.setFilter(filter); //Update filter.
 				this.dfilterKernelAccum = null;
 			}
 		}
+		
+		resetBackwardInfo();
 	}
 	
 	

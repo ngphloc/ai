@@ -13,6 +13,7 @@ import java.util.List;
 
 import net.ea.ann.conv.filter.BiasFilter;
 import net.ea.ann.conv.filter.Filter;
+import net.ea.ann.conv.stack.StackNetworkAbstract;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.NetworkDoEvent;
@@ -59,15 +60,55 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 
 
 	/**
-	 * Name of learning filter field.
+	 * Name of only forwarding mode.<br/>
+	 * If this parameter is true, the evaluation process is performed only forward in the convolutional network {@link #stacks}.
+	 * In other words, weights are ignored in the convolutional network {@link #stacks} if this parameter is true so that only convolutional filters are focused.
+	 * Therefore, learning task is only done if this parameter is false.
+	 * In current version, this parameter is nearly set to be fixed as constant (true).
 	 */
-	protected static final String LEARNING_FILTERS_FIELD = "conv_learning_filters";
+	public static final String ONLY_FORWARD_FIELD = StackNetworkAbstract.ONLY_FORWARD_FIELD;
 
 	
 	/**
-	 * Name of learning filter field.
+	 * Name of only forwarding mode.
 	 */
-	protected static final boolean LEARNING_FILTERS_DEFAULT = false;
+	public static final boolean ONLY_FORWARD_DEFAULT = StackNetworkAbstract.ONLY_FORWARD_DEFAULT;
+
+	
+	/**
+	 * Name of learning filters field.
+	 */
+	public static final String LEARN_FILTERS_FIELD = StackNetworkAbstract.LEARN_FILTERS_FIELD;
+
+	
+	/**
+	 * Name of learning filters field.
+	 */
+	public static final boolean LEARN_FILTERS_DEFAULT = StackNetworkAbstract.LEARN_FILTERS_DEFAULT;
+
+	
+	/**
+	 * Name of extensive learning filters field.
+	 */
+	protected static final String LEARN_FILTERS_EXT_FIELD = StackNetworkAbstract.LEARN_FILTERS_EXT_FIELD;
+
+	
+	/**
+	 * Name of extensive learning filter field.
+	 */
+	protected static final boolean LEARN_FILTERS_EXT_DEFAULT = StackNetworkAbstract.LEARN_FILTERS_EXT_DEFAULT;
+
+	
+	/**
+	 * Name of learning weights field.
+	 */
+	public static final String LEARN_WEIGHTS_FIELD = StackNetworkAbstract.LEARN_WEIGHTS_FIELD;
+
+	
+	/**
+	 * Name of learning weights field.
+	 */
+	public static final boolean LEARN_WEIGHTS_DEFAULT = StackNetworkAbstract.LEARN_WEIGHTS_DEFAULT;
 
 	
 	/**
@@ -114,15 +155,6 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 
 	
 	/**
-	 * If this parameter is true, the evaluation process is performed only forward in the convolutional network.
-	 * In other words, weights are ignored in the convolutional network if this parameter is true so that only convolutional filters are focused.
-	 * Therefore, learning task is only done if this parameter is false.
-	 * In current version, this parameter is nearly set to be fixed as constant (true).
-	 */
-	protected boolean onlyForward = true;
-
-	
-	/**
 	 * Unified output content.
 	 */
 	private ConvLayerSingle unifiedOutputContent = null;
@@ -138,7 +170,10 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		super(idRef);
 		
 		this.config.put(LEARN_MAX_ITERATION_FIELD, LEARN_MAX_ITERATION_DEFAULT);
-		this.config.put(LEARNING_FILTERS_FIELD, LEARNING_FILTERS_DEFAULT);
+		this.config.put(ONLY_FORWARD_FIELD, ONLY_FORWARD_DEFAULT);
+		this.config.put(LEARN_FILTERS_FIELD, LEARN_FILTERS_DEFAULT);
+		this.config.put(LEARN_FILTERS_EXT_FIELD, LEARN_FILTERS_EXT_DEFAULT);
+		this.config.put(LEARN_WEIGHTS_FIELD, LEARN_WEIGHTS_DEFAULT);
 		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		this.config.put(Image.ALPHA_FIELD, Image.ALPHA_DEFAULT);
 
@@ -668,26 +703,28 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 					evaluate(record);
 				} catch (Throwable e) {Util.trace(e);}
 				
+				//If there is in only forwarding mode then continue.
+				if (paramIsOnlyForward()) continue;
+
 				ConvLayerSingle unifiedContent = getUnifiedOutputContent(false);
+				
+				//Main learning to learn RCN.
 				if (fullNetwork != null) {
-					try {
-						error = fullNetwork.learn(convertUnifiedContentToFullNetworkInput(unifiedContent), record.output, lr, terminatedThreshold, 1);
-					} catch (Throwable e) {Util.trace(e);}
+					error = fullNetwork.learn(convertUnifiedContentToFullNetworkInput(unifiedContent), record.output, lr, terminatedThreshold, 1);
 				}
 				
+				//Learning RFCN.
 				if (reversedFullNetwork != null) {
-					try {
-						NeuronValue[] rfnOutput = null;
-						if (fullNetwork != null)
-							rfnOutput = convertUnifiedContentToFullNetworkInput(unifiedContent);
-						else if (record != null && record.input != null)
-							rfnOutput = record.input[0].flatten(reversedFullNetwork.getNeuronChannel()); 
-						reversedFullNetwork.learn(record.output, rfnOutput, lr, terminatedThreshold, 1);
-					} catch (Throwable e) {Util.trace(e);}
+					NeuronValue[] rfnOutput = null;
+					if (fullNetwork != null)
+						rfnOutput = convertUnifiedContentToFullNetworkInput(unifiedContent);
+					else if (record != null && record.input != null)
+						rfnOutput = record.input[0].flatten(reversedFullNetwork.getNeuronChannel()); 
+					reversedFullNetwork.learn(record.output, rfnOutput, lr, terminatedThreshold, 1);
 				}
 
 				//Be careful to learn filter because filter is only learned from large layer to small layer in this current version.
-				if (config.getAsBoolean(LEARNING_FILTERS_FIELD)) learnFilters(lr, 1);
+				if (config.getAsBoolean(LEARN_FILTERS_EXT_FIELD)) learnFiltersExt(lr, 1);
 				
 			} //End for
 			
@@ -777,18 +814,17 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 				if (rfnOutput != null) rfnSample.add(new Record(record.output, rfnOutput));
 			}
 			
-			if (fullNetwork != null) {
-				try {
-					error = fullNetwork.learn(fnSample, lr, terminatedThreshold, 1);
-				} catch (Throwable e) {Util.trace(e);}
+			if (!paramIsOnlyForward()) {
+				//Main learning to learn RCN.
+				if (fullNetwork != null) error = fullNetwork.learn(fnSample, lr, terminatedThreshold, 1);
+				
+				//Learning RFCN.
+				if (reversedFullNetwork != null) reversedFullNetwork.learn(rfnSample, lr, terminatedThreshold, 1);
+				
+				//Be careful to learn filter because filter is only learned from large layer to small layer in this current version.
+				if (config.getAsBoolean(LEARN_FILTERS_EXT_FIELD)) learnFiltersExt(lr, 1);
 			}
 			
-			if (reversedFullNetwork != null) 
-				reversedFullNetwork.learn(rfnSample, lr, terminatedThreshold, 1);
-			
-			//Be careful to learn filter because filter is only learned from large layer to small layer in this current version.
-			if (config.getAsBoolean(LEARNING_FILTERS_FIELD)) learnFilters(lr, 1);
-
 			iteration ++;
 			
 			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "convnn_backpropogate",
@@ -827,11 +863,11 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 
 	
 	/**
-	 * Learning filters.
+	 * Extensive learning filters.
 	 * @param learningRate learning rate.
 	 * @param maxIteration maximum iteration.
 	 */
-	void learnFilters(double learningRate, int maxIteration) {
+	void learnFiltersExt(double learningRate, int maxIteration) {
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -872,22 +908,73 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 	}
 
 	
-//	/**
-//	 * Checking whether only forwarding mode is set.
-//	 * @return whether only forwarding mode is set.
-//	 */
-//	public boolean isOnlyForward() {
-//		return onlyForward;
-//	}
-//	
-//	
-//	/**
-//	 * Setting only forwarding mode.
-//	 * @param onlyForward only forwarding mode.
-//	 */
-//	public void setOnlyForward(boolean onlyForward) {
-//		this.onlyForward = onlyForward;
-//	}
+	/**
+	 * Checking only forwarding mode.
+	 * @return only forwarding mode.
+	 */
+	boolean paramIsOnlyForward() {
+		if (config.containsKey(ONLY_FORWARD_FIELD))
+			return config.getAsBoolean(ONLY_FORWARD_FIELD);
+		else
+			return ONLY_FORWARD_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting only forwarding mode.
+	 * @param onlyForward only forwarding mode.
+	 * @return this network.
+	 */
+	ConvNetworkAbstract paramSetOnlyForward(boolean onlyForward) {
+		config.put(ONLY_FORWARD_FIELD, onlyForward);
+		return this;
+	}
+
+	
+	/**
+	 * Checking learning filters mode.
+	 * @return learning filters mode.
+	 */
+	boolean paramIsLearnFilters() {
+		if (config.containsKey(LEARN_FILTERS_FIELD))
+			return config.getAsBoolean(LEARN_FILTERS_FIELD);
+		else
+			return LEARN_FILTERS_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting learning filters mode.
+	 * @param learnFilters learning filters mode.
+	 * @return this network.
+	 */
+	ConvNetworkAbstract paramSetLearnFilters(boolean learnFilters) {
+		config.put(LEARN_FILTERS_FIELD, learnFilters);
+		return this;
+	}
+
+	
+	/**
+	 * Checking learning weights mode.
+	 * @return learning weights mode.
+	 */
+	boolean paramIsLearnWeights() {
+		if (config.containsKey(LEARN_WEIGHTS_FIELD))
+			return config.getAsBoolean(LEARN_WEIGHTS_FIELD);
+		else
+			return LEARN_WEIGHTS_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting learning weights mode.
+	 * @param learnWeights learning weights mode.
+	 * @return this network.
+	 */
+	ConvNetworkAbstract paramSetLearnWeights(boolean learnWeights) {
+		config.put(LEARN_WEIGHTS_FIELD, learnWeights);
+		return this;
+	}
 
 	
 	@Override

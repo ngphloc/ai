@@ -130,6 +130,24 @@ abstract class BackpropagatorAbstract0 implements Backpropagator {
 
 	
 	/**
+	 * Checking whether to learn filters.
+	 * @return whether to learn filters.
+	 */
+	protected boolean isLearningFilters() {
+		return true;
+	}
+
+	
+	/**
+	 * Checking whether to learn weights.
+	 * @return whether to learn weights.
+	 */
+	protected boolean isLearningWeights() {
+		return true;
+	}
+
+	
+	/**
 	 * Checking whether to learn bias.
 	 * @return whether to learn bias.
 	 */
@@ -213,10 +231,9 @@ abstract class BackpropagatorAbstract0 implements Backpropagator {
 	public Content[] updateWeightsBiases(List<Stack> stacks, Iterable<Content[][]> outputBatch, Content[] lastError, double learningRate) {
 		if (stacks.size() < 2) return null;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? Network.LEARN_RATE_DEFAULT : learningRate;
-		Content[] outputError = null;
 		
 		Content[] nextError = lastError;
-		for (int i = stacks.size() - 1; i >= 1; i--) { //Browsing stacks reversely from output stack down to first hidden stack.
+		for (int i = stacks.size() - 1; i >= 0; i--) { //Browsing stacks reversely from output stack down to first hidden stack.
 			Stack stack = stacks.get(i);
 			Content[] error = StackAbstract.makeArray(stack.size(), stack);
 			
@@ -234,12 +251,14 @@ abstract class BackpropagatorAbstract0 implements Backpropagator {
 					for (WeightedElementLayer target : targets) {
 						int index = nextStack.indexOf(target.layer);
 						if (!checkIndex(index)) continue;
-						rsum = rsum.add(nextError[index].multiply0(target.weight.value));
+						if (isLearningWeights())
+							rsum = rsum.add(nextError[index].multiply0(target.weight.value));
+						else
+							rsum = rsum.add(nextError[index]);
 					}
 					
 					if (layer.getActivateRef() != null) {
-						Content out = layer.getContent();
-						Content derivative = out.derivative0(layer.getActivateRef());
+						Content derivative = layer.getContent().derivative0(layer.getActivateRef());
 						error[j] = rsum.multiplyDerivative(derivative);
 					}
 					else
@@ -254,29 +273,40 @@ abstract class BackpropagatorAbstract0 implements Backpropagator {
 			}
 			
 			//Update weights stored in previous stacks.
-			Set<Stack> prevStacks = stack.getAllPrevStacks();
-			if (!prevStacks.contains(stacks.get(i-1))) prevStacks.add(stacks.get(i-1)); 
-			for (Stack prevStack : prevStacks) {
-				if (prevStack == null) continue;
-				for (int j = 0; j < prevStack.size(); j++) {
-					ElementLayer prevLayer = prevStack.get(j);
-					Content prevOut = prevLayer.getContent();
-					
-					List<WeightedElementLayer> targets = prevLayer.getNextLayers(stack);
-					for (WeightedElementLayer target : targets) {
-						int index = stack.indexOf(target.layer);
-						if (!checkIndex(index)) continue;
-						Content delta = error[index].multiply(prevOut).multiply0(learningRate);
-						Weight nw = target.weight;
-						nw.value = nw.value.addValue(delta.mean0());
+			if (isLearningWeights()) {
+				Set<Stack> prevStacks = stack.getAllPrevStacks();
+				if (i > 0 && !prevStacks.contains(stacks.get(i-1))) prevStacks.add(stacks.get(i-1)); 
+				for (Stack prevStack : prevStacks) {
+					if (prevStack == null) continue;
+					for (int j = 0; j < prevStack.size(); j++) {
+						ElementLayer prevLayer = prevStack.get(j);
+						Content prevOut = prevLayer.getContent();
+						
+						List<WeightedElementLayer> targets = prevLayer.getNextLayers(stack);
+						for (WeightedElementLayer target : targets) {
+							int index = stack.indexOf(target.layer);
+							if (!checkIndex(index)) continue;
+							Content delta = error[index].multiply(prevOut).multiply0(learningRate);
+							Weight nw = target.weight;
+							nw.value = nw.value.addValue(delta.mean0());
+						}
 					}
 				}
 			}
 			
+			//Update filters of current stack.
+			if (isLearningFilters()) {
+				for (int j = 0; j < stack.size(); j++) {
+					Content content = stack.get(j).getContent();
+					if (content.getFilter() == null) continue;
+					error[j] = content.backward(new Content[] {error[j]}, learningRate)[0];
+				}
+			}
+			
 			nextError = error;
-			if (i == stacks.size() - 1) outputError = error;
 		}
 		
+		Content[] outputError = nextError;
 		return outputError;
 	}
 

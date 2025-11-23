@@ -544,8 +544,6 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 			return ConvLayer1DAbstract.dKernel(thisLayer, nextLayer, f, thisFilterRegion, nextFilterRegion);
 		if (filter instanceof DeconvConvFilter)
 			throw new RuntimeException("Derivative not implemented with de-convolutional filter yet");
-		if (!(filter instanceof ProductFilter2D))
-			throw new RuntimeException("Derivative not implemented with non-product filter yet");
 		
 		NeuronValue thisZero = thisLayer != null ? thisLayer.newNeuronValue().zero() : nextLayer.newNeuronValue().zero();;
 		NeuronValue[][] thisKernel = new NeuronValue[filter.height()][filter.width()];

@@ -101,7 +101,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Default value for filter stride.
 	 */
-	public static final int FILTER_STRIDE_DEFAULT = 1; //MatrixNetworkImpl.BASE_DEFAULT;
+	public static final int FILTER_STRIDE_DEFAULT = MatrixNetworkImpl.BASE_DEFAULT;
 
 	
 	/**
@@ -113,7 +113,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Default value for depth.
 	 */
-	public static final int DEPTH_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT/3;
+	public static final int DEPTH_DEFAULT = 2; //MatrixNetworkImpl.DEPTH_DEFAULT;
 
 	
 	/**
@@ -151,7 +151,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 */
 	public static final boolean ADJUST_DEFAULT = false;
 
-	
+
 	/**
 	 * Field for sample weight.
 	 */
@@ -221,6 +221,12 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	
 	
 	/**
+	 * Adjusting baseline.
+	 */
+	Matrix adjustline = null;
+
+	
+	/**
 	 * Constructor with neuron channel and identifier reference.
 	 * @param neuronChannel neuron channel.
 	 * @param idRef identifier reference.
@@ -239,6 +245,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		config.put(DUAL_FIELD, DUAL_DEFAULT);
 		config.put(BASELINE_FIELD, BASELINE_DEFAULT);
 		config.put(ADJUST_FIELD, ADJUST_DEFAULT);
+		config.put(MatrixNetworkImpl.MIDSIZE_FIELD, MatrixNetworkImpl.MIDSIZE_DEFAULT);
 		config.put(SAMPLE_WEIGHT_FIELD, SAMPLE_WEIGHT_DEFAULT);
 		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
 		config.put(CREATE_ADJUSTER_FIELD, CREATE_ADJUSTER_DEFAULT);
@@ -262,6 +269,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		classOutputMaps.clear();
 		classMaps.clear();
 		baseline = null;
+		adjustline = null;
 	}
 
 	
@@ -276,8 +284,11 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			return null;
 		else if (filterStride.width <= 0 || filterStride.height <= 0)
 			return null;
-		else
-			return ProductFilter2D.create(new Size(filterStride), value.valueOf(1.0/(double)(filterStride.height*filterStride.width)));
+		else {
+			Filter2D filter = ProductFilter2D.create(new Size(filterStride), value.valueOf(1.0/(double)(filterStride.height*filterStride.width)));
+			if (filter != null && paramGetMiddleSize() <= 0) filter.setMoveStride(false);
+			return filter;
+		}
 	}
 
 		
@@ -313,6 +324,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
 		updateConfig();
 		this.baseline = null;
+		this.adjustline = null;
 		
 		Dimension nCoreClasses2 = outputSize2;
 		if (nCoreClasses2 == null) nCoreClasses2 = outputSize1 != null ? outputSize1 : inputSize1; 
@@ -371,7 +383,6 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		}
 
 		//Initializing matrix network.
-		//Initializing matrix network.
 		int groupCount = labelGroups.size();
 		Dimension inputSize = new Dimension(averageSize.width, averageSize.height);
 		Dimension filterStride = new Dimension(paramGetFilterStride(), paramGetFilterStride());
@@ -387,14 +398,24 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			else {
 				int depth1 = depth - halfDepth, depth2 = halfDepth;
 				depth1 = depth1 == 0 && depth2 > 0 ? 1 : depth1;
-				if (!initialize(inputSize, inputSize, filterStride, depth1, false, nCoreClasses, depth2))
-					return false;
-			}
+				if (paramGetMiddleSize() <= 0) {
+					if (!initialize(inputSize, inputSize, filterStride, depth1, false, nCoreClasses, depth2)) return false;
+				}
+				else {
+					int ratio = Math.min(inputSize.height, inputSize.width) / paramGetMiddleSize();
+					if (ratio <= 1) {
+						if (!initialize(inputSize, inputSize, filterStride, depth1, false, nCoreClasses, depth2)) return false;
+					}
+					else {
+						int height = inputSize.height/ratio, width = inputSize.width/ratio;
+						if (!initialize(inputSize, new Dimension(width, height), filterStride, depth1, false, nCoreClasses, depth2)) return false;
+					}
+				} //paramGetMiddleSize()
+			} //paramIsDual()
 		}
 		else {
-			if (!initialize(inputSize, nCoreClasses, (Filter2D)null, depth, false, null, 0))
-				return false;
-		}
+			if (!initialize(inputSize, nCoreClasses, (Filter2D)null, depth, false, null, 0)) return false;
+		} //paramIsConv()
 
 		//Main task: setting up class maps.
 		this.classMaps.clear();
@@ -728,7 +749,6 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			for (int classIndex = 1; classIndex < classCount; classIndex++) {
 				if (weights[classIndex] > weights[foundClass]) foundClass = classIndex;
 			}
-
 			foundClasses[group] = foundClass;
 		}
 		
@@ -750,6 +770,10 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			NeuronValue base = paramIsByColumn() ? this.baseline.get(classIndex, groupIndex) : this.baseline.get(groupIndex, classIndex);
 			//Following code lines are important due to apply baseline into determining class.
 			NeuronValue sim = values[classIndex].subtract(base);
+			if (this.adjustline != null) {
+				NeuronValue adjust = paramIsByColumn() ? this.adjustline.get(classIndex, groupIndex) : this.adjustline.get(groupIndex, classIndex);
+				sim = sim.multiply(adjust);
+			}
 			values[classIndex] = sim;
 		}
 		return weightsOfOutput(values);
@@ -761,7 +785,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @param output specified output.
 	 * @return weights of specified output.
 	 */
-	static double[] weightsOfOutput(NeuronValue[] output) {
+	private static double[] weightsOfOutput(NeuronValue[] output) {
 		double[] weights = new double[output.length];
 		for (int i = 0; i < weights.length; i++) weights[i] = output[i].mean();
 		return weights;
@@ -825,7 +849,17 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		List<Record> newsample = prelearn(sample);
 		Error[] errors = learn(newsample);
 		learnVerify(newsample);
-
+		
+		if (paramGetAdjuster() != null) {
+			paramGetAdjuster().paramSetInclude(this);
+			List<Record> adjustSample = Util.newList(0);
+			for (Record record : newsample) {
+				Matrix output = evaluate(record.input());
+				if (output != null) adjustSample.add(new Record(output, record.output()));
+			}
+			errors = adjustSample.size() > 0 ? paramGetAdjuster().learn(adjustSample) : errors;
+		}
+		
 		NeuronValue[] errorArray = null;
 		for (Error error : errors) {
 			NeuronValue[] values = Matrix.extractValues(error.error());
@@ -834,7 +868,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		return errorArray;
 	}
 
-
+	
 	/**
 	 * Pre-processing for learning.
 	 * @param sample
@@ -891,14 +925,21 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * Verifying learning.
 	 * @param sample learning sample.
 	 */
-	void learnVerify(Iterable<Record> sample) {
+	public void learnVerify(Iterable<Record> sample) {
 		this.baseline = null;
+		this.adjustline = null;
 		if (!paramIsBaseline()) return;
-		
-		this.baseline = calcBaseline(sample);
+
+		if (paramIsAdjust()) {
+			Matrix[] lines = calcBaselineAdjust(sample, paramGetAdjuster());
+			this.baseline = lines[0];
+			this.adjustline = lines[1];
+		}
+		else
+			this.baseline = calcBaseline(sample);
 	}
 
-
+	
 	/**
 	 * Calculating baseline.
 	 * @param sample sample.
@@ -1211,6 +1252,13 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 
 	
 	/**
+	 * Getting adjuster.
+	 * @return adjuster.
+	 */
+	MatrixNetworkImpl paramGetAdjuster() {return null;}
+	
+	
+	/**
 	 * Checking normalization mode.
 	 * @return normalization mode in rang [0, 1].
 	 */
@@ -1439,6 +1487,29 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	}
 
 
+	/**
+	 * Checking middle size.
+	 * @return middle size.
+	 */
+	public int paramGetMiddleSize() {
+		if (config.containsKey(MatrixNetworkImpl.MIDSIZE_FIELD))
+			return config.getAsInt(MatrixNetworkImpl.MIDSIZE_FIELD);
+		else
+			return MatrixNetworkImpl.MIDSIZE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting middle size.
+	 * @param minSize middle size.
+	 * @return this classifier.
+	 */
+	public ClassifierAbstract paramSetMiddleSize(int minSize) {
+		config.put(MatrixNetworkImpl.MIDSIZE_FIELD, minSize);
+		return this;
+	}
+
+	
 	/**
 	 * Checking sample weight mode.
 	 * @return sample weight mode.

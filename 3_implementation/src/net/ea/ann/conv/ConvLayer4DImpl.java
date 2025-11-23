@@ -12,6 +12,7 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
+import net.ea.ann.raster.Size;
 
 /**
  * This class is the default implementation of convolutional layer in 4D space.
@@ -92,6 +93,12 @@ public class ConvLayer4DImpl extends ConvLayer4DAbstract {
 	}
 
 	
+	@Override
+	public ConvLayerSingle newLayer(Size size) {
+		return create(neuronChannel, activateRef, size.width, size.height, size.depth, size.time, filter, idRef);
+	}
+
+
 	/**
 	 * Creating convolutional layer with neuron channel, activation function, width, height, depth, time, filter, and ID reference.
 	 * @param neuronChannel neuron channel or depth.

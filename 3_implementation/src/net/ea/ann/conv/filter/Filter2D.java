@@ -31,6 +31,13 @@ public interface Filter2D extends Filter1D {
 
 
 	/**
+	 * Adding accumulatively kernel.  
+	 * @param kernel specified kernel.
+	 */
+	void accumKernel(NeuronValue[][] kernel);
+
+		
+	/**
 	 * Calculating derivative of kernel of this layer given next layer as bias layer at specified coordinator.
 	 * @param nextX next X coordinator.
 	 * @param nextY next Y coordinator.
@@ -38,7 +45,7 @@ public interface Filter2D extends Filter1D {
 	 * @param nextLayer next layer as bias layer.
 	 * @return derivative of kernel of this layer given next layer as bias layer.
 	 */
-	public NeuronValue[][] dKernel(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer);
+	NeuronValue[][] dKernel(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer);
 
 	
 	/**
@@ -49,7 +56,41 @@ public interface Filter2D extends Filter1D {
 	 * @param nextLayer next layer as bias layer.
 	 * @return derivative of this layer given next layer as bias layer.
 	 */
-	public NeuronValue[][] dValue(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer);
+	NeuronValue[][] dValue(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer);
 
+	
+	/**
+	 * Shallow cloning specified filter.
+	 * @return cloned filter.
+	 */
+	Filter2D shallowClone();
+
+	
+	/**
+	 * Calculating sum of array of kernels.
+	 * @param kernels array of kernels.
+	 * @return sum of array of kernels.
+	 */
+	public static NeuronValue[][] kernelAdd(NeuronValue[][]...kernels) {
+		if (kernels == null || kernels.length == 0) return null;
+		if (kernels.length == 1) return kernels[0];
+		NeuronValue[][] sum = kernels[0];
+		for (int i = 1; i < kernels.length; i++) sum = NeuronValue.add(sum, kernels[i]);
+		return sum;
+	}
+
+	
+	/**
+	 * Calculating mean of array of kernels.
+	 * @param kernels array of kernels.
+	 * @return mean of array of kernels.
+	 */
+	public static NeuronValue[][] kernelMean(NeuronValue[][]...kernels) {
+		if (kernels == null || kernels.length == 0) return null;
+		if (kernels.length == 1) return kernels[0];
+		NeuronValue[][] mean = kernelAdd(kernels);
+		return NeuronValue.divide(mean, (double)kernels.length);
+	}
+	
 	
 }

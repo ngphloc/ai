@@ -251,7 +251,9 @@ public class TransformerImpl extends TransformerAbstract {
 
 		@Override
 		protected net.ea.ann.transformer.TransformerBlock createBlock() {
-			return new TransformerBlock(this.neuronChannel, idRef);
+			TransformerBlock block = new TransformerBlock(this.neuronChannel, idRef);
+			block.updateConfig(this.config);
+			return block;
 		}
 		
 		/**

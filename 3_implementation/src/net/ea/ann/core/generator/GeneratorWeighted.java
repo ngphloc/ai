@@ -18,7 +18,6 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerStandard;
 import net.ea.ann.core.NetworkStandard;
 import net.ea.ann.core.NeuronStandard;
-import net.ea.ann.core.Record;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.Probability;
@@ -289,7 +288,7 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	 * @return whether to require weighted function.
 	 */
 	boolean requireWeightedFunction(Function activateRef) {
-		return activateRef != null && activateRef instanceof Softmax;
+		return activateRef != null && activateRef instanceof Softmax; //Current version supports only soft-max function.
 	}
 	
 	
@@ -350,23 +349,6 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	
 	
 	/**
-	 * Extracting class given specified input record.
-	 * @param inputRecord specified input record.
-	 * @return class given specified input record.
-	 */
-	public int extractClass(Record inputRecord) {
-		try {
-			NeuronValue[] evaluated = super.evaluate(inputRecord);
-			if (evaluated == null || evaluated.length == 0)
-				return -1;
-			else
-				return extractClass();
-		} catch (Throwable e) {Util.trace(e);}
-		return -1;
-	}
-
-
-	/**
 	 * Extracting class of output layer.
 	 * @return class of output layer.
 	 */
@@ -387,56 +369,13 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 		if (nClass <= 0) return -1;
 		
 		double[] weights = weightsOfOutput(output);
-		int foundClass = -1;
-		double minDistance = Double.MAX_VALUE;
-		for (int classIndex = 0; classIndex < nClass; classIndex++) {
-			NeuronValue[] output2 = createOutputByClass(classIndex);
-			double[] weights2 = weightsOfOutput(output2);
-			double distance = 0;
-			for (int i = 0; i < weights.length; i++) {
-				double d = weights[i] - weights2[i];
-				distance += d*d;
-			}
-			distance = Math.sqrt(distance);
-			
-			if (distance < minDistance) {
-				minDistance = distance;
-				foundClass = classIndex;
-			}
+		int foundClass = 0;
+		for (int classIndex = 1; classIndex < nClass; classIndex++) {
+			if (weights[classIndex] > weights[foundClass]) foundClass = classIndex;
 		}
 		return foundClass;
 	}
 
-	
-//	/**
-//	 * Extracting class of given output.
-//	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
-//	 * @param output specified output.
-//	 * @return class of given output.
-//	 */
-//	private int extractClass2(NeuronValue[] output) {
-//		if (output == null || output.length == 0) return -1;
-//		double[] weights = weightsOfOutput(output);
-//		IndexedWeight[] indexedWeights = IndexedWeight.create(weights);
-//		IndexedWeight.sort(indexedWeights, false);
-//		
-//		int outputIndex = indexedWeights[0].index;
-//		int[] classIndices = outputClassMap.get(outputIndex);
-//		List<Integer> classResults = Util.newList(classIndices.length);
-//		for (int j = 0; j < classIndices.length; j++) classResults.add(classIndices[j]);
-//		
-//		for (int i = 1; i < indexedWeights.length; i++) {
-//			outputIndex = indexedWeights[i].index;
-//			classIndices = outputClassMap.get(outputIndex);
-//			List<Integer> classCandidates = Util.newList(0);
-//			for (int j = 0; j < classIndices.length; j++) classCandidates.add(classIndices[j]);
-//			classResults.removeAll(classCandidates); //Unique aspect.
-//			if (classResults.size() == 1) return classResults.get(0);
-//		}
-//		
-//		return classResults.size() > 0 ? classResults.get(0) : -1;
-//	}
-	
 	
 	/**
 	 * Getting weights of specified output.
@@ -447,28 +386,6 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 		double[] weights = new double[output.length];
 		for (int i = 0; i < weights.length; i++) weights[i] = output[i].mean();
 		return weights;
-	}
-	
-	
-	/**
-	 * Getting the number elements of a combination.
-	 * @return the number elements of a combination.
-	 */
-	public int paramGetCombNumber() {
-		int combNumber = config.getAsInt(COMB_NUMBER_FIELD);
-		return combNumber < 1 ? COMB_NUMBER_DEFAULT : combNumber;
-	}
-	
-	
-	/**
-	 * Setting the number elements of a combination.
-	 * @param combNumber the number elements of a combination.
-	 * @return this generator.
-	 */
-	public GeneratorWeighted0<T> paramSetCombNumber(int combNumber) {
-		combNumber = combNumber < 1 ? COMB_NUMBER_DEFAULT : combNumber;
-		config.put(COMB_NUMBER_FIELD, combNumber);
-		return this;
 	}
 	
 	
@@ -506,6 +423,28 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 			return realOutput.multiply(output.negative());
 	}
 
+	
+	/**
+	 * Getting the number elements of a combination.
+	 * @return the number elements of a combination.
+	 */
+	public int paramGetCombNumber() {
+		int combNumber = config.getAsInt(COMB_NUMBER_FIELD);
+		return combNumber < 1 ? COMB_NUMBER_DEFAULT : combNumber;
+	}
+	
+	
+	/**
+	 * Setting the number elements of a combination.
+	 * @param combNumber the number elements of a combination.
+	 * @return this generator.
+	 */
+	public GeneratorWeighted0<T> paramSetCombNumber(int combNumber) {
+		combNumber = combNumber < 1 ? COMB_NUMBER_DEFAULT : combNumber;
+		config.put(COMB_NUMBER_FIELD, combNumber);
+		return this;
+	}
+	
 	
 }
 

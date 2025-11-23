@@ -30,7 +30,7 @@ import net.ea.ann.core.value.Matrix;
  * @version 1.0
  *
  */
-public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLayer {
+public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 
 
 	/**
@@ -54,7 +54,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 	/**
 	 * Default value of minimum width field.
 	 */
-	public final static int MINSIZE = 32 / BASE_DEFAULT;
+	public final static int MINSIZE = 32; //ImageListItem.ICON_MINSIZE/BASE_DEFAULT;
 
 	
 //	/**
@@ -69,12 +69,12 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 //	 */
 //	@Deprecated
 //	public final static String HISTORY_MODE_FIELD = "mane_hist_mode";
-	
-	
-	/**
-	 * Default value of history mode.
-	 */
-	public final static boolean HISTORY_MODE_DEFAULT = false;
+//	
+//	
+//	/**
+//	 * Default value of history mode.
+//	 */
+//	public final static boolean HISTORY_MODE_DEFAULT = false;
 	
 	
 	/**
@@ -774,7 +774,6 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract implements MatrixLa
 				continue;
 			}
 			MatrixLayerImpl layer = (MatrixLayerImpl)layers[i];
-			layer.resetBackwardInfo();
 			outputErrors = layer.backwardThisLayerWithoutLearning(outputErrors, learningRate);
 		}
 		for (int i = layers.length-1; i >= 0; i--) {

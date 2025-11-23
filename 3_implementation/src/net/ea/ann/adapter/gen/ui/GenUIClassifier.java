@@ -21,6 +21,7 @@ import net.ea.ann.adapter.gen.beans.ForestClassifier;
 import net.ea.ann.adapter.gen.beans.MatrixClassifier;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
 import net.ea.ann.adapter.gen.beans.TransformerClassifier;
+import net.ea.ann.classifier.Classifier;
 import net.ea.ann.classifier.ClassifierAbstract;
 import net.ea.ann.classifier.ClassifierAssoc;
 import net.ea.ann.classifier.ClassifierAssoc.ClassifyInfo;
@@ -214,6 +215,14 @@ public class GenUIClassifier extends GenUI {
 				params.blocks = config.getAsInt(net.ea.ann.classifier.TransformerClassifier.BLOCKS_NUMBER_FIELD);
 			if (config.containsKey(net.ea.ann.classifier.ForestClassifier.TREE_MODEL_FIELD))
 				params.treeModel = net.ea.ann.classifier.ForestClassifier.toTreeModel(config.getAsInt(net.ea.ann.classifier.ForestClassifier.TREE_MODEL_FIELD));
+			
+			if (config.containsKey(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED))
+				params.maxIteration = config.getAsInt(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED);
+			Classifier classifier = gm.getParameter() != null && gm.getParameter() instanceof Classifier ? (Classifier)gm.getParameter() : null;
+			if (classifier != null) {
+				params.depth = new ClassifierAssoc(classifier).depth();
+				params.paramSize = new ClassifierAssoc(classifier).sizeOfParams();
+			}
 		} catch (Throwable e) {Util.trace(e);}
 		return params;
 	}

@@ -8,16 +8,12 @@
 package net.ea.ann.classifier;
 
 import java.awt.Dimension;
-import java.rmi.RemoteException;
-import java.util.List;
 
 import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
-import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.value.Matrix;
-import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
@@ -44,14 +40,8 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 	/**
 	 * Classifier nut.
 	 */
-	protected MatrixNetworkImpl adjuster = null;
+	MatrixNetworkImpl adjuster = null;
 	
-	
-	/**
-	 * Adjusting baseline.
-	 */
-	protected Matrix adjustline = null;
-
 	
 	/**
 	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
@@ -99,7 +89,6 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 	public void reset() {
 		super.reset();
 		adjuster = null;
-		adjustline = null;
 	}
 
 
@@ -113,7 +102,7 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 	@Override
 	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, nCoreClasses2, depth2)) return false;
-		this.adjustline = null;
+		this.adjuster = null;
 		if (!paramIsAdjust() || !paramIsBaseline() || !paramIsCreateAdjuster()) return true;
 		
 		int minAdjustDepth = Math.max((int)(Math.log(this.nut.size())/Math.log(MatrixNetworkImpl.BASE_DEFAULT)), 1);
@@ -129,88 +118,9 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 
 
 	@Override
-	double[] weightsOfOutput(Matrix output, int groupIndex) {
-		if (this.baseline == null || this.adjustline == null) return super.weightsOfOutput(output, groupIndex);
-		NeuronValue[] values = getOutput(output, groupIndex);
-		values = paramIsEntropyTrainer() ? Softmax.softmax(values) : values;
-		
-		for (int classIndex = 0; classIndex < values.length; classIndex++) {
-			NeuronValue base = paramIsByColumn() ? this.baseline.get(classIndex, groupIndex) : this.baseline.get(groupIndex, classIndex);
-			NeuronValue adjust = paramIsByColumn() ? this.adjustline.get(classIndex, groupIndex) : this.adjustline.get(groupIndex, classIndex);
-			//Following code lines are important due to apply baseline into determining class.
-			NeuronValue sim = values[classIndex].subtract(base).multiply(adjust);
-			values[classIndex] = sim;
-		}
-		return weightsOfOutput(values);
-	}
+	MatrixNetworkImpl paramGetAdjuster() {return adjuster;}
 
-	
-	/**
-	 * Learning raster.
-	 * @param sample sample.
-	 * @return errors.
-	 */
-	Error[] learnRaster0(Iterable<Raster> sample) {
-		List<Record> newsample = prelearn(sample);
-		Error[] errors = learn(newsample);
-		learnVerify(newsample);
-		return errors;
-	}
 
-	
-	@Override
-	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
-		updateConfig();
-		
-		Matrix sampleWeight = null;
-		if (paramIsSampleWeight()) {
-			this.sampleWeight = null;
-			List<Record> newsample = prelearn(sample);
-			learn(newsample);
-			learnVerify(newsample);
-			if (this.baseline != null) sampleWeight = paramIsByColumn() ? Softmax.softmaxByColumnInverse(this.baseline) : Softmax.softmaxByRowInverse(this.baseline);
-		}
-		List<Record> newsample = prelearn(sample);
-		this.sampleWeight = sampleWeight;
-		Error[] errors = learn(newsample);
-		learnVerify(newsample);
-		if (this.sampleWeight != null) this.baseline = null;
-		this.sampleWeight = null;
-		
-		if (this.adjuster != null) {
-			List<Record> adjustSample = Util.newList(0);
-			for (Record record : newsample) {
-				Matrix output = evaluate(record.input());
-				if (output != null) adjustSample.add(new Record(output, record.output()));
-			}
-			errors = adjustSample.size() > 0 ? this.adjuster.learn(adjustSample) : errors;
-		}
-		
-		NeuronValue[] errorArray = null;
-		for (Error error : errors) {
-			NeuronValue[] values = Matrix.extractValues(error.error());
-			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
-		}
-		return errorArray;
-	}
-
-	
-	@Override
-	public void learnVerify(Iterable<Record> sample) {
-		this.baseline = null;
-		this.adjustline = null;
-		if (!paramIsBaseline()) return;
-
-		if (paramIsAdjust()) {
-			Matrix[] lines = calcBaselineAdjust(sample, this.adjuster);
-			this.baseline = lines[0];
-			this.adjustline = lines[1];
-		}
-		else
-			this.baseline = calcBaseline(sample);
-	}
-
-	
 	/**
 	 * Creating matrix neural classifier with neuron channel and norm flag.
 	 * @param neuronChannel specified neuron channel.
@@ -237,7 +147,7 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
  * @version 1.0
  *
  */
-abstract class MatrixClassifierAbstract extends ClassifierAbstract {
+class MatrixClassifierAbstract extends ClassifierAbstract {
 
 	
 	/**
@@ -255,7 +165,8 @@ abstract class MatrixClassifierAbstract extends ClassifierAbstract {
 	/**
 	 * Sample weight.
 	 */
-	protected Matrix sampleWeight = null;
+	@Deprecated
+	private Matrix sampleWeight = null;
 	
 	
 	/**
@@ -347,12 +258,24 @@ abstract class MatrixClassifierAbstract extends ClassifierAbstract {
 		int groupCount = getNumberOfGroups();
 		Dimension outputCombSize = paramIsByColumn() ? new Dimension(groupCount, outputCount) : new Dimension(outputCount, groupCount);
 		if (outputSize2 == null) {
-			if (!nut.initializeByDepth(inputSize1, outputCombSize, filter1, depth1, dual1, outputSize2, depth2))
-				return false;
+			if (paramGetMiddleSize() <= 0) {
+				if (!nut.initializeByDepth(inputSize1, outputCombSize, filter1, depth1, dual1, outputSize2, depth2))
+					return false;
+			}
+			else {
+				if (!nut.initialize(inputSize1, outputCombSize, filter1, depth1, dual1, outputSize2, depth2))
+					return false;
+			}
 		}
 		else {
-			if (!nut.initializeByDepth(inputSize1, outputSize1, filter1, depth1, dual1, outputCombSize, depth2))
-				return false;
+			if (paramGetMiddleSize() <= 0) {
+				if (!nut.initializeByDepth(inputSize1, outputSize1, filter1, depth1, dual1, outputCombSize, depth2))
+					return false;
+			}
+			else {
+				if (!nut.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputCombSize, depth2))
+					return false;
+			}
 		}
 		
 		Matrix output = getOutput();
@@ -386,6 +309,42 @@ abstract class MatrixClassifierAbstract extends ClassifierAbstract {
 		updateConfig();
 		return nut.evaluate0(input, params);
 	}
+
+	
+//	@Override
+//	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
+//		Matrix sampleWeight = null;
+//		if (paramIsSampleWeight()) {
+//			this.sampleWeight = null;
+//			List<Record> newsample = prelearn(sample);
+//			learn(newsample);
+//			learnVerify(newsample);
+//			if (this.baseline != null) sampleWeight = paramIsByColumn() ? Softmax.softmaxByColumnInverse(this.baseline) : Softmax.softmaxByRowInverse(this.baseline);
+//		}
+//		List<Record> newsample = prelearn(sample);
+//		this.sampleWeight = sampleWeight;
+//		Error[] errors = learn(newsample);
+//		learnVerify(newsample);
+//		if (this.sampleWeight != null) this.baseline = null;
+//		this.sampleWeight = null;
+//		
+//		if (paramGetAdjuster() != null) {
+//			paramGetAdjuster().paramSetInclude(this);
+//			List<Record> adjustSample = Util.newList(0);
+//			for (Record record : newsample) {
+//				Matrix output = evaluate(record.input());
+//				if (output != null) adjustSample.add(new Record(output, record.output()));
+//			}
+//			errors = adjustSample.size() > 0 ? paramGetAdjuster().learn(adjustSample) : errors;
+//		}
+//		
+//		NeuronValue[] errorArray = null;
+//		for (Error error : errors) {
+//			NeuronValue[] values = Matrix.extractValues(error.error());
+//			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
+//		}
+//		return errorArray;
+//	}
 
 	
 	@Override

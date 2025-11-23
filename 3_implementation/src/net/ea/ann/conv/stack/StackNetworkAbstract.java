@@ -9,6 +9,7 @@ package net.ea.ann.conv.stack;
 
 import java.rmi.RemoteException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import net.ea.ann.conv.Content;
@@ -67,15 +68,55 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 
 
 	/**
-	 * Name of learning filter field.
+	 * Name of only forwarding mode.<br/>
+	 * If this parameter is true, the evaluation process is performed only forward in the convolutional network {@link #stacks}.
+	 * In other words, weights are ignored in the convolutional network {@link #stacks} if this parameter is true so that only convolutional filters are focused.
+	 * Therefore, learning task is only done if this parameter is false.
+	 * In current version, this parameter is nearly set to be fixed as constant (true).
 	 */
-	protected static final String LEARNING_FILTERS_FIELD = "conv_learning_filters";
+	public static final String ONLY_FORWARD_FIELD = "conv_only_forward";
 
 	
 	/**
-	 * Name of learning filter field.
+	 * Name of only forwarding mode.
 	 */
-	protected static final boolean LEARNING_FILTERS_DEFAULT = false;
+	public static final boolean ONLY_FORWARD_DEFAULT = true;
+
+	
+	/**
+	 * Name of learning filters field.
+	 */
+	public static final String LEARN_FILTERS_FIELD = "conv_learn_filters";
+
+	
+	/**
+	 * Name of learning filters field.
+	 */
+	public static final boolean LEARN_FILTERS_DEFAULT = true;
+
+	
+	/**
+	 * Name of extensive learning filters field.
+	 */
+	public static final String LEARN_FILTERS_EXT_FIELD = "conv_learn_filters_ext";
+
+	
+	/**
+	 * Name of extensive learning filters field.
+	 */
+	public static final boolean LEARN_FILTERS_EXT_DEFAULT = false;
+
+	
+	/**
+	 * Name of learning weights field.
+	 */
+	public static final String LEARN_WEIGHTS_FIELD = "conv_learn_weights";
+
+	
+	/**
+	 * Name of learning weights field.
+	 */
+	public static final boolean LEARN_WEIGHTS_DEFAULT = false;
 
 	
 	/**
@@ -134,15 +175,6 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 
 	
 	/**
-	 * If this parameter is true, the evaluation process is performed only forward in the convolutional network {@link #stacks}.
-	 * In other words, weights are ignored in the convolutional network {@link #stacks} if this parameter is true so that only convolutional filters are focused.
-	 * Therefore, learning task is only done if this parameter is false.
-	 * In current version, this parameter is nearly set to be fixed as constant (true).
-	 */
-	protected boolean onlyForward = true;
-
-	
-	/**
 	 * Unified output content which is the unified output of the main convolutional network.
 	 */
 	private Content unifiedOutputContent = null;
@@ -165,7 +197,10 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 		super(idRef);
 		
 		this.config.put(LEARN_MAX_ITERATION_FIELD, LEARN_MAX_ITERATION_DEFAULT);
-		this.config.put(LEARNING_FILTERS_FIELD, LEARNING_FILTERS_DEFAULT);
+		this.config.put(ONLY_FORWARD_FIELD, ONLY_FORWARD_DEFAULT);
+		this.config.put(LEARN_FILTERS_FIELD, LEARN_FILTERS_DEFAULT);
+		this.config.put(LEARN_FILTERS_EXT_FIELD, LEARN_FILTERS_EXT_DEFAULT);
+		this.config.put(LEARN_WEIGHTS_FIELD, LEARN_WEIGHTS_DEFAULT);
 		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		this.config.put(Image.ALPHA_FIELD, Image.ALPHA_DEFAULT);
 
@@ -198,6 +233,21 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 			 * Serial version UID for serializable class. 
 			 */
 			private static final long serialVersionUID = 1L;
+
+			@Override
+			protected boolean isLearningFilters() {
+				return !paramIsOnlyForward() && paramIsLearnFilters();
+			}
+
+			@Override
+			protected boolean isLearningWeights() {
+				return !paramIsOnlyForward() && paramIsLearnWeights();
+			}
+
+			@Override
+			protected boolean isLearningBias() {
+				return !paramIsOnlyForward() && paramIsLearnWeights();
+			}
 
 			@Override
 			protected Content calcOutputError(ElementLayer outputLayer, Content realOutput, Stack outputStack) {
@@ -580,8 +630,8 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 		
 		if (stacks.size() > 1) {
 			for (int i = 0; i < stacks.size(); i++) {
-				if ((onlyForward) && (i < stacks.size()-1)) stacks.get(i).forward();
-				if ((!onlyForward) && (i > 0)) stacks.get(i).evaluate();
+				if ((paramIsOnlyForward()) && (i < stacks.size()-1)) stacks.get(i).forward();
+				if ((!paramIsOnlyForward()) && (i > 0)) stacks.get(i).evaluate();
 			}
 		}
 
@@ -838,19 +888,43 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 	
 	@Override
 	public NeuronValue[] learnOneByOne(Iterable<Record> sample) throws RemoteException {
-		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
-		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
+		int maxIteration = paramGetMaxIteration();
+		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
-		return learnOneByOne(sample, learningRate, terminatedThreshold, maxIteration);
+		int epochs = paramGetPseudoEpochs();
+
+		NeuronValue[] outputErrors = null;
+		Iterable<Record> newsample = sample;
+		for (int epoch = 0; epoch < epochs; epoch++) {
+			double lr = calcLearningRate(learningRate, epoch+1);
+			if (epoch > 0) {
+				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
+				Collections.shuffle((List<?>)newsample);
+			}
+			outputErrors =  learnOneByOne(sample, lr, terminatedThreshold, maxIteration);
+		}
+		return outputErrors;
 	}
 
 
 	@Override
 	public NeuronValue[] learn(Iterable<Record> sample) throws RemoteException {
-		int maxIteration = config.getAsInt(LEARN_MAX_ITERATION_FIELD);
-		double terminatedThreshold = config.getAsReal(LEARN_TERMINATED_THRESHOLD_FIELD);
+		int maxIteration = paramGetMaxIteration();
+		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
-		return learn(sample, learningRate, terminatedThreshold, maxIteration);
+		int epochs = paramGetPseudoEpochs();
+
+		NeuronValue[] outputErrors = null;
+		Iterable<Record> newsample = sample;
+		for (int epoch = 0; epoch < epochs; epoch++) {
+			double lr = calcLearningRate(learningRate, epoch+1);
+			if (epoch > 0) {
+				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
+				Collections.shuffle((List<?>)newsample);
+			}
+			outputErrors =  learn(sample, lr, terminatedThreshold, maxIteration);
+		}
+		return outputErrors;
 	}
 
 	
@@ -871,7 +945,7 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 		} catch (Throwable e) {Util.trace(e);}
 		
 		if (stacks.size() < 1) return null;
-		if (stacks.size() < 2 && !onlyForward) return null;
+		if (stacks.size() < 2 && !paramIsOnlyForward()) return null;
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
@@ -887,40 +961,33 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 			for (Record record : subsample) {
 				if (record == null) continue;
 				
-				Content[] output = null; //This is the second output which is content output for learning convolutional network.
-				Stack lastStack = stacks.get(stacks.size() - 1);
-				if (record instanceof RecordExt) {
-					RecordExt recordExt = (RecordExt)record;
-					output = recordExt.contentOutput != null? StackAbstract.adjustArray(recordExt.contentOutput, lastStack.size(), lastStack) : null;
-				}
-				
 				//Evaluating layers.
 				try {
 					evaluate(record);
 				} catch (Throwable e) {Util.trace(e);}
 				
-				Content[] contentError = null;
-				if (!onlyForward && output != null) {
-					//Learning stack list.
-					contentError = bp.updateWeightsBiases(stacks, output, lr);
-				}
+				//If there is in only forwarding mode then continue.
+				if (paramIsOnlyForward()) continue;
 				
 				Content unifiedContent = getUnifiedOutputContent(false);
-				boolean realError = false;
+
+				//Main learning to learn RCN and stack.
 				if (fullNetwork != null) {
-					try {
-						error = fullNetwork.learn(convertUnifiedContentToFullNetworkInput(unifiedContent), record.output, lr, terminatedThreshold, 1);
-						realError = true;
-					} catch (Throwable e) {Util.trace(e);}
+					NeuronValue[] fcnError = fullNetwork.learn(convertUnifiedContentToFullNetworkInput(unifiedContent), record.output, lr, terminatedThreshold, 1);
+					Content fcnContentError = convertFullNetworkInputToUnifiedContent(fcnError);
+					Function activateRef = stacks.get(stacks.size()-1).get(0).getActivateRef();
+					if (activateRef != null) {
+						fcnContentError = unifiedContent.derivative0(activateRef).multiply(fcnContentError);
+					}
+					error = bp.updateWeightsBiases(stacks, null, new Content[] {fcnContentError}, learningRate)[0].getData();
 				}
-				else if (!onlyForward && contentError != null) {
+				else {
+					Content[] contentError = bp.updateWeightsBiases(Arrays.asList(record), stacks, lr, this);
 					error = new NeuronValue[contentError.length];
 					for (int i = 0; i < error.length; i++) error[i] = contentError[i].mean0();
-					realError = true;
 				}
-				else
-					error = new NeuronValue[] {lastStack.newNeuronValue().zero()};
 				
+				//Learning RFCN.
 				if (reversedFullNetwork != null) {
 					try {
 						NeuronValue[] rfnOutput = null;
@@ -928,13 +995,12 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 							rfnOutput = convertUnifiedContentToFullNetworkInput(unifiedContent);
 						else if (record != null && record.input != null)
 							rfnOutput = record.input[0].flatten(reversedFullNetwork.getNeuronChannel()); 
-						NeuronValue[] rfnError = reversedFullNetwork.learn(record.output, rfnOutput, lr, terminatedThreshold, 1);
-						if (!realError) error = rfnError;
+						reversedFullNetwork.learn(record.output, rfnOutput, lr, terminatedThreshold, 1);
 					} catch (Throwable e) {Util.trace(e);}
 				}
-				
+
 				//Be careful to learn filter because filter is only learned from large layer to small layer in this current version.
-				if (config.getAsBoolean(LEARNING_FILTERS_FIELD)) learnFilters(lr, 1);
+				if (config.getAsBoolean(LEARN_FILTERS_EXT_FIELD)) learnFiltersExt(lr, 1);
 				
 			} //End for
 			
@@ -992,7 +1058,7 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 		} catch (Throwable e) {Util.trace(e);}
 		
 		if (stacks.size() < 1) return null;
-		if (stacks.size() < 2 && !onlyForward) return null;
+		if (stacks.size() < 2 && !paramIsOnlyForward()) return null;
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
@@ -1005,12 +1071,6 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
-			Content[] contentError = null;
-			if (!onlyForward) {
-				//Learning stack list.
-				contentError = bp.updateWeightsBiases(subsample, stacks, lr, this);
-			}
-			
 			List<Record> fnSample = Util.newList(0), rfnSample = Util.newList(0);
 			for (Record record : subsample) {
 				NeuronValue[] fnInput = null, rfnOutput = null;
@@ -1031,21 +1091,32 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 				if (rfnOutput != null) rfnSample.add(new Record(record.output, rfnOutput));
 			}
 			
-			if (fullNetwork != null)
-				error = fullNetwork.learn(fnSample, lr, terminatedThreshold, 1);
-			else if (!onlyForward && contentError != null) {
-				error = new NeuronValue[contentError.length];
-				for (int i = 0; i < error.length; i++) error[i] = contentError[i].mean0();
+			if (!paramIsOnlyForward()) {
+				//Main learning to learn RCN and stack.
+				if (fullNetwork != null) {
+					NeuronValue[] fcnError = fullNetwork.learn(fnSample, lr, terminatedThreshold, 1);
+					Content fcnContentError = convertFullNetworkInputToUnifiedContent(fcnError);
+					Function activateRef = stacks.get(stacks.size()-1).get(0).getActivateRef();
+					if (activateRef != null) {
+						Content unifiedContent = getUnifiedOutputContent(false);
+						//Fixing later because unified content is evaluated only from the last record. 
+						fcnContentError = unifiedContent.derivative0(activateRef).multiply(fcnContentError);
+					}
+					error = bp.updateWeightsBiases(stacks, null, new Content[] {fcnContentError}, learningRate)[0].getData();
+				}
+				else {
+					Content[] contentError = bp.updateWeightsBiases(subsample, stacks, lr, this);
+					error = new NeuronValue[contentError.length];
+					for (int i = 0; i < error.length; i++) error[i] = contentError[i].mean0();
+				}
+				
+				//Learning RFCN.
+				if (reversedFullNetwork != null) reversedFullNetwork.learn(rfnSample, lr, terminatedThreshold, 1);
+				
+				//Be careful to learn filter because filter is only learned from large layer to small layer in this current version.
+				if (config.getAsBoolean(LEARN_FILTERS_EXT_FIELD)) learnFiltersExt(lr, 1);
 			}
-			else
-				error = new NeuronValue[] {stacks.get(stacks.size() - 1).newNeuronValue().zero()};
 			
-			if (reversedFullNetwork != null) 
-				error = reversedFullNetwork.learn(rfnSample, lr, terminatedThreshold, 1);
-			
-			//Be careful to learn filter because filter is only learned from large layer to small layer in this current version.
-			if (config.getAsBoolean(LEARNING_FILTERS_FIELD)) learnFilters(lr, 1);
-
 			iteration ++;
 			
 			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "stacknn_backpropogate",
@@ -1098,11 +1169,11 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 
 	
 	/**
-	 * Learning filters.
+	 * Extensive learning filters.
 	 * @param learningRate learning rate.
 	 * @param maxIteration maximum iteration.
 	 */
-	void learnFilters(double learningRate, int maxIteration) {
+	void learnFiltersExt(double learningRate, int maxIteration) {
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
@@ -1148,23 +1219,74 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 	}
 	
 
-//	/**
-//	 * Checking whether only forwarding mode is set.
-//	 * @return whether only forwarding mode is set.
-//	 */
-//	public boolean isOnlyForward() {
-//		return onlyForward;
-//	}
-//	
-//	
-//	/**
-//	 * Setting only forwarding mode.
-//	 * @param onlyForward only forwarding mode.
-//	 */
-//	public void setOnlyForward(boolean onlyForward) {
-//		this.onlyForward = onlyForward;
-//	}
+	/**
+	 * Checking only forwarding mode.
+	 * @return only forwarding mode.
+	 */
+	boolean paramIsOnlyForward() {
+		if (config.containsKey(ONLY_FORWARD_FIELD))
+			return config.getAsBoolean(ONLY_FORWARD_FIELD);
+		else
+			return ONLY_FORWARD_DEFAULT;
+	}
 	
+	
+	/**
+	 * Setting only forwarding mode.
+	 * @param onlyForward only forwarding mode.
+	 * @return this network.
+	 */
+	StackNetworkAbstract paramSetOnlyForward(boolean onlyForward) {
+		config.put(ONLY_FORWARD_FIELD, onlyForward);
+		return this;
+	}
+
+	
+	/**
+	 * Checking learning filters mode.
+	 * @return learning filters mode.
+	 */
+	boolean paramIsLearnFilters() {
+		if (config.containsKey(LEARN_FILTERS_FIELD))
+			return config.getAsBoolean(LEARN_FILTERS_FIELD);
+		else
+			return LEARN_FILTERS_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting learning filters mode.
+	 * @param learnFilters learning filters mode.
+	 * @return this network.
+	 */
+	StackNetworkAbstract paramSetLearnFilters(boolean learnFilters) {
+		config.put(LEARN_FILTERS_FIELD, learnFilters);
+		return this;
+	}
+
+	
+	/**
+	 * Checking learning weights mode.
+	 * @return learning weights mode.
+	 */
+	boolean paramIsLearnWeights() {
+		if (config.containsKey(LEARN_WEIGHTS_FIELD))
+			return config.getAsBoolean(LEARN_WEIGHTS_FIELD);
+		else
+			return LEARN_WEIGHTS_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting learning weights mode.
+	 * @param learnWeights learning weights mode.
+	 * @return this network.
+	 */
+	StackNetworkAbstract paramSetLearnWeights(boolean learnWeights) {
+		config.put(LEARN_WEIGHTS_FIELD, learnWeights);
+		return this;
+	}
+
 	
 	@Override
 	public void receivedInfo(NetworkInfoEvent evt) throws RemoteException {

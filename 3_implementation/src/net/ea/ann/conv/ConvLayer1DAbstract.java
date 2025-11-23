@@ -576,6 +576,22 @@ public abstract class ConvLayer1DAbstract extends LayerAbstract implements ConvL
 
 
 	@Override
+	public ConvLayerSingle[] backward(ConvLayerSingle[] nextLayerErrors, double learningRate) {
+		BiasFilter outputBiasFilter = new BiasFilter(getFilter(), getBias());
+		ConvLayerSingle[] errors = backward(nextLayerErrors, learningRate, outputBiasFilter);
+		this.setFilter(outputBiasFilter.filter);
+		this.setBias(outputBiasFilter.bias);
+		return errors;
+	}
+
+
+	@Override
+	public ConvLayerSingle[] backward(ConvLayerSingle[] nextLayerErrors, double learningRate, BiasFilter outputBiasFilter) {
+		return ConvLayerSingle.backward(this, nextLayerErrors, learningRate, outputBiasFilter);
+	}
+
+
+	@Override
 	public NeuronValue[][] dKernel(ConvLayerSingle nextError, Filter filter) {
 		return dKernel(this, (ConvLayerSingle1D)nextError, filter, null, null);
 	}

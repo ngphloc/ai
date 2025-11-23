@@ -135,4 +135,32 @@ public class NetworkStandardAssoc implements Serializable, Cloneable {
 	}
 	
 	
+	/**
+	 * Initializing parameters by specified value.
+	 * @param v value.
+	 */
+	public void initParams(double v) {
+		List<LayerStandard> layers = network.getAllLayers();
+		for (LayerStandard layer : layers) new LayerStandardAssoc(layer).initParams(v);
+	}
+
+
+	/**
+	 * Initializing parameters.
+	 * @param rnd randomizer.
+	 */
+	void initParams(Random rnd) {
+		List<LayerStandard> layers = network.getAllLayers();
+		for (LayerStandard layer : layers) new LayerStandardAssoc(layer).initParams(rnd);
+	}
+
+	
+	/**
+	 * Initializing parameters.
+	 */
+	public void initParams() {
+		initParams(new Random());
+	}
+	
+	
 }

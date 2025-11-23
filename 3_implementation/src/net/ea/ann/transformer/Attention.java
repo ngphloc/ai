@@ -1016,7 +1016,7 @@ class Attention0 implements Cloneable, Serializable {
 			}
 			
 			//Training weight value matrix.
-			Matrix dWVTemp = Y().transpose().multiply(softmax.transpose()).multiply(errv);
+			Matrix dWVTemp = Y().transpose().multiply(softmax.transpose()).multiply(err); //Please pay attention to original error.
 			dWV = dWV != null ? dWV.add(dWVTemp) : dWVTemp;
 			
 			//Calculating QK mean.

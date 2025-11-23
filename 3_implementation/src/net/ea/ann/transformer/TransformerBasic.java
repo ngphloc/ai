@@ -1003,14 +1003,16 @@ class TransformerBlock implements Cloneable, Serializable {
 		try {
 			mane.getConfig().putAll(this.config);
 		} catch (Throwable e) {Util.trace(e);}
-		return mane.initializeByDepth(inputSize, middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth);
+		return mane.paramGetMiddleSize() <= 0 ?
+			mane.initializeByDepth(inputSize, middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth) :
+			mane.initialize(inputSize, middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth);
 	}
 	
 	
 	/**
 	 * Initialize matrix neural network.
 	 * @param middleSize middle size.
-	 * @param middleFilter middle filter.
+	 * @param middleFilterStride middle filter stride.
 	 * @param middleDepth middle depth.
 	 * @param middleDual middle dual mode.
 	 * @param finalSize final size.
@@ -1022,7 +1024,9 @@ class TransformerBlock implements Cloneable, Serializable {
 		try {
 			mane.getConfig().putAll(this.config);
 		} catch (Throwable e) {Util.trace(e);}
-		return mane.initializeByDepth(inputSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
+		return mane.paramGetMiddleSize() <= 0 ?
+			mane.initializeByDepth(inputSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth) :
+			mane.initialize(inputSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
 	}
 
 	

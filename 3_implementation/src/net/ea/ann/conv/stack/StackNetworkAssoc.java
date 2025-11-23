@@ -93,7 +93,7 @@ public class StackNetworkAssoc implements Serializable, Cloneable {
 	 * @return whether network has learning.
 	 */
 	public boolean hasLearning() {
-		return !network.onlyForward || network.fullNetwork != null || network.reversedFullNetwork != null;
+		return !network.paramIsOnlyForward() || network.fullNetwork != null || network.reversedFullNetwork != null;
 	}
 	
 	

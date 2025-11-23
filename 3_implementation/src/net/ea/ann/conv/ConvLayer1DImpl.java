@@ -12,6 +12,7 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
+import net.ea.ann.raster.Size;
 
 /**
  * This class is the default implementation of convolutional layer.
@@ -80,6 +81,12 @@ public class ConvLayer1DImpl extends ConvLayer1DAbstract {
 	@Override
 	public NeuronValue newNeuronValue() {
 		return NeuronValueCreator.newNeuronValue(neuronChannel);
+	}
+
+
+	@Override
+	public ConvLayerSingle newLayer(Size size) {
+		return create(neuronChannel, activateRef, size.width, filter, idRef);
 	}
 
 

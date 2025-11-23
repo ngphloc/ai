@@ -260,10 +260,9 @@ abstract class BackpropagatorAbstract0 implements Backpropagator {
 	public NeuronValue[] updateWeightsBiases(List<LayerStandard> bone, Iterable<NeuronValue[][]> outputBatch, NeuronValue[] lastError, double learningRate) {
 		if (bone.size() < 2) return null;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? Network.LEARN_RATE_DEFAULT : learningRate;
-		NeuronValue[] outputError = null;
 		
 		NeuronValue[] nextError = lastError;
-		for (int i = bone.size()-1; i >= 1; i--) { //Browsing layers reversely from output layer down to first hidden layer.
+		for (int i = bone.size()-1; i >= 0; i--) { //Browsing layers reversely from output layer down to first hidden layer.
 			LayerStandard layer = bone.get(i);
 			NeuronValue[] error = NeuronValue.makeArray(layer.size(), layer);
 			
@@ -297,7 +296,7 @@ abstract class BackpropagatorAbstract0 implements Backpropagator {
 			
 			//Update weights stored in previous layers.
 			Set<LayerStandard> prevLayers = layer.getAllPrevLayers(); //Include virtual layer.
-			if (!prevLayers.contains(bone.get(i-1))) prevLayers.add(bone.get(i-1));
+			if (i > 0 && !prevLayers.contains(bone.get(i-1))) prevLayers.add(bone.get(i-1));
 			for (LayerStandard prevLayer : prevLayers) {
 				if (prevLayer == null) continue;
 				for (int j = 0; j < prevLayer.size(); j++) {
@@ -318,9 +317,9 @@ abstract class BackpropagatorAbstract0 implements Backpropagator {
 			}
 			
 			nextError = error;
-			if (i == bone.size() - 1) outputError = error;
 		}
 		
+		NeuronValue[] outputError = nextError;
 		return outputError;
 	}
 	

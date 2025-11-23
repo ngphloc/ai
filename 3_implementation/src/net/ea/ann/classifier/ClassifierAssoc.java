@@ -784,7 +784,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		boolean[] vectorizeds = new boolean[] {false, true};
 		int[] depths = new int[] {2, 3, 5};
 		boolean[] entropyTrainers = new boolean[] {true};
-		boolean[] adjusts = new boolean[] {false/*, true*/};
+		boolean[] adjusts = new boolean[] {false, true};
 		ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.mac, ClassifierModel.tramac};
 		boolean[] convs = new boolean[] {false, true};
 		for (boolean vectorized : vectorizeds) {

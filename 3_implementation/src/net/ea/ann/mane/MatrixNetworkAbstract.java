@@ -64,6 +64,18 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 	
 	/**
+	 * Field for middle size.
+	 */
+	public static final String MIDSIZE_FIELD = "classifier_midsize";
+	
+	
+	/**
+	 * Default value for middle size.
+	 */
+	public static final int MIDSIZE_DEFAULT = 0;
+
+	
+	/**
 	 * Neuron channel.
 	 */
 	protected int neuronChannel = 1;
@@ -108,6 +120,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 		this.config.put(LARGE_SCALE_FIELD, LARGE_SCALE_DEFAULT);
 		this.config.put(VECTORIZED_FIELD, VECTORIZED_DEFAULT);
 		this.config.put(MatrixLayerAbstract.LEARN_FILTER_FIELD, MatrixLayerAbstract.LEARN_FILTER_DEFAULT);
+		this.config.put(MIDSIZE_FIELD, MIDSIZE_DEFAULT);
 
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
 		this.activateRef = activateRef == null ? (activateRef = Raster.toActivationRef(this.neuronChannel, paramIsNorm())) : activateRef;
@@ -168,8 +181,11 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 			return null;
 		else if (filterStride.width <= 0 || filterStride.height <= 0)
 			return null;
-		else
-			return ProductFilter2D.create(new Size(filterStride), newLayer(), 1.0/(double)(filterStride.height*filterStride.width));
+		else {
+			Filter2D filter = ProductFilter2D.create(new Size(filterStride), newLayer(), 1.0/(double)(filterStride.height*filterStride.width));
+			if (filter != null && paramGetMiddleSize() <= 0) filter.setMoveStride(false);
+			return filter;
+		}
 	}
 	
 	
@@ -425,4 +441,27 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	}
 
 
+	/**
+	 * Checking middle size.
+	 * @return middle size.
+	 */
+	public int paramGetMiddleSize() {
+		if (config.containsKey(MIDSIZE_FIELD))
+			return config.getAsInt(MIDSIZE_FIELD);
+		else
+			return MIDSIZE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting middle size.
+	 * @param minSize middle size.
+	 * @return this network.
+	 */
+	public MatrixNetworkAbstract paramSetMiddleSize(int minSize) {
+		config.put(MIDSIZE_FIELD, minSize);
+		return this;
+	}
+
+	
 }

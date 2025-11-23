@@ -10,6 +10,7 @@ package net.ea.ann.core;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.Weight;
@@ -166,6 +167,50 @@ public class NeuronStandardAssoc implements Serializable, Cloneable {
 		prevNeuronList.addAll(Arrays.asList(neuron.getPrevNeurons()));
 		prevNeuronList.addAll(neuron.getOutsidePrevNeurons());
 		return prevNeuronList.toArray(new WeightedNeuron[] {});
+	}
+
+	
+	/**
+	 * Getting list of all weighted neurons.
+	 * @return list of all weighted neurons.
+	 */
+	private List<WeightedNeuron> getAllWeightedNeurons() {
+		List<WeightedNeuron> all = Util.newList(0);
+		NeuronStandardImpl std = std();
+		all.addAll(std.nextNeurons);
+		all.addAll(std.riboutNeurons);
+		all.addAll(std.insideNextNeurons);
+		all.addAll(std.outsidePrevNeurons);
+		all.addAll(std.outsideNextNeurons);
+		return all;
+	}
+	
+	
+	/**
+	 * Initializing parameters by specified value.
+	 * @param v value.
+	 */
+	public void initParams(double v) {
+		NeuronStandardImpl std = std();
+		if (std.bias != null) std.bias = std.bias.valueOf(v);
+		List<WeightedNeuron> all = getAllWeightedNeurons();
+		for (WeightedNeuron neuron : all) {
+			neuron.weight.value = neuron.weight.value.toValue().valueOf(v).toWeightValue();
+		}
+	}
+
+
+	/**
+	 * Initializing parameters.
+	 * @param rnd randomizer.
+	 */
+	public void initParams(Random rnd) {
+		NeuronStandardImpl std = std();
+		if (std.bias != null) std.bias = std.bias.valueOf(NeuronValue.r(rnd));
+		List<WeightedNeuron> all = getAllWeightedNeurons();
+		for (WeightedNeuron neuron : all) {
+			neuron.weight.value = neuron.weight.value.toValue().valueOf(NeuronValue.r(rnd)).toWeightValue();
+		}
 	}
 
 	

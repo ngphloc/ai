@@ -204,4 +204,13 @@ public interface Content extends ConvLayerSingle4D {
 	NeuronRaster forward(Content nextContent, Filter filter);
 
 
+	/**
+	 * Back-warding errors.
+	 * @param nextLayerErrors errors at next layer.
+	 * @param learningRate learning rate.
+	 * @return errors.
+	 */
+	Content[] backward(Content[] nextContentErrors, double learningRate);
+
+
 }

@@ -9,10 +9,15 @@ package net.ea.ann.conv;
 
 import net.ea.ann.conv.filter.BiasFilter;
 import net.ea.ann.conv.filter.Filter;
+import net.ea.ann.conv.filter.Filter1D;
+import net.ea.ann.conv.filter.Filter2D;
+import net.ea.ann.conv.filter.Filter3D;
+import net.ea.ann.conv.filter.Filter4D;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.NeuronValueRaster;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.Size;
 
 /**
  * This interface represents a single convolutional layer.
@@ -158,6 +163,14 @@ public interface ConvLayerSingle extends ConvLayer {
 
 
 	/**
+	 * Creating layer.
+	 * @param size size.
+	 * @return new layer.
+	 */
+	ConvLayerSingle newLayer(Size size);
+	
+	
+	/**
 	 * Forwarding to evaluate the next layer.
 	 * @param nextLayer next layer.
 	 * @param filter specified filter.
@@ -166,6 +179,25 @@ public interface ConvLayerSingle extends ConvLayer {
 	ConvLayerSingle forward(ConvLayerSingle nextLayer, Filter filter);
 
 	
+	/**
+	 * Back-warding errors.
+	 * @param nextLayerErrors errors at next layer.
+	 * @param learningRate learning rate.
+	 * @return errors.
+	 */
+	ConvLayerSingle[] backward(ConvLayerSingle[] nextLayerErrors, double learningRate);
+
+	
+	/**
+	 * Back-warding errors.
+	 * @param nextLayerErrors errors at next layer.
+	 * @param learningRate learning rate.
+	 * @param outputBiasFilter output.
+	 * @return errors.
+	 */
+	ConvLayerSingle[] backward(ConvLayerSingle[] nextLayerErrors, double learningRate, BiasFilter outputBiasFilter);
+
+		
 	/**
 	 * Calculating derivative of this filter given next layer as bias layer at specified coordinator.
 	 * @param nextError next layer as next bias.
@@ -205,5 +237,51 @@ public interface ConvLayerSingle extends ConvLayer {
 	 */
 	BiasFilter learnFilter(BiasFilter initialFilter, boolean learningBias, double learningRate, int maxIteration);
 
+	
+	/**
+	 * Back-warding errors.
+	 * @param thisLayer this layer.
+	 * @param nextLayerErrors errors at next layer.
+	 * @param learningRate learning rate.
+	 * @param outputBiasFilter output.
+	 * @return errors.
+	 */
+	static ConvLayerSingle[] backward(ConvLayerSingle thisLayer, ConvLayerSingle[] nextLayerErrors, double learningRate, BiasFilter outputBiasFilter) {
+		ConvLayerSingle[] outputErrors = new ConvLayerSingle2D[nextLayerErrors.length]; 
+		NeuronValue[] dFilterErrors = new NeuronValue[nextLayerErrors.length];
+		NeuronValue[][][] dFilterKernels = new NeuronValue[nextLayerErrors.length][][];
+		NeuronValue zero = thisLayer.newNeuronValue().zero();
+		for (int i = 0; i < nextLayerErrors.length; i++) {
+			NeuronValueRaster dValues = thisLayer.dValue(nextLayerErrors[i], outputBiasFilter.filter);
+			outputErrors[i] = thisLayer.newLayer(new Size(thisLayer.getWidth(), thisLayer.getHeight(), 1, 1));
+			outputErrors[i].setData(dValues.getValues());
+			dFilterErrors[i] = dValues.getCountValues() > 0 ? NeuronValue.valueSum(outputErrors[i].getData()).divide(dValues.getCountValues()) : zero; //Filter errors.
+			dFilterKernels[i] = thisLayer.dKernel(nextLayerErrors[i], outputBiasFilter.filter); //Filter kernel errors.
+		}
+		
+		NeuronValue dfilterBiasMean = NeuronValue.valueMean(dFilterErrors);
+		NeuronValue filterBias = thisLayer.getBias().add(dfilterBiasMean.multiply(learningRate));
+		outputBiasFilter.bias = filterBias; //Update filter bias.
+		
+		if (outputBiasFilter.filter instanceof Filter4D) {
+			
+		}
+		else if (outputBiasFilter.filter instanceof Filter3D) {
+			
+		}
+		else if (outputBiasFilter.filter instanceof Filter2D) {
+			NeuronValue[][] dfilterKernelMean = Filter2D.kernelMean(dFilterKernels);
+			dfilterKernelMean = NeuronValue.multiply(dfilterKernelMean, learningRate);
+			Filter2D filter = ((Filter2D)outputBiasFilter.filter).shallowClone();
+			filter.accumKernel(dfilterKernelMean);
+			outputBiasFilter.filter = filter; //Update filter.
+		}
+		else if (outputBiasFilter.filter instanceof Filter1D) {
+			
+		}
+
+		return outputErrors;
+	}
+	
 	
 }

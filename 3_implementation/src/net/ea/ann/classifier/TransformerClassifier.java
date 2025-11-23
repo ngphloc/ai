@@ -8,15 +8,11 @@
 package net.ea.ann.classifier;
 
 import java.awt.Dimension;
-import java.rmi.RemoteException;
-import java.util.List;
 
 import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
-import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.value.Matrix;
-import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
@@ -45,14 +41,8 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 	/**
 	 * Classifier nut.
 	 */
-	protected MatrixNetworkImpl adjuster = null;
+	MatrixNetworkImpl adjuster = null;
 	
-	
-	/**
-	 * Adjusting baseline.
-	 */
-	protected Matrix adjustline = null;
-
 	
 	/**
 	 * Constructor with neuron channel and identifier reference.
@@ -77,7 +67,6 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 	public void reset() {
 		super.reset();
 		adjuster = null;
-		adjustline = null;
 	}
 
 
@@ -91,7 +80,7 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 	@Override
 	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, nCoreClasses2, depth2)) return false;
-		this.adjustline = null;
+		this.adjuster = null;
 		if (!paramIsAdjust() || !paramIsBaseline() || !paramIsCreateAdjuster()) return true;
 
 		MatrixNetworkImpl nut = transformer.getOutputAdapter();
@@ -109,61 +98,7 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 
 
 	@Override
-	double[] weightsOfOutput(Matrix output, int groupIndex) {
-		if (this.baseline == null || this.adjustline == null) return super.weightsOfOutput(output, groupIndex);
-		NeuronValue[] values = getOutput(output, groupIndex);
-		values = paramIsEntropyTrainer() ? Softmax.softmax(values) : values;
-		
-		for (int classIndex = 0; classIndex < values.length; classIndex++) {
-			NeuronValue base = paramIsByColumn() ? this.baseline.get(classIndex, groupIndex) : this.baseline.get(groupIndex, classIndex);
-			NeuronValue adjust = paramIsByColumn() ? this.adjustline.get(classIndex, groupIndex) : this.adjustline.get(groupIndex, classIndex);
-			//Following code lines are important due to apply baseline into determining class.
-			NeuronValue sim = values[classIndex].subtract(base).multiply(adjust);
-			values[classIndex] = sim;
-		}
-		return weightsOfOutput(values);
-	}
-
-	
-	@Override
-	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
-		List<Record> newsample = prelearn(sample);
-		Error[] errors = learn(newsample);
-		learnVerify(newsample);
-		
-		if (this.adjuster != null) {
-			this.adjuster.paramSetInclude(this);
-			List<Record> adjustSample = Util.newList(0);
-			for (Record record : newsample) {
-				Matrix output = evaluate(record.input());
-				if (output != null) adjustSample.add(new Record(output, record.output()));
-			}
-			errors = adjustSample.size() > 0 ? this.adjuster.learn(adjustSample) : errors;
-		}
-		
-		NeuronValue[] errorArray = null;
-		for (Error error : errors) {
-			NeuronValue[] values = Matrix.extractValues(error.error());
-			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
-		}
-		return errorArray;
-	}
-
-	
-	@Override
-	public void learnVerify(Iterable<Record> sample) {
-		this.baseline = null;
-		this.adjustline = null;
-		if (!paramIsBaseline()) return;
-		
-		if (paramIsAdjust()) {
-			Matrix[] lines = calcBaselineAdjust(sample, this.adjuster);
-			this.baseline = lines[0];
-			this.adjustline = lines[1];
-		}
-		else
-			this.baseline = calcBaseline(sample);
-	}
+	MatrixNetworkImpl paramGetAdjuster() {return adjuster;}
 
 	
 	/**
@@ -274,10 +209,14 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 			int depth = depth1 + depth2;
 			depth = depth > 1 ? depth-1 : depth;
 			depth = depth < 0 ? 0 : depth;
-			if (!transformer.setOutputFFN(outputCombSize, filter1, depth, dual1, null, 0))
-				return false;
+			if (!transformer.setOutputFFN(outputCombSize, filter1, depth, dual1, null, 0)) return false;
 		}
 		else {
+//			if (outputSize1 != null && (outputSize1.height != inputSize1.height || outputSize1.width != inputSize1.width)) {
+//				outputSize1.height = inputSize1.height;
+//				outputSize1.width = inputSize1.width;
+//			}
+			
 			if (depth1 <= 0 && depth2 <= 0) {
 				if (!transformer.setOutputFFN(outputCombSize, filter1, 0, dual1, null, 0)) return false;
 			}

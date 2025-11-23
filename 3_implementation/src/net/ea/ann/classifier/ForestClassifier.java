@@ -4,7 +4,6 @@ import java.awt.Dimension;
 
 import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
-import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Error;
@@ -81,15 +80,13 @@ public class ForestClassifier extends ClassifierAbstract {
 		this.config.put(TREE_MODEL_FIELD, TREE_MODEL_DEFAULT);
 		
 		try {
-			MatrixClassifier mac = new MatrixClassifier(neuronChannel);
-			NetworkConfig config = mac.getConfig();
-			this.config.putAll(config);
-			mac.close();
+			ClassifierAbstract classifier = new MatrixClassifier(neuronChannel);
+			this.config.putAll(classifier.getConfig());
+			classifier.close();
 			
-			MatrixClassifier tramac = new MatrixClassifier(neuronChannel);
-			config = tramac.getConfig();
-			this.config.putAll(config);
-			tramac.close();
+			classifier = new TransformerClassifier(neuronChannel);
+			this.config.putAll(classifier.getConfig());
+			classifier.close();
 		} catch (Throwable e) {Util.trace(e);}
 	}
 
