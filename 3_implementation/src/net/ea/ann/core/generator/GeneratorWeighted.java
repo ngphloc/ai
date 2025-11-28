@@ -382,12 +382,12 @@ class GeneratorWeighted0<T extends Trainer> extends GeneratorStandard<T> {
 	 * @param output specified output.
 	 * @return weights of specified output.
 	 */
-	private static double[] weightsOfOutput(NeuronValue[] output) {
+	protected static double[] weightsOfOutput(NeuronValue[] output) {
 		double[] weights = new double[output.length];
 		for (int i = 0; i < weights.length; i++) weights[i] = output[i].mean();
 		return weights;
 	}
-	
+
 	
 	@Override
 	protected NeuronValue calcOutputError2(NeuronStandard outputNeuron, NeuronValue realOutput, LayerStandard outputLayer, int outputNeuronIndex, NeuronValue[] realOutputs, Object...params) {

@@ -113,7 +113,7 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 	 * @author Loc Nguyen
 	 * @version 1.0
 	 */
-	public static class ClassifierNut extends GeneratorWeighted<Trainer> {
+	public class ClassifierNut extends GeneratorWeighted<Trainer> {
 		
 		/**
 		 * Serial version UID for serializable class. 
@@ -148,6 +148,47 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 			this(neuronChannel, null, null);
 		}
 
+		
+		NeuronValue[] calcBaselineAdjust(Iterable<Record> sample) {
+			NeuronValue[] o = getOutputLayer().getOutput();
+			NeuronValue zero = o[0].zero();
+			NeuronValue[] baseline = new NeuronValue[o.length];
+			Arrays.fill(baseline, zero);
+			NeuronValue[] countBaseline = new NeuronValue[o.length];
+			Arrays.fill(countBaseline, zero);
+			
+			NeuronValue[] adjustline = new NeuronValue[o.length];
+			Arrays.fill(adjustline, zero);
+			NeuronValue[] countAdjustline = new NeuronValue[o.length];
+			Arrays.fill(countAdjustline, zero);
+
+			int combNumber = paramGetCombNumber();
+			for (Record record : sample) {
+				NeuronValue[] outputOne = null;
+				try {
+					outputOne = evaluate(record);
+				} catch (Throwable e) {Util.trace(e);}
+				if (outputOne == null) continue;
+				
+				double[] realOutputOneV = weightsOfOutput(record.output);
+				int maxIndex = 0;
+				for (int i = 1; i < realOutputOneV.length; i++) {
+					if (realOutputOneV[i] > realOutputOneV[maxIndex]) maxIndex = i;
+				}
+				
+				boolean[] indicator = new boolean[realOutputOneV.length];
+				Arrays.fill(indicator, false);
+				indicator[maxIndex] = true;
+				for (int i = 0; i < indicator.length; i++) {
+					if (indicator[i] || combNumber == 1) continue;
+					if (realOutputOneV[i] >= realOutputOneV[maxIndex] - Double.MIN_VALUE) indicator[i] = true;
+				}
+
+			}
+			return null;
+		}
+		
+		
 	}
 	
 	
