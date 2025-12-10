@@ -18,5 +18,16 @@ import net.ea.ann.core.NormSupporter;
  */
 public interface Logistic extends FunctionInvertible, NormSupporter {
 
+
+	/**
+	 * Default slope.
+	 */
+	final static double DEFAULT_SLOPE = 1; //0.5;
+	
+	
+	/**
+	 * Flag to concern middle value.
+	 */
+	final static boolean CONCERN_MID = false; //true;
 	
 }

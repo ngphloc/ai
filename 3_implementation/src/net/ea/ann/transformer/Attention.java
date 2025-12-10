@@ -15,6 +15,7 @@ import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.raster.Size;
 
 /**
  * This class represents standard attention (multi-head attention).
@@ -63,7 +64,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		super();
 	}
 
-	
+
 	/**
 	 * Resetting attention.
 	 */
@@ -76,10 +77,19 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	
 	
 	/**
+	 * Getting depth.
+	 * @return depth.
+	 */
+	int depth() {
+		return h() > 0 ? head(0).defineDepth() : createHead().defineDepth();
+	}
+	
+	
+	/**
 	 * Creating head.
 	 * @return head.
 	 */
-	protected Attention0 creatHead() {return new Attention0();}
+	protected Attention0 createHead() {return new Attention0();}
 	
 	
 	/**
@@ -100,7 +110,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		this.heads = new Attention0[h];
 		for (int i = 0; i < h; i++) {
 			try {
-				Attention0 head = creatHead();
+				Attention0 head = createHead();
 				if (head.initialize(n, dm, dk, dv, m, d, zero))
 					this.heads[i] = head;
 				else {
@@ -118,8 +128,8 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 			head.assignInputs(Y, X, M);
 		}
 		
-		this.WO = h*dv != dm ? Matrix.create(h*dv, dm, zero) : null;
-		this.A = Matrix.create(n, dm, zero);
+		this.WO = h*dv != dm ? this.heads[0].newMatrix(h*dv, dm, zero) : null;
+		this.A = this.heads[0].newMatrix(n, dm, zero);
 		
 		return validate();
 	}
@@ -588,6 +598,13 @@ class Attention0 implements Cloneable, Serializable {
 		super();
 	}
 
+
+	/**
+	 * Defining depth.
+	 * @return defined depth.
+	 */
+	int defineDepth() {return 1;}
+	
 	
 	/**
 	 * Resetting attention.
@@ -595,6 +612,19 @@ class Attention0 implements Cloneable, Serializable {
 	void reset() {
 		X = T1 = Y = WQ = WK = WV = A = null;
 		M = null;
+	}
+	
+	
+	/**
+	 * Creating new matrix.
+	 * @param rows rows.
+	 * @param columns columns.
+	 * @param size size.
+	 * @param value specified value.
+	 * @return matrix.
+	 */
+	Matrix newMatrix(int rows, int columns, Object value) {
+		return Matrix.create(new Size(columns, rows, defineDepth()), value);
 	}
 	
 	
@@ -618,32 +648,32 @@ class Attention0 implements Cloneable, Serializable {
 		
 		this.X = this.T1 = this.T2 = null;
 		if (m > 0 && m != n && d != dm) {
-			this.T1 = Matrix.create(n, m, zero);
-			this.X = Matrix.create(m, d, zero);
-			this.T2 = Matrix.create(d, dm, zero);
+			this.T1 = newMatrix(n, m, zero);
+			this.X = newMatrix(m, d, zero);
+			this.T2 = newMatrix(d, dm, zero);
 		}
 		else if (m > 0 && m != n && d == dm) {
-			this.T1 = Matrix.create(n, m, zero);
-			this.X = Matrix.create(m, dm, zero);
+			this.T1 = newMatrix(n, m, zero);
+			this.X = newMatrix(m, dm, zero);
 		}
 		else if (m > 0 && m == n && d != dm) {
-			this.X = Matrix.create(m, d, zero);
-			this.T2 = Matrix.create(d, dm, zero);
+			this.X = newMatrix(m, d, zero);
+			this.T2 = newMatrix(d, dm, zero);
 		}
 		else if (m > 0 && m == n && d == dm) {
-			this.X = Matrix.create(m, d, zero);
+			this.X = newMatrix(m, d, zero);
 		}
 		
-		this.Y = Matrix.create(n, dm, zero);
+		this.Y = newMatrix(n, dm, zero);
 		this.M = new boolean[n][n];
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) this.M[i][j] = false;
 		}
 		
-		this.WQ = Matrix.create(dm, dk, zero);
-		this.WK = Matrix.create(dm, dk, zero);
-		this.WV = Matrix.create(dm, dv, zero);
-		this.A = Matrix.create(n, dv, zero);
+		this.WQ = newMatrix(dm, dk, zero);
+		this.WK = newMatrix(dm, dk, zero);
+		this.WV = newMatrix(dm, dv, zero);
+		this.A = newMatrix(n, dv, zero);
 		
 		return validate();
 	}
@@ -901,7 +931,7 @@ class Attention0 implements Cloneable, Serializable {
 		
 		int n = n();
 		NeuronValue zero = QK.get(0, 0).zero();
-		Matrix softmax = Matrix.create(n, n, zero);
+		Matrix softmax = newMatrix(n, n, zero);
 		for (int i = 0; i < n; i++) {
 			NeuronValue sum = zero;
 			for (int j = 0; j < n; j++) {
@@ -938,7 +968,7 @@ class Attention0 implements Cloneable, Serializable {
 		int n = softmax.rows();
 		NeuronValue zero = softmax.get(0, 0).zero();
 		NeuronValue unit = zero.unit();
-		Matrix softmaxGrad = Matrix.create(n, n, zero);
+		Matrix softmaxGrad = newMatrix(n, n, zero);
 		for (int i = 0; i < n; i++) {
 			NeuronValue value1 = softmax.get(row, i);
 			for (int j = 0; j < n; j++) {

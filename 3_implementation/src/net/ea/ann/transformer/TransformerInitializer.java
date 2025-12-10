@@ -7,10 +7,10 @@
  */
 package net.ea.ann.transformer;
 
-import java.awt.Dimension;
 import java.io.Serializable;
 
 import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.raster.Size;
 
 /**
  * This utility class provides initialization methods for default transformer.
@@ -73,7 +73,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks, Dimension outputAdapterOutputSize) {
+	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
 		if (!transformer.initialize(h, n, dm, dk, dv, ffnDepth, nBlocks)) return false;
 		return outputAdapterOutputSize != null ? transformer.setOutputAdapter(outputAdapterOutputSize, ffnDepth) : true;
 	}
@@ -122,7 +122,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, Dimension outputAdapterOutputSize) {
+	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, Size outputAdapterOutputSize) {
 		return initialize(h, n, dm, dk, dv, ffnDepth, TransformerBasic.BLOCKS_NUMBER_DEFAULT, outputAdapterOutputSize);
 	}
 
@@ -172,7 +172,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(int h, int n, int dm, int ffnDepth, int nBlocks, Dimension outputAdapterOutputSize) {
+	public boolean initialize(int h, int n, int dm, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
 		if (h < 1) return false;
 		int dk = dm/h;
 		if (dk < 1) return false;
@@ -218,7 +218,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(int n, int dm, int ffnDepth, int nBlocks, Dimension outputAdapterOutputSize) {
+	public boolean initialize(int n, int dm, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
 		return initialize(1, n, dm, dm, dm, ffnDepth, nBlocks, outputAdapterOutputSize);
 	}
 
@@ -257,7 +257,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(int n, int dm, int ffnDepth, Dimension outputAdapterOutputSize) {
+	public boolean initialize(int n, int dm, int ffnDepth, Size outputAdapterOutputSize) {
 		return initialize(n, dm, ffnDepth, TransformerBasic.BLOCKS_NUMBER_DEFAULT, outputAdapterOutputSize);
 	}
 
@@ -293,7 +293,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(int n, int dm, Dimension outputAdapterOutputSize) {
+	public boolean initialize(int n, int dm, Size outputAdapterOutputSize) {
 		return initialize(n, dm, MatrixNetworkImpl.DEPTH_DEFAULT, outputAdapterOutputSize);
 	}
 
@@ -339,7 +339,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks, Dimension outputAdapterOutputSize) {
+	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
 		if (!transformer.initializeOnlyEncoder(h, n, dm, dk, dv, ffnDepth, nBlocks)) return false;
 		return outputAdapterOutputSize != null ? transformer.setOutputAdapter(outputAdapterOutputSize, ffnDepth) : true;
 	}
@@ -388,7 +388,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth, Dimension outputAdapterOutputSize) {
+	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth, Size outputAdapterOutputSize) {
 		return initialize(h, n, dm, dk, dv, ffnDepth, TransformerBasic.BLOCKS_NUMBER_DEFAULT, outputAdapterOutputSize);
 	}
 
@@ -438,7 +438,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeOnlyEncoder(int h, int n, int dm, int ffnDepth, int nBlocks, Dimension outputAdapterOutputSize) {
+	public boolean initializeOnlyEncoder(int h, int n, int dm, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
 		if (h < 1) return false;
 		int dk = dm/h;
 		if (dk < 1) return false;
@@ -484,7 +484,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeOnlyEncoder(int n, int dm, int ffnDepth, int nBlocks, Dimension outputAdapterOutputSize) {
+	public boolean initializeOnlyEncoder(int n, int dm, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
 		return initializeOnlyEncoder(1, n, dm, dm, dm, ffnDepth, nBlocks, outputAdapterOutputSize);
 	}
 
@@ -523,7 +523,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeOnlyEncoder(int n, int dm, int ffnDepth, Dimension outputAdapterOutputSize) {
+	public boolean initializeOnlyEncoder(int n, int dm, int ffnDepth, Size outputAdapterOutputSize) {
 		return initializeOnlyEncoder(n, dm, ffnDepth, TransformerBasic.BLOCKS_NUMBER_DEFAULT, outputAdapterOutputSize);
 	}
 
@@ -559,7 +559,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeOnlyEncoder(int n, int dm, Dimension outputAdapterOutputSize) {
+	public boolean initializeOnlyEncoder(int n, int dm, Size outputAdapterOutputSize) {
 		return initializeOnlyEncoder(n, dm, MatrixNetworkImpl.DEPTH_DEFAULT, outputAdapterOutputSize);
 	}
 

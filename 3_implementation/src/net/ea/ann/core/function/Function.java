@@ -22,6 +22,20 @@ public interface Function extends Serializable, Cloneable {
 
 	
 	/**
+	 * Creating array of values.
+	 * @param value value.
+	 * @param n number of values.
+	 * @return array of values.
+	 */
+	static double[] values(double value, int n) {
+		if (n <= 0) throw new IllegalArgumentException();
+		double values[] = new double[n];
+		for (int i = 0; i < n; i++) values[i] = value;
+		return values;
+	}
+	
+	
+	/**
 	 * Evaluating specified value.
 	 * @param x specified value.
 	 * @return evaluated value.

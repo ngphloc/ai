@@ -7,10 +7,10 @@
  */
 package net.ea.ann.mane;
 
-import java.awt.Dimension;
 import java.io.Serializable;
 
-import net.ea.ann.conv.filter.Filter2D;
+import net.ea.ann.mane.filter.FilterSpec;
+import net.ea.ann.raster.Size;
 
 /**
  * This utility class provides initialization methods for matrix network layer.
@@ -50,7 +50,7 @@ public class MatrixLayerInitializer implements Cloneable, Serializable {
 	 * @param filter filter. It can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension size, Dimension prevSize, Filter2D filter) {
+	public boolean initialize(Size size, Size prevSize, FilterSpec filter) {
 		return layer.initialize(size, prevSize, filter);
 	}
 
@@ -63,7 +63,7 @@ public class MatrixLayerInitializer implements Cloneable, Serializable {
 	 * @param filter filter. It can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension size, Dimension prevSize, MatrixLayerAbstract prevLayer, Filter2D filter) {
+	public boolean initialize(Size size, Size prevSize, MatrixLayerAbstract prevLayer, FilterSpec filter) {
 		return layer.initialize(size, prevSize, prevLayer, filter);
 	}
 	
@@ -75,7 +75,7 @@ public class MatrixLayerInitializer implements Cloneable, Serializable {
 	 * @param prevLayer previous layer. It can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension size, Dimension prevSize, MatrixLayerAbstract prevLayer) {
+	public boolean initialize(Size size, Size prevSize, MatrixLayerAbstract prevLayer) {
 		return initialize(size, prevSize, prevLayer, null);
 	}
 	
@@ -86,8 +86,8 @@ public class MatrixLayerInitializer implements Cloneable, Serializable {
 	 * @param prevSize previous layer size. It can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension size, Dimension prevSize) {
-		return initialize(size, prevSize, (Filter2D)null);
+	public boolean initialize(Size size, Size prevSize) {
+		return initialize(size, prevSize, (FilterSpec)null);
 	}
 	
 	
@@ -97,8 +97,8 @@ public class MatrixLayerInitializer implements Cloneable, Serializable {
 	 * @param filter filter. It can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension size, Filter2D filter) {
-		return initialize(size, (Dimension)null, filter);
+	public boolean initialize(Size size, FilterSpec filter) {
+		return initialize(size, (Size)null, filter);
 	}
 
 	
@@ -107,8 +107,8 @@ public class MatrixLayerInitializer implements Cloneable, Serializable {
 	 * @param size this size.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension size) {
-		return initialize(size, (Dimension)null);
+	public boolean initialize(Size size) {
+		return initialize(size, (Size)null);
 	}
 
 	

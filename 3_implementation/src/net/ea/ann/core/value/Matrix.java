@@ -44,6 +44,26 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
+	 * Getting depth of matrix.
+	 * @param matrix matrix.
+	 * @return depth of matrix.
+	 */
+	static int depth(Matrix matrix) {
+		return matrix instanceof MatrixStack ? ((MatrixStack)matrix).depth() : 1;
+	}
+	
+	
+	/**
+	 * Getting capacity.
+	 * @return capacity.
+	 */
+	static int capacity(Matrix matrix) {
+		int depth = depth(matrix);
+		return matrix.rows()*matrix.columns()*depth;
+	}
+	
+	
+	/**
 	 * Getting value at specified row and column.
 	 * @param row specified row.
 	 * @param column specified column.
@@ -544,6 +564,40 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
+	 * Calculating sum array.
+	 * @param arrays arrays.
+	 * @return sum array.
+	 */
+	static Matrix[] sum(Matrix[]...arrays) {
+		if (arrays == null || arrays.length == 0) return null;
+		if (arrays instanceof MatrixStack[][]) return MatrixStack.sum((MatrixStack[][])arrays);
+		Matrix[] sum = arrays[0];
+		for (int i = 1; i < arrays.length; i++) {
+			Matrix[] array = arrays[i];
+			for (int j = 0; j < array.length; j++) {
+				sum[j] = sum[j].add(array[j]);
+			}
+		}
+		return sum;
+	}
+
+	
+	/**
+	 * Calculating mean array.
+	 * @param arrays arrays.
+	 * @return mean array.
+	 */
+	static Matrix[] mean(Matrix[]...arrays) {
+		if (arrays == null || arrays.length == 0) return null;
+		if (arrays instanceof MatrixStack[][]) return MatrixStack.mean((MatrixStack[][])arrays);
+		Matrix[] mean = sum(arrays);
+		if (mean == null) return null;
+		for (int j = 0; j < mean.length; j++) mean[j] = mean[j].divide0(arrays.length);
+		return mean;
+	}
+	
+	
+	/**
 	 * Calculating mean absolute value of two matrices.
 	 * @param matrix1 matrix 1.
 	 * @param matrix2 matrix 2.
@@ -575,7 +629,7 @@ public interface Matrix extends NeuronValueCreator {
 		Matrix mean = mean(matrices);
 		Matrix[] stds = new Matrix[matrices.length];
 		for (int i = 0; i < matrices.length; i++) {
-			stds[i] = mean.create(mean.rows(), mean.columns());
+			stds[i] = mean.create(new Size(mean.columns(), mean.rows()));
 			for (int row = 0; row < mean.rows(); row++) {
 				for (int column = 0; column < mean.columns(); column++) {
 					NeuronValue d = matrices[i].get(row, column).subtract(mean.get(row, column));
@@ -596,34 +650,45 @@ public interface Matrix extends NeuronValueCreator {
 	
 	/**
 	 * Creating matrix.
-	 * @param rows rows.
-	 * @param columns columns.
-	 * @return created matrix.
+	 * @param size size.
 	 */
-	Matrix create(int rows, int columns);
+	Matrix create(Size size);
 	
 	
 	/**
 	 * Creating new matrix.
-	 * @param rows rows.
-	 * @param columns columns.
-	 * @param value specified value.
+	 * @param size size.
 	 * @return matrix.
 	 */
-	static Matrix create(int rows, int columns, Object value) {
-		if (rows <= 0 || columns <= 0)
+	private static Matrix create0(Size size, Object value) {
+		if (size.height <= 0 || size.width <= 0)
 			return null;
 		else if (value == null)
-			return new MatrixImpl(rows, columns, new NeuronValue1(0).zero());
+			return new MatrixImpl(size, new NeuronValue1(0).zero());
 		else if (value instanceof NeuronValue)
-			return new MatrixImpl(rows, columns, (NeuronValue)value);
+			return new MatrixImpl(size, (NeuronValue)value);
 		else if (value instanceof Number)
-			return new NeuronValueM(rows, columns, ((Number)value).doubleValue());
+			return new NeuronValueM(size, ((Number)value).doubleValue());
 		else
 			return null;
 	}
 
 
+	/**
+	 * Creating new matrix.
+	 * @param size size.
+	 * @param value specified value.
+	 * @return matrix.
+	 */
+	static Matrix create(Size size, Object value) {
+		int depth = size.depth < 1 ? 1 : size.depth;
+		if (depth == 1) return create0(size, value);
+		Matrix[] matrices = new Matrix[depth];
+		for (int i = 0; i < matrices.length; i++) matrices[i] = create0(size, value);
+		return new MatrixStack(matrices);
+	}
+
+	
 	/**
 	 * Creating row matrix by vector.
 	 * @param vector vector.
@@ -631,7 +696,7 @@ public interface Matrix extends NeuronValueCreator {
 	 */
 	static Matrix createRowMatrix(NeuronValue[] vector) {
 		if (vector == null || vector.length == 0) return null;
-		Matrix matrix = create(1, vector.length, vector[0]);
+		Matrix matrix = create(new Size(vector.length, 1), vector[0]);
 		for (int column = 0; column < vector.length; column++) matrix.set(0, column, vector[column]);
 		return matrix;
 	}
@@ -644,7 +709,7 @@ public interface Matrix extends NeuronValueCreator {
 	 */
 	static Matrix createColumnMatrix(NeuronValue[] vector) {
 		if (vector == null || vector.length == 0) return null;
-		Matrix matrix = create(vector.length, 1, vector[0]);
+		Matrix matrix = create(new Size(1, vector.length), vector[0]);
 		for (int row = 0; row < vector.length; row++) matrix.set(row, 0, vector[row]);
 		return matrix;
 	}
@@ -699,8 +764,12 @@ public interface Matrix extends NeuronValueCreator {
 	 * @return filled matrix.
 	 */
 	static void fill(Matrix matrix, NeuronValue value) {
-		for (int i = 0; i < matrix.rows(); i++) {
-			for (int j = 0; j < matrix.columns(); j++) matrix.set(i, j, value);
+		if (matrix instanceof MatrixStack)
+			MatrixStack.fill((MatrixStack)matrix, value);
+		else {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) matrix.set(i, j, value);
+			}
 		}
 	}
 	
@@ -712,8 +781,12 @@ public interface Matrix extends NeuronValueCreator {
 	 * @return filled matrix.
 	 */
 	static void fill(Matrix matrix, double v) {
-		NeuronValue value = matrix.get(0, 0).valueOf(v);
-		fill(matrix, value);
+		if (matrix instanceof MatrixStack)
+			MatrixStack.fill((MatrixStack)matrix, v);
+		else {
+			NeuronValue value = matrix.get(0, 0).valueOf(v);
+			fill(matrix, value);
+		}
 	}
 	
 	
@@ -723,10 +796,14 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param rnd randomizer.
 	 */
 	static void fill(Matrix matrix, Random rnd) {
-		for (int row = 0; row < matrix.rows(); row++) {
-			for (int column = 0; column < matrix.columns(); column++) {
-				NeuronValue value = matrix.get(row, column).valueOf(NeuronValue.r(rnd));
-				matrix.set(row, column, value);
+		if (matrix instanceof MatrixStack)
+			MatrixStack.fill((MatrixStack)matrix, rnd);
+		else {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					NeuronValue value = matrix.get(i, j).valueOf(NeuronValue.r(rnd));
+					matrix.set(i, j, value);
+				}
 			}
 		}
 	}
@@ -734,6 +811,7 @@ public interface Matrix extends NeuronValueCreator {
 	
 	/**
 	 * Extracting raster into matrix.
+	 * @param size size.
 	 * @param rows rows.
 	 * @param columns columns.
 	 * @param raster raster.
@@ -742,9 +820,9 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param ref reference to matrix, which can be null.
 	 * @return matrix.
 	 */
-	static Matrix toMatrix(int rows, int columns, Raster raster, int neuronChannel, boolean isNorm, Matrix ref) {
-		NeuronValue[] values = raster.toNeuronValues(neuronChannel, new Size(columns, rows, 1, 1), isNorm);
-		Matrix matrix = (ref == null) ? create(rows, columns, values[0]) : ref.create(rows, columns);
+	static Matrix toMatrix(Size size, Raster raster, int neuronChannel, boolean isNorm, Matrix ref) {
+		NeuronValue[] values = raster.toNeuronValues(neuronChannel, size, isNorm);
+		Matrix matrix = (ref == null) ? create(size, values[0]) : ref.create(size);
 		for (int i = 0; i < matrix.rows(); i++) {
 			int rowLength = i*matrix.columns();
 			for (int j = 0; j < matrix.columns(); j++) {
@@ -758,15 +836,14 @@ public interface Matrix extends NeuronValueCreator {
 	
 	/**
 	 * Extracting raster into matrix.
-	 * @param rows rows.
-	 * @param columns columns.
+	 * @param size size.
 	 * @param raster raster.
 	 * @param neuronChannel neuron channel.
 	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
 	 * @return matrix.
 	 */
-	static Matrix toMatrix(int rows, int columns, Raster raster, int neuronChannel, boolean isNorm) {
-		return toMatrix(rows, columns, raster, neuronChannel, isNorm, null);
+	static Matrix toMatrix(Size size, Raster raster, int neuronChannel, boolean isNorm) {
+		return toMatrix(size, raster, neuronChannel, isNorm, null);
 	}
 	
 	

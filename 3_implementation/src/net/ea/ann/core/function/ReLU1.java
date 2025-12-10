@@ -72,13 +72,13 @@ public class ReLU1 implements ReLU {
 	 * @return whether to concern maximum.
 	 */
 	private boolean isConcernMax() {
-		return !Double.isNaN(max);
+		return !Double.isNaN(max) && CONCERN_MAX;
 	}
 	
 	
 	@Override
 	public boolean isNorm() {
-		return min == 0 && isConcernMax() && max == 1;
+		return min == 0 && max == 1;
 	}
 
 	
@@ -94,10 +94,10 @@ public class ReLU1 implements ReLU {
 
 	@Override
 	public NeuronValue derivative(NeuronValue x) {
-//		double v = ((NeuronValue1)x).get();
-//		if ((v < min) || (isConcernMax() && v > max))
-//			return new NeuronValue1(0);
-//		else
+		double v = ((NeuronValue1)x).get();
+		if ((v < min) || (isConcernMax() && v > max))
+			return new NeuronValue1(0);
+		else
 			return new NeuronValue1(1);
 	}
 

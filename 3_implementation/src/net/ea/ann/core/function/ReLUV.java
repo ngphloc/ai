@@ -44,6 +44,8 @@ public class ReLUV implements ReLU {
 	 * @param max maximum array.
 	 */
 	public ReLUV(double[] min, double[] max) {
+		if (min == null || min.length == 0) throw new IllegalArgumentException();
+		if ((max != null) && (max.length == 0 || max.length != min.length)) throw new IllegalArgumentException();
 		this.min = min;
 		this.max = max;
 	}
@@ -54,8 +56,7 @@ public class ReLUV implements ReLU {
 	 * @param min minimum array.
 	 */
 	public ReLUV(double[] min) {
-		this.min = min;
-		this.max = null;
+		this(min, null);
 	}
 
 	
@@ -66,12 +67,7 @@ public class ReLUV implements ReLU {
 	 * @param max maximum value.
 	 */
 	public ReLUV(int dim, double min, double max) {
-		this.min = new double[dim];
-		this.max = new double[dim];
-		for (int i = 0; i < dim; i++) {
-			this.min[i] = min;
-			this.max[i] = max;
-		}
+		this(NeuronValueV.values(min, dim), NeuronValueV.values(max, dim));
 	}
 
 	
@@ -81,9 +77,7 @@ public class ReLUV implements ReLU {
 	 * @param min minimum value.
 	 */
 	public ReLUV(int dim, double min) {
-		this.min = new double[dim];
-		this.max = null;
-		for (int i = 0; i < dim; i++) this.min[i] = min;
+		this(NeuronValueV.values(min, dim));
 	}
 
 	
@@ -92,12 +86,7 @@ public class ReLUV implements ReLU {
 	 * @param dim specific dimension.
 	 */
 	public ReLUV(int dim) {
-		this.min = new double[dim];
-		this.max = new double[dim];
-		for (int i = 0; i < dim; i++) {
-			this.min[i] = 0;
-			this.max[i] = 1;
-		}
+		this(NeuronValueV.values(0, dim), NeuronValueV.values(1, dim));
 	}
 
 	
@@ -106,13 +95,13 @@ public class ReLUV implements ReLU {
 	 * @return whether to concern maximum.
 	 */
 	private boolean isConcernMax() {
-		return max != null && max.length > 0;
+		return max != null && max.length > 0 && CONCERN_MAX;
 	}
 
 	
 	@Override
 	public boolean isNorm() {
-		if (min.length == 0 || !isConcernMax()) return false;
+		if (min == null || min.length == 0 || max == null || max.length == 0) return false;
 		for (int i = 0; i < min.length; i++) {
 			if (min[i] != 0 || max[i] != 1) return false;
 		}
@@ -122,7 +111,7 @@ public class ReLUV implements ReLU {
 	
 	@Override
 	public NeuronValue evaluate(NeuronValue x) {
-		int n = max.length;
+		int n = min.length;
 		NeuronValueV result = new NeuronValueV(n, 0.0);
 		NeuronValueV v = (NeuronValueV)x;
 		for (int i = 0; i < n; i++) {
@@ -138,13 +127,13 @@ public class ReLUV implements ReLU {
 	
 	@Override
 	public NeuronValue derivative(NeuronValue x) {
-		int n = max.length;
+		int n = min.length;
 		NeuronValueV result = new NeuronValueV(n, 0.0);
-//		NeuronValueV v = (NeuronValueV)x;
+		NeuronValueV v = (NeuronValueV)x;
 		for (int i = 0; i < n; i++) {
-//			if ((v.get(i) < min[i]) || (isConcernMax() && v.get(i) > max[i]))
-//				result.set(i, 0);
-//			else
+			if ((v.get(i) < min[i]) || (isConcernMax() && v.get(i) > max[i]))
+				result.set(i, 0);
+			else
 				result.set(i, 1);
 		}
 		

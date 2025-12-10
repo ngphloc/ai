@@ -25,6 +25,12 @@ public interface Filter extends Serializable, Cloneable {
 
 	
 	/**
+	 * Flag to calculate error mean.
+	 */
+	static boolean CALC_ERROR_MEAN = false;
+
+	
+	/**
 	 * Getting filter width.
 	 * @return filter width.
 	 */

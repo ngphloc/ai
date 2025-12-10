@@ -10,6 +10,7 @@ package net.ea.ann.mane;
 import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.raster.Size;
 
 /**
  * This interface represents gradient of likelihood function to train matrix neural network.
@@ -77,7 +78,7 @@ public interface LikelihoodGradient {
 		
 		//Calculating gradient of loss entropy by row.
 		int rows = output.rows(), columns = output.columns();
-		Matrix grad = output.create(rows, columns);
+		Matrix grad = output.create(new Size(columns, rows));
 		Matrix softmax = Softmax.softmaxByRow(output);
 		NeuronValue zero = output.get(0, 0).zero();
 		NeuronValue unit = zero.unit();
@@ -132,7 +133,7 @@ public interface LikelihoodGradient {
 
 		//Calculating gradient of loss entropy by column.
 		int rows = output.rows(), columns = output.columns();
-		Matrix grad = output.create(rows, columns);
+		Matrix grad = output.create(new Size(columns, rows));
 		Matrix softmax = Softmax.softmaxByColumn(output);
 		NeuronValue zero = output.get(0, 0).zero();
 		NeuronValue unit = zero.unit();

@@ -57,6 +57,9 @@ public class LogisticV implements Logistic {
 	 * @param slope slope parameter.
 	 */
 	public LogisticV(double[] min, double[] max, double[] slope) {
+		if (min == null || max == null || slope == null ||
+			min.length == 0 || max.length == 0 || slope.length == 0 ||
+			max.length != min.length || slope.length != min.length) throw new IllegalArgumentException();
 		this.min = min;
 		this.max = max;
 		this.slope = slope;
@@ -74,11 +77,7 @@ public class LogisticV implements Logistic {
 	 * @param slope slope parameter.
 	 */
 	public LogisticV(double[] min, double[] max, double slope) {
-		this(min, max, null);
-
-		int n = min.length;
-		this.slope = new double[n];
-		for (int i = 0; i < n; i++) this.slope[i] = slope;
+		this(min, max, NeuronValueV.values(slope, min.length));
 	}
 
 	
@@ -100,15 +99,16 @@ public class LogisticV implements Logistic {
 	 * @param slope slope parameter.
 	 */
 	public LogisticV(int dim, double min, double max, double slope) {
+		if (dim <= 0) throw new IllegalArgumentException();
 		this.min = new double[dim];
 		this.max = new double[dim];
 		this.mid = new double[dim];
 		this.slope = new double[dim];
-		double avg = Logistic1.calcMid(min, max);
+		double mid = Logistic1.calcMid(min, max);
 		for (int i = 0; i < dim; i++) {
 			this.min[i] = min;
 			this.max[i] = max;
-			this.mid[i] = avg;
+			this.mid[i] = mid;
 			this.slope[i] = slope;
 		}
 	}
@@ -136,7 +136,7 @@ public class LogisticV implements Logistic {
 	
 	@Override
 	public boolean isNorm() {
-		if (min.length == 0) return false;
+		if (min == null || min.length == 0 || max == null || max.length == 0) return false;
 		for (int i = 0; i < min.length; i++) {
 			if (min[i] != 0 || max[i] != 1) return false;
 		}
@@ -146,33 +146,31 @@ public class LogisticV implements Logistic {
 	
 	@Override
 	public NeuronValue evaluate(NeuronValue x) {
-		int n = max.length;
+		int n = min.length;
 		NeuronValueV v = (NeuronValueV)x;
 		NeuronValueV result = new NeuronValueV(n, 0.0);
 		for (int i = 0; i < n; i++) {
 			result.set( i, (max[i]-min[i]) / (1.0 + Math.exp(slope[i]*(mid[i]-v.get(i)))) + min[i] );
 		}
-		
 		return result;
 	}
 
 	
 	@Override
 	public NeuronValue derivative(NeuronValue x) {
-		int n = max.length;
+		int n = min.length;
 		NeuronValueV result = new NeuronValueV(n, 0.0);
 		NeuronValueV v = (NeuronValueV)evaluate(x);
 		for (int i = 0; i < n; i++) {
 			result.set( i, slope[i] * (v.get(i)-min[i]) * (max[i]-v.get(i)) / (max[i]-min[i]) );
 		}
-		
 		return result;
 	}
 	
 
 	@Override
 	public NeuronValue evaluateInverse(NeuronValue y) {
-		int n = max.length;
+		int n = min.length;
 		NeuronValueV result = new NeuronValueV(n, 0.0);
 		NeuronValueV v = (NeuronValueV)y;
 		for (int i = 0; i < n; i++) {
@@ -186,14 +184,13 @@ public class LogisticV implements Logistic {
 	
 	@Override
 	public NeuronValue derivativeInverse(NeuronValue y) {
-		int n = max.length;
+		int n = min.length;
 		NeuronValueV result = new NeuronValueV(n, 0.0);
 		NeuronValueV v = (NeuronValueV)y;
 		for (int i = 0; i < n; i++) {
 			if (v.get(i) <= min[i] || max[i] <= v.get(i)) return null;
 			result.set( i, (1/(max[i]-v.get(i)) + 1/(v.get(i)-min[i])) / slope[i] );
 		}
-		
 		return result;
 	}
 

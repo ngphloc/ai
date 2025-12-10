@@ -9,6 +9,7 @@ package net.ea.ann.core.value;
 
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.FunctionInvertible;
+import net.ea.ann.raster.Size;
 
 /**
  * This class represents a matrix neuron value.
@@ -36,13 +37,12 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, WeightVa
 	
 	
 	/**
-	 * Constructor with numbers of rows and columns along with specified value.
-	 * @param rows number of rows.
-	 * @param columns numbers of columns.
+	 * Constructor with size and specified value.
+	 * @param size size.
 	 * @param value specified value.
 	 */
-	protected NeuronValueM(int rows, int columns, double value) {
-		super(rows, columns, value);
+	protected NeuronValueM(Size size, double value) {
+		super(size, value);
 	}
 
 	
@@ -352,11 +352,11 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, WeightVa
 
 
 	@Override
-	public Matrix create(int rows, int columns) {
-		if (rows <= 0 || columns <= 0)
+	public Matrix create(Size size) {
+		if (size.height <= 0 || size.width <= 0)
 			return null;
 		else
-			return new NeuronValueM(rows, columns, 0);
+			return new NeuronValueM(size, 0);
 	}
 
 
@@ -406,16 +406,15 @@ abstract class NeuronValueM0 implements Matrix {
 	
 	
 	/**
-	 * Constructor with numbers of rows and columns along with specified value.
-	 * @param rows number of rows.
-	 * @param columns numbers of columns.
+	 * Constructor with size and specified value.
+	 * @param size size.
 	 * @param value specified value.
 	 */
-	protected NeuronValueM0(int rows, int columns, double value) {
-		if (rows <= 0 || columns <= 0 || Double.isNaN(value)) throw new IllegalArgumentException("Wrong rows, columns, or value");
-		data = new double[rows][columns];
-		for (int i = 0; i < rows; i++) {
-			for (int j = 0; j < columns; j++) data[i][j] = value;
+	protected NeuronValueM0(Size size, double value) {
+		if (size.height <= 0 || size.width <= 0 || Double.isNaN(value)) throw new IllegalArgumentException("Wrong rows, columns, or value");
+		data = new double[size.height][size.width];
+		for (int i = 0; i < size.height; i++) {
+			for (int j = 0; j < size.width; j++) data[i][j] = value;
 		}
 	}
 
@@ -430,7 +429,7 @@ abstract class NeuronValueM0 implements Matrix {
 	
 	@Override
 	public NeuronValue newNeuronValue() {
-		return create(1, 1).get(0, 0).zero();
+		return create(new Size(1, 1)).get(0, 0).zero();
 	}
 
 
@@ -570,7 +569,7 @@ abstract class NeuronValueM0 implements Matrix {
 	public Matrix multiplyWise(Matrix other) {
 		int m = Math.min(this.rows(), other.rows());
 		int n = Math.min(this.columns(), other.columns());
-		Matrix result = create(m, n);
+		Matrix result = create(new Size(n, m));
 		for (int i = 0; i < m; i++) {
 			for (int j = 0; j < n; j++) {
 				NeuronValue value = this.get(i, j).multiply(other.get(i, j));
@@ -612,7 +611,7 @@ abstract class NeuronValueM0 implements Matrix {
 	@Override
 	public Matrix evaluate0(Function f) {
 		if (f == null) return null;
-		Matrix result = create(this.rows(), this.columns());
+		Matrix result = create(new Size(this.columns(), this.rows()));
 		for (int i = 0; i < this.rows(); i++) {
 			for (int j = 0; j < this.columns(); j++) {
 				result.set(i, j, this.get(i, j).evaluate(f));
@@ -624,7 +623,7 @@ abstract class NeuronValueM0 implements Matrix {
 	
 	@Override
 	public Matrix derivativeWise(Function f) {
-		Matrix result = create(this.rows(), this.columns());
+		Matrix result = create(new Size(this.columns(), this.rows()));
 		for (int i = 0; i < this.rows(); i++) {
 			for (int j = 0; j < this.columns(); j++) {
 				result.set(i, j, this.get(i, j).derivative(f));
@@ -726,7 +725,7 @@ abstract class NeuronValueM0 implements Matrix {
 		if (A == null || B == null) return null;
 		int m = A.length, n = B.length, o = B[0].length;
 		if (m == 0 || n == 0 || o == 0) return null;
-		if (A[0].length != n) return null;
+		if (A[0].length != n) throw new IllegalArgumentException();;
 		
 		double[][] C = new double[m][o];
 		double zero = 0;

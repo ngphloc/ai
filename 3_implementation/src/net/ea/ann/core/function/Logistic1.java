@@ -27,12 +27,6 @@ public class Logistic1 implements Logistic {
 
 	
 	/**
-	 * Default slope.
-	 */
-	public final static double DEFAULT_SLOPE = 0.5;
-	
-	
-	/**
 	 * Minimum value.
 	 */
 	protected double min = 0;
@@ -47,7 +41,7 @@ public class Logistic1 implements Logistic {
 	/**
 	 * Midpoint.
 	 */
-	protected double mid = 0.5;
+	protected double mid = CONCERN_MID ? 0.5 : 0;
 	
 	
 	/**
@@ -101,6 +95,7 @@ public class Logistic1 implements Logistic {
 	 * @return middle value from minimum and maximum.
 	 */
 	static double calcMid(double min, double max) {
+		if (!CONCERN_MID) return 0;
 		double bias = Math.abs(max-min) / 2;
 		if (bias <= 1)
 			return (min+max) / 2;

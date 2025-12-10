@@ -255,7 +255,10 @@ public interface ConvLayerSingle extends ConvLayer {
 			NeuronValueRaster dValues = thisLayer.dValue(nextLayerErrors[i], outputBiasFilter.filter);
 			outputErrors[i] = thisLayer.newLayer(new Size(thisLayer.getWidth(), thisLayer.getHeight(), 1, 1));
 			outputErrors[i].setData(dValues.getValues());
-			dFilterErrors[i] = dValues.getCountValues() > 0 ? NeuronValue.valueSum(outputErrors[i].getData()).divide(dValues.getCountValues()) : zero; //Filter errors.
+			NeuronValue valueSum = NeuronValue.valueSum(outputErrors[i].getData());
+			dFilterErrors[i] = Filter.CALC_ERROR_MEAN ?
+				(dValues.getCountValues() > 0 ? valueSum.divide(dValues.getCountValues()) : zero) :
+				(valueSum); //Filter errors.
 			dFilterKernels[i] = thisLayer.dKernel(nextLayerErrors[i], outputBiasFilter.filter); //Filter kernel errors.
 		}
 		

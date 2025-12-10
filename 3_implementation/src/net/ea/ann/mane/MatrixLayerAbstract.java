@@ -7,21 +7,20 @@
  */
 package net.ea.ann.mane;
 
-import java.awt.Dimension;
-
 import net.ea.ann.conv.Content;
-import net.ea.ann.conv.ConvLayer2DImpl;
-import net.ea.ann.conv.ConvLayerSingle2D;
-import net.ea.ann.conv.ConvNeuron;
-import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerAbstract;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
+import net.ea.ann.mane.filter.Filter;
+import net.ea.ann.mane.filter.FilterSpec;
+import net.ea.ann.mane.filter.ProductFilter;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.Size;
 
 /**
  * This abstract class implements partially layer in matrix neural network.
@@ -90,13 +89,13 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	/**
 	 * Learning filter.
 	 */
-	protected boolean learnFilter = LEARN_FILTER_DEFAULT;
+	private boolean learnFilter = LEARN_FILTER_DEFAULT;
 	
 	
 	/**
 	 * Reference to matrix neural network.
 	 */
-	protected MatrixNetworkAbstract network = null;
+	private MatrixNetworkAbstract network = null;
 	
 	
 	/**
@@ -147,7 +146,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	
 	@Override
 	public NeuronValue newNeuronValue() {
-		NeuronValue value = newMatrix(1, 1).get(0, 0);
+		NeuronValue value = newMatrix(new Size(1, 1, 1)).get(0, 0);
 		if (value instanceof Matrix)
 			return value;
 		else if (value instanceof Content)
@@ -159,27 +158,52 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	
 	/**
 	 * Creating matrix.
-	 * @param rows rows.
-	 * @param columns columns.
+	 * @param size size.
 	 * @return new matrix.
 	 */
-	protected Matrix newMatrix(int rows, int columns) {
+	protected Matrix newMatrix(Size size) {
 		NeuronValue value = NeuronValueCreator.newNeuronValue(neuronChannel);
-		return Matrix.create(rows, columns, value);
+		return Matrix.create(size, value);
 	}
 
 
 	/**
-	 * Creating convolutional layer.
-	 * @param width specified width.
-	 * @param height specified height.
-	 * @return convolutional layer.
+	 * Constructor with the first weight and the second weight.
+	 * @param W1 the first weight.
+	 * @param W2 the second weight.
 	 */
-	protected ConvLayerSingle2D newConvLayer(int width, int height) {
-		return ConvLayer2DImpl.create(neuronChannel, convActivateRef, width, height, null, idRef);
+	protected Weight newWeight(Matrix W1, Matrix W2) {
+		return Weight.create(W1, W2);
+	}
+
+	
+	/**
+	 * Creating filter.
+	 * @param filterSize filter size.
+	 * @param filterSpec filter specification.
+	 * @return filter.
+	 */
+	protected Filter newFilter(Size filterSize, FilterSpec filterSpec) {
+		Filter filter = newFilter(filterSize, newMatrix(new Size(1, 1, 1)));
+		return filter;
 	}
 	
+	
+	/**
+	 * Creating default filter.
+	 * @param filterSize filter size.
+	 * @param hint matrix hint.
+	 * @return default filter.
+	 */
+	private static Filter newFilter(Size filterSize, Matrix hint) {
+		if (filterSize == null || filterSize.width <= 0 || filterSize.height <= 0) return null;
+		double kernelValue = 1.0 / (filterSize.width*filterSize.height);
+		ProductFilter filter = ProductFilter.create(kernelValue, filterSize, hint);
+		filter.setMoveStride(false);
+		return filter;
+	}
 
+	
 	@Override
 	public MatrixLayerAbstract getPrevLayer() {
 		return this.prevLayer;
@@ -284,17 +308,24 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 	
 	/**
-	 * Getting previous input as convolutional layer.
-	 * @return previous input as convolutional layer.
-	 */
-	protected abstract ConvLayerSingle2D getPrevInputConvLayer();
-	
-	
-	/**
-	 * Setting previous input value, which is often for filtering by default.
+	 * Setting previous input value, which is for filtering by default.
 	 * @param prevInput previous input value.
 	 */
 	protected abstract void setPrevInput(Matrix prevInput);
+
+	
+	/**
+	 * Getting previous output value, which is for filtering by default.
+	 * @return previous output value.
+	 */
+	protected abstract Matrix getPrevOutput();
+
+	
+	/**
+	 * Setting previous output value, which is for filtering by default.
+	 * @param prevOutput previous output value.
+	 */
+	protected abstract void setPrevOutput(Matrix prevOutput);
 
 	
 	/**
@@ -308,11 +339,11 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 	
 	/**
-	 * Querying actual output by most, which can be previous input.
-	 * @return actual output by most, which can be previous input.
+	 * Querying actual input by most (right-most), which can be previous input.
+	 * @return actual input by most (right-most), which can be previous input.
 	 */
 	public Matrix queryActualInput() {
-		if (containsWeights())
+		if (getWeight() != null)
 			return queryInput();
 		else if (getFilter() != null) {
 			Matrix prevInput = getPrevInput();
@@ -336,7 +367,8 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 */
 	protected Matrix queryOutput() {
 		Matrix output = getOutput();
-		return output != null ? output : getPrevInput();
+		output = output != null ? output : getPrevOutput();
+		return output != null ? output : queryInput();
 	}
 	
 	
@@ -362,58 +394,38 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 
 	/**
-	 * Getting the first weight matrix.
-	 * @return the first weight matrix.
+	 * Getting weight.
+	 * @return the weight.
 	 */
-	protected abstract Matrix getWeight1();
+	protected abstract Weight getWeight();
 	
 	
 	/**
-	 * Setting the first weight matrix.
-	 * @param weight1 the first weight matrix.
+	 * Setting the weight.
+	 * @param weight the weight.
 	 */
-	protected abstract void setWeight1(Matrix weight1);
-
-
-	/**
-	 * Getting the second weight matrix.
-	 * @return the second weight matrix.
-	 */
-	protected abstract Matrix getWeight2();
-	
-	
-	/**
-	 * Setting the second weight matrix.
-	 * @param weight2 the second weight matrix.
-	 */
-	protected abstract void setWeight2(Matrix weight2);
+	protected abstract void setWeight(Weight weight);
 
 
 	/**
 	 * Removing weights.
+	 * @param filterSpec filter specification.
 	 */
-	protected abstract boolean removeWeights();
+	protected abstract boolean removeWeights(FilterSpec filterSpec);
 
-	
-	/**
-	 * Checking whether to contain weights.
-	 * @return whether to contain weights.
-	 */
-	protected abstract boolean containsWeights();
-	
 	
 	/**
 	 * Getting convolutional filter.
 	 * @return convolutional filter.
 	 */
-	protected abstract Filter2D getFilter();
+	protected abstract Filter getFilter();
 	
 	
 	/**
 	 * Setting filter.
 	 * @param filter filter.
 	 */
-	protected abstract void setFilter(Filter2D filter);
+	protected abstract void setFilter(Filter filter);
 
 
 	/**
@@ -440,9 +452,10 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	/**
 	 * Getting size of this layer.
 	 */
-	public Dimension getSize() {
+	public Size getSize() {
 		Matrix output = queryOutput();
-		return output != null ? new Dimension(output.columns(), output.rows()) : null; 
+		int depth = output instanceof MatrixStack ? ((MatrixStack)output).depth() : 1;
+		return output != null ? new Size(output.columns(), output.rows(), depth) : null; 
 	}
 	
 
@@ -450,9 +463,9 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting size of this layer with regard to vectorization.
 	 * @return size of this layer with regard to vectorization.
 	 */
-	public Dimension getSizeByVecRows() {
-		Dimension size = getSize();
-		return vecRows > 0 ? new Dimension(size.height/vecRows, vecRows) : size;
+	public Size getSizeByVecRows() {
+		Size size = getSize();
+		return vecRows > 0 ? new Size(size.height/vecRows, vecRows, size.depth) : size;
 	}
 	
 	
@@ -512,18 +525,17 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	/**
 	 * Extracting raster into matrix.
 	 * @param raster raster.
-	 * @param rows rows.
-	 * @param columns columns.
+	 * @param size size.
 	 * @return matrix.
 	 */
-	Matrix toMatrix(Raster raster, int rows, int columns) {
-		if (!isVectorized()) return toMatrix0(raster, rows, columns);
+	Matrix toMatrix(Raster raster, Size size) {
+		if (!isVectorized()) return toMatrix0(raster, size);
 		int vecRows = getVecRows();
-		int vecColumns = rows / vecRows;
+		int vecColumns = size.height / vecRows;
 		if (vecRows <= 0 || vecColumns <= 0)
 			return null;
 		else
-			return toMatrix0(raster, vecRows, vecColumns).vec();
+			return toMatrix0(raster, new Size(vecColumns, vecRows)).vec();
 	}
 	
 	
@@ -534,20 +546,19 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 */
 	public Matrix toMatrix(Raster raster) {
 		Matrix input = getInput();
-		return input != null ? toMatrix(raster, input.rows(), input.columns()) : null;
+		return input != null ? toMatrix(raster, new Size(input.columns(), input.rows())) : null;
 	}
 	
 	
 	/**
 	 * Extracting raster into matrix.
 	 * @param raster raster.
-	 * @param rows rows.
-	 * @param columns columns.
+	 * @param size size.
 	 * @return matrix.
 	 */
-	private Matrix toMatrix0(Raster raster, int rows, int columns) {
-		Matrix ref = queryOutput().create(1, 1);
-		return Matrix.toMatrix(rows, columns, raster, neuronChannel, paramIsNorm(), ref);
+	private Matrix toMatrix0(Raster raster, Size size) {
+		Matrix ref = queryOutput().create(size);
+		return Matrix.toMatrix(size, raster, neuronChannel, paramIsNorm(), ref);
 	}
 
 	
@@ -556,37 +567,8 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param layer convolutional layer.
 	 * @return matrix.
 	 */
-	Matrix convLayerToMatrix(ConvLayerSingle2D layer) {
-		if (layer == null) return null;
-		int rows = layer.getHeight();
-		int columns = layer.getWidth();
-		Matrix matrix = newMatrix(rows, columns);
-		for (int i = 0; i < rows; i++) {
-			for (int j = 0; j < columns; j++) {
-				matrix.set(i, j, layer.get(j, i).getValue());
-			}
-		}
-		return isVectorized() ? matrix.vec() : matrix;
-	}
-	
-	
-	/**
-	 * Converting array to matrix.
-	 * @param array array.
-	 * @param rows rows.
-	 * @param columns columns.
-	 * @return matrix.
-	 */
-	Matrix arrayToMatrix(NeuronValue[] array, int rows, int columns) {
-		Matrix matrix = newMatrix(rows, columns);
-		for (int i = 0; i < rows; i++) {
-			int rowLength = i*columns;
-			for (int j = 0; j < columns; j++) {
-				int index = rowLength + j;
-				matrix.set(i, j, array[index]);
-			}
-		}
-		return isVectorized() ? matrix.vec() : matrix;
+	Matrix convLayerToMatrix(Matrix layer) {
+		return layer != null && isVectorized() ? layer.vec() : layer;
 	}
 	
 	
@@ -595,19 +577,8 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param matrix matrix.
 	 * @return convolutional layer.
 	 */
-	ConvLayerSingle2D matrixToConvLayer(Matrix matrix) {
-		if (matrix == null) return null;
-		matrix = isVectorized() ? matrix.vecInverse(vecRows) : matrix;
-		int rows = matrix.rows();
-		int columns = matrix.columns();
-		ConvLayerSingle2D layer = newConvLayer(columns, rows);
-		for (int i = 0; i < rows; i++) {
-			for (int j = 0; j < columns; j++) {
-				ConvNeuron neuron = layer.get(j, i);
-				neuron.setValue(matrix.get(i, j));
-			}
-		}
-		return layer;
+	Matrix matrixToConvLayer(Matrix matrix) {
+		return matrix != null && isVectorized() ? matrix.vecInverse(vecRows) : matrix;
 	}
 	
 	

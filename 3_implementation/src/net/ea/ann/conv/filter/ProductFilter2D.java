@@ -217,30 +217,32 @@ public class ProductFilter2D extends AbstractFilter2D implements TextParsable {
 	public NeuronValue[][] dKernel(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer) {
 		int kernelWidth = width();
 		int kernelHeight = height();
+		int strideWidth = getStrideWidth();
+		int strideHeight = getStrideHeight();
 		int thisWidth = thisLayer.getWidth();
 		int thisHeight = thisLayer.getHeight();
-		if (nextX + kernelWidth > thisWidth) {
-			if (thisLayer.isPadZeroFilter()) {
-				if (nextX >= thisWidth)
-					return null;
-				else
-					return null;
+		int thisBlockWidth = isMoveStride() ? thisWidth / strideWidth : thisWidth;
+		int thisBlockHeight = isMoveStride() ? thisHeight / strideHeight : thisHeight;
+		int xBlock = nextLayer.isPadZeroFilter() ? nextX : (nextX < thisBlockWidth ? nextX : thisBlockWidth-1);
+		int thisX = xBlock*strideWidth;
+		if (thisX + kernelWidth > thisWidth) {
+			if (nextLayer.isPadZeroFilter())
+				return thisX >= thisWidth ? null : null;
+			else {
+				thisX = thisWidth - kernelWidth;
+				nextX = thisX/strideWidth;
 			}
-			else
-				nextX = thisWidth - kernelWidth;
 		}
-		nextX = nextX < 0 ? 0 : nextX;
-		if (nextY + kernelHeight > thisHeight) {
-			if (thisLayer.isPadZeroFilter()) {
-				if (nextY >= thisHeight)
-					return null;
-				else
-					return null;
+		int yBlock = nextLayer.isPadZeroFilter() ? nextY : (nextY < thisBlockHeight ? nextY : thisBlockHeight-1);
+		int thisY = yBlock*strideHeight;
+		if (thisY + kernelHeight > thisHeight) {
+			if (nextLayer.isPadZeroFilter())
+				return thisY >= thisHeight ? null : null;
+			else {
+				thisY = thisHeight - kernelHeight;
+				nextY = thisY/strideHeight;
 			}
-			else
-				nextY = thisHeight - kernelHeight;
 		}
-		nextY = nextY < 0 ? 0 : nextY;
 
 		Function activateRef = nextLayer.getActivateRef();
 		activateRef = activateRef == null ? thisLayer.getActivateRef() : activateRef;
@@ -261,35 +263,34 @@ public class ProductFilter2D extends AbstractFilter2D implements TextParsable {
 
 	@Override
 	public NeuronValue[][] dValue(int nextX, int nextY, ConvLayerSingle2D thisLayer, ConvLayerSingle2D nextLayer) {
-		if (nextX < 0 || nextX >= nextLayer.getWidth()) return null;
-		if (nextY < 0 || nextY >= nextLayer.getHeight()) return null;
-		
 		int kernelWidth = width();
 		int kernelHeight = height();
+		int strideWidth = getStrideWidth();
+		int strideHeight = getStrideHeight();
 		int thisWidth = thisLayer.getWidth();
 		int thisHeight = thisLayer.getHeight();
-		if (nextX + kernelWidth > thisWidth) {
-			if (thisLayer.isPadZeroFilter()) {
-				if (nextX >= thisWidth)
-					return null;
-				else
-					return null;
+		int thisBlockWidth = isMoveStride() ? thisWidth / strideWidth : thisWidth;
+		int thisBlockHeight = isMoveStride() ? thisHeight / strideHeight : thisHeight;
+		int xBlock = nextLayer.isPadZeroFilter() ? nextX : (nextX < thisBlockWidth ? nextX : thisBlockWidth-1);
+		int thisX = xBlock*strideWidth;
+		if (thisX + kernelWidth > thisWidth) {
+			if (nextLayer.isPadZeroFilter())
+				return thisX >= thisWidth ? null : null;
+			else {
+				thisX = thisWidth - kernelWidth;
+				nextX = thisX/strideWidth;
 			}
-			else
-				nextX = thisWidth - kernelWidth;
 		}
-		nextX = nextX < 0 ? 0 : nextX;
-		if (nextY + kernelHeight > thisHeight) {
-			if (thisLayer.isPadZeroFilter()) {
-				if (nextY >= thisHeight)
-					return null;
-				else
-					return null;
+		int yBlock = nextLayer.isPadZeroFilter() ? nextY : (nextY < thisBlockHeight ? nextY : thisBlockHeight-1);
+		int thisY = yBlock*strideHeight;
+		if (thisY + kernelHeight > thisHeight) {
+			if (nextLayer.isPadZeroFilter())
+				return thisY >= thisHeight ? null : null;
+			else {
+				thisY = thisHeight - kernelHeight;
+				nextY = thisY/strideHeight;
 			}
-			else
-				nextY = thisHeight - kernelHeight;
 		}
-		nextY = nextY < 0 ? 0 : nextY;
 
 		Function activateRef = nextLayer.getActivateRef();
 		activateRef = activateRef == null ? thisLayer.getActivateRef() : activateRef;

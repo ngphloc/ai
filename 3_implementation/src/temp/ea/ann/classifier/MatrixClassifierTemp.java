@@ -7,7 +7,6 @@
  */
 package temp.ea.ann.classifier;
 
-import java.awt.Dimension;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.rmi.RemoteException;
@@ -17,7 +16,6 @@ import java.util.Map;
 import java.util.Set;
 
 import net.ea.ann.classifier.Classifier;
-import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
@@ -30,6 +28,7 @@ import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
+import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
@@ -130,15 +129,15 @@ public class MatrixClassifierTemp extends MatrixClassifier0 {
 
 
 	@Override
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size nCoreClasses2, int depth2) {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, nCoreClasses2, depth2)) return false;
 		if (!paramIsAdjust() || !paramIsBaseline()) return true;
 		
-		int minAdjustDepth = Math.max((int)(Math.log(this.size())/Math.log(BASE_DEFAULT)), 1);
+		int minAdjustDepth = Math.max((int)(Math.log(this.size())/Math.log(ZOOMOUT_DEFAULT)), 1);
 		int maxAdjustDepth = Math.max(Math.max(this.size()-1, 1), minAdjustDepth);
 		int adjustDepth = Math.max(Math.max(depth1, depth2), minAdjustDepth);
 		adjustDepth = Math.min(adjustDepth, maxAdjustDepth);
-		Dimension size = this.getOutputLayer().getSize();
+		Size size = this.getOutputLayer().getSize();
 		this.adjustBaseline = null;
 		this.adjuster = new MatrixNetworkImpl(this.neuronChannel, this.activateRef, this.convActivateRef, this.idRef);
 		this.adjuster.paramSetInclude(this);
@@ -455,17 +454,17 @@ class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 	 * Note, nCoreClasses2 the number of rows and columns of core classes.
 	 */
 	@Override
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size nCoreClasses2, int depth2) {
 		if (!configClassInfo(nCoreClasses2)) return false;
 		
 		int outputCount = this.outputClassMaps.get(0).size();
 		int groupCount = paramIsByColumn() ? nCoreClasses2.width : nCoreClasses2.height;
-		Dimension outputSize2 = paramIsByColumn() ? new Dimension(groupCount, outputCount) : new Dimension(outputCount, groupCount);
+		Size outputSize2 = paramIsByColumn() ? new Size(groupCount, outputCount, 1) : new Size(outputCount, groupCount, 1);
 		boolean initialized = false;
 		if (paramIsConv())
 			initialized = super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2);
 		else
-			initialized = super.initialize(inputSize1, outputSize2, (Filter2D)null, depth1, false, null, 0);
+			initialized = super.initialize(inputSize1, outputSize2, (FilterSpec)null, depth1, false, null, 0);
 		if (!initialized) return false;
 		
 		Matrix output = getOutput();
@@ -480,23 +479,13 @@ class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 	}
 
 	
-	/*
-	 * Note, nCoreClasses2 the number of rows and columns of core classes.
-	 */
-	@Override
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Dimension filterStride1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
-		Filter2D filter1 = defaultFilter(filterStride1);
-		return initialize(inputSize1, outputSize1, filter1, depth1, dual1, nCoreClasses2, depth2);
-	}
-	
-	
 	/**
 	 * Initializing matrix classifier (MAC).
 	 * @param labelGroups list of label groups.
 	 * @param averageSize average size.
 	 * @return true if initialization is true.
 	 */
-	public boolean initialize(List<List<Label>> labelGroups, Dimension averageSize) {
+	public boolean initialize(List<List<Label>> labelGroups, Size averageSize) {
 		//Removing empty labels and sorting labels.
 		List<List<Label>> tempLabelGroups = Util.newList(labelGroups.size());
 		tempLabelGroups.addAll(labelGroups);
@@ -525,12 +514,12 @@ class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 
 		//Initializing matrix network.
 		int groupCount = labelGroups.size();
-		Dimension inputSize = new Dimension(averageSize.width, averageSize.height);
-		Dimension filterStride = new Dimension(paramGetFilterStride(), paramGetFilterStride());
+		Size inputSize = new Size(averageSize.width, averageSize.height, 1); //Fixing 1 later.
+		FilterSpec filterSpec = new FilterSpec(paramGetFilterStride(), paramGetFilterStride()); //Fixing 1 later.
 		int depth = paramGetDepth();
 		boolean dual = paramIsDual();
-		Dimension nCoreClasses = paramIsByColumn() ? new Dimension(groupCount, minClassCount) : new Dimension(minClassCount, groupCount);
-		if (!initialize(inputSize, null, filterStride, depth, dual, nCoreClasses, depth))
+		Size nCoreClasses = paramIsByColumn() ? new Size(groupCount, minClassCount, 1) : new Size(minClassCount, groupCount, 1); //Fixing 1 later.
+		if (!initialize(inputSize, null, filterSpec, depth, dual, nCoreClasses, depth))
 			return false;
 
 		//Main task: setting up class maps.
@@ -609,7 +598,7 @@ class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 	 * @param nCoreClasses the number of rows and columns of core classes.
 	 * @return true if configuration is successful.
 	 */
-	private boolean configClassInfo(Dimension nCoreClasses) {
+	private boolean configClassInfo(Size nCoreClasses) {
 		Map<Integer, int[]> outputClassMap = Util.newMap(0);
 		Map<Integer, int[]> classOutputMap = Util.newMap(0);
 		int nClass = paramIsByColumn() ? nCoreClasses.height : nCoreClasses.width;
@@ -765,7 +754,7 @@ class MatrixClassifier0 extends MatrixNetworkImpl implements Classifier {
 		
 		int rows = paramIsByColumn() ? outputCount : groupCount;
 		int columns = paramIsByColumn() ? groupCount : outputCount;
-		Matrix output = this.getOutput().create(rows, columns);
+		Matrix output = this.getOutput().create(new Size(columns, rows));
 		if (classIndices == null || classIndices.length == 0) return output;
 		
 		NeuronValue zero = output.get(0, 0).zero();

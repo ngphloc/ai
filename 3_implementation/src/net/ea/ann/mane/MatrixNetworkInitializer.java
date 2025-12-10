@@ -11,8 +11,10 @@ import java.awt.Dimension;
 import java.io.Serializable;
 import java.util.Arrays;
 
-import net.ea.ann.conv.filter.Filter2D;
+import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.NetworkStandard;
+import net.ea.ann.mane.filter.FilterSpec;
+import net.ea.ann.raster.Size;
 
 /**
  * This utility class provides initialization methods for matrix neural network.
@@ -56,24 +58,8 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size outputSize2, int depth2) {
 		return mane.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2);
-	}
-	
-	
-	/**
-	 * Initializing matrix neural network.
-	 * @param inputSize1 input size 1.
-	 * @param outputSize1 output size 1, which can be null.
-	 * @param filterStride1 filter stride 1, which can be null.
-	 * @param depth1 the number 1 of hidden layers plus output layer, which can be 0.
-	 * @param dual1 dual mode 1.
-	 * @param outputSize2 output size 1, which can be null.
-	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Dimension filterStride1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
-		return mane.initialize(inputSize1, outputSize1, filterStride1, depth1, dual1, outputSize2, depth2);
 	}
 	
 	
@@ -87,7 +73,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+	public boolean initialize(Size inputSize1, FilterSpec filter1, int depth1, boolean dual1, Size outputSize2, int depth2) {
 		return initialize(inputSize1, null, filter1, depth1, dual1, outputSize2, depth2);
 	}
 
@@ -101,7 +87,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Filter2D filter1, int depth1, Dimension outputSize2, int depth2) {
+	public boolean initialize(Size inputSize1, FilterSpec filter1, int depth1, Size outputSize2, int depth2) {
 		return initialize(inputSize1, filter1, depth1, false, outputSize2, depth2);
 	}
 
@@ -115,8 +101,8 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, int depth1, Dimension outputSize2, int depth2) {
-		return initialize(inputSize1, (Filter2D)null, depth1, outputSize2, depth2);
+	public boolean initialize(Size inputSize1, int depth1, Size outputSize2, int depth2) {
+		return initialize(inputSize1, (FilterSpec)null, depth1, outputSize2, depth2);
 	}
 
 	
@@ -130,7 +116,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param outputSize2 output size 1, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size outputSize2) {
 		return initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, 0);
 	}
 	
@@ -145,7 +131,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, boolean dual1, Dimension outputSize2, int depth2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, boolean dual1, Size outputSize2, int depth2) {
 		return initialize(inputSize1, outputSize1, filter1, 0, dual1, outputSize2, depth2);
 	}
 	
@@ -159,7 +145,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param outputSize2 output size 1, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, boolean dual1, Dimension outputSize2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, boolean dual1, Size outputSize2) {
 		return initialize(inputSize1, outputSize1, filter1, dual1, outputSize2, 0);
 	}
 	
@@ -172,7 +158,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param outputSize2 output size 1, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, Dimension outputSize2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, Size outputSize2) {
 		return initialize(inputSize1, outputSize1, filter1, false, outputSize2);
 	}
 
@@ -186,8 +172,8 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, int depth1, Dimension outputSize2, int depth2) {
-		return initialize(inputSize1, outputSize1, (Filter2D)null, depth1, false, outputSize2, depth2);
+	public boolean initialize(Size inputSize1, Size outputSize1, int depth1, Size outputSize2, int depth2) {
+		return initialize(inputSize1, outputSize1, (FilterSpec)null, depth1, false, outputSize2, depth2);
 	}
 
 	
@@ -198,7 +184,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param outputSize2 output size 1, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Dimension outputSize2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, Size outputSize2) {
 		return initialize(inputSize1, outputSize1, null, outputSize2);
 	}
 
@@ -212,7 +198,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, boolean dual1, int depth2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, boolean dual1, int depth2) {
 		return initialize(inputSize1, outputSize1, filter1, dual1, null, depth2);
 	}
 
@@ -226,7 +212,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param outputSize2 output size, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, Dimension outputSize, Filter2D filter, boolean dual) {
+	public boolean initialize(Size inputSize, Size outputSize, FilterSpec filter, boolean dual) {
 		return initialize(inputSize, outputSize, filter, dual, null);
 	}
 
@@ -240,7 +226,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param dual dual mode.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, Dimension outputSize, Filter2D filter, int depth, boolean dual) {
+	public boolean initialize(Size inputSize, Size outputSize, FilterSpec filter, int depth, boolean dual) {
 		return initialize(inputSize, outputSize, filter, depth, dual, null);
 	}
 
@@ -254,7 +240,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param dual dual mode.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, Dimension outputSize, Filter2D filter, int depth) {
+	public boolean initialize(Size inputSize, Size outputSize, FilterSpec filter, int depth) {
 		return initialize(inputSize, outputSize, filter, depth, false);
 	}
 
@@ -266,7 +252,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param filter filter, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, Dimension outputSize, Filter2D filter) {
+	public boolean initialize(Size inputSize, Size outputSize, FilterSpec filter) {
 		return initialize(inputSize, outputSize, filter, 0);
 	}
 
@@ -278,7 +264,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth the number of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, Dimension outputSize, int depth) {
+	public boolean initialize(Size inputSize, Size outputSize, int depth) {
 		return initialize(inputSize, outputSize, null, depth);
 	}
 
@@ -289,8 +275,8 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param outputSize output size, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, Dimension outputSize) {
-		return initialize(inputSize, outputSize, (Filter2D)null);
+	public boolean initialize(Size inputSize, Size outputSize) {
+		return initialize(inputSize, outputSize, (FilterSpec)null);
 	}
 
 	
@@ -302,7 +288,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param dual dual mode.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, Filter2D filter, int depth, boolean dual) {
+	public boolean initialize(Size inputSize, FilterSpec filter, int depth, boolean dual) {
 		return initialize(inputSize, null, filter, depth);
 	}
 
@@ -314,7 +300,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth the number of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, Filter2D filter, int depth) {
+	public boolean initialize(Size inputSize, FilterSpec filter, int depth) {
 		return initialize(inputSize, filter, depth, false);
 	}
 
@@ -325,7 +311,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param filter filter, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, Filter2D filter) {
+	public boolean initialize(Size inputSize, FilterSpec filter) {
 		return initialize(inputSize, filter, 0);
 	}
 
@@ -336,8 +322,8 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth the number of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize, int depth) {
-		return initialize(inputSize, (Dimension)null, depth);
+	public boolean initialize(Size inputSize, int depth) {
+		return initialize(inputSize, (Size)null, depth);
 	}
 
 	
@@ -346,7 +332,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param inputSize input size.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Dimension inputSize) {
+	public boolean initialize(Size inputSize) {
 		return initialize(inputSize, 0);
 	}
 
@@ -361,7 +347,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeDual(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, Dimension outputSize2, int depth2) {
+	public boolean initializeDual(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, Size outputSize2, int depth2) {
 		return initialize(inputSize1, outputSize1, filter1, depth1, true, outputSize2, depth2);
 	}
 
@@ -375,7 +361,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeDual(Dimension inputSize1, Filter2D filter1, int depth1, Dimension outputSize2, int depth2) {
+	public boolean initializeDual(Size inputSize1, FilterSpec filter1, int depth1, Size outputSize2, int depth2) {
 		return initializeDual(inputSize1, null, filter1, depth1, outputSize2, depth2);
 	}
 
@@ -389,7 +375,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param outputSize2 output size 1, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeDual(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, Dimension outputSize2) {
+	public boolean initializeDual(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, Size outputSize2) {
 		return initializeDual(inputSize1, outputSize1, filter1, depth1, outputSize2, 0);
 	}
 
@@ -402,7 +388,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param outputSize2 output size 1, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeDual(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, Dimension outputSize2) {
+	public boolean initializeDual(Size inputSize1, Size outputSize1, FilterSpec filter1, Size outputSize2) {
 		return initializeDual(inputSize1, outputSize1, filter1, 0, outputSize2);
 	}
 
@@ -415,7 +401,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth the number of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeDual(Dimension inputSize, Dimension outputSize, Filter2D filter, int depth) {
+	public boolean initializeDual(Size inputSize, Size outputSize, FilterSpec filter, int depth) {
 		return initializeDual(inputSize, outputSize, filter, depth, null);
 	}
 
@@ -427,7 +413,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param filter filter, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeDual(Dimension inputSize, Dimension outputSize, Filter2D filter) {
+	public boolean initializeDual(Size inputSize, Size outputSize, FilterSpec filter) {
 		return initializeDual(inputSize, outputSize, filter, 0);
 	}
 
@@ -439,7 +425,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth the number of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeDual(Dimension inputSize, Filter2D filter, int depth) {
+	public boolean initializeDual(Size inputSize, FilterSpec filter, int depth) {
 		return initializeDual(inputSize, null, filter, depth);
 	}
 
@@ -450,7 +436,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param filter filter, which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeDual(Dimension inputSize, Filter2D filter) {
+	public boolean initializeDual(Size inputSize, FilterSpec filter) {
 		return initializeDual(inputSize, filter, 0);
 	}
 
@@ -466,24 +452,8 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeByDepth(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+	public boolean initializeByDepth(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size outputSize2, int depth2) {
 		return mane.initializeByDepth(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2);		
-	}
-
-	
-	/**
-	 * Initializing matrix neural network.
-	 * @param inputSize1 input size 1.
-	 * @param outputSize1 output size 1.
-	 * @param filterStride1 filter stride 1.
-	 * @param depth1 the number 1 of hidden layers plus output layer.
-	 * @param dual1 dual mode 1.
-	 * @param outputSize2 output size 1.
-	 * @param depth2 the number 2 of hidden layers plus output layer.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initializeByDepth(Dimension inputSize1, Dimension outputSize1, Dimension filterStride1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
-		return mane.initializeByDepth(inputSize1, outputSize1, filterStride1, depth1, dual1, outputSize2, depth2);		
 	}
 
 	
@@ -496,7 +466,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param dual dual mode.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeByDepth(Dimension inputSize, Dimension outputSize, Filter2D filter, int depth, boolean dual) {
+	public boolean initializeByDepth(Size inputSize, Size outputSize, FilterSpec filter, int depth, boolean dual) {
 		return initializeByDepth(inputSize, outputSize, filter, depth, dual, null, 0);		
 	}
 
@@ -504,26 +474,12 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	/**
 	 * Initializing matrix neural network.
 	 * @param inputSize input size.
-	 * @param outputSize output size.
-	 * @param filterStride filter stride.
-	 * @param depth the number of hidden layers plus output layer.
-	 * @param dual dual mode.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initializeByDepth(Dimension inputSize, Dimension outputSize, Dimension filterStride, int depth, boolean dual) {
-		return mane.initializeByDepth(inputSize, outputSize, filterStride, depth, dual, null, 0);		
-	}
-
-	
-	/**
-	 * Initializing matrix neural network.
-	 * @param inputSize input size.
 	 * @param outputSize output size, which can be null.
 	 * @param filter filter, which can be null.
 	 * @param depth the number of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeByDepth(Dimension inputSize, Dimension outputSize, Filter2D filter, int depth) {
+	public boolean initializeByDepth(Size inputSize, Size outputSize, FilterSpec filter, int depth) {
 		return initializeByDepth(inputSize, outputSize, filter, depth, false);
 	}
 
@@ -531,26 +487,12 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	/**
 	 * Initializing matrix neural network.
 	 * @param inputSize input size.
-	 * @param outputSize output size.
-	 * @param filterStride filter stride.
-	 * @param depth the number of hidden layers plus output layer.
-	 * @param dual dual mode.
-	 * @return true if initialization is successful.
-	 */
-	public boolean initializeByDepth(Dimension inputSize, Dimension outputSize, Dimension filterStride, int depth) {
-		return initializeByDepth(inputSize, outputSize, filterStride, depth, false);
-	}
-
-	
-	/**
-	 * Initializing matrix neural network.
-	 * @param inputSize input size.
 	 * @param outputSize output size, which can be null.
 	 * @param depth the number of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeByDepth(Dimension inputSize, Dimension outputSize, int depth) {
-		return initializeByDepth(inputSize, outputSize, (Filter2D)null, depth);
+	public boolean initializeByDepth(Size inputSize, Size outputSize, int depth) {
+		return initializeByDepth(inputSize, outputSize, (FilterSpec)null, depth);
 	}
 
 	
@@ -560,7 +502,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth the number of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeByDepth(Dimension inputSize, int depth) {
+	public boolean initializeByDepth(Size inputSize, int depth) {
 		return initializeByDepth(inputSize, null, depth);
 	}
 
@@ -570,7 +512,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param inputSize input size.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeByDepth(Dimension inputSize) {
+	public boolean initializeByDepth(Size inputSize) {
 		return initializeByDepth(inputSize, MatrixNetworkImpl.DEPTH_DEFAULT);
 	}
 
@@ -584,11 +526,11 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth depth, which can be 0.
 	 * @return hidden neuron numbers.
 	 */
-	static int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize, Dimension outputSize, int hBase, int wBase, int depth) {
+	static int[][] constructHiddenOutputNeuronNumbers(Size inputSize, Size outputSize, int hBase, int wBase, int depth) {
 		if (inputSize == null) return null;
 		if (inputSize.width <= 0 || inputSize.height <= 0) return null;
-		hBase = hBase < MatrixNetworkImpl.BASE_DEFAULT ? MatrixNetworkImpl.BASE_DEFAULT : hBase;
-		wBase = wBase < MatrixNetworkImpl.BASE_DEFAULT ? MatrixNetworkImpl.BASE_DEFAULT : wBase;
+		hBase = hBase < NetworkAbstract.ZOOMOUT_DEFAULT ? NetworkAbstract.ZOOMOUT_DEFAULT : hBase;
+		wBase = wBase < NetworkAbstract.ZOOMOUT_DEFAULT ? NetworkAbstract.ZOOMOUT_DEFAULT : wBase;
 		
 		if (outputSize == null || outputSize.width <= 0 || outputSize.height <= 0) {
 			int H = inputSize.height, W = inputSize.width;
@@ -699,7 +641,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param wBase width base, which can be 0.
 	 * @return hidden neuron numbers.
 	 */
-	static int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize, Dimension outputSize, int hBase, int wBase) {
+	static int[][] constructHiddenOutputNeuronNumbers(Size inputSize, Size outputSize, int hBase, int wBase) {
 		return constructHiddenOutputNeuronNumbers(inputSize, outputSize, hBase, wBase, 0);
 	}
 	
@@ -712,7 +654,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth depth, which can be 0.
 	 * @return hidden neuron numbers.
 	 */
-	static int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize, int hBase, int wBase, int depth) {
+	static int[][] constructHiddenOutputNeuronNumbers(Size inputSize, int hBase, int wBase, int depth) {
 		return constructHiddenOutputNeuronNumbers(inputSize, null, hBase, wBase, depth);
 	}
 	
@@ -724,7 +666,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param wBase width base, which can be 0.
 	 * @return hidden neuron numbers.
 	 */
-	static int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize, int hBase, int wBase) {
+	static int[][] constructHiddenOutputNeuronNumbers(Size inputSize, int hBase, int wBase) {
 		return constructHiddenOutputNeuronNumbers(inputSize, hBase, wBase, 0);
 	}
 
@@ -734,7 +676,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param inputSize input size.
 	 * @return hidden neuron numbers.
 	 */
-	static int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize) {
+	static int[][] constructHiddenOutputNeuronNumbers(Size inputSize) {
 		return constructHiddenOutputNeuronNumbers(inputSize, 0, 0);
 	}
 
@@ -747,9 +689,9 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth depth, which can be 0.
 	 * @return hidden neuron numbers.
 	 */
-	int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize, Dimension outputSize, Filter2D filter, int depth) {
-		int hBase = filter != null ? filter.getStrideHeight() : MatrixNetworkImpl.BASE_DEFAULT;
-		int wBase = filter != null ? filter.getStrideWidth() : MatrixNetworkImpl.BASE_DEFAULT;
+	int[][] constructHiddenOutputNeuronNumbers(Size inputSize, Size outputSize, Dimension filter, int depth) {
+		int hBase = filter != null ? filter.height : NetworkAbstract.ZOOMOUT_DEFAULT;
+		int wBase = filter != null ? filter.width : NetworkAbstract.ZOOMOUT_DEFAULT;
 		return constructHiddenOutputNeuronNumbers(inputSize, outputSize, hBase, wBase, depth);
 	}
 	
@@ -761,7 +703,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param filter filter, which can be null.
 	 * @return hidden neuron numbers.
 	 */
-	int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize, Dimension outputSize, Filter2D filter) {
+	int[][] constructHiddenOutputNeuronNumbers(Size inputSize, Size outputSize, Dimension filter) {
 		return constructHiddenOutputNeuronNumbers(inputSize, outputSize, filter, 0);
 	}
 	
@@ -773,7 +715,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param depth depth, which can be 0.
 	 * @return hidden neuron numbers.
 	 */
-	int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize, Filter2D filter, int depth) {
+	int[][] constructHiddenOutputNeuronNumbers(Size inputSize, Dimension filter, int depth) {
 		return constructHiddenOutputNeuronNumbers(inputSize, null, filter, depth);
 	}
 	
@@ -784,7 +726,7 @@ public class MatrixNetworkInitializer implements Cloneable, Serializable {
 	 * @param filter filter, which can be null.
 	 * @return hidden neuron numbers.
 	 */
-	int[][] constructHiddenOutputNeuronNumbers(Dimension inputSize, Filter2D filter) {
+	int[][] constructHiddenOutputNeuronNumbers(Size inputSize, Dimension filter) {
 		return constructHiddenOutputNeuronNumbers(inputSize, filter, 0);
 	}
 

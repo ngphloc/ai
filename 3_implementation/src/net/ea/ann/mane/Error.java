@@ -101,7 +101,7 @@ public class Error implements Cloneable, Serializable {
 			MatrixLayerAbstract outputLayer = getOutputLayer(layer);
 			if (outputLayer == null)
 				return null;
-			else if (outputLayer.containsWeights())
+			else if (outputLayer.getWeight() != null)
 				return outputLayer.getActivateRef();
 			else if (outputLayer.getFilter() != null)
 				return outputLayer.getConvActivateRef();

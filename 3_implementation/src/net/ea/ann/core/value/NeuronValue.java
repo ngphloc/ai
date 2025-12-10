@@ -714,6 +714,9 @@ public interface NeuronValue extends Value {
 	static NeuronValue[][] multiply(NeuronValue[][] A, NeuronValue[][] B) {
 		if (A == null || B == null) return null;
 		int m = A.length, n = B.length, o = B[0].length;
+		if (m == 0 || n == 0 || o == 0) return null;
+		if (A[0].length != n) throw new IllegalArgumentException();;
+		
 		NeuronValue[][] C = new NeuronValue[m][o];
 		NeuronValue zero = A[0][0].zero();
 		for (int i = 0; i < m; i++) {

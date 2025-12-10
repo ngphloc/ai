@@ -7,12 +7,10 @@
  */
 package net.ea.ann.transformer;
 
-import java.awt.Dimension;
 import java.rmi.RemoteException;
 import java.util.Collections;
 import java.util.List;
 
-import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.NetworkConfig;
@@ -27,7 +25,9 @@ import net.ea.ann.mane.MatrixLayerExt;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.TaskTrainer;
+import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerImpl.Attention0;
 import net.ea.ann.transformer.TransformerImpl.TransformerBasic;
 
@@ -79,6 +79,19 @@ public class TransformerImpl extends TransformerAbstract {
 	}
 
 
+	/**
+	 * Creating matrix.
+	 * @param rows rows.
+	 * @param columns columns.
+	 * @return matrix.
+	 */
+	Matrix newMatrix(Size size) {
+		net.ea.ann.transformer.TransformerBlock block = createEncoder().createBlock();
+		NeuronValue zero = block.createFFN().newNeuronValue().zero();
+		return block.createAttention().createHead().newMatrix(size.height, size.width, zero);
+	}
+	
+	
 	@Override
 	protected TransformerBasic createEncoder() {
 		Encoder encoder = new Encoder(this.neuronChannel, this.idRef);
@@ -338,7 +351,7 @@ public class TransformerImpl extends TransformerAbstract {
 		}
 
 		@Override
-		protected net.ea.ann.transformer.Attention0 creatHead() {return new Attention0();}
+		protected net.ea.ann.transformer.Attention0 createHead() {return new Attention0();}
 
 		/**
 		 * Adding QK Y input data.
@@ -378,6 +391,11 @@ public class TransformerImpl extends TransformerAbstract {
 		 */
 		protected Matrix Yqk = null;
 		
+		@Override
+		int defineDepth() {
+			return super.defineDepth();
+		}
+
 		/**
 		 * Assigning input matrices.
 		 * @param Y Y input data.
@@ -398,8 +416,9 @@ public class TransformerImpl extends TransformerAbstract {
 			if (!validate()) return null;
 			int n = n(), dm = dm();
 			if (n <= 0 || dm <= 0) return null;
-			NeuronValue zero = this.Y.get(0, 0).zero();
-			return this.Y = Matrix.create(n, dm, zero);
+			this.Yqk = newMatrix(n, dm, defineDepth());
+			Matrix.fill(this.Yqk, this.Y.get(0, 0).zero());
+			return this.Yqk;
 		}
 		
 		
@@ -622,9 +641,9 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 		else {
 			this.encoder = createEncoder();
 			if (!this.encoder.initialize(he, ne, dme, dke, dve, ffnDepth, nBlocks)) return false;
-			Dimension es = this.encoder.getOutputLayer().getSize();
+			Size es = this.encoder.getOutputLayer().getSize();
 			if (es.height != nd || es.width != dmd) {
-				if (!this.encoder.setOutputAdapter(new Dimension(dmd, nd), ffnDepth)) return false;
+				if (!this.encoder.setOutputAdapter(new Size(dmd, nd, this.encoder.depth()), ffnDepth)) return false;
 				this.decoder = createDecoder();
 				if (!this.decoder.initialize(hd, nd, dmd, dkd, dvd, nd, dmd, ffnDepth, nBlocks, XBlockIndex)) return false;
 			}
@@ -838,7 +857,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @param outputAdapterDepth output adapter  depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputAdapter(Dimension outputAdapterOutputSize, int outputAdapterDepth) {
+	public boolean setOutputAdapter(Size outputAdapterOutputSize, int outputAdapterDepth) {
 		if (!validate())
 			return false;
 		else if (encoder != null && decoder != null) {
@@ -865,7 +884,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @param finalDepth final depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputAdapter(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+	public boolean setOutputAdapter(Size middleSize, FilterSpec middleFilter, int middleDepth, boolean middleDual, Size finalSize, int finalDepth) {
 		if (!validate())
 			return false;
 		else if (encoder != null && decoder != null) {
@@ -882,33 +901,6 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	}
 	
 
-	/**
-	 * Setting output adapter.
-	 * @param middleSize middle size.
-	 * @param middleFilterStride middle filter stride.
-	 * @param middleDepth middle depth.
-	 * @param middleDual middle dual mode.
-	 * @param finalSize final size.
-	 * @param finalDepth final depth.
-	 * @return true if setting is successful.
-	 */
-	public boolean setOutputAdapter(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		if (!validate())
-			return false;
-		else if (encoder != null && decoder != null) {
-			return decoder.setOutputAdapter(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
-		}
-		else if (encoder != null && decoder == null) {
-			return encoder.setOutputAdapter(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
-		}
-		else if (encoder == null && decoder != null) {
-			return decoder.setOutputAdapter(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
-		}
-		else
-			return false;
-	}
-
-	
 	/**
 	 * Removing output adapter.
 	 */
@@ -976,7 +968,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @param outputDepth output depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputFFN(Dimension outputSize, int outputDepth) {
+	public boolean setOutputFFN(Size outputSize, int outputDepth) {
 		if (!validate())
 			return false;
 		else if (encoder != null && decoder != null) {
@@ -1003,7 +995,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @param finalDepth final depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputFFN(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+	public boolean setOutputFFN(Size middleSize, FilterSpec middleFilter, int middleDepth, boolean middleDual, Size finalSize, int finalDepth) {
 		if (!validate())
 			return false;
 		else if (encoder != null && decoder != null) {
@@ -1020,33 +1012,6 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	}
 	
 
-	/**
-	 * Setting output feed-forward network.
-	 * @param middleSize middle size.
-	 * @param middleFilterStride middle filter stride.
-	 * @param middleDepth middle depth.
-	 * @param middleDual middle dual mode.
-	 * @param finalSize final size.
-	 * @param finalDepth final depth.
-	 * @return true if setting is successful.
-	 */
-	public boolean setOutputFFN(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		if (!validate())
-			return false;
-		else if (encoder != null && decoder != null) {
-			return decoder.setOutputFFN(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
-		}
-		else if (encoder != null && decoder == null) {
-			return encoder.setOutputFFN(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
-		}
-		else if (encoder == null && decoder != null) {
-			return decoder.setOutputFFN(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
-		}
-		else
-			return false;
-	}
-
-		
 	/**
 	 * Getting size of trainers.
 	 * @return size of trainers.

@@ -709,6 +709,20 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 
 	
 	/**
+	 * Creating array of values.
+	 * @param value value.
+	 * @param n number of values.
+	 * @return array of values.
+	 */
+	public static double[] values(double value, int n) {
+		if (n <= 0) throw new IllegalArgumentException();
+		double values[] = new double[n];
+		for (int i = 0; i < n; i++) values[i] = value;
+		return values;
+	}
+	
+	
+	/**
 	 * Calculate sum.
 	 * @param values vector.
 	 * @return sum.

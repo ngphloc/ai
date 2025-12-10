@@ -546,10 +546,11 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 			throw new RuntimeException("Derivative not implemented with de-convolutional filter yet");
 		
 		NeuronValue thisZero = thisLayer != null ? thisLayer.newNeuronValue().zero() : nextLayer.newNeuronValue().zero();;
-		NeuronValue[][] thisKernel = new NeuronValue[filter.height()][filter.width()];
-		for (int i = 0; i < thisKernel.length; i++) {
-			for (int j = 0; j < thisKernel[i].length; j++) thisKernel[i][j] = thisZero;
+		NeuronValue[][] dThisKernel = new NeuronValue[filter.height()][filter.width()];
+		for (int i = 0; i < dThisKernel.length; i++) {
+			for (int j = 0; j < dThisKernel[i].length; j++) dThisKernel[i][j] = thisZero;
 		}
+		int countKernel = 0;
 		
 		if (thisFilterRegion != null && nextFilterRegion != null) nextFilterRegion = null;
 		
@@ -562,7 +563,6 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 		int nextWidth = nextLayer.getWidth();
 		int nextHeight = nextLayer.getHeight();
 		
-		int countKernel = 0;
 		for (int nextY = 0; nextY < nextHeight; nextY++) {
 			int thisY = 0;
 			if (filter instanceof DeconvFilter) {
@@ -592,28 +592,30 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 				if (thisFilterRegion != null && !thisFilterRegion.contains(thisX, thisY)) continue;
 				if (nextFilterRegion != null && !nextFilterRegion.contains(nextX, nextY)) continue;
 				
-				//Calculating derivative.
+				//Calculating gradient.
 				NeuronValue[][] dKernel = null;
 				dKernel = filter.dKernel(nextX, nextY, thisLayer, nextLayer);
 				if (dKernel == null) continue;
 				
 				for (int i = 0; i < dKernel.length; i++) {
 					for (int j = 0; j < dKernel[i].length; j++) {
-						thisKernel[i][j] = thisKernel[i][j].add(dKernel[i][j]);
+						dThisKernel[i][j] = dThisKernel[i][j].add(dKernel[i][j]);
 					}
 				}
 				countKernel++;
 			}
 		}
+		if (countKernel <= 0) return dThisKernel;
 		
 		//Calculating mean of kernel.
-		if (countKernel > 0) {
-			for (int i = 0; i < thisKernel.length; i++) {
-				for (int j = 0; j < thisKernel[i].length; j++)
-					thisKernel[i][j] = thisKernel[i][j].divide(countKernel);
+		if (Filter.CALC_ERROR_MEAN) {
+			for (int i = 0; i < dThisKernel.length; i++) {
+				for (int j = 0; j < dThisKernel[i].length; j++) {
+					dThisKernel[i][j] = dThisKernel[i][j].divide(countKernel);
+				}
 			}
 		}
-		return thisKernel;
+		return dThisKernel;
 	}
 
 	
@@ -694,15 +696,19 @@ public abstract class ConvLayer2DAbstract extends ConvLayer1DAbstract implements
 						thisValues[index] = thisValues[index].add(dValues[i][j]);
 						thisValuesCount[index] = thisValuesCount[index] + 1;
 					}
-				}
+				} //End dValues.
 			}
 		}
 		
 		//Calculating mean of values.
 		for (int i = 0; i < thisValues.length; i++) {
 			if (thisValuesCount[i] <= 0) continue;
-			thisValues[i] = thisValues[i].divide((double)thisValuesCount[i]);
-			countValues++;
+			if (Filter.CALC_ERROR_MEAN) {
+				thisValues[i] = thisValues[i].divide((double)thisValuesCount[i]);
+				countValues++;
+			}
+			else
+				countValues += thisValuesCount[i];
 		}
 		
 		if (thisFilterRegion == null && nextFilterRegion == null)

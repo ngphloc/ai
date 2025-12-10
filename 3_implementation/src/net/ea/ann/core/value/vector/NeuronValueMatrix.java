@@ -14,6 +14,7 @@ import net.ea.ann.core.value.MatrixImpl;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.core.value.WeightValue;
+import net.ea.ann.raster.Size;
 
 /**
  * This class is default implementation of neuron value matrix.
@@ -32,34 +33,33 @@ public class NeuronValueMatrix extends MatrixImpl implements NeuronValue {
 
 	
 	/**
-	 * Constructor with numbers of rows and columns along with specified value.
+	 * Constructor with size and specified value.
 	 * @param rows number of rows.
 	 * @param columns numbers of columns.
 	 * @param value specified value.
 	 */
-	public NeuronValueMatrix(int rows, int columns, NeuronValue value) {
-		super(rows, columns, value);
+	public NeuronValueMatrix(Size size, NeuronValue value) {
+		super(size, value);
 	}
 
 	
 	/**
-	 * Constructor with numbers of rows and columns along with specified double value.
-	 * @param rows number of rows.
-	 * @param columns numbers of columns.
+	 * Constructor with size and double value.
+	 * @param size size.
 	 * @param value specified double value.
 	 */
-	public NeuronValueMatrix(int rows, int columns, double value) {
-		this(rows, columns, new NeuronValue1(value));
+	public NeuronValueMatrix(Size size, double value) {
+		this(size, new NeuronValue1(value));
 	}
 
 	
 	/**
-	 * Constructor with numbers of rows and columns along.
-	 * @param rows number of rows.
+	 * Constructor with size.
+	 * @param size size.
 	 * @param columns numbers of columns.
 	 */
-	public NeuronValueMatrix(int rows, int columns) {
-		this(rows, columns, 0);
+	public NeuronValueMatrix(Size size) {
+		this(size, 0);
 	}
 
 	
@@ -328,7 +328,7 @@ public class NeuronValueMatrix extends MatrixImpl implements NeuronValue {
 	 */
 	public static NeuronValueMatrix create(Matrix matrix) {
 		if (matrix == null) return null;
-		NeuronValueMatrix vMatrix = new NeuronValueMatrix(matrix.rows(), matrix.columns(), matrix.get(0, 0));
+		NeuronValueMatrix vMatrix = new NeuronValueMatrix(new Size(matrix.columns(), matrix.rows()), matrix.get(0, 0));
 		for (int row = 0; row < matrix.rows(); row++) {
 			for (int column = 0; column < matrix.columns(); column++) {
 				vMatrix.data[row][column] = matrix.get(row, column);

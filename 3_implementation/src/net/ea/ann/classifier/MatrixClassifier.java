@@ -7,10 +7,8 @@
  */
 package net.ea.ann.classifier;
 
-import java.awt.Dimension;
-
-import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
+import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
@@ -19,7 +17,9 @@ import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
+import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.Size;
 
 /**
  * This class is default implementation of classifier within context of matrix neural network.
@@ -100,16 +100,16 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 
 
 	@Override
-	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension nCoreClasses2, int depth2) {
+	protected boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size nCoreClasses2, int depth2) {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, nCoreClasses2, depth2)) return false;
 		this.adjuster = null;
 		if (!paramIsAdjust() || !paramIsBaseline() || !paramIsCreateAdjuster()) return true;
 		
-		int minAdjustDepth = Math.max((int)(Math.log(this.nut.size())/Math.log(MatrixNetworkImpl.BASE_DEFAULT)), 1);
+		int minAdjustDepth = Math.max((int)(Math.log(this.nut.size())/Math.log(NetworkAbstract.ZOOMOUT_DEFAULT)), 1);
 		int maxAdjustDepth = Math.max(Math.max(this.nut.size()-1, 1), minAdjustDepth);
 		int adjustDepth = Math.max(Math.max(depth1, depth2), minAdjustDepth);
 		adjustDepth = Math.min(adjustDepth, maxAdjustDepth);
-		Dimension size = this.nut.getOutputLayer().getSize();
+		Size size = this.nut.getOutputLayer().getSize();
 		this.adjuster = new MatrixNetworkImpl(this.neuronChannel, this.nut.getActivateRef(), this.nut.getConvActivateRef(), this.idRef);
 		this.adjuster.paramSetInclude(this);
 		if (paramIsEntropyTrainer()) this.adjuster.setTrainer(new TaskTrainerLossEntropy());
@@ -230,12 +230,6 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 
 	
 	@Override
-	protected Filter2D defaultFilter(Dimension filterStride) {
-		return nut != null ? nut.defaultFilter(filterStride) : super.defaultFilter(filterStride);
-	}
-
-
-	@Override
 	public void reset() {
 		super.reset();
 		nut.reset();
@@ -250,13 +244,13 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 
 	
 	@Override
-	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+	protected boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size outputSize2, int depth2) {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
 		this.sampleWeight = null;
 		
 		int outputCount = this.outputClassMaps.get(0).size();
 		int groupCount = getNumberOfGroups();
-		Dimension outputCombSize = paramIsByColumn() ? new Dimension(groupCount, outputCount) : new Dimension(outputCount, groupCount);
+		Size outputCombSize = paramIsByColumn() ? new Size(groupCount, outputCount, 1) : new Size(outputCount, groupCount, 1);
 		if (outputSize2 == null) {
 			if (paramGetMiddleSize() <= 0) {
 				if (!nut.initializeByDepth(inputSize1, outputCombSize, filter1, depth1, dual1, outputSize2, depth2))

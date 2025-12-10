@@ -7,11 +7,8 @@
  */
 package net.ea.ann.mane;
 
-import java.awt.Dimension;
 import java.util.List;
 
-import net.ea.ann.conv.filter.Filter2D;
-import net.ea.ann.conv.filter.ProductFilter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
@@ -19,6 +16,8 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
+import net.ea.ann.mane.filter.Filter;
+import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
@@ -172,20 +171,15 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 
 	/**
-	 * Default filter.
-	 * @param filterStride filter stride.
-	 * @return default filter.
+	 * Creating filter.
+	 * @param filterSize filter size.
+	 * @param filterSpec filter specification.
+	 * @return filter.
 	 */
-	public Filter2D defaultFilter(Dimension filterStride) {
-		if (filterStride == null)
-			return null;
-		else if (filterStride.width <= 0 || filterStride.height <= 0)
-			return null;
-		else {
-			Filter2D filter = ProductFilter2D.create(new Size(filterStride), newLayer(), 1.0/(double)(filterStride.height*filterStride.width));
-			if (filter != null && paramGetMiddleSize() <= 0) filter.setMoveStride(false);
-			return filter;
-		}
+	Filter newFilter(Size filterSize, FilterSpec filterSpec) {
+		Filter filter = newLayer().newFilter(filterSize, filterSpec);
+		if (filter != null && paramGetMiddleSize() > 0) filter.setMoveStride(true);
+		return filter;
 	}
 	
 	
@@ -253,7 +247,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 		try {
 			MatrixLayerAbstract inputLayer = getInputLayer();
 			Matrix input = inputLayer.getInput();
-			Matrix matrixInput = inputLayer.toMatrix(inputRaster, input.rows(), input.columns());
+			Matrix matrixInput = inputLayer.toMatrix(inputRaster, new Size(input.columns(), input.rows()));
 			return matrixInput != null ? evaluate(matrixInput) : null;
 		} catch (Throwable e) {Util.trace(e);}
 		return null;
@@ -273,8 +267,8 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 			Matrix output = outputLayer.queryOutput();
 			List<Record> sample = Util.newList(0);
 			for (Raster[] inout : inouts) {
-				Matrix matrixInput = inputLayer.toMatrix(inout[0], input.rows(), input.columns());
-				Matrix matrixOutput = outputLayer.toMatrix(inout[1], output.rows(), output.columns());
+				Matrix matrixInput = inputLayer.toMatrix(inout[0], new Size(input.columns(), input.rows()));
+				Matrix matrixOutput = outputLayer.toMatrix(inout[1], new Size(output.columns(), output.rows()));
 				if (matrixInput != null && matrixOutput != null)
 					sample.add(new Record(matrixInput, matrixOutput));
 			}

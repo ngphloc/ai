@@ -149,7 +149,12 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 		}
 
 		
-		NeuronValue[] calcBaselineAdjust(Iterable<Record> sample) {
+		/**
+		 * Calculating baseline and adjusted line.
+		 * @param sample sample.
+		 * @return baseline and adjusted line..
+		 */
+		NeuronValue[][] calcBaselineAdjust(Iterable<Record> sample) {
 			NeuronValue[] o = getOutputLayer().getOutput();
 			NeuronValue zero = o[0].zero();
 			NeuronValue[] baseline = new NeuronValue[o.length];

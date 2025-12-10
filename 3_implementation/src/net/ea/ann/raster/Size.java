@@ -10,7 +10,7 @@ package net.ea.ann.raster;
 import java.awt.Dimension;
 
 /**
- * This class represents multi-dimension.
+ * This class represents multi-dimension size.
  * @author Loc Nguyen
  * @version 1.0
  *
@@ -51,6 +51,15 @@ public class Size extends java.awt.Dimension {
 	
 	
 	/**
+	 * Constructor with size.
+	 * @param size size.
+	 */
+	public Size(Size size) {
+		this(size.width, size.height, size.depth, size.time);
+	}
+	
+	
+	/**
 	 * Constructor with specified width, height, and depth.
 	 * @param width specified width.
 	 * @param height specified height.
@@ -85,6 +94,24 @@ public class Size extends java.awt.Dimension {
 	 */
 	public Size() {
 		this(0, 0, 0, 0);
+	}
+
+	
+	/**
+	 * Getting rows.
+	 * @return rows.
+	 */
+	public int rows() {
+		return height;
+	}
+	
+	
+	/**
+	 * Getting columns.
+	 * @return columns.
+	 */
+	public int columns() {
+		return width;
 	}
 
 	

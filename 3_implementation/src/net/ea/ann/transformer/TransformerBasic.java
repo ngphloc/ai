@@ -7,14 +7,12 @@
  */
 package net.ea.ann.transformer;
 
-import java.awt.Dimension;
 import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.NetworkConfig;
@@ -31,7 +29,9 @@ import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.TaskTrainer;
+import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.Size;
 
 /**
  * This class implements basic transformer.
@@ -127,6 +127,15 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	}
 
 	
+	/**
+	 * Getting depth.
+	 * @return depth.
+	 */
+	int depth() {
+		return size() > 0 ? get(0).depth() : createBlock().depth();
+	}
+	
+
 	/**
 	 * Resetting transformer.
 	 */
@@ -369,7 +378,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param outputDepth output depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputAdapter(Dimension outputSize, int outputDepth) {
+	public boolean setOutputAdapter(Size outputSize, int outputDepth) {
 		return validate() ? get(size()-1).setOutputAdapter(outputSize, outputDepth) : false;
 	}
 
@@ -384,26 +393,11 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param finalDepth final depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputAdapter(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+	public boolean setOutputAdapter(Size middleSize, FilterSpec middleFilter, int middleDepth, boolean middleDual, Size finalSize, int finalDepth) {
 		return validate() ? get(size()-1).setOutputAdapter(middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth) : false;
 	}
 	
 
-	/**
-	 * Setting output adapter.
-	 * @param middleSize middle size.
-	 * @param middleFilterStride middle filter stride.
-	 * @param middleDepth middle depth.
-	 * @param middleDual middle dual mode.
-	 * @param finalSize final size.
-	 * @param finalDepth final depth.
-	 * @return true if setting is successful.
-	 */
-	public boolean setOutputAdapter(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		return validate() ? get(size()-1).setOutputAdapter(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth) : false;
-	}
-
-		
 	/**
 	 * Removing output adapter.
 	 */
@@ -438,7 +432,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param outputDepth output depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputFFN(Dimension outputSize, int outputDepth) {
+	public boolean setOutputFFN(Size outputSize, int outputDepth) {
 		return validate() ? get(size()-1).setFFN(outputSize, outputDepth) : false;
 	}
 
@@ -453,26 +447,11 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param finalDepth final depth.
 	 * @return true if setting is successful.
 	 */
-	public boolean setOutputFFN(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+	public boolean setOutputFFN(Size middleSize, FilterSpec middleFilter, int middleDepth, boolean middleDual, Size finalSize, int finalDepth) {
 		return validate() ? get(size()-1).setFFN(middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth) : false;
 	}
 	
 
-	/**
-	 * Setting feed-forward network.
-	 * @param middleSize middle size.
-	 * @param middleFilterStride middle filter stride.
-	 * @param middleDepth middle depth.
-	 * @param middleDual middle dual mode.
-	 * @param finalSize final size.
-	 * @param finalDepth final depth.
-	 * @return true if setting is successful.
-	 */
-	public boolean setOutputFFN(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		return validate() ? get(size()-1).setFFN(middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth) : false;
-	}
-
-		
 	/**
 	 * Getting size of trainers.
 	 * @return size of trainers.
@@ -921,6 +900,15 @@ class TransformerBlock implements Cloneable, Serializable {
 
 	
 	/**
+	 * Getting depth.
+	 * @return depth.
+	 */
+	int depth() {
+		return attention != null ? attention.depth() : createAttention().depth();
+	}
+	
+	
+	/**
 	 * Creating attention.
 	 * @return attention.
 	 */
@@ -991,14 +979,14 @@ class TransformerBlock implements Cloneable, Serializable {
 	/**
 	 * Initialize matrix neural network.
 	 * @param middleSize middle size.
-	 * @param middleFilter middle filter.
+	 * @param middleFilter middle filter specification.
 	 * @param middleDepth middle depth.
 	 * @param middleDual middle dual mode.
 	 * @param finalSize final size.
 	 * @param finalDepth final depth.
 	 * @return true if setting is successful.
 	 */
-	private boolean initializeMANE(MatrixNetworkImpl mane, Dimension inputSize, Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+	private boolean initializeMANE(MatrixNetworkImpl mane, Size inputSize, Size middleSize, FilterSpec middleFilter, int middleDepth, boolean middleDual, Size finalSize, int finalDepth) {
 		if ((inputSize == null) || (middleSize == null && finalSize == null)) return false;
 		try {
 			mane.getConfig().putAll(this.config);
@@ -1008,27 +996,6 @@ class TransformerBlock implements Cloneable, Serializable {
 			mane.initialize(inputSize, middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth);
 	}
 	
-	
-	/**
-	 * Initialize matrix neural network.
-	 * @param middleSize middle size.
-	 * @param middleFilterStride middle filter stride.
-	 * @param middleDepth middle depth.
-	 * @param middleDual middle dual mode.
-	 * @param finalSize final size.
-	 * @param finalDepth final depth.
-	 * @return true if setting is successful.
-	 */
-	private boolean initializeMANE(MatrixNetworkImpl mane, Dimension inputSize, Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		if ((inputSize == null) || (middleSize == null && finalSize == null)) return false;
-		try {
-			mane.getConfig().putAll(this.config);
-		} catch (Throwable e) {Util.trace(e);}
-		return mane.paramGetMiddleSize() <= 0 ?
-			mane.initializeByDepth(inputSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth) :
-			mane.initialize(inputSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth);
-	}
-
 	
 	/**
 	 * Initializing attention with number of heads, sample size, model dimension, key dimension, value dimension, other sample size, other model dimension, and depth of feed forward network.
@@ -1049,7 +1016,7 @@ class TransformerBlock implements Cloneable, Serializable {
 		if (!this.attention.initialize(h, n, dm, dk, dv, m, d, zero)) return false;
 		
 		ffnDepth = ffnDepth < 1 ? MatrixNetworkImpl.DEPTH_DEFAULT : ffnDepth;
-		Dimension size = new Dimension(this.attention.dm(), this.attention.n());
+		Size size = new Size(this.attention.dm(), this.attention.n(), depth());
 		if (!new MatrixNetworkInitializer(this.ffn).initialize(size, size, ffnDepth)) return false;
 		
 		return true;
@@ -1105,15 +1072,15 @@ class TransformerBlock implements Cloneable, Serializable {
 	 */
 	boolean setFFN(MatrixNetworkImpl ffn) {
 		if (!validate() || ffn == null || ffn.paramIsNorm() != this.paramIsNorm() || ffn.paramIsVectorized() != this.paramIsVectorized()) return false;
-		Dimension ffnSize = ffn.getInputLayer().getSizeByVecRows();
+		Size ffnSize = ffn.getInputLayer().getSizeByVecRows();
 		if (this.attention.n() != ffnSize.height || this.attention.dm() != ffnSize.width) return false;
 		if (this.outputAdapter == null) {
 			this.ffn = ffn;
 			return true;
 		}
 		
-		Dimension ffnOutputSize = ffn.getOutputLayer().getSize();
-		Dimension adapterInputSize = this.outputAdapter.getInputLayer().getSize();
+		Size ffnOutputSize = ffn.getOutputLayer().getSize();
+		Size adapterInputSize = this.outputAdapter.getInputLayer().getSize();
 		if (ffnOutputSize.height != adapterInputSize.height || ffnOutputSize.width != adapterInputSize.width) return false;
 		this.ffn = ffn;
 		return true;
@@ -1127,8 +1094,8 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @param ffnDepth depth of feed-forward network.
 	 * @return true if initialization is successful.
 	 */
-	public boolean setFFN(Dimension ffnOutputSize, int ffnDepth) {
-		return setFFN(null, (Filter2D)null, 0, false, ffnOutputSize, ffnDepth);
+	public boolean setFFN(Size ffnOutputSize, int ffnDepth) {
+		return setFFN(null, (FilterSpec)null, 0, false, ffnOutputSize, ffnDepth);
 	}
 
 	
@@ -1142,28 +1109,10 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @param finalDepth final depth.
 	 * @return true if setting is successful.
 	 */
-	boolean setFFN(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
+	boolean setFFN(Size middleSize, FilterSpec middleFilter, int middleDepth, boolean middleDual, Size finalSize, int finalDepth) {
 		MatrixNetworkImpl ffn = createFFN();
-		Dimension attentionSize = new Dimension(this.attention.dm(), this.attention.n());
+		Size attentionSize = new Size(this.attention.dm(), this.attention.n(), depth());
 		if (!initializeMANE(ffn, attentionSize, middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth)) return false;
-		return setFFN(ffn);
-	}
-
-	
-	/**
-	 * Setting feed-forward network.
-	 * @param middleSize middle size.
-	 * @param middleFilterStride middle filter stride.
-	 * @param middleDepth middle depth.
-	 * @param middleDual middle dual mode.
-	 * @param finalSize final size.
-	 * @param finalDepth final depth.
-	 * @return true if setting is successful.
-	 */
-	boolean setFFN(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		MatrixNetworkImpl ffn = createFFN();
-		Dimension attentionSize = new Dimension(this.attention.dm(), this.attention.n());
-		if (!initializeMANE(ffn, attentionSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth)) return false;
 		return setFFN(ffn);
 	}
 
@@ -1191,8 +1140,8 @@ class TransformerBlock implements Cloneable, Serializable {
 	 */
 	boolean setOutputAdapter(MatrixNetworkImpl outputAdapter) {
 		if (!validate() || outputAdapter == null || outputAdapter.paramIsNorm() != this.paramIsNorm() || outputAdapter.paramIsVectorized() != this.paramIsVectorized()) return false;
-		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
-		Dimension adapterInputSize = outputAdapter.getInputLayer().getSize();
+		Size ffnOutputSize = this.ffn.getOutputLayer().getSize();
+		Size adapterInputSize = outputAdapter.getInputLayer().getSize();
 		if (ffnOutputSize.height != adapterInputSize.height || ffnOutputSize.width != adapterInputSize.width) return false;
 		
 		this.outputAdapter = outputAdapter;
@@ -1206,8 +1155,8 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @param outputDepth output depth.
 	 * @return true if setting is successful.
 	 */
-	boolean setOutputAdapter(Dimension outputSize, int outputDepth) {
-		return setOutputAdapter(null, (Filter2D)null, 0, false, outputSize, outputDepth);
+	boolean setOutputAdapter(Size outputSize, int outputDepth) {
+		return setOutputAdapter(null, (FilterSpec)null, 0, false, outputSize, outputDepth);
 	}
 	
 	
@@ -1221,28 +1170,10 @@ class TransformerBlock implements Cloneable, Serializable {
 	 * @param finalDepth final depth.
 	 * @return true if setting is successful.
 	 */
-	boolean setOutputAdapter(Dimension middleSize, Filter2D middleFilter, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
+	boolean setOutputAdapter(Size middleSize, FilterSpec middleFilter, int middleDepth, boolean middleDual, Size finalSize, int finalDepth) {
+		Size ffnOutputSize = this.ffn.getOutputLayer().getSize();
 		MatrixNetworkImpl outputAdapter = createOutputAdapter();
 		if (!initializeMANE(outputAdapter, ffnOutputSize, middleSize, middleFilter, middleDepth, middleDual, finalSize, finalDepth)) return false;
-		return setOutputAdapter(outputAdapter);
-	}
-
-	
-	/**
-	 * Setting output adapter.
-	 * @param middleSize middle size.
-	 * @param middleFilterStride middle filter stride.
-	 * @param middleDepth middle depth.
-	 * @param middleDual middle dual mode.
-	 * @param finalSize final size.
-	 * @param finalDepth final depth.
-	 * @return true if setting is successful.
-	 */
-	boolean setOutputAdapter(Dimension middleSize, Dimension middleFilterStride, int middleDepth, boolean middleDual, Dimension finalSize, int finalDepth) {
-		Dimension ffnOutputSize = this.ffn.getOutputLayer().getSize();
-		MatrixNetworkImpl outputAdapter = new MatrixNetworkImpl(this.neuronChannel, null, null, idRef);
-		if (!initializeMANE(outputAdapter, ffnOutputSize, middleSize, middleFilterStride, middleDepth, middleDual, finalSize, finalDepth)) return false;
 		return setOutputAdapter(outputAdapter);
 	}
 

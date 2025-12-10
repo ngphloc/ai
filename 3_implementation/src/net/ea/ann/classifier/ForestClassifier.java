@@ -1,14 +1,13 @@
 package net.ea.ann.classifier;
 
-import java.awt.Dimension;
-
-import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Record;
+import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.Size;
 
 /**
  * This class implement forest classifier.
@@ -140,7 +139,7 @@ public class ForestClassifier extends ClassifierAbstract {
 
 
 	@Override
-	protected boolean initialize(Dimension inputSize1, Dimension outputSize1, Filter2D filter1, int depth1, boolean dual1, Dimension outputSize2, int depth2) {
+	protected boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size outputSize2, int depth2) {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
 		this.trees = null;
 		this.output = null;
@@ -153,7 +152,7 @@ public class ForestClassifier extends ClassifierAbstract {
 		}
 		
 		Matrix output = this.trees[0].getOutput();
-		this.output = output.create(output.rows(), output.columns());
+		this.output = output.create(new Size(output.columns(), output.rows()));
 		return true;
 	}
 	

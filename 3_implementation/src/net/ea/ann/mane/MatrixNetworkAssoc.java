@@ -19,10 +19,11 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
-import net.ea.ann.conv.filter.Filter2D;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
+import net.ea.ann.core.value.Matrix;
+import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Raster3DImpl;
 import net.ea.ann.raster.RasterAssoc;
@@ -103,11 +104,10 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 		for (int i = 0; i < mane.layers.length; i++) {
 			if (!(mane.layers[i] instanceof MatrixLayerImpl)) continue;
 			MatrixLayerImpl layer = (MatrixLayerImpl)mane.layers[i];
-			if (layer.weight1 != null) size += layer.weight1.rows()*layer.weight1.columns();
-			if (layer.weight2 != null) size += layer.weight2.rows()*layer.weight2.columns();
-			if (layer.bias != null) size += layer.bias.rows()*layer.bias.columns();
+			if (layer.weight != null) size += layer.weight.sizeOfParams();
+			if (layer.bias != null) size += Matrix.capacity(layer.bias);
 			
-			if (layer.filter != null) size += layer.filter.height()*layer.filter.width();
+			if (layer.filter != null) size += layer.filter.sizeOfParams();;
 			if (layer.filterBias != null) size++;
 		}
 		return size;
@@ -243,7 +243,7 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 		mane.getConfig().put(NetworkAbstract.LEARN_MAX_ITERATION_FIELD, maxIteration);
 		mane.getConfig().put(NetworkAbstract.LEARN_RATE_FIELD, lr);
 		mane.paramSetVectorized(vectorized);
-		Filter2D filter = filtering ? mane.defaultFilter(new Size(MatrixNetworkImpl.BASE_DEFAULT, MatrixNetworkImpl.BASE_DEFAULT)) : null;
+		FilterSpec filter = filtering ? new FilterSpec(MatrixNetworkImpl.BASE_DEFAULT, MatrixNetworkImpl.BASE_DEFAULT) : null;
 		//
 		Size sourceSize = RasterAssoc.getAverageSize(sourceRasters).divide(zoomOut);
 		Size targetSize = RasterAssoc.getAverageSize(targetRasters).divide(zoomOut);
