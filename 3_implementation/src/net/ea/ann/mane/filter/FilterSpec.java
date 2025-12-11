@@ -40,6 +40,12 @@ public class FilterSpec implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Flag to move by stride.
+	 */
+	public boolean moveStride = false;
+	
+	
+	/**
 	 * Constructor with size.
 	 * @param size size.
 	 */

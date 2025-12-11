@@ -33,12 +33,12 @@ public class Weight implements Cloneable, Serializable {
 
 
 	/**
-	 * This class consists of both the first weight and the second weight.
+	 * This kernel consists of both the first weight and the second weight.
 	 * @author Loc Nguyen
 	 * @version 1.0
 	 *
 	 */
-	public static class W implements Cloneable, Serializable {
+	public static class Kernel implements Cloneable, Serializable {
 		
 		/**
 		 * Serial version UID for serializable class.
@@ -60,7 +60,7 @@ public class Weight implements Cloneable, Serializable {
 		 * @param W1 the first weight.
 		 * @param W2 the second weight.
 		 */
-		public W(MatrixStack[] W1, MatrixStack[] W2) {
+		public Kernel(MatrixStack[] W1, MatrixStack[] W2) {
 			if (!checkValid(W1, W1)) throw new IllegalArgumentException();
 			this.W1 = W1;
 			this.W2 = W2;
@@ -82,13 +82,13 @@ public class Weight implements Cloneable, Serializable {
 		
 		/**
 		 * Adding other kernel.
-		 * @param other other kernel.
+		 * @param kernel other kernel.
 		 * @return sum value.
 		 */
-		public W add(W other) {
-			MatrixStack[] sum1 = this.W1 != null ? MatrixStack.sum(this.W1, other.W1) : null;
-			MatrixStack[] sum2 = this.W2 != null ? MatrixStack.sum(this.W2, other.W2) : null;
-			return new W(sum1, sum2);
+		public Kernel add(Kernel kernel) {
+			MatrixStack[] sum1 = this.W1 != null ? MatrixStack.sum(this.W1, kernel.W1) : null;
+			MatrixStack[] sum2 = this.W2 != null ? MatrixStack.sum(this.W2, kernel.W2) : null;
+			return new Kernel(sum1, sum2);
 		}
 		
 		/**
@@ -96,10 +96,10 @@ public class Weight implements Cloneable, Serializable {
 		 * @param value value.
 		 * @return divided kernel.
 		 */
-		public W multiply(double value) {
+		public Kernel multiply(double value) {
 			MatrixStack[] d1 = this.W1 != null ? MatrixStack.multiply(this.W1, value) : null;
 			MatrixStack[] d2 = this.W2 != null ? MatrixStack.multiply(this.W2, value) : null;
-			return new W(d1, d2);
+			return new Kernel(d1, d2);
 		}
 
 		/**
@@ -107,32 +107,32 @@ public class Weight implements Cloneable, Serializable {
 		 * @param value value.
 		 * @return divided kernel.
 		 */
-		public W divide(double value) {
+		public Kernel divide(double value) {
 			MatrixStack[] d1 = this.W1 != null ? MatrixStack.divide(this.W1, value) : null;
 			MatrixStack[] d2 = this.W2 != null ? MatrixStack.divide(this.W2, value) : null;
-			return new W(d1, d2);
+			return new Kernel(d1, d2);
 		}
 
 		
 		/**
 		 * Calculating sum.
-		 * @param Ws weights.
+		 * @param kernels kernels.
 		 * @return sum.
 		 */
-		public static W sum(W[] Ws) {
-			W sum = Ws[0];
-			for (int i = 1; i < Ws.length; i++) sum = sum.add(Ws[i]);
+		public static Kernel sum(Kernel[] kernels) {
+			Kernel sum = kernels[0];
+			for (int i = 1; i < kernels.length; i++) sum = sum.add(kernels[i]);
 			return sum;
 		}
 		
 		/**
 		 * Calculating mean.
-		 * @param Ws weights.
+		 * @param kernels kernels.
 		 * @return mean.
 		 */
-		public static W mean(W[] Ws) {
-			W sum = sum(Ws);
-			return sum.divide(Ws.length);
+		public static Kernel mean(Kernel[] kernels) {
+			Kernel sum = sum(kernels);
+			return sum.divide(kernels.length);
 		}
 		
 	}
@@ -141,7 +141,7 @@ public class Weight implements Cloneable, Serializable {
 	/**
 	 * The complex weight.
 	 */
-	protected W kernel = null;
+	protected Kernel kernel = null;
 	
 	
 	/**
@@ -149,7 +149,7 @@ public class Weight implements Cloneable, Serializable {
 	 * @param W1 the first weight.
 	 * @param W2 the second weight.
 	 */
-	public Weight(W w) {
+	public Weight(Kernel w) {
 		this.kernel = w;
 	}
 
@@ -179,7 +179,7 @@ public class Weight implements Cloneable, Serializable {
 	 * Getting internal weight.
 	 * @return internal weight.
 	 */
-	public W kernel() {return kernel;}
+	public Kernel kernel() {return kernel;}
 	
 	
 	/**
@@ -230,7 +230,7 @@ public class Weight implements Cloneable, Serializable {
 		if (inputs.depth() != depth || inputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix sum = null;
 		for (int d = 0; d < depth; d++) {
-			Matrix value = new WKernel(W1(time, d), W2(time, d)).evaluate(inputs.get(d), biases.get(d));
+			Matrix value = new WSpec(W1(time, d), W2(time, d)).evaluate(inputs.get(d), biases.get(d));
 			sum = sum != null ? sum.add(value) : value;
 		}
 		return sum;
@@ -284,7 +284,7 @@ public class Weight implements Cloneable, Serializable {
 		if (prevInputs.depth() != depth || prevOutputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix[] dValues = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			dValues[d] = new WKernel(W1(time, d), W2(time, d)).
+			dValues[d] = new WSpec(W1(time, d), W2(time, d)).
 				dValue(prevInputs.get(d), prevOutputs.get(d), thisErrors.get(d), prevActivateRef);
 		}
 		return new MatrixStack(dValues);
@@ -340,7 +340,7 @@ public class Weight implements Cloneable, Serializable {
 		if (prevOutputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix[] dW1s = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			dW1s[d] = new WKernel(W1(time, d), W2(time, d)).dW1(prevOutputs.get(d), thisErrors.get(d));
+			dW1s[d] = new WSpec(W1(time, d), W2(time, d)).dW1(prevOutputs.get(d), thisErrors.get(d));
 		}
 		return new MatrixStack(dW1s);
 	}
@@ -377,7 +377,7 @@ public class Weight implements Cloneable, Serializable {
 		if (prevOutputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix[] dW2s = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			dW2s[d] = new WKernel(W1(time, d), W2(time, d)).dW2(prevOutputs.get(d), thisErrors.get(d));
+			dW2s[d] = new WSpec(W1(time, d), W2(time, d)).dW2(prevOutputs.get(d), thisErrors.get(d));
 		}
 		return new MatrixStack(dW2s);
 	}
@@ -408,12 +408,12 @@ public class Weight implements Cloneable, Serializable {
 	 * @param thisErrors current errors.
 	 * @return gradient of the current first weight.
 	 */
-	public W dKernel(Matrix prevOutput, Matrix thisError) {
+	public Kernel dKernel(Matrix prevOutput, Matrix thisError) {
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
 		MatrixStack[] dW1 = dW1(prevOutputs, thisErrors);
 		MatrixStack[] dW2 = dW2(prevOutputs, thisErrors);
-		return new W(dW1, dW2);
+		return new Kernel(dW1, dW2);
 	}
 
 	
@@ -421,9 +421,11 @@ public class Weight implements Cloneable, Serializable {
 	 * Accumulating kernel.
 	 * @param dKernel kernel bias.
 	 * @param factor factor.
+	 * @return this weight.
 	 */
-	public void accumKernel(W dKernel, double factor) {
+	public Weight accumKernel(Kernel dKernel, double factor) {
 		this.kernel = this.kernel.add(dKernel.multiply(factor));
+		return this;
 	}
 
 	
@@ -511,16 +513,43 @@ public class Weight implements Cloneable, Serializable {
 	
 	/**
 	 * Creating weight.
-	 * @param kernelValue real kernel value.
 	 * @param size size of kernel.
-	 * @param hintW1 hint of first weight.
-	 * @param hintW2 hint of second weight.
-	 * @return product filter created from real kernel and weight.
+	 * @param hint hint value.
+	 * @return weight.
 	 */
-	public static Weight create(Matrix W1, Matrix W2) {
-		return new Weight(new W(
-			W1 != null ? new MatrixStack[] {new MatrixStack(W1)} : null,
-			W2 != null ? new MatrixStack[] {new MatrixStack(W2)} : null));
+	private static MatrixStack[] createW(Size size, NeuronValue hint) {
+		if (size.width < 1 || size.height < 1 || hint == null) return null;
+		int depth = 1, time = 1;
+		if (size.depth < 1)
+			time = depth = 1;
+		else if (size.time < 1) {
+			depth = size.depth;
+			time = 1;
+		}
+		else {
+			depth = size.depth;
+			time = size.time;
+		}
+		MatrixStack[] W = new MatrixStack[time];
+		for (int t = 0; t < time; t++) {
+			Matrix matrix = Matrix.create(new Size(size.width, size.height, depth, 1), hint); 
+			W[t] = matrix instanceof MatrixStack ? (MatrixStack)matrix : new MatrixStack(matrix);
+		}
+		return W;
+	}
+	
+	
+	/**
+	 * Creating weight.
+	 * @param sizeW1 hint of first weight.
+	 * @param sizeW2 hint of second weight.
+	 * @param hint hint.
+	 * @return weight.
+	 */
+	public static Weight create(Size sizeW1, Size sizeW2, NeuronValue hint) {
+		MatrixStack[] W1 = sizeW1 != null ? createW(sizeW1, hint) : null;
+		MatrixStack[] W2 = sizeW2 != null ? createW(sizeW2, hint) : null;
+		return new Weight(new Kernel(W1, W2));
 	}
 
 
@@ -535,7 +564,7 @@ public class Weight implements Cloneable, Serializable {
  * @version 1.0
  *
  */
-class WKernel implements Cloneable, Serializable {
+class WSpec implements Cloneable, Serializable {
 
 
 	/**
@@ -547,13 +576,13 @@ class WKernel implements Cloneable, Serializable {
 	/**
 	 * The first matrix.
 	 */
-	public Matrix W1 = null;
+	Matrix W1 = null;
 	
 	
 	/**
 	 * The second matrix.
 	 */
-	public Matrix W2 = null;
+	Matrix W2 = null;
 	
 	
 	/**
@@ -561,7 +590,7 @@ class WKernel implements Cloneable, Serializable {
 	 * @param W1 the first weight.
 	 * @param W2 the second weight.
 	 */
-	public WKernel(Matrix W1, Matrix W2) {
+	WSpec(Matrix W1, Matrix W2) {
 		if (!checkValid(W1, W2)) throw new IllegalArgumentException();
 		this.W1 = W1;
 		this.W2 = W2;
@@ -663,35 +692,4 @@ class WKernel implements Cloneable, Serializable {
 	}
 
 
-	/**
-	 * Filling weight with specified value.
-	 * @param v specified value.
-	 */
-	void fill(double v) {
-		if (W1 != null) Matrix.fill(W1, v);
-		if (W2 != null) Matrix.fill(W2, v);
-	}
-	
-	
-	/**
-	 * Filling weight with randomizer.
-	 * @param rnd randomizer.
-	 */
-	void fill(Random rnd) {
-		if (W1 != null) Matrix.fill(W1, rnd);
-		if (W2 != null) Matrix.fill(W2, rnd);
-	}
-
-
-	/**
-	 * Getting size of parameters.
-	 * @return size of parameters.
-	 */
-	int sizeOfParams() {
-		int size = 0;
-		if (W1 != null) size += Matrix.capacity(W1);
-		if (W2 != null) size += Matrix.capacity(W2);
-		return size;
-	}
-	
 }

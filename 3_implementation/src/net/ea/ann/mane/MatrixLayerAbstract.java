@@ -146,7 +146,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	
 	@Override
 	public NeuronValue newNeuronValue() {
-		NeuronValue value = newMatrix(new Size(1, 1, 1)).get(0, 0);
+		NeuronValue value = newMatrix(new Size(1, 1, 1, 1)).get(0, 0);
 		if (value instanceof Matrix)
 			return value;
 		else if (value instanceof Content)
@@ -162,18 +162,20 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @return new matrix.
 	 */
 	protected Matrix newMatrix(Size size) {
+		Matrix output = queryOutput();
+		if (output != null) return output.create(size);
 		NeuronValue value = NeuronValueCreator.newNeuronValue(neuronChannel);
 		return Matrix.create(size, value);
 	}
 
 
 	/**
-	 * Constructor with the first weight and the second weight.
-	 * @param W1 the first weight.
-	 * @param W2 the second weight.
+	 * Constructor with the first weight size and the second weight size.
+	 * @param sizeW1 the first weight size.
+	 * @param sizeW2 the second weight size.
 	 */
-	protected Weight newWeight(Matrix W1, Matrix W2) {
-		return Weight.create(W1, W2);
+	protected Weight newWeight(Size sizeW1, Size sizeW2) {
+		return Weight.create(sizeW1, sizeW2, newNeuronValue());
 	}
 
 	
@@ -184,7 +186,8 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @return filter.
 	 */
 	protected Filter newFilter(Size filterSize, FilterSpec filterSpec) {
-		Filter filter = newFilter(filterSize, newMatrix(new Size(1, 1, 1)));
+		Filter filter = newFilter(filterSize, newNeuronValue());
+		filter.setMoveStride(filterSpec.moveStride);
 		return filter;
 	}
 	
@@ -195,7 +198,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param hint matrix hint.
 	 * @return default filter.
 	 */
-	private static Filter newFilter(Size filterSize, Matrix hint) {
+	private static Filter newFilter(Size filterSize, NeuronValue hint) {
 		if (filterSize == null || filterSize.width <= 0 || filterSize.height <= 0) return null;
 		double kernelValue = 1.0 / (filterSize.width*filterSize.height);
 		ProductFilter filter = ProductFilter.create(kernelValue, filterSize, hint);

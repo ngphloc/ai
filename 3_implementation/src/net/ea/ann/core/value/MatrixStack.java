@@ -438,7 +438,9 @@ public class MatrixStack implements Matrix {
 	 * @param dW stack biases
 	 * @param factor factor.
 	 */
-	public static void accum(MatrixStack[] W, Matrix[] dW, double factor) {
+	@SuppressWarnings("unused")
+	@Deprecated
+	private static void accum(MatrixStack[] W, Matrix[] dW, double factor) {
 		if (W == null || dW == null) return;
 		if (dW.length != W.length) throw new IllegalArgumentException();
 		MatrixStack[] stacks = null;

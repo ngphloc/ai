@@ -34,7 +34,7 @@ public class ProductFilter extends FilterAbstract {
 	/**
 	 * Internal kernel.
 	 */
-	protected MatrixStack[] kernel = null;
+	protected Kernel kernel = null;
 	
 	
 	/**
@@ -60,13 +60,13 @@ public class ProductFilter extends FilterAbstract {
 	 * @param kernel specific kernel.
 	 * @param weight specific weight.
 	 */
-	protected ProductFilter(MatrixStack[] kernel, NeuronValue weight) {
+	protected ProductFilter(Kernel kernel, NeuronValue weight) {
 		super();
 		if (!checkValid(kernel)) throw new IllegalArgumentException();
 		this.kernel = kernel;
 		this.weight = weight;
-		this.strideWidth = kernel[0].columns();
-		this.strideHeight = kernel[0].rows();
+		this.strideWidth = kernel.width();
+		this.strideHeight = kernel.height();
 	}
 
 	
@@ -75,16 +75,8 @@ public class ProductFilter extends FilterAbstract {
 	 * @param kernel specific kernel.
 	 * @return true if kernel is valid.
 	 */
-	private static boolean checkValid(MatrixStack[] kernel) {
-		if (kernel == null || kernel.length == 0) return false;
-		int columns = kernel[0].columns();
-		int rows = kernel[0].rows();
-		int depth = kernel[0].depth();
-		if (columns <= 0 || rows <= 0 || depth <= 0) return false;
-		for (int t = 0; t < kernel.length; t++) {
-			if (kernel[t].columns() != columns || kernel[t].rows() != rows || kernel[t].depth() != depth) return false;
-		}
-		return true;
+	private static boolean checkValid(Kernel kernel) {
+		return kernel != null;
 	}
 
 	
@@ -142,13 +134,13 @@ public class ProductFilter extends FilterAbstract {
 	
 	@Override
 	public int width() {
-		return kernel[0].columns();
+		return kernel.width();
 	}
 
 
 	@Override
 	public int height() {
-		return kernel[0].rows();
+		return kernel.height();
 	}
 
 
@@ -157,7 +149,7 @@ public class ProductFilter extends FilterAbstract {
 	 * @return filter depth.
 	 */
 	public int depth() {
-		return kernel[0].depth();
+		return kernel.depth();
 	}
 
 
@@ -166,53 +158,40 @@ public class ProductFilter extends FilterAbstract {
 	 * @return filter time.
 	 */
 	public int time() {
-		return kernel.length;
+		return kernel.time();
 	}
 
 	
 	/**
-	 * Getting internal kernel.
-	 * @return internal kernel.
+	 * Getting kernel.
+	 * @return kernel.
 	 */
-	public Matrix[] getKernel() {return kernel;}
+	Kernel getKernel() {return kernel;}
 	
-
+	
 	/**
 	 * Setting internal kernel.
 	 * @param otherKernel internal kernel.
 	 * @return true if setting is successful.
 	 */
-	private boolean setKernel(MatrixStack[] otherKernel) {
+	boolean setKernel(Kernel otherKernel) {
 		if (!checkValid(otherKernel)) throw new IllegalArgumentException();
 		this.kernel = otherKernel;
-		this.strideWidth = otherKernel[0].columns();
-		this.strideHeight = otherKernel[0].rows();
+		this.strideWidth = otherKernel.width();
+		this.strideHeight = otherKernel.height();
 		return true;
 	}
 	
 	
 	/**
-	 * Setting internal kernel.
-	 * @param otherKernel internal kernel.
-	 * @return true if setting is successful.
-	 */
-	public boolean setKernel(Matrix[] otherKernel) {
-		if (otherKernel instanceof MatrixStack[]) return setKernel((MatrixStack[])otherKernel);
-		MatrixStack[] stacks = new MatrixStack[otherKernel.length];
-		for (int t = 0; t < stacks.length; t++) {
-			stacks[t] = otherKernel[t] instanceof MatrixStack ? (MatrixStack)otherKernel[t] : new MatrixStack(otherKernel[t]);
-		}
-		return setKernel(stacks);
-	}
-	
-
-	/**
 	 * Accumulating kernel.
 	 * @param dKernel kernel bias.
 	 * @param factor factor.
+	 * @return this filter.
 	 */
-	public void accumKernel(Matrix[] dKernel, double factor) {
-		MatrixStack.accum(this.kernel, dKernel, factor);
+	public ProductFilter accumKernel(Kernel dKernel, double factor) {
+		this.kernel = this.kernel.add(dKernel.multiply(factor));
+		return this;
 	}
 	
 	
@@ -220,14 +199,14 @@ public class ProductFilter extends FilterAbstract {
 	 * Getting internal weight.
 	 * @return internal weight.
 	 */
-	public NeuronValue getWeight() {return weight;}
+	NeuronValue getWeight() {return weight;}
 
 	
 	/**
 	 * Setting internal weight.
 	 * @param weight weight.
 	 */
-	public void setWeight(NeuronValue weight) {
+	void setWeight(NeuronValue weight) {
 		if (weight != null) this.weight = weight;
 	}
 	
@@ -263,11 +242,12 @@ public class ProductFilter extends FilterAbstract {
 		}
 		
 		NeuronValue result = zero;
+		MatrixStack[] kernel = this.kernel.W;
 		for (int i = 0; i < kernelDepth; i++) {
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
 					NeuronValue value = layers.get(i).get(y+j, x+k);
-					result = result.add(value.multiply(this.kernel[time].get(i).get(j, k)));
+					result = result.add(value.multiply(kernel[time].get(i).get(j, k)));
 				}
 			}
 		}
@@ -401,8 +381,9 @@ public class ProductFilter extends FilterAbstract {
 
 		Matrix[] dKernels = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
+		MatrixStack[] kernel = this.kernel.W;
 		for (int i = 0; i < kernelDepth; i++) {
-			dKernels[i] = this.kernel[time].get().create(new Size(kernelWidth, kernelHeight));
+			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
 					NeuronValue prevInput = prevInputLayers.get(i).get(thisY+j, thisX+k);
@@ -430,10 +411,11 @@ public class ProductFilter extends FilterAbstract {
 	 */
 	private MatrixStack dKernel(int time, MatrixStack prevInputLayers, MatrixStack prevOutputLayers, Matrix thisErrorLayer, Function thisActivateRef) {
 		if (depth() != prevInputLayers.depth() || depth() != prevOutputLayers.depth()) throw new IllegalArgumentException();
-		NeuronValue zero = this.kernel[time].get().get(0, 0).zero();
+		MatrixStack[] kernel = this.kernel.W;
+		NeuronValue zero = kernel[time].get().get(0, 0).zero();
 		Matrix[] dPrevKernelArray = new Matrix[this.depth()];
 		for (int i = 0; i < dPrevKernelArray.length; i++) {
-			dPrevKernelArray[i] = this.kernel[time].get().create(new Size(width(), height()));
+			dPrevKernelArray[i] = kernel[time].get().create(new Size(width(), height()));
 			Matrix.fill(dPrevKernelArray[i], zero);
 		}
 		MatrixStack dPrevKernels = new MatrixStack(dPrevKernelArray);
@@ -501,11 +483,11 @@ public class ProductFilter extends FilterAbstract {
 	 * @param thisActivateRef activation function of current layer.
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
-	public Matrix[] dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+	public Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		MatrixStack prevInputLayers = prevInputLayer instanceof MatrixStack ? (MatrixStack)prevInputLayer : new MatrixStack(prevInputLayer);
 		MatrixStack prevOutputLayers = prevOutputLayer instanceof MatrixStack ? (MatrixStack)prevOutputLayer : new MatrixStack(prevOutputLayer);
 		MatrixStack thisErrorLayers = thisErrorLayer instanceof MatrixStack ? (MatrixStack)thisErrorLayer : new MatrixStack(thisErrorLayer);
-		return dKernel(prevInputLayers, prevOutputLayers, thisErrorLayers, thisActivateRef);
+		return new Kernel(dKernel(prevInputLayers, prevOutputLayers, thisErrorLayers, thisActivateRef));
 	}
 	
 	
@@ -554,11 +536,12 @@ public class ProductFilter extends FilterAbstract {
 
 		Matrix[] dValues = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
+		MatrixStack[] kernel = this.kernel.W;
 		for (int i = 0; i < kernelDepth; i++) {
 			dValues[i] = prevOutputLayers.get(0).create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValue thisKernel = this.kernel[time].get(i).get(j, k);
+					NeuronValue thisKernel = kernel[time].get(i).get(j, k);
 					NeuronValue thisValueError = thisKernel.multiply(thisError);
 					if (thisActivateRef != null) {
 						NeuronValue prevOutput = prevOutputLayers.get(i).get(thisY+j, thisX+k);
@@ -691,14 +674,16 @@ public class ProductFilter extends FilterAbstract {
 	
 	@Override
 	public void initialize(double v) {
-		for (MatrixStack ker : this.kernel) MatrixStack.fill(ker, v);
+		MatrixStack[] kernel = this.kernel.W;
+		for (MatrixStack ker : kernel) MatrixStack.fill(ker, v);
 		this.weight = this.weight.unit();
 	}
 
 
 	@Override
 	public void initialize(Random rnd) {
-		for (MatrixStack ker : this.kernel) MatrixStack.fill(ker, rnd);
+		MatrixStack[] kernel = this.kernel.W;
+		for (MatrixStack ker : kernel) MatrixStack.fill(ker, rnd);
 		this.weight= this.weight.unit();
 	}
 
@@ -706,7 +691,8 @@ public class ProductFilter extends FilterAbstract {
 	@Override
 	public int sizeOfParams() {
 		int size = 0;
-		for (MatrixStack ker : this.kernel) size += Matrix.capacity(ker);
+		MatrixStack[] kernel = this.kernel.W;
+		for (MatrixStack ker : kernel) size += Matrix.capacity(ker);
 		return size;
 	}
 
@@ -717,7 +703,7 @@ public class ProductFilter extends FilterAbstract {
 	 * @param weight specific weight.
 	 * @return product filter created from specific kernel and weight.
 	 */
-	public static ProductFilter create(MatrixStack[] kernel, NeuronValue weight) {
+	public static ProductFilter create(Kernel kernel, NeuronValue weight) {
 		return checkValid(kernel) ? new ProductFilter(kernel, weight) : null; 
 	}
 	
@@ -726,10 +712,10 @@ public class ProductFilter extends FilterAbstract {
 	 * Creating product filter with real kernel.
 	 * @param kernelValue real kernel value.
 	 * @param size size of kernel.
-	 * @param hint matrix hint.
+	 * @param hint hint value.
 	 * @return product filter created from real kernel and weight.
 	 */
-	public static ProductFilter create(double kernelValue, Size size, Matrix hint) {
+	public static ProductFilter create(double kernelValue, Size size, NeuronValue hint) {
 		if (size.width < 1 || size.height < 1 || hint == null) return null;
 		int depth = 1, time = 1;
 		if (size.depth < 1)
@@ -742,15 +728,14 @@ public class ProductFilter extends FilterAbstract {
 			depth = size.depth;
 			time = size.time;
 		}
-		MatrixStack[] kernel = new MatrixStack[time];
-		NeuronValue value = hint.get(0, 0).valueOf(kernelValue);
+		MatrixStack[] W = new MatrixStack[time];
+		NeuronValue value = hint.valueOf(kernelValue);
 		for (int t = 0; t < time; t++) {
-			Matrix matrix = hint.create(new Size(size.width, size.height, depth, 1)); 
-			kernel[t] = matrix instanceof MatrixStack ? (MatrixStack)matrix : new MatrixStack(matrix);
-			Matrix.fill(kernel[t], value);
-			if (kernel[t] == null) return null;
+			Matrix matrix = Matrix.create(new Size(size.width, size.height, depth, 1), hint); 
+			W[t] = matrix instanceof MatrixStack ? (MatrixStack)matrix : new MatrixStack(matrix);
+			Matrix.fill(W[t], value);
 		}
-		return create(kernel, value.unit());
+		return create(new Kernel(W), value.unit());
 	}
 	
 	
