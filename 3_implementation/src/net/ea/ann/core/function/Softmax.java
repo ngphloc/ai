@@ -9,6 +9,7 @@ package net.ea.ann.core.function;
 
 import net.ea.ann.core.LayerStandard;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueV;
 import net.ea.ann.raster.Size;
@@ -120,6 +121,8 @@ public interface Softmax extends Probability, FunctionDelay {
 	 * @return soft-max function of matrix by row.
 	 */
 	static Matrix softmaxByRow(Matrix matrix) {
+		if (matrix instanceof MatrixStack) return softmaxByRow((MatrixStack)matrix);
+		
 		Matrix softmax = matrix.create(new Size(matrix.columns(), matrix.rows()));
 		NeuronValue zero = matrix.get(0, 0).zero();
 		for (int row = 0; row < matrix.rows(); row++) {
@@ -141,11 +144,26 @@ public interface Softmax extends Probability, FunctionDelay {
 	
 	/**
 	 * Calculating soft-max function of matrix by row.
+	 * @param matrix matrix stack.
+	 * @return soft-max function of matrix by row.
+	 */
+	static MatrixStack softmaxByRow(MatrixStack matrix) {
+		int depth = matrix.depth();
+		Matrix[] result = new Matrix[depth];
+		for (int d = 0; d < depth; d++) result[d] = softmaxByRow(matrix.get(d));
+		return new MatrixStack(result);
+	}
+	
+	
+	/**
+	 * Calculating soft-max function of matrix by row.
 	 * @param matrix matrix.
 	 * @param row specified row.
 	 * @return soft-max function of matrix by row.
 	 */
-	static NeuronValue[] softmaxByRow(Matrix matrix, int row) {
+	@Deprecated
+	@SuppressWarnings("unused")
+	private static NeuronValue[] softmaxByRow(Matrix matrix, int row) {
 		NeuronValue[] softmax = new NeuronValue[matrix.columns()];
 		NeuronValue sum = matrix.get(0, 0).zero();
 		for (int column = 0; column < matrix.columns(); column++) {
@@ -162,7 +180,9 @@ public interface Softmax extends Probability, FunctionDelay {
 	 * @param matrix matrix.
 	 * @return inverse soft-max function of matrix by row.
 	 */
-	static Matrix softmaxByRowInverse(Matrix matrix) {
+	@SuppressWarnings("unused")
+	@Deprecated
+	private static Matrix softmaxByRowInverse(Matrix matrix) {
 		Matrix unitMatrix = matrix.create(new Size(matrix.columns(), matrix.rows()));
 		NeuronValue unit = matrix.get(0, 0).unit();
 		Matrix.fill(unitMatrix, unit);
@@ -176,6 +196,8 @@ public interface Softmax extends Probability, FunctionDelay {
 	 * @return soft-max function of matrix by column.
 	 */
 	static Matrix softmaxByColumn(Matrix matrix) {
+		if (matrix instanceof MatrixStack) return softmaxByColumn((MatrixStack)matrix);
+
 		Matrix softmax = matrix.create(new Size(matrix.columns(), matrix.rows()));
 		NeuronValue zero = matrix.get(0, 0).zero();
 		for (int column = 0; column < matrix.columns(); column++) {
@@ -197,10 +219,25 @@ public interface Softmax extends Probability, FunctionDelay {
 	
 	/**
 	 * Calculating soft-max function of matrix by column.
+	 * @param matrix matrix stack.
+	 * @return soft-max function of matrix by column.
+	 */
+	static MatrixStack softmaxByColumn(MatrixStack matrix) {
+		int depth = matrix.depth();
+		Matrix[] result = new Matrix[depth];
+		for (int d = 0; d < depth; d++) result[d] = softmaxByColumn(matrix.get(d));
+		return new MatrixStack(result);
+	}
+
+	
+	/**
+	 * Calculating soft-max function of matrix by column.
 	 * @param matrix matrix.
 	 * @return soft-max function of matrix by column.
 	 */
-	static NeuronValue[] softmaxByColumn(Matrix matrix, int column) {
+	@Deprecated
+	@SuppressWarnings("unused")
+	private static NeuronValue[] softmaxByColumn(Matrix matrix, int column) {
 		NeuronValue[] softmax = new NeuronValue[matrix.rows()];
 		NeuronValue sum = matrix.get(0, 0).zero();
 		for (int row = 0; row < matrix.rows(); row++) {
@@ -217,7 +254,9 @@ public interface Softmax extends Probability, FunctionDelay {
 	 * @param matrix matrix.
 	 * @return inverse soft-max function of matrix by column.
 	 */
-	static Matrix softmaxByColumnInverse(Matrix matrix) {
+	@Deprecated
+	@SuppressWarnings("unused")
+	private static Matrix softmaxByColumnInverse(Matrix matrix) {
 		Matrix unitMatrix = matrix.create(new Size(matrix.columns(), matrix.rows()));
 		NeuronValue unit = matrix.get(0, 0).unit();
 		Matrix.fill(unitMatrix, unit);
@@ -230,7 +269,9 @@ public interface Softmax extends Probability, FunctionDelay {
 	 * @param all specified array.
 	 * @return soft-max derivative of specified array.
 	 */
-	static Matrix softmaxDerivative(NeuronValue[] all, Matrix hint) {
+	@Deprecated
+	@SuppressWarnings("unused")
+	private static Matrix softmaxDerivative(NeuronValue[] all, Matrix hint) {
 		NeuronValue[] softmax = softmaxArray(all);
 		if (softmax == null || softmax.length == 0) return null;
 
@@ -255,7 +296,9 @@ public interface Softmax extends Probability, FunctionDelay {
 	 * @param all specified array.
 	 * @return diagonal soft-max derivative of specified array.
 	 */
-	static NeuronValue[] softmaxDerivativeDiagonal(NeuronValue[] all) {
+	@Deprecated
+	@SuppressWarnings("unused")
+	private static NeuronValue[] softmaxDerivativeDiagonal(NeuronValue[] all) {
 		NeuronValue[] softmax = softmaxArray(all);
 		if (softmax == null || softmax.length == 0) return null;
 		

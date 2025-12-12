@@ -17,6 +17,7 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.mane.filter.Filter;
 import net.ea.ann.mane.filter.FilterSpec;
+import net.ea.ann.mane.filter.MaxPoolFilter;
 import net.ea.ann.mane.filter.ProductFilter;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
@@ -175,7 +176,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param sizeW2 the second weight size.
 	 */
 	protected Weight newWeight(Size sizeW1, Size sizeW2) {
-		return Weight.create(sizeW1, sizeW2, newNeuronValue());
+		return WeightImpl.create(sizeW1, sizeW2, newNeuronValue());
 	}
 
 	
@@ -186,9 +187,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @return filter.
 	 */
 	protected Filter newFilter(Size filterSize, FilterSpec filterSpec) {
-		Filter filter = newFilter(filterSize, newNeuronValue());
-		filter.setMoveStride(filterSpec.moveStride);
-		return filter;
+		return newFilter(filterSize, filterSpec, newNeuronValue());
 	}
 	
 	
@@ -198,11 +197,23 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param hint matrix hint.
 	 * @return default filter.
 	 */
-	private static Filter newFilter(Size filterSize, NeuronValue hint) {
+	private static Filter newFilter(Size filterSize, FilterSpec filterSpec, NeuronValue hint) {
 		if (filterSize == null || filterSize.width <= 0 || filterSize.height <= 0) return null;
-		double kernelValue = 1.0 / (filterSize.width*filterSize.height);
-		ProductFilter filter = ProductFilter.create(kernelValue, filterSize, hint);
-		filter.setMoveStride(false);
+		double factor = 1.0 / (filterSize.width*filterSize.height);
+		Filter filter = null;
+		switch (filterSpec.type) {
+			case kernel:
+				filter = ProductFilter.create(factor, filterSize, hint);
+				filter.setMoveStride(false);
+				break;
+			case pool:
+				Size adjustedSize = new Size(filterSize.width, filterSize.height, filterSize.time, 1);
+				filter = MaxPoolFilter.create(adjustedSize);
+				filter.setMoveStride(true);
+				break;
+			default:
+				break;
+		}
 		return filter;
 	}
 

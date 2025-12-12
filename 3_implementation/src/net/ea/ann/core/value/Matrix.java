@@ -568,9 +568,9 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param arrays arrays.
 	 * @return sum array.
 	 */
-	static Matrix[] sum(Matrix[]...arrays) {
+	@Deprecated
+	private static Matrix[] sum(Matrix[]...arrays) {
 		if (arrays == null || arrays.length == 0) return null;
-		if (arrays instanceof MatrixStack[][]) return MatrixStack.sum((MatrixStack[][])arrays);
 		Matrix[] sum = arrays[0];
 		for (int i = 1; i < arrays.length; i++) {
 			Matrix[] array = arrays[i];
@@ -587,9 +587,10 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param arrays arrays.
 	 * @return mean array.
 	 */
-	static Matrix[] mean(Matrix[]...arrays) {
+	@Deprecated
+	@SuppressWarnings("unused")
+	private static Matrix[] mean(Matrix[]...arrays) {
 		if (arrays == null || arrays.length == 0) return null;
-		if (arrays instanceof MatrixStack[][]) return MatrixStack.mean((MatrixStack[][])arrays);
 		Matrix[] mean = sum(arrays);
 		if (mean == null) return null;
 		for (int j = 0; j < mean.length; j++) mean[j] = mean[j].divide0(arrays.length);

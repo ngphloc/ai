@@ -95,6 +95,20 @@ public class MatrixStack implements Matrix {
 	public int columns() {return matrices[0].columns();}
 
 	
+	/**
+	 * Getting width.
+	 * @return width.
+	 */
+	public int width() {return columns();}
+	
+	
+	/**
+	 * Getting height.
+	 * @return height.
+	 */
+	public int height() {return rows();}
+
+	
 	@Override
 	public NeuronValue get(int row, int column) {
 		if (depth() == 1) return matrices[0].get(row, column);
@@ -274,12 +288,29 @@ public class MatrixStack implements Matrix {
 	
 	@Override
 	public Matrix concatHorizontal(Matrix...matrices) {
-		throw new RuntimeException();
+		if (matrices == null || matrices.length == 0) return null;
+		int depth = depth();
+		Matrix[] result = new Matrix[depth];
+		for (int d = 0; d < depth; d++) {
+			Matrix[] array = new Matrix[matrices.length];
+			for (int i = 0; i < matrices.length; i++) array[i] = ((MatrixStack)matrices[i]).get(d);
+			result[d] = array[0].concatHorizontal(array);
+		}
+		return new MatrixStack(result);
 	}
 
+	
 	@Override
 	public Matrix concatVertical(Matrix...matrices) {
-		throw new RuntimeException();
+		if (matrices == null || matrices.length == 0) return null;
+		int depth = depth();
+		Matrix[] result = new Matrix[depth];
+		for (int d = 0; d < depth; d++) {
+			Matrix[] array = new Matrix[matrices.length];
+			for (int i = 0; i < matrices.length; i++) array[i] = ((MatrixStack)matrices[i]).get(d);
+			result[d] = array[0].concatVertical(array);
+		}
+		return new MatrixStack(result);
 	}
 
 

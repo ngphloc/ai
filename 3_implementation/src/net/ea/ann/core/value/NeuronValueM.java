@@ -447,6 +447,20 @@ abstract class NeuronValueM0 implements Matrix {
 	}
 
 
+	/**
+	 * Getting width.
+	 * @return width.
+	 */
+	public int width() {return columns();}
+	
+	
+	/**
+	 * Getting height.
+	 * @return height.
+	 */
+	public int height() {return rows();}
+
+	
 	@Override
 	public void set(int row, int column, NeuronValue value) {
 		data[row][column] = ((NeuronValue1)value).v;

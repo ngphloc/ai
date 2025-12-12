@@ -178,7 +178,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * @version 1.0
 	 *
 	 */
-	class FilterSize implements Cloneable, Serializable {
+	protected class FilterSize implements Cloneable, Serializable {
 		
 		/**
 		 * Serial version UID for serializable class. 

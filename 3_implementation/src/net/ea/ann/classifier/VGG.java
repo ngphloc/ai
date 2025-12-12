@@ -17,18 +17,19 @@ import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
+import net.ea.ann.mane.beans.VGGBlocks;
 import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
 
 /**
- * This class is default implementation of classifier within context of matrix neural network.
+ * This class is an implementation of classifier within VGG model developed by Simonyan and Zisserman.
  * 
- * @author Loc Nguyen
+ * @author Simonyan and Zisserman, implemented by Loc Nguyen
  * @version 1.0
  *
  */
-public class MatrixClassifier extends MatrixClassifierAbstract {
+public class VGG extends VGGAbstract {
 
 	
 	/**
@@ -50,7 +51,7 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
 	 */
-	public MatrixClassifier(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+	public VGG(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 	}
 
@@ -61,7 +62,7 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 */
-	public MatrixClassifier(int neuronChannel, Function activateRef, Function convActivateRef) {
+	public VGG(int neuronChannel, Function activateRef, Function convActivateRef) {
 		this(neuronChannel, activateRef, convActivateRef, null);
 	}
 
@@ -71,7 +72,7 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public MatrixClassifier(int neuronChannel, Function activateRef) {
+	public VGG(int neuronChannel, Function activateRef) {
 		this(neuronChannel, activateRef, null, null);
 	}
 
@@ -80,7 +81,7 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public MatrixClassifier(int neuronChannel) {
+	public VGG(int neuronChannel) {
 		this(neuronChannel, null, null, null);
 	}
 
@@ -127,12 +128,12 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 	 * @param isNorm norm flag.
 	 * @return classifier.
 	 */
-	public static MatrixClassifier create(int neuronChannel, boolean isNorm) {
+	public static VGG create(int neuronChannel, boolean isNorm) {
 		Function activateRef = Raster.toActivationRef(neuronChannel, isNorm);
 		Function contentActivateRef = Raster.toConvActivationRef(neuronChannel, isNorm);
-		MatrixClassifier mac = new MatrixClassifier(neuronChannel, activateRef, contentActivateRef, null);
-		mac.paramSetNorm(isNorm);
-		return mac;
+		VGG vgg = new VGG(neuronChannel, activateRef, contentActivateRef, null);
+		vgg.paramSetNorm(isNorm);
+		return vgg;
 	}
 
 
@@ -147,7 +148,7 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
  * @version 1.0
  *
  */
-class MatrixClassifierAbstract extends ClassifierAbstract {
+class VGGAbstract extends ClassifierAbstract {
 
 	
 	/**
@@ -159,16 +160,9 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 	/**
 	 * Classifier nut.
 	 */
-	protected MatrixNetworkImpl nut = null;
+	protected VGGBlocks nut = null;
 
 
-	/**
-	 * Sample weight.
-	 */
-	@Deprecated
-	private Matrix sampleWeight = null;
-	
-	
 	/**
 	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
 	 * @param neuronChannel neuron channel.
@@ -176,22 +170,10 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
 	 */
-	public MatrixClassifierAbstract(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+	public VGGAbstract(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, idRef);
 		
-		this.nut = new MatrixNetworkImpl(this.neuronChannel, activateRef, convActivateRef, idRef) {
-
-			/**
-			 * Serial version UID for serializable class. 
-			 */
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			protected Object[] defineOutputErrorParams() {
-				return sampleWeight != null ? new Object[] {sampleWeight} : null;
-			}
-			
-		};
+		this.nut = new VGGBlocks(this.neuronChannel, activateRef, convActivateRef, idRef);
 		try {
 			this.config.putAll(this.nut.getConfig());
 			this.nut.getConfig().putAll(this.config);
@@ -199,14 +181,13 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 		if (paramIsEntropyTrainer()) this.nut.setTrainer(new TaskTrainerLossEntropy());
 	}
 	
-	
 	/**
 	 * Constructor with neuron channel, activation function, and convolutional activation function.
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 */
-	public MatrixClassifierAbstract(int neuronChannel, Function activateRef, Function convActivateRef) {
+	public VGGAbstract(int neuronChannel, Function activateRef, Function convActivateRef) {
 		this(neuronChannel, activateRef, convActivateRef, null);
 	}
 
@@ -216,7 +197,7 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public MatrixClassifierAbstract(int neuronChannel, Function activateRef) {
+	public VGGAbstract(int neuronChannel, Function activateRef) {
 		this(neuronChannel, activateRef, null, null);
 	}
 
@@ -225,7 +206,7 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public MatrixClassifierAbstract(int neuronChannel) {
+	public VGGAbstract(int neuronChannel) {
 		this(neuronChannel, null, null, null);
 	}
 
@@ -234,9 +215,9 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 	public void reset() {
 		super.reset();
 		nut.reset();
-		sampleWeight = null;
 	}
 
+	
 	@Override
 	void updateConfig() {
 		super.updateConfig();
@@ -247,7 +228,6 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 	@Override
 	protected boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size outputSize2, int depth2) {
 		if (!super.initialize(inputSize1, outputSize1, filter1, depth1, dual1, outputSize2, depth2)) return false;
-		this.sampleWeight = null;
 		
 		int outputCount = this.outputClassMaps.get(0).size();
 		int groupCount = getNumberOfGroups();
@@ -304,42 +284,6 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 		updateConfig();
 		return nut.evaluate0(input, params);
 	}
-
-	
-//	@Override
-//	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
-//		Matrix sampleWeight = null;
-//		if (paramIsSampleWeight()) {
-//			this.sampleWeight = null;
-//			List<Record> newsample = prelearn(sample);
-//			learn(newsample);
-//			learnVerify(newsample);
-//			if (this.baseline != null) sampleWeight = paramIsByColumn() ? Softmax.softmaxByColumnInverse(this.baseline) : Softmax.softmaxByRowInverse(this.baseline);
-//		}
-//		List<Record> newsample = prelearn(sample);
-//		this.sampleWeight = sampleWeight;
-//		Error[] errors = learn(newsample);
-//		learnVerify(newsample);
-//		if (this.sampleWeight != null) this.baseline = null;
-//		this.sampleWeight = null;
-//		
-//		if (paramGetAdjuster() != null) {
-//			paramGetAdjuster().paramSetInclude(this);
-//			List<Record> adjustSample = Util.newList(0);
-//			for (Record record : newsample) {
-//				Matrix output = evaluate(record.input());
-//				if (output != null) adjustSample.add(new Record(output, record.output()));
-//			}
-//			errors = adjustSample.size() > 0 ? paramGetAdjuster().learn(adjustSample) : errors;
-//		}
-//		
-//		NeuronValue[] errorArray = null;
-//		for (Error error : errors) {
-//			NeuronValue[] values = Matrix.extractValues(error.error());
-//			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
-//		}
-//		return errorArray;
-//	}
 
 	
 	@Override

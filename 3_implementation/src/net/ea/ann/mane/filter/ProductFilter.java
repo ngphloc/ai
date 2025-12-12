@@ -22,7 +22,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class ProductFilter extends FilterAbstract {
+public class ProductFilter extends KernelFilter {
 
 
 	/**
@@ -182,13 +182,8 @@ public class ProductFilter extends FilterAbstract {
 		return true;
 	}
 	
-	
-	/**
-	 * Accumulating kernel.
-	 * @param dKernel kernel bias.
-	 * @param factor factor.
-	 * @return this filter.
-	 */
+
+	@Override
 	public ProductFilter accumKernel(Kernel dKernel, double factor) {
 		this.kernel = this.kernel.add(dKernel.multiply(factor));
 		return this;
@@ -220,14 +215,9 @@ public class ProductFilter extends FilterAbstract {
 	 * @return the value resulted from this application.
 	 */
 	private NeuronValue apply(int time, int x, int y, MatrixStack layers) {
-		int kernelWidth = width();
-		int kernelHeight = height();
-		int kernelDepth = depth();
-		if (kernelDepth != layers.depth()) throw new IllegalArgumentException();
-		
+		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
+		int width = layers.columns(), height = layers.rows();
 		NeuronValue zero = layers.get().get(0, 0).zero();
-		int width = layers.columns();
-		int height = layers.rows();
 		if (x + kernelWidth > width) {
 			if (isPadZero())
 				return x >= width ? null : zero;
@@ -256,7 +246,7 @@ public class ProductFilter extends FilterAbstract {
 	
 	
 	/**
-	 * Forwarding evaluation from previous layers to current layers.
+	 * Forwarding evaluation from previous layer to current layer.
 	 * @param time time.
 	 * @param prevLayers previous layers.
 	 * @param thisInputLayer current input layer.
@@ -265,20 +255,15 @@ public class ProductFilter extends FilterAbstract {
 	 * @param thisActivateRef current activation function.
 	 */
 	private void forward(int time, MatrixStack prevLayers, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
-		if (depth() != prevLayers.depth()) throw new IllegalArgumentException();
 		NeuronValue zero = thisInputLayer != null ? thisInputLayer.get(0, 0).zero() : (thisOutputLayer != null ? thisOutputLayer.get(0, 0).zero() : prevLayers.get().get(0, 0).zero());
 		Matrix.fill(thisInputLayer, zero);
 		Matrix.fill(thisOutputLayer, zero);
 
-		int strideWidth = this.getStrideWidth();
-		int strideHeight = this.getStrideHeight();
-		int prevWidth = prevLayers.columns();
-		int prevHeight = prevLayers.rows();
+		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
+		int prevWidth = prevLayers.columns(), prevHeight = prevLayers.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int thisWidth = thisInputLayer.columns();
-		int thisHeight = thisInputLayer.rows();
-		
+		int thisWidth = thisOutputLayer.columns(), thisHeight = thisOutputLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
 			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
 			int prevY = yBlock*strideHeight;
@@ -293,9 +278,9 @@ public class ProductFilter extends FilterAbstract {
 				NeuronValue filteredValue = this.apply(time, prevX, prevY, prevLayers);
 				if (filteredValue == null) continue;
 				if (bias != null) filteredValue = filteredValue.add(bias);
-				if (thisInputLayer != null) thisInputLayer.set(prevY, prevX, filteredValue);
-				if (thisActivateRef != null) filteredValue = thisActivateRef.evaluate(filteredValue);
-				if (thisOutputLayer != null) thisOutputLayer.set(prevY, prevX, filteredValue);
+				if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, filteredValue);
+				if (thisActivateRef != null) filteredValue = filteredValue.evaluate(thisActivateRef);
+				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
 			}
 		}
 	}
@@ -304,29 +289,23 @@ public class ProductFilter extends FilterAbstract {
 	/**
 	 * Forwarding evaluation from previous layers to this layers.
 	 * @param time time.
-	 * @param prevLayers current layers.
-	 * @param thisInputLayers next layers 1
-	 * @param thisOutputLayers next layers 2.
+	 * @param prevLayers previous layers.
+	 * @param thisInputLayers current input layers.
+	 * @param thisOutputLayers current output layers.
 	 * @param bias bias.
 	 * @param thisActivateRef current activation function.
 	 */
 	private void forward(MatrixStack prevLayers, MatrixStack thisInputLayers, MatrixStack thisOutputLayers, NeuronValue bias, Function thisActivateRef) {
-		if (thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
+		if (prevLayers.depth() != depth() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
+		if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
+		
 		for (int t = 0; t < time(); t++) {
 			forward(t, prevLayers, thisInputLayers.get(t), thisOutputLayers.get(t), bias, thisActivateRef);
 		}
 	}
 	
-	
-	/**
-	 * Forwarding evaluation from previous layers to current layers.
-	 * @param time time.
-	 * @param prevLayer current layer.
-	 * @param thisInputLayer current input layer.
-	 * @param thisOutputLayer current output layer.
-	 * @param bias bias.
-	 * @param thisActivateRef activation function.
-	 */
+
+	@Override
 	public void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
 		MatrixStack prevLayers = prevLayer instanceof MatrixStack ? (MatrixStack)prevLayer : new MatrixStack(prevLayer);
 		MatrixStack thisInputLayers = thisInputLayer instanceof MatrixStack ? (MatrixStack)thisInputLayer : new MatrixStack(thisInputLayer);
@@ -347,15 +326,9 @@ public class ProductFilter extends FilterAbstract {
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack dKernel(int time, int thisX, int thisY, MatrixStack prevInputLayers, MatrixStack prevOutputLayers, Matrix thisErrorLayer, Function thisActivateRef) {
-		int kernelWidth = width();
-		int kernelHeight = height();
-		int kernelDepth = depth();
-		if (kernelDepth != prevInputLayers.depth() || kernelDepth != prevOutputLayers.depth()) throw new IllegalArgumentException();
-		
-		int strideWidth = this.getStrideWidth();
-		int strideHeight = this.getStrideHeight();
-		int prevWidth = prevInputLayers.columns();
-		int prevHeight = prevInputLayers.rows();
+		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
+		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
+		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
@@ -389,7 +362,7 @@ public class ProductFilter extends FilterAbstract {
 					NeuronValue prevInput = prevInputLayers.get(i).get(thisY+j, thisX+k);
 					NeuronValue thisKernelError = prevInput.multiply(thisError);
 					if (thisActivateRef != null) {
-						NeuronValue prevOutput = prevOutputLayers.get(i).get(thisY+j, thisX+k);
+						NeuronValue prevOutput = prevOutputLayers.get(i).get(thisY, thisX);
 						thisKernelError = thisKernelError.multiply(thisActivateRef.derivative(prevOutput));
 					}
 					dKernels[i].set(j, k, thisKernelError.multiply(this.weight));
@@ -410,7 +383,6 @@ public class ProductFilter extends FilterAbstract {
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack dKernel(int time, MatrixStack prevInputLayers, MatrixStack prevOutputLayers, Matrix thisErrorLayer, Function thisActivateRef) {
-		if (depth() != prevInputLayers.depth() || depth() != prevOutputLayers.depth()) throw new IllegalArgumentException();
 		MatrixStack[] kernel = this.kernel.W;
 		NeuronValue zero = kernel[time].get().get(0, 0).zero();
 		Matrix[] dPrevKernelArray = new Matrix[this.depth()];
@@ -421,15 +393,11 @@ public class ProductFilter extends FilterAbstract {
 		MatrixStack dPrevKernels = new MatrixStack(dPrevKernelArray);
 		int dPrevKernelsCount = 0;
 
-		int strideWidth = this.getStrideWidth();
-		int strideHeight = this.getStrideHeight();
-		int prevWidth = prevInputLayers.columns();
-		int prevHeight = prevInputLayers.rows();
+		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
+		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int thisWidth = thisErrorLayer.columns();
-		int thisHeight = thisErrorLayer.rows();
-		
+		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
 			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
 			int prevY = yBlock*strideHeight;
@@ -465,7 +433,9 @@ public class ProductFilter extends FilterAbstract {
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack[] dKernel(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
-		if (thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+		if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
+		
 		MatrixStack[] dKernels = new MatrixStack[time()];
 		for (int t = 0; t < time(); t++) {
 			dKernels[t] = dKernel(t, prevInputLayers, prevOutputLayers, thisErrorLayers.get(t), thisActivateRef);
@@ -473,16 +443,8 @@ public class ProductFilter extends FilterAbstract {
 		return dKernels;
 	}
 	
-	
-	/**
-	 * Calculating derivative of kernel of previous layers given current layers as bias layers.
-	 * @param time time.
-	 * @param prevInputLayer previous input layer.
-	 * @param prevOutputLayer previous output layer.
-	 * @param thisErrorLayer current layer as bias layer.
-	 * @param thisActivateRef activation function of current layer.
-	 * @return derivative of kernel of previous layers given current layers as bias layers.
-	 */
+
+	@Override
 	public Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		MatrixStack prevInputLayers = prevInputLayer instanceof MatrixStack ? (MatrixStack)prevInputLayer : new MatrixStack(prevInputLayer);
 		MatrixStack prevOutputLayers = prevOutputLayer instanceof MatrixStack ? (MatrixStack)prevOutputLayer : new MatrixStack(prevOutputLayer);
@@ -496,21 +458,16 @@ public class ProductFilter extends FilterAbstract {
 	 * @param time time.
 	 * @param thisX current X coordinator.
 	 * @param thisY current Y coordinator.
+	 * @param prevInputLayers previous input layers.
 	 * @param prevOutputLayers previous output layers.
 	 * @param thisErrorLayer current layer as bias layer.
 	 * @param thisActivateRef activation function of current layer.
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
-	private MatrixStack dValue(int time, int thisX, int thisY, MatrixStack prevOutputLayers, Matrix thisErrorLayer, Function thisActivateRef) {
-		int kernelWidth = width();
-		int kernelHeight = height();
-		int kernelDepth = depth();
-		if (kernelDepth != prevOutputLayers.depth()) throw new IllegalArgumentException();
-		
-		int strideWidth = this.getStrideWidth();
-		int strideHeight = this.getStrideHeight();
-		int prevWidth = prevOutputLayers.columns();
-		int prevHeight = prevOutputLayers.rows();
+	private MatrixStack dValue(int time, int thisX, int thisY, MatrixStack prevInputLayers, MatrixStack prevOutputLayers, Matrix thisErrorLayer, Function thisActivateRef) {
+		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
+		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
+		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
@@ -538,16 +495,16 @@ public class ProductFilter extends FilterAbstract {
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		MatrixStack[] kernel = this.kernel.W;
 		for (int i = 0; i < kernelDepth; i++) {
-			dValues[i] = prevOutputLayers.get(0).create(new Size(kernelWidth, kernelHeight));
+			dValues[i] = prevInputLayers.get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
 					NeuronValue thisKernel = kernel[time].get(i).get(j, k);
-					NeuronValue thisValueError = thisKernel.multiply(thisError);
+					NeuronValue prevError = thisKernel.multiply(thisError);
 					if (thisActivateRef != null) {
-						NeuronValue prevOutput = prevOutputLayers.get(i).get(thisY+j, thisX+k);
-						thisValueError = thisValueError.multiply(thisActivateRef.derivative(prevOutput));
+						NeuronValue prevOutput = prevOutputLayers.get(i).get(thisY, thisX);
+						prevError = prevError.multiply(thisActivateRef.derivative(prevOutput));
 					}
-					dValues[i].set(j, k, thisValueError.multiply(this.weight));
+					dValues[i].set(j, k, prevError.multiply(this.weight));
 				}
 			}
 		}
@@ -560,19 +517,19 @@ public class ProductFilter extends FilterAbstract {
 	 * @param time time.
 	 * @param nextX next X coordinator.
 	 * @param nextY next Y coordinator.
+	 * @param prevInputLayers previous input layers.
 	 * @param prevOutputLayers previous output layers.
 	 * @param thisErrorLayer current layer as bias layer.
 	 * @param thisActivateRef activation function of current layer.
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
-	private MatrixStack dValue(int time, MatrixStack prevOutputLayers, Matrix thisErrorLayer, Function thisActivateRef) {
-		if (depth() != prevOutputLayers.depth()) throw new IllegalArgumentException();
-		NeuronValue zero = prevOutputLayers.get().get(0, 0).zero();
+	private MatrixStack dValue(int time, MatrixStack prevInputLayers, MatrixStack prevOutputLayers, Matrix thisErrorLayer, Function thisActivateRef) {
+		NeuronValue zero = prevInputLayers.get().get(0, 0).zero();
 		Matrix[] dPrevValues = new Matrix[this.depth()];
 		int[][][] dPrevValuesCount = new int[this.depth()][][];
 		for (int i = 0; i < dPrevValues.length; i++) {
-			int rows = prevOutputLayers.rows(), columns = prevOutputLayers.columns();
-			dPrevValues[i] = prevOutputLayers.get().create(new Size(columns, rows));
+			int rows = prevInputLayers.rows(), columns = prevInputLayers.columns();
+			dPrevValues[i] = prevInputLayers.get().create(new Size(columns, rows));
 			Matrix.fill(dPrevValues[i], zero);
 			dPrevValuesCount[i] = new int[rows][columns];
 			for (int j = 0; j < rows; j++) {
@@ -580,15 +537,11 @@ public class ProductFilter extends FilterAbstract {
 			}
 		}
 
-		int strideWidth = this.getStrideWidth();
-		int strideHeight = this.getStrideHeight();
-		int prevWidth = prevOutputLayers.columns();
-		int prevHeight = prevOutputLayers.rows();
+		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
+		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int thisWidth = thisErrorLayer.columns();
-		int thisHeight = thisErrorLayer.rows();
-		
+		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
 			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
 			int prevY = yBlock*strideHeight;
@@ -600,7 +553,7 @@ public class ProductFilter extends FilterAbstract {
 				if (prevX >= prevWidth) continue;
 				
 				//Calculating gradient.
-				MatrixStack dValues = this.dValue(time, thisX, thisY, prevOutputLayers, thisErrorLayer, thisActivateRef);
+				MatrixStack dValues = this.dValue(time, thisX, thisY, prevInputLayers, prevOutputLayers, thisErrorLayer, thisActivateRef);
 				if (dValues == null) continue;
 				
 				for (int i = 0; i < dValues.depth(); i++) {
@@ -638,36 +591,31 @@ public class ProductFilter extends FilterAbstract {
 	/**
 	 * Calculating derivative of previous layers given current layers as bias layers.
 	 * @param time time.
+	 * @param prevInputLayers previous input layers.
 	 * @param prevOutputLayers previous output layers.
 	 * @param thisErrorLayers current layers as bias layers.
 	 * @param thisActivateRef activation function of current layers.
-	 * @return derivative of this previous given current layers as bias layers.
+	 * @return derivative of previous layers given current layers as bias layers.
 	 */
-	private MatrixStack dValue(MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
-		if (thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
+		if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
+		
 		MatrixStack dValueSum = null;
 		for (int t = 0; t < time(); t++) {
-			MatrixStack dValue = dValue(t, prevOutputLayers, thisErrorLayers.get(t), thisActivateRef);
+			MatrixStack dValue = dValue(t, prevInputLayers, prevOutputLayers, thisErrorLayers.get(t), thisActivateRef);
 			dValueSum = dValueSum != null ? (MatrixStack)dValueSum.add(dValue) : dValue;
 		}
 		return dValueSum;
 	}
 	
-	
-	/**
-	 * Calculating derivative of previous layers given current layers as bias layers.
-	 * @param time time.
-	 * @param nextX next X coordinator.
-	 * @param nextY next Y coordinator.
-	 * @param prevOutputLayer previous output layer.
-	 * @param thisErrorLayer current layer as bias layer.
-	 * @param thisActivateRef activation function of current layer.
-	 * @return derivative of previous layers given current layers as bias layers.
-	 */
-	public Matrix dValue(Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+
+	@Override
+	public Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+		MatrixStack prevInputLayers = prevInputLayer instanceof MatrixStack ? (MatrixStack)prevInputLayer : new MatrixStack(prevInputLayer);
 		MatrixStack prevOutputLayers = prevOutputLayer instanceof MatrixStack ? (MatrixStack)prevOutputLayer : new MatrixStack(prevOutputLayer);
 		MatrixStack thisErrorLayers = thisErrorLayer instanceof MatrixStack ? (MatrixStack)thisErrorLayer : new MatrixStack(thisErrorLayer);
-		MatrixStack stack = dValue(prevOutputLayers, thisErrorLayers, thisActivateRef);
+		MatrixStack stack = dValue(prevInputLayers, prevOutputLayers, thisErrorLayers, thisActivateRef);
 		return stack.depth() == 1 ? stack.get() : stack;
 	}
 	

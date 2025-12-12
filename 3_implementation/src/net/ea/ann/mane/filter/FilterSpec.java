@@ -28,13 +28,40 @@ public class FilterSpec implements Cloneable, Serializable {
 
 	
 	/**
+	 * This enum specifies filter type.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 *
+	 */
+	public static enum Type {
+		
+		/**
+		 * Kernel filter.
+		 */
+		kernel,
+		
+		/**
+		 * Pooling filter.
+		 */
+		pool,
+		
+	}
+	
+	
+	/**
+	 * Filter type.
+	 */
+	public Type type = Type.kernel;
+	
+	
+	/**
 	 * Size of filter.
 	 */
 	public Size size = new Size(1, 1, 1, 1);
 	
 	
 	/**
-	 * This flag indicates whether this filter is associated with normal weight.
+	 * This flag indicates whether this filter is associated with weight.
 	 */
 	public boolean coweight = false;
 	
@@ -42,7 +69,7 @@ public class FilterSpec implements Cloneable, Serializable {
 	/**
 	 * Flag to move by stride.
 	 */
-	public boolean moveStride = false;
+	public boolean moveStride = Filter.MOVE_STRIDE;
 	
 	
 	/**

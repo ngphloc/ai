@@ -15,6 +15,8 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Weight.Kernel;
 import net.ea.ann.mane.filter.Filter;
 import net.ea.ann.mane.filter.FilterSpec;
+import net.ea.ann.mane.filter.KernelFilter;
+import net.ea.ann.mane.filter.PoolFilter;
 import net.ea.ann.mane.filter.ProductFilter;
 import net.ea.ann.raster.Size;
 
@@ -97,7 +99,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	/**
 	 * Backward information: Accumulation of gradients of filter kernels.
 	 */
-	private net.ea.ann.mane.filter.Filter.Kernel dFilterKernelAccum = null;
+	private net.ea.ann.mane.filter.KernelFilter.Kernel dFilterKernelAccum = null;
 	
 	
 	/**
@@ -459,16 +461,18 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 */
 	private Matrix dFilterValue(Matrix error) {
 		if (this.filter == null) return null;
-		if (this.filter instanceof ProductFilter) {
-			ProductFilter filter = (ProductFilter)this.filter;
-			Matrix thisPrevInputConv = matrixToConvLayer(getPrevInput());
-			Matrix errorConv = matrixToConvLayer(error);
-			Matrix dValues = filter.dValue(thisPrevInputConv, errorConv, this.convActivateRef);
-			return convLayerToMatrix(dValues);
+		Matrix thisPrevInputConv = matrixToConvLayer(getPrevInput());
+		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(this.prevLayer.queryOutput());
+		Matrix errorConv = matrixToConvLayer(error);
+		
+		Matrix dValues = null;
+		if (this.filter instanceof KernelFilter) {
+			dValues = ((KernelFilter)this.filter).dValue(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef);
 		}
-		else {
-			return null;
+		else if (this.filter instanceof PoolFilter) {
+			dValues = ((PoolFilter)this.filter).dValue(prevLayerOutputConv, thisPrevInputConv, errorConv);
 		}
+		return dValues != null ? this.prevLayer.convLayerToMatrix(dValues) : null;
 	}
 	
 	
@@ -477,13 +481,13 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @param error current error.
 	 * @return gradient of filter kernel.
 	 */
-	private net.ea.ann.mane.filter.Filter.Kernel dFilterKernel(Matrix error) {
-		if ((this.filter == null) || !(this.filter instanceof ProductFilter)) return null;
-		ProductFilter filter = (ProductFilter)this.filter;
+	private net.ea.ann.mane.filter.KernelFilter.Kernel dFilterKernel(Matrix error) {
+		if ((this.filter == null) || !(this.filter instanceof KernelFilter)) return null;
 		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(this.prevLayer.queryOutput());
 		Matrix thisPrevInputConv = matrixToConvLayer(getPrevInput());
 		Matrix errorConv = matrixToConvLayer(error);
-		return filter.dKernel(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef);
+		
+		return ((KernelFilter)this.filter).dKernel(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef);
 	}
 
 	
@@ -492,10 +496,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @param dFilterKernel filter kernel gradient.
 	 * @param learningRate learning rate.
 	 */
-	private void accumFilterKernel(net.ea.ann.mane.filter.Filter.Kernel dFilterKernel, double learningRate) {
-		if ((this.filter == null) || !(this.filter instanceof ProductFilter)) return;
-		ProductFilter filter = (ProductFilter)this.filter;
-		filter.accumKernel(dFilterKernel, learningRate);
+	private void accumFilterKernel(net.ea.ann.mane.filter.KernelFilter.Kernel dFilterKernel, double learningRate) {
+		if ((this.filter == null) || !(this.filter instanceof KernelFilter)) return;
+		((KernelFilter)this.filter).accumKernel(dFilterKernel, learningRate);
 	}
 	
 	
@@ -575,7 +578,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		Matrix[] errors = new Matrix[outputErrors.length];
 		Kernel[] dWKernels = new Kernel[outputErrors.length];
 		NeuronValue[] dFilterBiases = new NeuronValue[outputErrors.length];
-		net.ea.ann.mane.filter.Filter.Kernel[] dFilterKernels = new net.ea.ann.mane.filter.Filter.Kernel[outputErrors.length];
+		net.ea.ann.mane.filter.KernelFilter.Kernel[] dFilterKernels = new net.ea.ann.mane.filter.KernelFilter.Kernel[outputErrors.length];
 
 		//Browsing errors.
 		for (int i = 0; i < outputErrors.length; i++) {
@@ -643,7 +646,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			else
 				this.dFilterBiasAccum = this.dFilterBiasAccum != null ? this.dFilterBiasAccum.add(dFilterBiasMean) : dFilterBiasMean;
 			
-			net.ea.ann.mane.filter.Filter.Kernel dFilterKernelMean = net.ea.ann.mane.filter.Filter.Kernel.mean(dFilterKernels);
+			net.ea.ann.mane.filter.KernelFilter.Kernel dFilterKernelMean = net.ea.ann.mane.filter.KernelFilter.Kernel.mean(dFilterKernels);
 			if (learning)
 				accumFilterKernel(dFilterKernelMean, learningRate);
 			else
@@ -708,7 +711,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			}
 			
 			if (this.dFilterKernelAccum != null) {
-				net.ea.ann.mane.filter.Filter.Kernel dFilterKernelMean = this.dFilterKernelAccum.divide(recordCount);
+				net.ea.ann.mane.filter.KernelFilter.Kernel dFilterKernelMean = this.dFilterKernelAccum.divide(recordCount);
 				accumFilterKernel(dFilterKernelMean, learningRate);
 				this.dFilterKernelAccum = null;
 			}

@@ -7,6 +7,9 @@
  */
 package net.ea.ann.mane.filter;
 
+import net.ea.ann.core.value.Matrix;
+import net.ea.ann.raster.Size;
+
 /**
  * This class represents a pooling filter.
  * 
@@ -36,15 +39,14 @@ public abstract class PoolFilter extends FilterAbstract {
 
 	
 	/**
-	 * Constructor with kernel width and height.
-	 * @param width kernel width.
-	 * @param height kernel height.
+	 * Constructor with size.
+	 * @param size size.
 	 */
-	protected PoolFilter(int width, int height) {
+	protected PoolFilter(Size size) {
 		super();
-		if (width < 1 || height < 1) throw new IllegalArgumentException();
-		this.width = width;
-		this.height = height;
+		if (size.width < 1 || size.height < 1) throw new IllegalArgumentException();
+		this.width = size.width;
+		this.height = size.height;
 	}
 
 	
@@ -59,5 +61,25 @@ public abstract class PoolFilter extends FilterAbstract {
 		return height;
 	}
 	
+	
+	/**
+	 * Forwarding evaluation from previous layers to current layers.
+	 * @param prevLayer current layer.
+	 * @param thisInputLayer current input layer.
+	 * @param thisOutputLayer current output layer.
+	 */
+	public abstract void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer);
+
+	
+	/**
+	 * Calculating derivative of previous layers given current layers as bias layers.
+	 * @param nextX next X coordinator.
+	 * @param nextY next Y coordinator.
+	 * @param prevOutputLayer previous output layer.
+	 * @param thisErrorLayer current layer as bias layer.
+	 * @param thisActivateRef activation function of current layer.
+	 */
+	public abstract Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer);
+
 	
 }

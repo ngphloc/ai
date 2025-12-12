@@ -95,6 +95,20 @@ public class MatrixImpl implements Matrix {
 	public int columns() {return data.length > 0 ? data[0].length : 0;}
 	
 	
+	/**
+	 * Getting width.
+	 * @return width.
+	 */
+	public int width() {return columns();}
+	
+	
+	/**
+	 * Getting height.
+	 * @return height.
+	 */
+	public int height() {return rows();}
+
+	
 	@Override
 	public NeuronValue get(int row, int column) {
 		return data[row][column];
