@@ -20,6 +20,7 @@ import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
@@ -52,7 +53,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	/**
 	 * Number of blocks.
 	 */
-	public static final int BLOCKS_NUMBER_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT;
+	public static final int BLOCKS_NUMBER_DEFAULT = 1; //MatrixNetworkImpl.DEPTH_DEFAULT;
 
 	
 	/**
@@ -453,6 +454,15 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 
 	/**
+	 * Removing output adapter.
+	 */
+	public TransformerBasic removeOutputFFN() {
+		if (validate()) get(size()-1).removeFFN();
+		return this;
+	}
+
+	
+	/**
 	 * Getting size of trainers.
 	 * @return size of trainers.
 	 */
@@ -519,7 +529,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		
 		MatrixLayer nextLayer = null;
 		while ((nextLayer = this.getNextLayer()) != null) {
-			Matrix.copy(result, nextLayer.getInput());
+			MatrixUtil.copy(result, nextLayer.getInput());
 			result = nextLayer.evaluate();
 		}
 		return result;
@@ -582,17 +592,18 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	/**
 	 * Back-warding transformer block by errors.
 	 * @param errors specified errors.
+	 * @param learning learning mode.
 	 * @param learningRate learning rate.
 	 * @return learning errors. The first element is main error and the second element is attached error\\.
 	 */
-	protected Error[][] backward(Error[] errors, double learningRate) {
+	private Error[][] backward0(Error[] errors, boolean learning, double learningRate) {
 		if (!validate()) return null;
 		updateConfig();
 
 		Error[] outputErrors = null;
 		List<Error[]> attachOutputErrorsList = Util.newList(0);
 		for (int i = blocks.length-1; i >= 0; i--) {
-			outputErrors = blocks[i].backward(outputErrors == null ? errors : outputErrors, learningRate);
+			outputErrors = blocks[i].backward(outputErrors == null ? errors : outputErrors, learning, learningRate);
 			if (i > 0) Error.adjustErrors(blocks[i-1], outputErrors);
 			
 			if (outputErrors == null || outputErrors.length == 0) continue;
@@ -602,7 +613,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 			
 			TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
 			Error.adjustErrors(attach, attachErrors);
-			Error[][] merr = attach.backward(attachErrors, learningRate);
+			Error[][] merr = attach.backward(attachErrors, learning, learningRate);
 			if (merr != null && merr.length > 0 && merr[0] != null) {
 //				if (merr[0].length > 0 && merr[0][0] != null) merr[0][0].tag = attach;
 				attachOutputErrorsList.add(merr[0]);
@@ -625,11 +636,73 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	}
 
 	
+	/**
+	 * Back-warding transformer block by errors. This method will be improved by {@link #backwardWithoutLearning(Error[], double)} and {@link #updateParametersFromBackwardInfo(int, double)}.
+	 * @param errors specified errors.
+	 * @param learning learning mode.
+	 * @param learningRate learning rate.
+	 * @return learning errors. The first element is main error and the second element is attached error\\.
+	 */
+	protected Error[][] backward(Error[] errors, boolean learning, double learningRate) {
+		if (!learning) return backward0(errors, learning, learningRate);
+		Error[][] outputErrors = backwardWithoutLearning(errors, learningRate);
+		updateParametersFromBackwardInfo(errors.length, learningRate);
+		return outputErrors;
+	}
+	
+	
+	/**
+	 * Learning attention by errors.
+	 * @param errors specified errors.
+	 * @param learningRate learning rate.
+	 * @return learning errors.
+	 */
+	Error[][] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
+		resetBackwardInfo();
+		if (outputErrors == null || outputErrors.length == 0) return null;
+		Error[][] errors = new Error[outputErrors.length][];
+		for (int i = 0; i < outputErrors.length; i++) {
+			errors[i] = backward0(new Error[] {outputErrors[i]}, false, learningRate)[0];
+		}
+		return errors;
+	}
+
+	
+	/**
+	 * Updating parameters from backward information.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		if (blocks == null) return;
+		for (int i = blocks.length-1; i >= 0; i--) {
+			blocks[i].updateParametersFromBackwardInfo(recordCount, learningRate);
+			if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
+			TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
+			attach.updateParametersFromBackwardInfo(recordCount, learningRate);
+		}
+	}
+
+	
+	/**
+	 * Resetting backward information.
+	 */
+	void resetBackwardInfo() {
+		if (blocks == null) return;
+		for (int i = blocks.length-1; i >= 0; i--) {
+			blocks[i].resetBackwardInfo();
+			if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
+			TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
+			attach.resetBackwardInfo();
+		}
+	}
+	
+	
 	@Override
 	public net.ea.ann.mane.Error[] backward(net.ea.ann.mane.Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		if (!learning) throw new IllegalArgumentException("Method Transformer::backward(Matrix[], MatrixLayer, boolean, double) does not support learning = false");
 		Error[] errors = Error.create(outputErrors);
-		Error[][] learnedErrors = backward(errors, learningRate);
+		Error[][] learnedErrors = backward(errors, learning, learningRate);
 		if (learnedErrors == null || learnedErrors.length == 0 || learnedErrors[0] == null) return null;
 		
 		net.ea.ann.mane.Error[] backwardErrors = Error.extract(learnedErrors[0]);
@@ -708,7 +781,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 						errorList.add(error);
 					}
 				}
-				outputErrors = backward(errorList.toArray(new Error[] {}), lr);
+				outputErrors = backward(errorList.toArray(new Error[] {}), true, lr);
 			}
 			else {
 				List<net.ea.ann.mane.Record> maneSample = Record.convert(subsample);
@@ -1301,23 +1374,24 @@ class TransformerBlock implements Cloneable, Serializable {
 	/**
 	 * Back-warding transformer block by errors.
 	 * @param errors specified errors.
+	 * @param learning learning mode.
 	 * @param learningRate learning rate.
 	 * @return learning errors. The first element is Y error matrix and the second element is X error matrix.
 	 */
-	Error[] backward(Error[] errors, double learningRate) {
+	Error[] backward(Error[] errors, boolean learning, double learningRate) {
 		if (!validate() || errors == null || errors.length == 0) return null;
 		updateConfig();
 		
 		//Back-warding output adapter. 
 		net.ea.ann.mane.Error[] outputAdapterErrors = Error.extract(errors);
 		if (outputAdapter != null) {
-			outputAdapterErrors = outputAdapter.backward(outputAdapterErrors, learningRate);
+			outputAdapterErrors = outputAdapter.backward(outputAdapterErrors, null, learning, learningRate);
 			if (outputAdapterErrors == null || outputAdapterErrors.length == 0) return null;
 			if (ffn != null) net.ea.ann.mane.Error.adjustErrors(ffn, outputAdapterErrors);
 		}
 		
 		//Back-warding feed-forward network.
-		net.ea.ann.mane.Error[] ffnErrors = ffn != null ? ffn.backward(outputAdapterErrors, learningRate) : outputAdapterErrors;
+		net.ea.ann.mane.Error[] ffnErrors = ffn != null ? ffn.backward(outputAdapterErrors, null, learning, learningRate) : outputAdapterErrors;
 		if (ffnErrors == null || ffnErrors.length == 0) return null;
 		
 		//Back-warding attention.
@@ -1327,7 +1401,46 @@ class TransformerBlock implements Cloneable, Serializable {
 				ffnError.errorSet(ffnError.error().vecInverse(vecRows));
 			}
 		}
-		return attention.backward(Error.create(ffnErrors), learningRate);
+		return attention.backward(Error.create(ffnErrors), learning, learningRate);
+	}
+	
+	
+	/**
+	 * Learning attention by errors.
+	 * @param errors specified errors.
+	 * @param learningRate learning rate.
+	 * @return learning errors.
+	 */
+	Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
+		resetBackwardInfo();
+		if (outputErrors == null || outputErrors.length == 0) return null;
+		Error[] errors = new Error[outputErrors.length];
+		for (int i = 0; i < outputErrors.length; i++) {
+			errors[i] = backward(new Error[] {outputErrors[i]}, false, learningRate)[0];
+		}
+		return errors;
+	}
+
+	
+	/**
+	 * Updating parameters from backward information.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		if (outputAdapter != null) outputAdapter.updateParametersFromBackwardInfo(recordCount, learningRate);
+		if (ffn != null) ffn.updateParametersFromBackwardInfo(recordCount, learningRate);
+		if (attention != null) attention.updateParametersFromBackwardInfo(recordCount, learningRate);
+	}
+
+	
+	/**
+	 * Resetting backward information.
+	 */
+	void resetBackwardInfo() {
+		if (outputAdapter != null) outputAdapter.resetBackwardInfo();
+		if (ffn != null) ffn.resetBackwardInfo();
+		if (attention != null) attention.resetBackwardInfo();
 	}
 	
 	

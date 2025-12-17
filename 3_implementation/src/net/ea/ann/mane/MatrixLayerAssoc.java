@@ -14,6 +14,7 @@ import net.ea.ann.conv.ConvLayer2DImpl;
 import net.ea.ann.conv.ConvLayerSingle2D;
 import net.ea.ann.conv.ConvNeuron;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.Size;
 
@@ -54,7 +55,7 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 	 */
 	public void initParams(double v) {
 		if (layer.weight != null) layer.weight.fill(v);
-		if (layer.bias != null) Matrix.fill(layer.bias, v);
+		if (layer.bias != null) MatrixUtil.fill(layer.bias, v);
 		
 		if (layer.filter != null) layer.filter.initialize(v);
 		if (layer.filterBias != null) layer.filterBias = layer.filterBias.valueOf(v);
@@ -67,7 +68,7 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 	 */
 	public void initParams(Random rnd) {
 		if (layer.weight != null) layer.weight.fill(rnd);
-		if (layer.bias != null) Matrix.fill(layer.bias, rnd);
+		if (layer.bias != null) MatrixUtil.fill(layer.bias, rnd);
 		
 		if (layer.filter != null) layer.filter.initialize(rnd);
 		if (layer.filterBias != null) layer.filterBias = layer.filterBias.valueOf(NeuronValue.r(rnd));

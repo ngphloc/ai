@@ -96,6 +96,31 @@ public class Point extends java.awt.Point {
 	}
 
 
+	/**
+	 * Getting row.
+	 * @return row.
+	 */
+	public int row( ) {return y;}
+	
+	
+	/**
+	 * Getting column.
+	 * @return column.
+	 */
+	public int column( ) {return x;}
+
+	
+	/**
+	 * Creating by row and column.
+	 * @param row row.
+	 * @param column column.
+	 * @return point.
+	 */
+	public static Point createByRowColumn(int row, int column) {
+		return new Point(column, row);
+	}
+	
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == null) return false;

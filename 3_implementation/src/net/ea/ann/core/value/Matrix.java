@@ -7,16 +7,9 @@
  */
 package net.ea.ann.core.value;
 
-import java.util.List;
 import java.util.Random;
 
-import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
-import net.ea.ann.raster.Image;
-import net.ea.ann.raster.ImageList;
-import net.ea.ann.raster.Raster;
-import net.ea.ann.raster.Raster2DImpl;
-import net.ea.ann.raster.Raster3DImpl;
 import net.ea.ann.raster.Size;
 
 /**
@@ -41,26 +34,6 @@ public interface Matrix extends NeuronValueCreator {
 	 * @return the number of columns.
 	 */
 	int columns();
-	
-	
-	/**
-	 * Getting depth of matrix.
-	 * @param matrix matrix.
-	 * @return depth of matrix.
-	 */
-	static int depth(Matrix matrix) {
-		return matrix instanceof MatrixStack ? ((MatrixStack)matrix).depth() : 1;
-	}
-	
-	
-	/**
-	 * Getting capacity.
-	 * @return capacity.
-	 */
-	static int capacity(Matrix matrix) {
-		int depth = depth(matrix);
-		return matrix.rows()*matrix.columns()*depth;
-	}
 	
 	
 	/**
@@ -393,7 +366,7 @@ public interface Matrix extends NeuronValueCreator {
 
 	
 	/**
-	 * Calculating value mean of matrices.
+	 * Calculating value sum of matrices.
 	 * @param matrices specified matrices.
 	 * @return value mean.
 	 */
@@ -568,8 +541,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param arrays arrays.
 	 * @return sum array.
 	 */
-	@Deprecated
-	private static Matrix[] sum(Matrix[]...arrays) {
+	static Matrix[] sum2(Matrix[]...arrays) {
 		if (arrays == null || arrays.length == 0) return null;
 		Matrix[] sum = arrays[0];
 		for (int i = 1; i < arrays.length; i++) {
@@ -587,11 +559,9 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param arrays arrays.
 	 * @return mean array.
 	 */
-	@Deprecated
-	@SuppressWarnings("unused")
-	private static Matrix[] mean(Matrix[]...arrays) {
+	static Matrix[] mean2(Matrix[]...arrays) {
 		if (arrays == null || arrays.length == 0) return null;
-		Matrix[] mean = sum(arrays);
+		Matrix[] mean = sum2(arrays);
 		if (mean == null) return null;
 		for (int j = 0; j < mean.length; j++) mean[j] = mean[j].divide0(arrays.length);
 		return mean;
@@ -657,47 +627,13 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
-	 * Creating new matrix.
-	 * @param size size.
-	 * @return matrix.
-	 */
-	private static Matrix create0(Size size, Object value) {
-		if (size.height <= 0 || size.width <= 0)
-			return null;
-		else if (value == null)
-			return new MatrixImpl(size, new NeuronValue1(0).zero());
-		else if (value instanceof NeuronValue)
-			return new MatrixImpl(size, (NeuronValue)value);
-		else if (value instanceof Number)
-			return new NeuronValueM(size, ((Number)value).doubleValue());
-		else
-			return null;
-	}
-
-
-	/**
-	 * Creating new matrix.
-	 * @param size size.
-	 * @param value specified value.
-	 * @return matrix.
-	 */
-	static Matrix create(Size size, Object value) {
-		int depth = size.depth < 1 ? 1 : size.depth;
-		if (depth == 1) return create0(size, value);
-		Matrix[] matrices = new Matrix[depth];
-		for (int i = 0; i < matrices.length; i++) matrices[i] = create0(size, value);
-		return new MatrixStack(matrices);
-	}
-
-	
-	/**
 	 * Creating row matrix by vector.
 	 * @param vector vector.
 	 * @return row matrix.
 	 */
 	static Matrix createRowMatrix(NeuronValue[] vector) {
 		if (vector == null || vector.length == 0) return null;
-		Matrix matrix = create(new Size(vector.length, 1), vector[0]);
+		Matrix matrix = MatrixUtil.create(new Size(vector.length, 1), vector[0]);
 		for (int column = 0; column < vector.length; column++) matrix.set(0, column, vector[column]);
 		return matrix;
 	}
@@ -710,7 +646,7 @@ public interface Matrix extends NeuronValueCreator {
 	 */
 	static Matrix createColumnMatrix(NeuronValue[] vector) {
 		if (vector == null || vector.length == 0) return null;
-		Matrix matrix = create(new Size(1, vector.length), vector[0]);
+		Matrix matrix = MatrixUtil.create(new Size(1, vector.length), vector[0]);
 		for (int row = 0; row < vector.length; row++) matrix.set(row, 0, vector[row]);
 		return matrix;
 	}
@@ -765,12 +701,8 @@ public interface Matrix extends NeuronValueCreator {
 	 * @return filled matrix.
 	 */
 	static void fill(Matrix matrix, NeuronValue value) {
-		if (matrix instanceof MatrixStack)
-			MatrixStack.fill((MatrixStack)matrix, value);
-		else {
-			for (int i = 0; i < matrix.rows(); i++) {
-				for (int j = 0; j < matrix.columns(); j++) matrix.set(i, j, value);
-			}
+		for (int i = 0; i < matrix.rows(); i++) {
+			for (int j = 0; j < matrix.columns(); j++) matrix.set(i, j, value);
 		}
 	}
 	
@@ -782,12 +714,64 @@ public interface Matrix extends NeuronValueCreator {
 	 * @return filled matrix.
 	 */
 	static void fill(Matrix matrix, double v) {
-		if (matrix instanceof MatrixStack)
-			MatrixStack.fill((MatrixStack)matrix, v);
-		else {
-			NeuronValue value = matrix.get(0, 0).valueOf(v);
-			fill(matrix, value);
+		NeuronValue value = matrix.get(0, 0).valueOf(v);
+		fill(matrix, value);
+	}
+	
+	
+	/**
+	 * Flattening array of matrices according to smaller channel.
+	 * @param matrices array of matrices.
+	 * @param smallerChannel smaller channel.
+	 * @return flattened array of matrices.
+	 */
+	static Matrix[] flattenByChannel(Matrix[] matrices, int smallerChannel) {
+		if (matrices[0].get(0, 0).dim() == smallerChannel) return matrices;
+		NeuronValue[] values0 = new NeuronValue[matrices.length];
+		for (int i = 0; i < matrices.length; i++) values0[i] = matrices[i].get(0, 0);
+		NeuronValue[] flatten0 = NeuronValue.flattenByChannel(values0, smallerChannel);
+		
+		Matrix[] result = new Matrix[flatten0.length];
+		for (int d = 0; d < flatten0.length; d++) {
+			result[d] = MatrixUtil.create(Size.createByRowsColumns(matrices[0].rows(), matrices[0].columns()), flatten0[d]);
 		}
+		for (int row = 0; row < matrices[0].rows(); row++) {
+			for (int column = 0; column < matrices[0].columns(); column++) {
+				NeuronValue[] values = new NeuronValue[matrices.length];
+				for (int i = 0; i < matrices.length; i++) values[i] = matrices[i].get(row, column);
+				NeuronValue[] flatten = NeuronValue.flattenByChannel(values, smallerChannel);
+				for (int d = 0; d < flatten0.length; d++) result[d].set(row, column, flatten[d]);
+			}
+		}
+		return result;
+	}
+	
+	
+	/**
+	 * Aggregating array of matrices according to larger channel.
+	 * @param matrices array of matrices.
+	 * @param largerChannel larger channel.
+	 * @return aggregated array of matrices.
+	 */
+	static Matrix[] aggregateByChannel(Matrix[] matrices, int largerChannel) {
+		if (matrices[0].get(0, 0).dim() == largerChannel) return matrices;
+		NeuronValue[] values0 = new NeuronValue[matrices.length];
+		for (int i = 0; i < matrices.length; i++) values0[i] = matrices[i].get(0, 0);
+		NeuronValue[] aggre0 = NeuronValue.aggregateByChannel(values0, largerChannel);
+		
+		Matrix[] result = new Matrix[aggre0.length];
+		for (int d = 0; d < aggre0.length; d++) {
+			result[d] = MatrixUtil.create(Size.createByRowsColumns(matrices[0].rows(), matrices[0].columns()), aggre0[d]);
+		}
+		for (int row = 0; row < matrices[0].rows(); row++) {
+			for (int column = 0; column < matrices[0].columns(); column++) {
+				NeuronValue[] values = new NeuronValue[matrices.length];
+				for (int i = 0; i < matrices.length; i++) values[i] = matrices[i].get(row, column);
+				NeuronValue[] aggre = NeuronValue.aggregateByChannel(values, largerChannel);
+				for (int d = 0; d < aggre.length; d++) result[d].set(row, column, aggre[d]);
+			}
+		}
+		return result;
 	}
 	
 	
@@ -797,56 +781,14 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param rnd randomizer.
 	 */
 	static void fill(Matrix matrix, Random rnd) {
-		if (matrix instanceof MatrixStack)
-			MatrixStack.fill((MatrixStack)matrix, rnd);
-		else {
-			for (int i = 0; i < matrix.rows(); i++) {
-				for (int j = 0; j < matrix.columns(); j++) {
-					NeuronValue value = matrix.get(i, j).valueOf(NeuronValue.r(rnd));
-					matrix.set(i, j, value);
-				}
-			}
-		}
-	}
-
-	
-	/**
-	 * Extracting raster into matrix.
-	 * @param size size.
-	 * @param rows rows.
-	 * @param columns columns.
-	 * @param raster raster.
-	 * @param neuronChannel neuron channel.
-	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
-	 * @param ref reference to matrix, which can be null.
-	 * @return matrix.
-	 */
-	static Matrix toMatrix(Size size, Raster raster, int neuronChannel, boolean isNorm, Matrix ref) {
-		NeuronValue[] values = raster.toNeuronValues(neuronChannel, size, isNorm);
-		Matrix matrix = (ref == null) ? create(size, values[0]) : ref.create(size);
 		for (int i = 0; i < matrix.rows(); i++) {
-			int rowLength = i*matrix.columns();
 			for (int j = 0; j < matrix.columns(); j++) {
-				int index = rowLength + j;
-				matrix.set(i, j, values[index]);
+				NeuronValue value = matrix.get(i, j).valueOf(NeuronValue.r(rnd));
+				matrix.set(i, j, value);
 			}
 		}
-		return matrix;
 	}
 
-	
-	/**
-	 * Extracting raster into matrix.
-	 * @param size size.
-	 * @param raster raster.
-	 * @param neuronChannel neuron channel.
-	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
-	 * @return matrix.
-	 */
-	static Matrix toMatrix(Size size, Raster raster, int neuronChannel, boolean isNorm) {
-		return toMatrix(size, raster, neuronChannel, isNorm, null);
-	}
-	
 	
 	/**
 	 * Extracting values of matrix as vector.
@@ -861,62 +803,5 @@ public interface Matrix extends NeuronValueCreator {
 		return data;
 	}
 
-	
-	/**
-	 * Extracting values of matrix as vector.
-	 * @param matrix specified matrix.
-	 * @return values of matrix as vector.
-	 */
-	static NeuronValue[] extractValues(Matrix matrix) {
-		NeuronValue[] values = new NeuronValue[matrix.rows()*matrix.columns()];
-		for (int i = 0; i < matrix.rows(); i++) {
-			int rowLength = i*matrix.columns();
-			for (int j = 0; j < matrix.columns(); j++) {
-				int index = rowLength + j;
-				values[index] = matrix.get(i, j);
-			}
-		}
-		return values;
-	}
-	
-	
-	/**
-	 * Create raster from neuron values.
-	 * @param matrix matrix.
-	 * @param neuronChannel neuron channel.
-	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
-	 * @param defaultAlpha default alpha channel.
-	 * @return raster.
-	 */
-	static Raster toRaster(Matrix matrix, int neuronChannel, boolean isNorm, int defaultAlpha) {
-		NeuronValue[] values = extractValues(matrix);
-		return Raster2DImpl.create(values, neuronChannel, new Size(matrix.columns(), matrix.rows(), 1, 1), isNorm, defaultAlpha);
-	}
-
-	
-	/**
-	 * Create raster from neuron values.
-	 * @param matrices matrix array.
-	 * @param neuronChannel neuron channel.
-	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
-	 * @param defaultAlpha default alpha channel.
-	 * @return raster.
-	 */
-	static Raster toRaster(Matrix matrices[], int neuronChannel, boolean isNorm, int defaultAlpha) {
-		if (matrices == null || matrices.length == 0) return null;
-		if (matrices.length == 1) return toRaster(matrices[0], neuronChannel, isNorm, defaultAlpha);
-		
-		List<Image> images = Util.newList(matrices.length);
-		for (Matrix matrix : matrices) {
-			NeuronValue[] values = extractValues(matrix);
-			Raster2DImpl raster = Raster2DImpl.create(values, neuronChannel, new Size(matrix.columns(), matrix.rows(), 1, 1), isNorm, defaultAlpha);
-			if (raster != null) images.add(raster.getImage());
-		}
-		if (images.size() == 0) return null;
-		
-		ImageList imageList = ImageList.create(images);
-		return Raster3DImpl.create(imageList);
-	}
-	
 	
 }

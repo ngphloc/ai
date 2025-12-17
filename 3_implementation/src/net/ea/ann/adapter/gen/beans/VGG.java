@@ -48,7 +48,7 @@ public class VGG extends ClassifierModelAbstract {
 	@Override
 	protected Classifier createGenModel() {
 		try {
-			return net.ea.ann.classifier.VGG.create(getRasterChannel(), isNorm());
+			return net.ea.ann.classifier.VGG.create(getNeuronChannel(), getRasterChannel(), isNorm());
 		} catch (Throwable e) {Util.trace(e);}
 		return null;
 	}

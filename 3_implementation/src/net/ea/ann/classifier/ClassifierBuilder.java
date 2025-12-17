@@ -49,6 +49,11 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	public static enum ClassifierModel {
 		
 		/**
+		 * VGG model.
+		 */
+		vgg,
+
+		/**
 		 * Matrix neural network classifier.
 		 */
 		mac,
@@ -74,13 +79,19 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	/**
 	 * Neuron channel.
 	 */
-	protected int neuronChannel = 1;
+	protected int neuronChannel = RasterAbstract.NEURON_CHANNEL_DEFAULT;
 	
+	
+	/**
+	 * Neuron channel.
+	 */
+	protected int rasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
+
 	
 	/**
 	 * Classifier model.
 	 */
-	ClassifierModel model = ClassifierModel.mac;
+	ClassifierModel model = ClassifierModel.vgg;
 	
 	
 	/**
@@ -150,6 +161,12 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Transformer-based weight mode.
+	 */
+	protected boolean transWeight = ClassifierAbstract.TRANS_WEIGHT_DEFAULT;
+	
+	
+	/**
 	 * Tree model.
 	 */
 	protected TreeModel treeModel = TreeModel.mac;
@@ -176,9 +193,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting neuron channel.
 	 * @return neuron channel.
 	 */
-	public int getNeuronChannel() {
-		return neuronChannel;
-	}
+	public int getNeuronChannel() {return neuronChannel;}
 	
 	
 	/**
@@ -188,6 +203,24 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 */
 	public ClassifierBuilder setNeuronChannel(int neuronChannel) {
 		this.neuronChannel = neuronChannel;
+		return this;
+	}
+	
+	
+	/**
+	 * Getting raster channel.
+	 * @return raster channel.
+	 */
+	public int getRasterChannel() {return rasterChannel;}
+	
+	
+	/**
+	 * Setting raster channel.
+	 * @param rasterChannel raster channel.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setRasterChannel(int rasterChannel) {
+		this.rasterChannel = rasterChannel;
 		return this;
 	}
 	
@@ -209,22 +242,25 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * @return classifier model.
 	 */
 	static ClassifierModel toModel(int modelIndex) {
-		ClassifierModel model = ClassifierModel.mac;
+		ClassifierModel model = ClassifierModel.vgg;
 		switch (modelIndex) {
 		case 0:
-			model = ClassifierModel.mac;
+			model = ClassifierModel.vgg;
 			break;
 		case 1:
-			model = ClassifierModel.tramac;
+			model = ClassifierModel.mac;
 			break;
 		case 2:
-			model = ClassifierModel.forest;
+			model = ClassifierModel.tramac;
 			break;
 		case 3:
+			model = ClassifierModel.forest;
+			break;
+		case 4:
 			model = ClassifierModel.stack;
 			break;
 		default:
-			model = ClassifierModel.mac;
+			model = ClassifierModel.vgg;
 			break;
 		}
 		return model;
@@ -237,8 +273,11 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * @return classifier model.
 	 */
 	public static ClassifierModel toModel(String modelText) {
-		ClassifierModel model = ClassifierModel.mac;
+		ClassifierModel model = ClassifierModel.vgg;
 		switch (modelText.toLowerCase()) {
+		case "vgg":
+			model = ClassifierModel.vgg;
+			break;
 		case "mac":
 			model = ClassifierModel.mac;
 			break;
@@ -252,7 +291,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			model = ClassifierModel.stack;
 			break;
 		default:
-			model = ClassifierModel.mac;
+			model = ClassifierModel.vgg;
 			break;
 		}
 		return model;
@@ -267,17 +306,20 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	static int toModelIndex(ClassifierModel model) {
 		int modelIndex = 0;
 		switch (model) {
-		case mac:
+		case vgg:
 			modelIndex = 0; 
 			break;
-		case tramac:
+		case mac:
 			modelIndex = 1; 
 			break;
-		case forest:
+		case tramac:
 			modelIndex = 2; 
 			break;
-		case stack:
+		case forest:
 			modelIndex = 3; 
+			break;
+		case stack:
+			modelIndex = 4; 
 			break;
 		default:
 			break;
@@ -292,8 +334,11 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * @return text.
 	 */
 	static String toModelText(ClassifierModel model) {
-		String modelText = "mac";
+		String modelText = "vgg";
 		switch (model) {
+		case vgg:
+			modelText = "vgg";
+			break;
 		case mac:
 			modelText = "mac";
 			break;
@@ -545,6 +590,26 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 
 	
 	/**
+	 * Getting transformer-based weight mode.
+	 * @return transformer-based weight mode.
+	 */
+	public boolean isTransWeight() {
+		return transWeight;
+	}
+	
+	
+	/**
+	 * Setting transformer-based weight mode.
+	 * @param transWeight transformer-based weight mode.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setTransWeight(boolean transWeight) {
+		this.transWeight = transWeight;
+		return this;
+	}
+
+	
+	/**
 	 * Getting tree model.
 	 * @return tree model.
 	 */
@@ -582,17 +647,20 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	public Classifier build() {
 		Classifier classifier = null;
 		switch (model) {
+		case vgg:
+			classifier = VGG.create(neuronChannel, rasterChannel, true); 
+			break;
 		case mac:
-			classifier = MatrixClassifier.create(neuronChannel, true); 
+			classifier = MatrixClassifier.create(neuronChannel, rasterChannel, true); 
 			break;
 		case tramac:
-			classifier = TransformerClassifier.create(neuronChannel, true); 
+			classifier = TransformerClassifier.create(neuronChannel, rasterChannel, true);
 			break;
 		case forest:
-			classifier = ForestClassifier.create(neuronChannel, true); 
+			classifier = ForestClassifier.create(neuronChannel, rasterChannel, true);
 			break;
 		case stack:
-			classifier = StackClassifier.create(neuronChannel, true);
+			classifier = StackClassifier.create(neuronChannel, rasterChannel, true);
 			break;
 		default:
 			break;
@@ -603,6 +671,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			ca.paramSetLearningRate(learningRate);
 			ca.paramSetBatches(batches);
 			ca.paramSetConv(conv);
+			ca.paramSetTransWeight(transWeight);
 			ca.paramSetVectorized(vectorized);
 			ca.paramSetBaseline(baseline);
 			ca.paramSetAdjust(adjust);
@@ -611,7 +680,12 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			ca.paramSetEntropyTrainer(entropyTrainer);
 		}
 		
-		if (classifier instanceof MatrixClassifier) {
+		if (classifier instanceof VGG) {
+			VGG vgg = (VGG)classifier;
+			vgg.paramSetBlocksNumber(blocks);
+			vgg.nut.paramSetLayersNumber(depth);
+		}
+		else if (classifier instanceof MatrixClassifier) {
 
 		}
 		else if (classifier instanceof TransformerClassifier) {
@@ -653,9 +727,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		Scanner scanner = new Scanner(in);
 		PrintStream printer = new PrintStream(out);
 		
-		int defaultModelIndex = toModelIndex(ClassifierModel.mac);
+		int defaultModelIndex = toModelIndex(ClassifierModel.vgg);
 		int modelIndex = defaultModelIndex;
-		printer.print("Model (0-mac, 1-tramac, 2-forest, 3-stack) (default " + defaultModelIndex + " is " + toModel(defaultModelIndex) + "):");
+		printer.print("Model (0-vgg, 1-mac, 2-tramac, 3-forest, 4-stack) (default " + defaultModelIndex + " is " + toModel(defaultModelIndex) + "):");
 		try {
 			String line = scanner.nextLine().trim();
 			if (!line.isBlank() && !line.isEmpty()) modelIndex = Integer.parseInt(line);
@@ -705,6 +779,16 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		} catch (Throwable e) {}
 		printer.println("Including convolutional neural network is " + conv + "\n");
 	
+		boolean transWeight = ClassifierAbstract.TRANS_WEIGHT_DEFAULT;
+		if (!conv) {
+			printer.print("Transformer-based weight (" + transWeight + " is default):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) transWeight = Boolean.parseBoolean(line);
+			} catch (Throwable e) {}
+			printer.println("Baseline is " + transWeight + "\n");
+		}
+
 		boolean vectorized = MatrixNetworkAbstract.VECTORIZED_DEFAULT;
 		printer.print("Vectorization (" + vectorized + " is default):");
 		try {
@@ -771,6 +855,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setLearningRate(lr);
 		builder.setBatches(batches);
 		builder.setConv(conv);
+		builder.setTransWeight(transWeight);
 		builder.setVectorized(vectorized);
 		builder.setBaseline(baseline);
 		builder.setAdjust(adjust);
@@ -778,7 +863,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setDepth(depth);
 		builder.setEntropyTrainer(entropyTrainer);
 
-		if (builder.getModel() == ClassifierModel.tramac) {
+		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.tramac) {
 			int defaultBlocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 			int blocks = defaultBlocks;
 			printer.print("Blocks (default " + defaultBlocks + "):");

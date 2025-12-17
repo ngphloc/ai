@@ -10,6 +10,7 @@ package net.ea.ann.core.function;
 import net.ea.ann.core.LayerStandard;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueV;
 import net.ea.ann.raster.Size;
@@ -185,7 +186,7 @@ public interface Softmax extends Probability, FunctionDelay {
 	private static Matrix softmaxByRowInverse(Matrix matrix) {
 		Matrix unitMatrix = matrix.create(new Size(matrix.columns(), matrix.rows()));
 		NeuronValue unit = matrix.get(0, 0).unit();
-		Matrix.fill(unitMatrix, unit);
+		MatrixUtil.fill(unitMatrix, unit);
 		return softmaxByRow(unitMatrix.subtract(matrix));
 	}
 	
@@ -259,7 +260,7 @@ public interface Softmax extends Probability, FunctionDelay {
 	private static Matrix softmaxByColumnInverse(Matrix matrix) {
 		Matrix unitMatrix = matrix.create(new Size(matrix.columns(), matrix.rows()));
 		NeuronValue unit = matrix.get(0, 0).unit();
-		Matrix.fill(unitMatrix, unit);
+		MatrixUtil.fill(unitMatrix, unit);
 		return softmaxByColumn(unitMatrix.subtract(matrix));
 	}
 

@@ -28,6 +28,12 @@ public class FilterSpec implements Cloneable, Serializable {
 
 	
 	/**
+	 * Default co-weight mode.
+	 */
+	public final static boolean COWEIGHT = false;
+	
+	
+	/**
 	 * This enum specifies filter type.
 	 * @author Loc Nguyen
 	 * @version 1.0
@@ -63,7 +69,7 @@ public class FilterSpec implements Cloneable, Serializable {
 	/**
 	 * This flag indicates whether this filter is associated with weight.
 	 */
-	public boolean coweight = false;
+	public boolean coweight = COWEIGHT;
 	
 	
 	/**
@@ -73,13 +79,34 @@ public class FilterSpec implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Constructor with size and type.
+	 * @param size size.
+	 * @param type type.
+	 */
+	public FilterSpec(Size size, Type type) {
+		this.size = size;
+		this.type = type;
+	}
+
+	
+	/**
 	 * Constructor with size.
 	 * @param size size.
 	 */
 	public FilterSpec(Size size) {
-		this.size = size;
+		this(size, Type.kernel);
 	}
 	
+	
+	/**
+	 * Constructor with size and type.
+	 * @param size size.
+	 * @param type type
+	 */
+	public FilterSpec(Dimension size, Type type) {
+		this(new Size(size.width, size.height, 1, 1), type);
+	}
+
 	
 	/**
 	 * Constructor with size.
@@ -91,8 +118,20 @@ public class FilterSpec implements Cloneable, Serializable {
 	
 
 	/**
-	 * Constructor with size.
-	 * @param size size.
+	 * Constructor with width, height, and type.
+	 * @param width width.
+	 * @param height height.
+	 * @param type type.
+	 */
+	public FilterSpec(int width, int height, Type type) {
+		this(new Dimension(width, height), type);
+	}
+
+	
+	/**
+	 * Constructor with width and height.
+	 * @param width width.
+	 * @param height height.
 	 */
 	public FilterSpec(int width, int height) {
 		this(new Dimension(width, height));

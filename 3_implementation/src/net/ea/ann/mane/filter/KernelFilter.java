@@ -7,12 +7,8 @@
  */
 package net.ea.ann.mane.filter;
 
-import java.io.Serializable;
-
-import net.ea.ann.core.function.Function;
-import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
-import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Kernel;
 
 /**
  * This class represents a kernel filter.
@@ -36,7 +32,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @version 1.0
 	 *
 	 */
-	public static class Kernel implements Cloneable, Serializable {
+	public static class FKernel implements Kernel {
 		
 		/**
 		 * Serial version UID for serializable class.
@@ -52,7 +48,7 @@ public abstract class KernelFilter extends FilterAbstract {
 		 * Constructor with weight.
 		 * @param W weight.
 		 */
-		public Kernel(MatrixStack[] W) {
+		public FKernel(MatrixStack[] W) {
 			if (!checkValid(W)) throw new IllegalArgumentException();
 			this.W = W;
 		}
@@ -100,45 +96,32 @@ public abstract class KernelFilter extends FilterAbstract {
 			return W.length;
 		}
 
-		
-		/**
-		 * Adding other kernel.
-		 * @param kernel other kernel.
-		 * @return sum value.
-		 */
-		public Kernel add(Kernel kernel) {
-			MatrixStack[] sum = this.W != null ? MatrixStack.sum(this.W, kernel.W) : null;
-			return new Kernel(sum);
+		@Override
+		public FKernel add(Kernel kernel) {
+			MatrixStack[] sum = this.W != null ? MatrixStack.sum2(this.W, ((FKernel)kernel).W) : null;
+			return new FKernel(sum);
 		}
-		
-		/**
-		 * Dividing kernel by value.
-		 * @param value value.
-		 * @return divided kernel.
-		 */
-		public Kernel multiply(double value) {
+
+		@Override
+		public FKernel multiply(double value) {
 			MatrixStack[] d = this.W != null ? MatrixStack.multiply(this.W, value) : null;
-			return new Kernel(d);
+			return new FKernel(d);
 		}
 
-		/**
-		 * Dividing kernel by value.
-		 * @param value value.
-		 * @return divided kernel.
-		 */
-		public Kernel divide(double value) {
+		@Override
+		public FKernel divide(double value) {
 			MatrixStack[] d = this.W != null ? MatrixStack.divide(this.W, value) : null;
-			return new Kernel(d);
+			return new FKernel(d);
 		}
 
-		
 		/**
 		 * Calculating sum.
 		 * @param kernels kernels.
 		 * @return sum.
 		 */
-		public static Kernel sum(Kernel[] kernels) {
-			Kernel sum = kernels[0];
+		@Deprecated
+		private static FKernel sum(FKernel[] kernels) {
+			FKernel sum = kernels[0];
 			for (int i = 1; i < kernels.length; i++) sum = sum.add(kernels[i]);
 			return sum;
 		}
@@ -148,8 +131,10 @@ public abstract class KernelFilter extends FilterAbstract {
 		 * @param kernels kernels.
 		 * @return mean.
 		 */
-		public static Kernel mean(Kernel[] kernels) {
-			Kernel sum = sum(kernels);
+		@SuppressWarnings("unused")
+		@Deprecated
+		private static FKernel mean(FKernel[] kernels) {
+			FKernel sum = sum(kernels);
 			return sum.divide(kernels.length);
 		}
 		
@@ -162,51 +147,6 @@ public abstract class KernelFilter extends FilterAbstract {
 	protected KernelFilter() {
 		super();
 	}
-
-	
-	/**
-	 * Accumulating kernel.
-	 * @param dKernel kernel bias.
-	 * @param factor factor.
-	 * @return this filter.
-	 */
-	public abstract ProductFilter accumKernel(Kernel dKernel, double factor);
-
-	
-	/**
-	 * Forwarding evaluation from previous layer to current layer.
-	 * @param time time.
-	 * @param prevLayer current layer.
-	 * @param thisInputLayer current input layer.
-	 * @param thisOutputLayer current output layer.
-	 * @param bias bias.
-	 * @param thisActivateRef activation function.
-	 */
-	public abstract void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef);
-
-	
-	/**
-	 * Calculating derivative of kernel of previous layers given current layers as bias layers.
-	 * @param time time.
-	 * @param prevInputLayer previous input layer.
-	 * @param prevOutputLayer previous output layer.
-	 * @param thisErrorLayer current layer as bias layer.
-	 * @param thisActivateRef activation function of current layer.
-	 * @return derivative of kernel of previous layers given current layers as bias layers.
-	 */
-	public abstract Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
-
-	
-	/**
-	 * Calculating derivative of previous layers given current layers as bias layers.
-	 * @param nextX next X coordinator.
-	 * @param nextY next Y coordinator.
-	 * @param prevOutputLayer previous output layer.
-	 * @param thisErrorLayer current layer as bias layer.
-	 * @param thisActivateRef activation function of current layer.
-	 * @return derivative of previous layers given current layers as bias layers.
-	 */
-	public abstract Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 
 	
 }

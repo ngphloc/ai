@@ -18,6 +18,7 @@ import net.ea.ann.adapter.gen.beans.ForestClassifier;
 import net.ea.ann.adapter.gen.beans.MatrixClassifier;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
 import net.ea.ann.adapter.gen.beans.TransformerClassifier;
+import net.ea.ann.adapter.gen.beans.VGG;
 import net.ea.ann.adapter.gen.ui.GenUIClassifier;
 import net.ea.ann.classifier.Classifier;
 import net.ea.ann.classifier.ClassifierBuilder.ClassifierModel;
@@ -61,7 +62,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	/**
 	 * Name of neuron channel field.
 	 */
-	public final static String NEURON_CHANNEL_FIELD = "classifiera_neuron_channel";
+	public final static String NEURON_CHANNEL_FIELD = GenModelAbstract.NEURON_CHANNEL_FIELD;
 
 	
 	/**
@@ -73,7 +74,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	/**
 	 * Name of raster channel field.
 	 */
-	public final static String RASTER_CHANNEL_FIELD = "classifiera_raster_channel";
+	public final static String RASTER_CHANNEL_FIELD = GenModelAbstract.RASTER_CHANNEL_FIELD;
 
 	
 	/**
@@ -296,10 +297,16 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	public String parameterToShownText(Object parameter, Object... info) throws RemoteException {
 		if (parameter == null)
 			return "";
-		else if (parameter instanceof StackNetworkAbstract)
-			return "Stack classifier";
-		else if (parameter instanceof MatrixNetworkAbstract)
+		else if (parameter instanceof VGG)
+			return "VGG";
+		else if (parameter instanceof MatrixClassifier)
 			return "Matrix classifier";
+		else if (parameter instanceof TransformerClassifier)
+			return "Transformer-based classifier";
+		else if (parameter instanceof ForestClassifier)
+			return "Forest classifier";
+		else if (parameter instanceof StackClassifier)
+			return "Stack classifier";
 		else
 			return parameter.toString();
 	}
@@ -371,7 +378,9 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	 * @return classifier model.
 	 */
 	public static ClassifierModel extractClassifierModel(GenModelRemote gm) {
-		if (gm instanceof MatrixClassifier)
+		if (gm instanceof VGG)
+			return ClassifierModel.vgg;
+		else if (gm instanceof MatrixClassifier)
 			return ClassifierModel.mac;
 		else if (gm instanceof TransformerClassifier)
 			return ClassifierModel.tramac;

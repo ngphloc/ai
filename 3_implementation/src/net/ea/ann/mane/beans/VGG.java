@@ -1,0 +1,661 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
+package net.ea.ann.mane.beans;
+
+import java.util.List;
+
+import net.ea.ann.core.Id;
+import net.ea.ann.core.Util;
+import net.ea.ann.core.function.Function;
+import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
+import net.ea.ann.mane.MatrixLayerImpl;
+import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.mane.MatrixNetworkInitializer;
+import net.ea.ann.mane.Weight;
+import net.ea.ann.mane.WeightSpec;
+import net.ea.ann.mane.WeightTrans;
+import net.ea.ann.mane.filter.FilterSpec;
+import net.ea.ann.mane.filter.FilterSpec.Type;
+import net.ea.ann.raster.RasterAbstract;
+import net.ea.ann.raster.Size;
+import net.ea.ann.transformer.TransformerBasic;
+import net.hudup.core.parser.TextParserUtil;
+
+/**
+ * This class is an implementation of VGG blocks developed by Simonyan and Zisserman with support of matrix.
+ * 
+ * @author Simonyan and Zisserman, Loc Nguyen
+ * @version 1.0
+ *
+ */
+public class VGG extends MatrixNetworkImpl {
+
+
+	/**
+	 * Serial version UID for serializable class. 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	
+	/**
+	 * Default base.
+	 */
+	final static int BASE = ZOOMOUT_DEFAULT;
+	
+	
+	/**
+	 * Field for middle size.
+	 */
+	public final static String MIDDLE_SIZE_FIELD = "vgg_middle_size";
+	
+	
+	/**
+	 * Default value for middle size.
+	 */
+	public final static String MIDDLE_SIZE_DEFAULT = MINSIZE + ", " + MINSIZE;
+	
+	
+	/**
+	 * Field for convolutional filter.
+	 */
+	public final static String CONV_FIELD = "mane_conv";
+	
+	
+	/**
+	 * Default value for convolutional filter.
+	 */
+	public final static boolean CONV_DEFAULT = true;
+
+	
+	/**
+	 * Field for number of blocks.
+	 */
+	public final static String BLOCKS_NUMBER_FIELD = "mane_blocks";
+	
+	
+	/**
+	 * Default value for number of blocks.
+	 */
+	public final static int BLOCKS_NUMBER_DEFAULT = TransformerBasic.BLOCKS_NUMBER_DEFAULT;
+	
+	
+	/**
+	 * Field for number of layers per block.
+	 */
+	public final static String LAYERS_NUMBER_FIELD = "mane_depth";
+	
+	
+	/**
+	 * Default value for number of layers per block.
+	 */
+	public final static int LAYERS_NUMBER_DEFAULT = DEPTH_DEFAULT;
+
+	
+	/**
+	 * Field for number of filters.
+	 */
+	public final static String FILTERS_NUMBER_FIELD = "vgg_filters";
+	
+	
+	/**
+	 * Default value for number of filters.
+	 */
+	public final static int FILTERS_NUMBER_DEFAULT = DEPTH_DEFAULT;
+
+	
+	/**
+	 * Field for filter size.
+	 */
+	public static final String FILTER_SIZE_FIELD = "mane_filter_size";
+	
+	
+	/**
+	 * Default value for filter size.
+	 */
+	public static final int FILTER_SIZE_DEFAULT = BASE_DEFAULT;
+
+	
+	/**
+	 * Field for length of feed-forward network.
+	 */
+	public final static String FFN_LENGTH_FIELD = "vgg_ffn_length";
+	
+	
+	/**
+	 * Default value for length of feed-forward network.
+	 */
+	public final static int FFN_LENGTH_DEFAULT = DEPTH_DEFAULT;
+
+	
+	/**
+	 * Field for flattening feed-forward network mode.
+	 */
+	public final static String FFN_FLATTEN_FIELD = "vgg_ffn_flatten";
+	
+	
+	/**
+	 * Default value for flattening feed-forward network mode.
+	 */
+	public final static boolean FFN_FLATTEN_DEFAULT = false;
+
+	
+	/**
+	 * Field for co-weight mode.
+	 */
+	public final static String COWEIGHT_FIELD = "vgg_coweight";
+	
+	
+	/**
+	 * Default value for co-weight mode.
+	 */
+	public final static boolean COWEIGHT_DEFAULT = FilterSpec.COWEIGHT;
+
+	
+	/**
+	 * Field for including max-pooling filter mode.
+	 */
+	public final static String INCLUDE_MAXPOOL_FIELD = "vgg_include_maxpool";
+	
+	
+	/**
+	 * Default value for including max-pooling filter mode.
+	 */
+	public final static boolean INCLUDE_MAXPOOL_DEFAULT = true;
+
+	
+	/**
+	 * Field for transformer-based weight mode.
+	 */
+	public final static String TRANS_WEIGHT_FIELD = "mane_trans_weight";
+	
+	
+	/**
+	 * Default value for transformer-based weight mode.
+	 */
+	public final static boolean TRANS_WEIGHT_DEFAULT = false;
+
+	
+	/**
+	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 * @param idRef identifier reference.
+	 */
+	public VGG(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+		super(neuronChannel, activateRef, convActivateRef, idRef);
+		config.put(MIDDLE_SIZE_FIELD, MIDDLE_SIZE_DEFAULT);
+		config.put(CONV_FIELD, CONV_DEFAULT);
+		config.put(BLOCKS_NUMBER_FIELD, BLOCKS_NUMBER_DEFAULT);
+		config.put(LAYERS_NUMBER_FIELD, LAYERS_NUMBER_DEFAULT);
+		config.put(FILTERS_NUMBER_FIELD, FILTERS_NUMBER_DEFAULT);
+		config.put(FILTER_SIZE_FIELD, FILTER_SIZE_DEFAULT);
+		config.put(FFN_LENGTH_FIELD, FFN_LENGTH_DEFAULT);
+		config.put(COWEIGHT_FIELD, COWEIGHT_DEFAULT);
+		config.put(INCLUDE_MAXPOOL_FIELD, INCLUDE_MAXPOOL_DEFAULT);
+		config.put(TRANS_WEIGHT_FIELD, TRANS_WEIGHT_DEFAULT);
+	}
+	
+
+	/**
+	 * Constructor with neuron channel, activation function, and convolutional activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 */
+	public VGG(int neuronChannel, Function activateRef, Function convActivateRef) {
+		this(neuronChannel, activateRef, convActivateRef, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel and activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 */
+	public VGG(int neuronChannel, Function activateRef) {
+		this(neuronChannel, activateRef, null, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel.
+	 * @param neuronChannel neuron channel.
+	 */
+	public VGG(int neuronChannel) {
+		this(neuronChannel, null, null, null);
+	}
+
+	
+	@Override
+	protected MatrixLayerAbstract newLayer() {
+		MatrixLayerImpl layer = new MatrixLayerImpl(neuronChannel, activateRef, convActivateRef, idRef) {
+			
+			/**
+			 * Serial version UID for serializable class. 
+			 */
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			protected Weight newWeight(Size sizeW1, Size sizeW2, LayerSpec layerSpec) {
+				if (!paramIsTransWeight() || sizeW2 != null || layerSpec == null)
+					return super.newWeight(sizeW1, sizeW2, layerSpec);
+				Size prevSize = layerSpec.prevSize, thisSize = layerSpec.size;
+				if (prevSize == null || thisSize == null)
+					return super.newWeight(sizeW1, sizeW2, layerSpec);
+				if (prevSize.width != thisSize.width || prevSize.height != thisSize.height)
+					return super.newWeight(sizeW1, sizeW2, layerSpec);
+				if (layerSpec.weightSpec == null || layerSpec.weightSpec.type != net.ea.ann.mane.WeightSpec.Type.transformer)
+					return super.newWeight(sizeW1, sizeW2, layerSpec);
+				
+				return WeightTrans.create(neuronChannel, prevSize, thisSize);
+			}
+
+			@Override
+			protected void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+				super.updateParametersFromBackwardInfo(recordCount, learningRate);
+				if ((this.weight == null) || !(this.weight instanceof WeightTrans)) return;
+				((WeightTrans)this.weight).updateParametersFromBackwardInfo(recordCount, learningRate);
+			}
+
+			@Override
+			protected void resetBackwardInfo() {
+				super.resetBackwardInfo();
+				if ((this.weight == null) || !(this.weight instanceof WeightTrans)) return;
+				((WeightTrans)this.weight).resetBackwardInfo();
+			}
+			
+		};
+		layer.setNetwork(this);
+		return layer;
+	}
+
+
+	/**
+	 * Initializing VGG model.
+	 * @param inputSize input size.
+	 * @param middleSize middle size.
+	 * @param outputSize output size which can be null.
+	 * @return true if initialization is successful.
+	 */
+	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
+		if (inputSize == null) return false;
+		int base = BASE;
+		int blocksNumber = paramGetBlocksNumber();
+		int layersNumberPerBlock = paramGetLayersNumber();
+		int filtersNumberPerLayer = paramGetFiltersNumber();
+		int filterSize = paramGetFilterSize();
+		int ffnLength = paramGetFFNLength();
+		
+		int r = Math.min(inputSize.width/middleSize.width, inputSize.height/middleSize.height);
+		if (r < 1)
+			middleSize = new Size(inputSize.width, inputSize.height);
+		else
+			middleSize = new Size(inputSize.width/r, inputSize.height/r);
+		int[][] numbers = MatrixNetworkInitializer.constructHiddenOutputNeuronNumbers(inputSize, middleSize, base, base, blocksNumber);
+		if (numbers == null) return false;
+		int[] heights = numbers[0];
+		int[] widths = numbers[1];
+
+		List<Size> blockSizes = Util.newList(0);
+		int power = 1;
+		for (int i = 0; i < heights.length; i++) {
+			if (i == 0 || i == heights.length-1) {
+				blockSizes.add(new Size(widths[i], heights[i], (int)Math.pow(filtersNumberPerLayer, power)));
+				power++;
+			}
+			else if (widths[i] != widths[i-1] || heights[i] != heights[i-1]) {
+				blockSizes.add(new Size(widths[i], heights[i], (int)Math.pow(filtersNumberPerLayer, power)));
+				power++;
+			}
+		}
+		if (blockSizes.size() == 0) return false;
+		
+		int defaultNeuronChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
+		boolean flatten = inputSize.depth <= 1 && neuronChannel < defaultNeuronChannel && neuronChannel == 1; //inputSize.depth is actually raster depth.
+		LayerSpec layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height, flatten?defaultNeuronChannel:1));
+		List<LayerSpec> layerSpecs = Util.newList(0);
+		layerSpecs.add(layerSpec0);
+		for (int i = 0; i < blockSizes.size(); i++) {
+			Size blockSize = blockSizes.get(i);
+			for (int j = 0; j < layersNumberPerBlock; j++) {
+				LayerSpec size = new LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth));
+				if (layerSpecs.size() > 0) size.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
+				if (paramIsTransWeight())
+					size.weightSpec = new WeightSpec(net.ea.ann.mane.WeightSpec.Type.transformer);
+				if (paramIsConv()) {
+					size.filterSpec = new FilterSpec(filterSize, filterSize, Type.kernel);
+					size.filterSpec.coweight = paramIsCoweight();
+					size.filterSpec.moveStride = false;
+				}
+				layerSpecs.add(size);
+			}
+			if (paramIsIncludeMaxPool() /*&& paramIsConv()*/) {
+				LayerSpec layerSpec = new LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth));
+				if (layerSpecs.size() > 0) layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
+				layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
+				layerSpec.filterSpec.coweight = paramIsCoweight();
+				layerSpec.filterSpec.moveStride = true;
+				layerSpecs.add(layerSpec);
+			}
+		}
+		if (outputSize == null || ffnLength < 1) return initialize(layerSpecs.toArray(new LayerSpec[] {}), false);
+		
+		Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
+		Size ffnSize = paramIsFFNFlatten() ? new Size(middleSize.width, lastSize.depth*middleSize.height, 1) :
+			new Size(middleSize.width, middleSize.height, lastSize.depth);
+		List<LayerSpec> ffnlLayerSpecs = Util.newList(0);
+		for (int i = 0; i < ffnLength-1; i++) {
+			ffnlLayerSpecs.add(new LayerSpec(new Size(ffnSize)));
+		}
+		int outputDepth = outputSize.depth < 1 ? 1 : outputSize.depth;
+		ffnlLayerSpecs.add(new LayerSpec(new Size(outputSize.width, outputSize.height, outputDepth)));
+		
+		for (int i = 0; i < ffnlLayerSpecs.size(); i++) {
+			if (i > 0) ffnlLayerSpecs.get(i).prevSize = ffnlLayerSpecs.get(i-1).size;
+			if (paramIsVectorized()) {
+				ffnlLayerSpecs.get(i).vecRows = ffnlLayerSpecs.get(i).size.height;
+				ffnlLayerSpecs.get(i).size = new Size(1, ffnlLayerSpecs.get(i).size.width*ffnlLayerSpecs.get(i).size.height, ffnlLayerSpecs.get(i).size.depth);
+			}
+		}
+		layerSpecs.addAll(ffnlLayerSpecs);
+		return initialize(layerSpecs.toArray(new LayerSpec[] {}), false);
+	}
+	
+	
+	/**
+	 * Initializing VGG model.
+	 * @param inputSize input size.
+	 * @param outputSize output size which can be null.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initialize(Size inputSize, Size outputSize) {
+		return initialize(inputSize, outputSize, null);
+	}
+	
+	
+	/**
+	 * Initializing VGG model.
+	 * @param inputSize input size.
+	 * @param outputSize output size which can be null.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeWithImplicitMiddleSize(Size inputSize, Size outputSize) {
+		return initialize(inputSize, paramGetVGGMiddleSize(), outputSize);
+	}
+
+	
+	/**
+	 * Setting VGG middle size.
+	 * @param middleSize VGG middle size.
+	 * @return this VGG.
+	 */
+	VGG paramSetVGGMiddleSize(Size middleSize) {
+		int width = middleSize.width < 1 ? MINSIZE : middleSize.width;
+		int height = middleSize.height < 1 ? MINSIZE : middleSize.height;
+		config.put(MIDDLE_SIZE_FIELD, width + ", " + height);
+		return this;
+	}
+	
+	
+	/**
+	 * Getting VGG middle size.
+	 * @return VGG middle size.
+	 */
+	Size paramGetVGGMiddleSize() {
+		String sizeText = config.containsKey(MIDDLE_SIZE_FIELD) ? config.getAsString(MIDDLE_SIZE_FIELD) : MIDDLE_SIZE_DEFAULT;
+		List<Integer> lsize = TextParserUtil.parseListByClass(sizeText, Integer.class, ",");
+		int width = MINSIZE, height = MINSIZE;
+		if (lsize.size() == 1)
+			width = height = lsize.get(0);
+		else if (lsize.size() > 1) {
+			width = lsize.get(0);
+			height = lsize.get(1);
+		}
+		
+		width = width < 1 ? MINSIZE : width;
+		height = height < 1 ? MINSIZE : height;
+		return new Size(width, height);
+	}
+	
+	
+	/**
+	 * Checking convolutional network mode.
+	 * @return convolutional network mode.
+	 */
+	public boolean paramIsConv() {
+		if (config.containsKey(CONV_FIELD))
+			return config.getAsBoolean(CONV_FIELD);
+		else
+			return CONV_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting convolutional network mode.
+	 * @param conv convolutional network mode.
+	 * @return this classifier.
+	 */
+	public VGG paramSetConv(boolean conv) {
+		config.put(CONV_FIELD, conv);
+		return this;
+	}
+
+	
+	/**
+	 * Getting number of blocks.
+	 * @return number of blocks.
+	 */
+	public int paramGetBlocksNumber() {
+		if (config.containsKey(BLOCKS_NUMBER_FIELD))
+			return config.getAsInt(BLOCKS_NUMBER_FIELD);
+		else
+			return BLOCKS_NUMBER_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting number of blocks.
+	 * @param blocks number of blocks.
+	 * @return this VGG.
+	 */
+	public VGG paramSetBlocksNumber(int blocks) {
+		blocks = blocks < 1 ? BLOCKS_NUMBER_DEFAULT : blocks;
+		config.put(BLOCKS_NUMBER_FIELD, blocks);
+		return this;
+	}
+	
+	
+	/**
+	 * Getting number of layers per block.
+	 * @return number of layers per block.
+	 */
+	public int paramGetLayersNumber() {
+		if (config.containsKey(LAYERS_NUMBER_FIELD))
+			return config.getAsInt(LAYERS_NUMBER_FIELD);
+		else
+			return LAYERS_NUMBER_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting number of layers per block.
+	 * @param layersNumber number of layers per block.
+	 * @return this VGG.
+	 */
+	public VGG paramSetLayersNumber(int layersNumber) {
+		layersNumber = layersNumber < 1 ? LAYERS_NUMBER_DEFAULT : layersNumber;
+		config.put(LAYERS_NUMBER_FIELD, layersNumber);
+		return this;
+	}
+
+	
+	/**
+	 * Getting number of filters per layer.
+	 * @return number of filters per layer.
+	 */
+	public int paramGetFiltersNumber() {
+		if (config.containsKey(FILTERS_NUMBER_FIELD))
+			return config.getAsInt(FILTERS_NUMBER_FIELD);
+		else
+			return FILTERS_NUMBER_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting number of filters per layer.
+	 * @param filtersNumber number of filters per layer.
+	 * @return this VGG.
+	 */
+	public VGG paramSetFiltersNumber(int filtersNumber) {
+		filtersNumber = filtersNumber < 1 ? FILTERS_NUMBER_DEFAULT : filtersNumber;
+		config.put(FILTERS_NUMBER_FIELD, filtersNumber);
+		return this;
+	}
+	
+	
+	/**
+	 * Getting filter size.
+	 * @return filter size.
+	 */
+	int paramGetFilterSize() {
+		int filterSize = config.getAsInt(FILTER_SIZE_FIELD);
+		return filterSize < 1 ? FILTER_SIZE_DEFAULT : filterSize;
+	}
+	
+	
+	/**
+	 * Setting filter size.
+	 * @param filterSize filter size.
+	 * @return this classifier.
+	 */
+	VGG paramSetFilterSize(int filterSize) {
+		filterSize = filterSize < 1 ? FILTER_SIZE_DEFAULT : filterSize;
+		config.put(FILTER_SIZE_FIELD, filterSize);
+		return this;
+	}
+
+	
+	/**
+	 * Getting length of feed-forward network.
+	 * @return length of feed-forward network.
+	 */
+	int paramGetFFNLength() {
+		if (config.containsKey(FFN_LENGTH_FIELD))
+			return config.getAsInt(FFN_LENGTH_FIELD);
+		else
+			return FFN_LENGTH_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting length of feed-forward network.
+	 * @param ffnLength length of feed-forward network.
+	 * @return this VGG.
+	 */
+	VGG paramSetFFNLength(int ffnLength) {
+		ffnLength = ffnLength < 1 ? FFN_LENGTH_DEFAULT : ffnLength;
+		config.put(FFN_LENGTH_FIELD, ffnLength);
+		return this;
+	}
+
+
+	/**
+	 * Checking flattening feed-forward network mode.
+	 * @return flattening feed-forward network mode.
+	 */
+	boolean paramIsFFNFlatten() {
+		if (config.containsKey(FFN_FLATTEN_FIELD))
+			return config.getAsBoolean(FFN_FLATTEN_FIELD);
+		else
+			return FFN_FLATTEN_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting flattening feed-forward network mode.
+	 * @param ffnFlatten flattening feed-forward network mode.
+	 * @return this classifier.
+	 */
+	VGG paramSetFFNFlatten(boolean ffnFlatten) {
+		config.put(FFN_FLATTEN_FIELD, ffnFlatten);
+		return this;
+	}
+
+	
+	/**
+	 * Checking co-weight mode.
+	 * @return co-weight mode.
+	 */
+	boolean paramIsCoweight() {
+		if (config.containsKey(COWEIGHT_FIELD))
+			return config.getAsBoolean(COWEIGHT_FIELD);
+		else
+			return COWEIGHT_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting co-weight mode.
+	 * @param coweight co-weight mode.
+	 * @return this VGG.
+	 */
+	VGG paramSetCoweight(boolean coweight) {
+		config.put(COWEIGHT_FIELD, coweight);
+		return this;
+	}
+
+
+	/**
+	 * Checking including max-pooling mode.
+	 * @return including max-pooling mode.
+	 */
+	boolean paramIsIncludeMaxPool() {
+		if (config.containsKey(INCLUDE_MAXPOOL_FIELD))
+			return config.getAsBoolean(INCLUDE_MAXPOOL_FIELD);
+		else
+			return INCLUDE_MAXPOOL_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting including max-pooling mode.
+	 * @param includeMaxPool including max-pooling mode.
+	 * @return this classifier.
+	 */
+	VGG paramSetIncludeMaxPool(boolean includeMaxPool) {
+		config.put(INCLUDE_MAXPOOL_FIELD, includeMaxPool);
+		return this;
+	}
+
+	
+	/**
+	 * Checking transformer-based weight mode.
+	 * @return transformer-based weight mode.
+	 */
+	boolean paramIsTransWeight() {
+		if (config.containsKey(TRANS_WEIGHT_FIELD))
+			return config.getAsBoolean(TRANS_WEIGHT_FIELD);
+		else
+			return TRANS_WEIGHT_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting transformer-based weight mode.
+	 * @param transWeight transformer-based weight mode.
+	 * @return this classifier.
+	 */
+	VGG paramSetTransWeight(boolean transWeight) {
+		config.put(TRANS_WEIGHT_FIELD, transWeight);
+		return this;
+	}
+
+
+}

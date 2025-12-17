@@ -48,7 +48,7 @@ public class ForestClassifier extends ClassifierModelAbstract {
 	@Override
 	protected Classifier createGenModel() {
 		try {
-			return net.ea.ann.classifier.ForestClassifier.create(getRasterChannel(), isNorm());
+			return net.ea.ann.classifier.ForestClassifier.create(getNeuronChannel(), getRasterChannel(), isNorm());
 		} catch (Throwable e) {Util.trace(e);}
 		return null;
 	}

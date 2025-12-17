@@ -10,6 +10,11 @@ package net.ea.ann.mane.filter;
 import java.io.Serializable;
 import java.util.Random;
 
+import net.ea.ann.core.function.Function;
+import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Kernel;
+
 /**
  * This interface represents a filter.
  * 
@@ -86,6 +91,13 @@ public interface Filter extends Serializable, Cloneable {
 
 	
 	/**
+	 * Getting applying activation function mode.
+	 * @return applying activation function mode.
+	 */
+	default boolean applyActivate() {return true;}
+	
+	
+	/**
 	 * Initializing parameters by specified value.
 	 * @param v value.
 	 */
@@ -104,6 +116,51 @@ public interface Filter extends Serializable, Cloneable {
 	 * @return size of parameters.
 	 */
 	default int sizeOfParams() {return 0;}
+
+	
+	/**
+	 * Accumulating kernel.
+	 * @param dKernel kernel bias.
+	 * @param factor factor.
+	 * @return this filter.
+	 */
+	Filter accumKernel(Kernel dKernel, double factor);
+
+	
+	/**
+	 * Forwarding evaluation from previous layer to current layer.
+	 * @param time time.
+	 * @param prevLayer current layer.
+	 * @param thisInputLayer current input layer.
+	 * @param thisOutputLayer current output layer.
+	 * @param bias bias.
+	 * @param thisActivateRef activation function.
+	 */
+	void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef);
+
+	
+	/**
+	 * Calculating derivative of kernel of previous layers given current layers as bias layers.
+	 * @param time time.
+	 * @param prevInputLayer previous input layer.
+	 * @param prevOutputLayer previous output layer.
+	 * @param thisErrorLayer current layer as bias layer.
+	 * @param thisActivateRef activation function of current layer.
+	 * @return derivative of kernel of previous layers given current layers as bias layers.
+	 */
+	Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
+
+	
+	/**
+	 * Calculating derivative of previous layers given current layers as bias layers.
+	 * @param nextX next X coordinator.
+	 * @param nextY next Y coordinator.
+	 * @param prevOutputLayer previous output layer.
+	 * @param thisErrorLayer current layer as bias layer.
+	 * @param thisActivateRef activation function of current layer.
+	 * @return derivative of previous layers given current layers as bias layers.
+	 */
+	Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 
 	
 }

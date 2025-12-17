@@ -18,6 +18,7 @@ import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
@@ -126,6 +127,15 @@ public class TransformerImpl extends TransformerAbstract {
 	}
 
 
+//	/*
+//	 * This method will be corrected by updating parameters later by just only removing it.
+//	 */
+//	@Override
+//	protected Error[][] backward(Error[] errors, boolean learning, double learningRate) {
+//		return super.backward(errors, true, learningRate);
+//	}
+
+	
 	/**
 	 * Checking QK-Y mode.
 	 * @return QK-Y mode.
@@ -417,7 +427,7 @@ public class TransformerImpl extends TransformerAbstract {
 			int n = n(), dm = dm();
 			if (n <= 0 || dm <= 0) return null;
 			this.Yqk = newMatrix(n, dm, defineDepth());
-			Matrix.fill(this.Yqk, this.Y.get(0, 0).zero());
+			MatrixUtil.fill(this.Yqk, this.Y.get(0, 0).zero());
 			return this.Yqk;
 		}
 		
@@ -1013,6 +1023,24 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	
 
 	/**
+	 * Removing output adapter.
+	 */
+	public TransformerAbstract removeOutputFFN() {
+		if (!validate()) return this;
+		if (encoder != null && decoder != null) {
+			decoder.removeOutputFFN();
+		}
+		else if (encoder != null && decoder == null) {
+			encoder.removeOutputFFN();
+		}
+		else if (encoder == null && decoder != null) {
+			decoder.removeOutputFFN();
+		}
+		return this;
+	}
+
+	
+	/**
 	 * Getting size of trainers.
 	 * @return size of trainers.
 	 */
@@ -1091,7 +1119,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 		
 		MatrixLayer nextLayer = null;
 		while ((nextLayer = this.getNextLayer()) != null) {
-			Matrix.copy(result, nextLayer.getInput());
+			MatrixUtil.copy(result, nextLayer.getInput());
 			result = nextLayer.evaluate();
 		}
 		return result;
@@ -1185,32 +1213,84 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	/**
 	 * Back-warding transformer block by errors.
 	 * @param errors specified errors.
+	 * @param learning learning mode.
 	 * @param learningRate learning rate.
 	 * @return learning errors. The first element is main error and the second element is attached error\\.
 	 */
-	protected Error[][] backward(Error[] errors, double learningRate) {
+	private Error[][] backward0(Error[] errors, boolean learning, double learningRate) {
 		if (!validate()) return null;
 		updateConfig();
 		
 		if (encoder != null && decoder != null) {
-			return decoder.backward(errors, learningRate);
+			return decoder.backward(errors, learning, learningRate);
 		}
 		else if (encoder != null && decoder == null) {
-			return encoder.backward(errors, learningRate);
+			return encoder.backward(errors, learning, learningRate);
 		}
 		else if (encoder == null && decoder != null) {
-			return decoder.backward(errors, learningRate);
+			return decoder.backward(errors, learning, learningRate);
 		}
 		else
 			return null;
 	}
 	
 	
+	/**
+	 * Back-warding transformer block by errors.
+	 * @param errors specified errors.
+	 * @param learning learning mode.
+	 * @param learningRate learning rate.
+	 * @return learning errors. The first element is main error and the second element is attached error\\.
+	 */
+	protected Error[][] backward(Error[] errors, boolean learning, double learningRate) {
+		if (!learning) return backward0(errors, learning, learningRate);
+		Error[][] outputErrors = backwardWithoutLearning(errors, learningRate);
+		updateParametersFromBackwardInfo(errors.length, learningRate);
+		return outputErrors;
+	}
+
+	
+	/**
+	 * Learning attention by errors.
+	 * @param errors specified errors.
+	 * @param learningRate learning rate.
+	 * @return learning errors.
+	 */
+	Error[][] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
+		resetBackwardInfo();
+		if (outputErrors == null || outputErrors.length == 0) return null;
+		Error[][] errors = new Error[outputErrors.length][];
+		for (int i = 0; i < outputErrors.length; i++) {
+			errors[i] = backward0(new Error[] {outputErrors[i]}, false, learningRate)[0];
+		}
+		return errors;
+	}
+
+	
+	/**
+	 * Updating parameters from backward information.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	public void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		if (encoder != null) encoder.updateParametersFromBackwardInfo(recordCount, learningRate);
+		if (decoder != null) decoder.updateParametersFromBackwardInfo(recordCount, learningRate);
+	}
+
+	
+	/**
+	 * Resetting backward information.
+	 */
+	public void resetBackwardInfo() {
+		if (encoder != null) encoder.resetBackwardInfo();
+		if (decoder != null) decoder.resetBackwardInfo();
+	}
+
+	
 	@Override
 	public net.ea.ann.mane.Error[] backward(net.ea.ann.mane.Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-		if (!learning) throw new IllegalArgumentException("Method Transformer::backward(Matrix[], MatrixLayer, boolean, double) does not support learning = false");
 		Error[] errors = Error.create(outputErrors);
-		Error[][] learnedErrors = backward(errors, learningRate);
+		Error[][] learnedErrors = backward(errors, learning, learningRate);
 		if (learnedErrors == null || learnedErrors.length == 0 || learnedErrors[0] == null) return null;
 		
 		net.ea.ann.mane.Error[] backwardErrors = Error.extract(learnedErrors[0]);
@@ -1289,7 +1369,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 						errorList.add(error);
 					}
 				}
-				outputErrors = backward(errorList.toArray(new Error[] {}), lr);
+				outputErrors = backward(errorList.toArray(new Error[] {}), true, lr);
 			}
 			else {
 				List<net.ea.ann.mane.Record> subinouts = Util.newList(0);

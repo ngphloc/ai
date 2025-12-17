@@ -78,7 +78,12 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 */
 	public int sizeOfParams() {
 		int size = 0;
-		if (classifier instanceof MatrixClassifier) {
+		if (classifier instanceof VGG) {
+			VGG vgg = (VGG)classifier;
+			size = new MatrixNetworkAssoc(vgg.nut).sizeOfParams();
+			if (vgg.adjuster != null) size += new MatrixNetworkAssoc(vgg.adjuster).sizeOfParams();
+		}
+		else if (classifier instanceof MatrixClassifier) {
 			MatrixClassifier mac = (MatrixClassifier)classifier;
 			size = new MatrixNetworkAssoc(mac.nut).sizeOfParams();
 			if (mac.adjuster != null) size += new MatrixNetworkAssoc(mac.adjuster).sizeOfParams();
@@ -105,7 +110,12 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 */
 	public int depth() {
 		int depth = 0;
-		if (classifier instanceof MatrixClassifier) {
+		if (classifier instanceof VGG) {
+			VGG vgg = (VGG)classifier;
+			depth = vgg.nut.size() - 1;
+			if (vgg.adjuster != null) depth += vgg.adjuster.size() - 1;
+		}
+		else if (classifier instanceof MatrixClassifier) {
 			MatrixClassifier mac = (MatrixClassifier)classifier;
 			depth = mac.nut.size() - 1;
 			if (mac.adjuster != null) depth += mac.adjuster.size() - 1;
@@ -186,6 +196,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		public int blocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 
 		/**
+		 * Transformer-based weight mode.
+		 */
+		public boolean transWeight = ClassifierAbstract.TRANS_WEIGHT_DEFAULT;
+		
+		/**
 		 * Tree model.
 		 */
 		public TreeModel treeModel = TreeModel.mac;
@@ -237,6 +252,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			this.dual = builder.dual;
 			this.entropyTrainer = builder.entropyTrainer;
 			this.blocks = builder.blocks;
+			this.transWeight = builder.transWeight;
 			this.treeModel = builder.treeModel;
 		}
 		
@@ -481,6 +497,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			result.append("model=" + params.model + "~dataset=" + params.dataset +
 				"~entropy=" + params.entropyTrainer +
 				"~conv=" + params.conv +
+				"~transw=" + params.transWeight +
 				"~vec=" + params.vectorized +
 				"~baseline=" + params.baseline +
 				"~adjust=" + params.adjust +
@@ -755,6 +772,70 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	}
 	
 	
+//	/**
+//	 * Test of classification with CIFAR-10 dataset.
+//	 * @param baseRastersList list of base datasets.
+//	 * @param testRastersList list of testing dataset.
+//	 * @param testresultDir testing result directory.
+//	 */
+//	private static void classifyCIFAR10(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int batches) {
+//		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
+//		int maxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
+//		int neuronChannel = RasterAbstract.NEURON_CHANNEL_DEFAULT;
+//		int rasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
+//		double learningRate = Network.LEARN_RATE_DEFAULT;
+//		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
+//		boolean dual = ClassifierAbstract.DUAL_DEFAULT;
+//		ClassifierBuilder builder = new ClassifierBuilder(neuronChannel);
+//		builder.setRasterChannel(rasterChannel);
+//		builder.setLearningRate(learningRate);
+//		builder.setBatches(batches);
+//		builder.setBaseline(baseline);
+//		builder.setDual(dual);
+//
+//		int minBaseSize = baseRastersList.get(0).size();
+//		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());
+//		if (builder.getBatches() > minBaseSize) {
+//			builder.setBatches(1);
+//			System.out.println("Batches are re-calculated as " + builder.getBatches() + "\n");
+//		}
+//
+//		boolean[] vectorizeds = new boolean[] {false, true};
+//		int[] depths = new int[] {2, 3, 5};
+//		boolean[] entropyTrainers = new boolean[] {true};
+//		boolean[] adjusts = new boolean[] {false, true};
+//		ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.vgg, ClassifierModel.mac, ClassifierModel.tramac};
+//		boolean[] convs = new boolean[] {false, true};
+//		for (boolean vectorized : vectorizeds) {
+//			builder.setVectorized(vectorized);
+//			for (int depth : depths) {
+//				builder.setDepth(depth);
+//				for (boolean entropyTrainer : entropyTrainers) {
+//					builder.setEntropyTrainer(entropyTrainer);
+//					for (boolean adjust : adjusts) {
+//						builder.setAdjust(adjust);
+//						for (ClassifierModel model : models) {
+//							builder.setModel(model);
+//							for (boolean conv : convs) {
+//								System.out.println("Training " +
+//									("vectorized=" + vectorized) +
+//									(", depth=" + depth) +
+//									(", entropy=" + entropyTrainer) +
+//									(", adjust=" + adjust) +
+//									(", model=" + model) +
+//									(", conv=" + conv));
+//								builder.setConv(conv);
+//								classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
+//								System.out.println("\n");
+//							} //End for CNN.
+//						} //End for models.
+//					}
+//				} //End for entropy trainers.
+//			} //End for depth.
+//		} //End for vectorizations.
+//	}
+	
+	
 	/**
 	 * Test of classification with CIFAR-10 dataset.
 	 * @param baseRastersList list of base datasets.
@@ -764,15 +845,18 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	private static void classifyCIFAR10(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int batches) {
 		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
 		int maxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
+		int neuronChannel = RasterAbstract.NEURON_CHANNEL_DEFAULT;
 		int rasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
 		double learningRate = Network.LEARN_RATE_DEFAULT;
 		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
 		boolean dual = ClassifierAbstract.DUAL_DEFAULT;
-		ClassifierBuilder builder = new ClassifierBuilder(rasterChannel);
+		ClassifierBuilder builder = new ClassifierBuilder(neuronChannel);
+		builder.setRasterChannel(rasterChannel);
 		builder.setLearningRate(learningRate);
 		builder.setBatches(batches);
 		builder.setBaseline(baseline);
 		builder.setDual(dual);
+		builder.setAdjust(ClassifierAbstract.ADJUST_DEFAULT);
 
 		int minBaseSize = baseRastersList.get(0).size();
 		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());
@@ -782,40 +866,37 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		}
 
 		boolean[] vectorizeds = new boolean[] {false, true};
-		int[] depths = new int[] {2, 3, 5};
-		boolean[] entropyTrainers = new boolean[] {true};
-		boolean[] adjusts = new boolean[] {false, true};
-		ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.mac, ClassifierModel.tramac};
+		int[] depths = new int[] {ClassifierAbstract.DEPTH_DEFAULT};
 		boolean[] convs = new boolean[] {false, true};
+		boolean[] transWeights = new boolean[] {false, true};
+		ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.vgg};
 		for (boolean vectorized : vectorizeds) {
 			builder.setVectorized(vectorized);
 			for (int depth : depths) {
 				builder.setDepth(depth);
-				for (boolean entropyTrainer : entropyTrainers) {
-					builder.setEntropyTrainer(entropyTrainer);
-					for (boolean adjust : adjusts) {
-						builder.setAdjust(adjust);
+				for (boolean conv : convs) {
+					builder.setConv(conv);
+					for (boolean transWeight : transWeights) {
+						if (conv && transWeight) continue;
+						builder.setTransWeight(transWeight);
 						for (ClassifierModel model : models) {
 							builder.setModel(model);
-							for (boolean conv : convs) {
 								System.out.println("Training " +
 									("vectorized=" + vectorized) +
 									(", depth=" + depth) +
-									(", entropy=" + entropyTrainer) +
-									(", adjust=" + adjust) +
-									(", model=" + model) +
-									(", conv=" + conv));
-								builder.setConv(conv);
+									(", conv=" + conv) +
+									(", transw=" + transWeight) +
+									(", model=" + model));
 								classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
 								System.out.println("\n");
-							} //End for CNN.
-						} //End for models.
-					}
-				} //End for entropy trainers.
-			} //End for depth.
-		} //End for vectorizations.
+						} //Model.
+					} //Transformer-based weight.
+				} //CNN.
+			} //Depth.
+		} //Vectorization.
+		
 	}
-	
+
 	
 	/**
 	 * Test of classification with CIFAR-10 dataset.

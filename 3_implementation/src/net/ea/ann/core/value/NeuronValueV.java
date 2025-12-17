@@ -64,7 +64,7 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 		try {
 			for (int i = 0; i < zeros.length; i++) {
 				try {
-					zeros[i] = new NeuronValueV(i, 0);
+					zeros[i] = i > 0 ? new NeuronValueV(i, 0) : null;
 				} catch (Throwable e) {Util.trace(e);}
 			}
 		} catch (Throwable e) {Util.trace(e);}
@@ -72,7 +72,7 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 		try {
 			for (int i = 0; i < units.length; i++) {
 				try {
-					units[i] = new NeuronValueV(i, 1);
+					units[i] = i > 0 ? new NeuronValueV(i, 1) : null;
 				} catch (Throwable e) {Util.trace(e);}
 			}
 		} catch (Throwable e) {Util.trace(e);}
@@ -91,6 +91,7 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 	 * @param initValue initial value.
 	 */
 	public NeuronValueV(int dim, double initValue) {
+		if (dim <= 0) throw new IllegalArgumentException();
 		this.v = new double[dim < 0? 0 : dim];
 		for (int i = 0; i < this.v.length; i++) this.v[i] = initValue;
 	}
@@ -101,7 +102,8 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 	 * @param array double array.
 	 */
 	public NeuronValueV(double...array) {
-		this.v = array != null ? new double[array.length] : new double[0];
+		if (array.length == 0) throw new IllegalArgumentException();
+		this.v = new double[array.length];
 		for (int i = 0; i < this.v.length; i++) this.v[i] = array[i];
 	}
 	
@@ -111,6 +113,7 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 	 * @param values values collection.
 	 */
 	public NeuronValueV(Collection<Double> values) {
+		if (values.size() == 0) throw new IllegalArgumentException();
 		this.v = new double[values.size()];
 		int i = 0;
 		for (double value : values) {
@@ -171,6 +174,7 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 
 	@Override
 	public NeuronValue resize(int newDim) {
+		if (newDim <= 0) throw new IllegalArgumentException();
 		if (newDim == this.v.length) return this;
 		if (newDim <= 1) return new NeuronValue1(this.v[0]);
 		

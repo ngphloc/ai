@@ -6,6 +6,7 @@ import java.util.Set;
 
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
 
@@ -577,14 +578,14 @@ class Error0 implements Cloneable, Serializable {
 		Error0 result = new Error0();
 		
 		if (this.errorY != null && error.errorY != null)
-			result.errorY = Matrix.sum(this.errorY, error.errorY);
+			result.errorY = MatrixUtil.sum(this.errorY, error.errorY);
 		else if (this.errorY != null && error.errorY == null)
 			result.errorY = this.errorY;
 		else if (this.errorY == null && error.errorY != null)
 			result.errorY = error.errorY;
 		
 		if (this.errorX != null && error.errorX != null)
-			result.errorX = Matrix.sum(this.errorX, error.errorX);
+			result.errorX = MatrixUtil.sum(this.errorX, error.errorX);
 		else if (this.errorX != null && error.errorX == null)
 			result.errorX = this.errorX;
 		else if (this.errorX == null && error.errorX != null)

@@ -11,7 +11,15 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.generator.GeneratorWeighted;
 
-public abstract class StackClassifierAbstract extends ClassifierAbstract {
+/**
+ * This class is basic implementation of classifier within context of stack network.
+ * 
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+@Deprecated
+abstract class StackClassifierAbstract extends ClassifierAbstract {
 
 	
 	/**

@@ -31,6 +31,7 @@ import net.ea.ann.core.generator.GeneratorWeighted;
 import net.ea.ann.core.generator.Trainer;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
 import net.ea.ann.raster.RasterProperty.Label;
@@ -214,6 +215,8 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 		super(neuronChannel, activateRef, contentActivateRef, idRef);
 //		this.fullNetworkNeuronChannel = FULL_NETWORK_NEURON_CHANNEL_DEFAULT;
 		
+		this.config.put(RasterAbstract.NEURON_CHANNEL_FIELD, RasterAbstract.NEURON_CHANNEL_DEFAULT);
+		this.config.put(RasterAbstract.RASTER_CHANNEL_FIELD, RasterAbstract.RASTER_CHANNEL_DEFAULT);
 		this.config.put(COMB_NUMBER_FIELD, COMB_NUMBER_DEFAULT);
 		this.config.put(ZOOMOUT_FIELD, ZOOMOUT_DEFAULT);
 		this.config.put(GET_FEATURE_FIELD, GET_FEATURE_DEFAULT);
@@ -586,6 +589,30 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 
 	
 	/**
+	 * Getting raster channel.
+	 * @return raster channel.
+	 */
+	int paramGetRasterChannel() {
+		if (config.containsKey(RasterAbstract.RASTER_CHANNEL_FIELD))
+			return config.getAsInt(RasterAbstract.RASTER_CHANNEL_FIELD);
+		else
+			return RasterAbstract.RASTER_CHANNEL_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting raster channel.
+	 * @param rasterChannel raster channel.
+	 * @return this network.
+	 */
+	StackClassifier paramSetRasterChannel(int rasterChannel) {
+		rasterChannel = rasterChannel < 1 ? RasterAbstract.RASTER_CHANNEL_DEFAULT : rasterChannel;
+		config.put(RasterAbstract.RASTER_CHANNEL_FIELD, rasterChannel);
+		return this;
+	}
+
+	
+	/**
 	 * Creating classifier with neuron channel, activation functions, and ID reference.
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function, which is often activation function related to weights like sigmod function.
@@ -613,13 +640,16 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 	/**
 	 * Creating classifier with neuron channel and norm flag.
 	 * @param neuronChannel specified neuron channel.
+	 * @param rasterChannel raster channel.
 	 * @param isNorm norm flag.
 	 * @return classifier.
 	 */
-	public static StackClassifier create(int neuronChannel, boolean isNorm) {
+	public static StackClassifier create(int neuronChannel, int rasterChannel, boolean isNorm) {
 		Function activateRef = Raster.toActivationRef(neuronChannel, isNorm);
 		Function contentActivateRef = Raster.toConvActivationRef(neuronChannel, isNorm);
-		return create(neuronChannel, activateRef, contentActivateRef, null);
+		StackClassifier stac = create(neuronChannel, activateRef, contentActivateRef, null);
+		stac.paramSetRasterChannel(rasterChannel);
+		return stac;
 	}
 	
 	

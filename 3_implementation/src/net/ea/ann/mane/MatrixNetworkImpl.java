@@ -7,7 +7,6 @@
  */
 package net.ea.ann.mane;
 
-import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,6 +19,8 @@ import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Size;
 
@@ -173,119 +174,47 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 
 
 	/**
-	 * This class contains size and filter.
-	 * @author Loc Nguyen
-	 * @version 1.0
-	 *
-	 */
-	protected class FilterSize implements Cloneable, Serializable {
-		
-		/**
-		 * Serial version UID for serializable class. 
-		 */
-		private static final long serialVersionUID = 1L;
-		
-		/**
-		 * Size.
-		 */
-		public Size size = null;
-		
-		/**
-		 * Filter.
-		 */
-		public FilterSpec filter = null;
-		
-		/**
-		 * Constructor with size and filter.
-		 * @param size size.
-		 * @param filter filter.
-		 */
-		public FilterSize(Size size, FilterSpec filter) {
-			this.size = size;
-			this.filter = filter;
-		}
-
-		/**
-		 * Constructor with size.
-		 * @param size size.
-		 */
-		public FilterSize(Size size) {
-			this(size, null);
-		}
-
-		/**
-		 * Constructor with filter.
-		 * @param size size.
-		 */
-		public FilterSize(FilterSpec filter) {
-			this(null, filter);
-		}
-
-		/**
-		 * Default constructor.
-		 */
-		public FilterSize() {
-			
-		}
-		
-	}
-	
-	/**
 	 * Initializing matrix neural network with sizes and filters.
-	 * @param sizes sizes and filters.
+	 * @param layerSpecs array of layer specification.
 	 * @param dual dual mode.
 	 * @return true if initialization is successful.
 	 */
-	protected boolean initialize(FilterSize[] sizes, boolean dual) {
-		if (sizes == null || sizes.length < 2) return false;
+	protected boolean initialize(LayerSpec[] layerSpecs, boolean dual) {
+		if (layerSpecs == null || layerSpecs.length < 2) return false;
 		this.layers = null;
 		
-		//Vectorizing size array.
-		FilterSize[] newSizes = new FilterSize[sizes.length];
-		for (int i = 0; i < sizes.length; i++) {
-			newSizes[i] = new FilterSize(sizes[i].filter);
-			if (paramIsVectorized())
-				newSizes[i].size = new Size(1, sizes[i].size.height*sizes[i].size.width, sizes[i].size.depth);
-			else
-				newSizes[i].size = sizes[i].size;
-		}
-		
 		//Initializing layer.
-		List<MatrixLayerAbstract> layers = Util.newList(sizes.length);
+		List<MatrixLayerAbstract> layers = Util.newList(layerSpecs.length);
 		MatrixLayerImpl prevLayer = (MatrixLayerImpl)newLayer();
-		if (paramIsVectorized()) prevLayer.setVecRows(sizes[0].size.height);
+		if (layerSpecs[0].isVectorized()) prevLayer.setVecRows(layerSpecs[0].vecRows);
 		prevLayer.setLearnFilter(paramIsLearnFilter());
-		if (!new MatrixLayerInitializer(prevLayer).initialize(newSizes[0].size))
-			return false;
+		if (!new MatrixLayerInitializer(prevLayer).initialize(layerSpecs[0].size)) return false;
 		layers.add(prevLayer);
 		
 		Size prevSize = prevLayer.getSize();
-		if (prevSize.width != newSizes[0].size.width || prevSize.height != newSizes[0].size.height) return false;
+		if (prevSize.width != layerSpecs[0].size.width || prevSize.height != layerSpecs[0].size.height) return false;
 		Size thisSize = prevSize;
-		for (int i = 1; i < newSizes.length; i++) {
-			int thisVecRows = sizes[i].size.height;
+		for (int i = 1; i < layerSpecs.length; i++) {
+			int thisVecRows = layerSpecs[i].vecRows;
 			MatrixLayerImpl layer = (MatrixLayerImpl)newLayer();
-			if (paramIsVectorized()) layer.setVecRows(thisVecRows);
+			if (layerSpecs[i].isVectorized()) layer.setVecRows(thisVecRows);
 			layer.setLearnFilter(paramIsLearnFilter());
 			
-			thisSize = newSizes[i].size;
-			prevSize = newSizes[i].filter != null ? thisSize : prevSize;
-			if (!new MatrixLayerInitializer(layer).initialize(thisSize, prevSize, prevLayer, newSizes[i].filter))
-				return false;
+			thisSize = layerSpecs[i].size;
+			if (!new MatrixLayerInitializer(layer).initialize(thisSize, prevSize, prevLayer, layerSpecs[i])) return false;
 			Size currentSize = layer.getSize();
 			if (currentSize.width != thisSize.width || currentSize.height != thisSize.height) return false;
 			
 			layers.add(layer);
 			prevLayer = layer;
 			prevSize = currentSize;
-			if (newSizes[i].filter == null || !dual) continue;
+			if (layerSpecs[i].filterSpec == null || !dual) continue;
 			
 			thisSize = prevSize;
 			MatrixLayerImpl dualLayer = (MatrixLayerImpl)newLayer();
-			if (paramIsVectorized()) dualLayer.setVecRows(thisVecRows);
+			if (layerSpecs[i].isVectorized()) dualLayer.setVecRows(thisVecRows);
 			dualLayer.setLearnFilter(paramIsLearnFilter());
-			if (!new MatrixLayerInitializer(dualLayer).initialize(thisSize, prevSize, prevLayer, null))
-				return false;
+			if (!new MatrixLayerInitializer(dualLayer).initialize(thisSize, prevSize, prevLayer, null)) return false;
 			Size dualSize = dualLayer.getSize();
 			if (dualSize.width != thisSize.width || dualSize.height != thisSize.height) return false;
 			
@@ -294,27 +223,6 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			prevSize = dualSize;
 		}
 		this.layers = layers.toArray(new MatrixLayerAbstract[] {});
-		
-		//Adjusting layers by removing redundant filters.
-		for (int i = 1; i < newSizes.length; i++) {
-//			MatrixLayerAbstract layer = this.layers[i];
-//			if (layer.getFilter() == null) continue;
-//			Filter2D filter = layer.getFilter();
-//			ConvLayerSingle2D convLayer = layer.getPrevInputConvLayer();
-//			int H = convLayer.getHeight(), h = filter.getStrideHeight();
-//			int W = convLayer.getWidth(), w = filter.getStrideWidth();
-//			if (H < h || W < w) {
-//				layer.removeFilter();
-//				continue;
-//			}
-			
-//			MatrixLayerAbstract prevOutputLayer = layer.getPrevLayer();
-//			if (prevOutputLayer == null) continue;
-//			ConvLayerSingle2D prevConvOutputLayer = prevOutputLayer.getPrevInputConvLayer();
-//			if (prevConvOutputLayer == null) continue;
-//			if (prevConvOutputLayer.getHeight() < H+h || prevConvOutputLayer.getWidth() < W+w)
-//				layer.removeFilter();
-		}
 		
 		new MatrixNetworkAssoc(this).initParams();
 //		history.clear();
@@ -326,20 +234,20 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * Initializing matrix neural network.
 	 * @param inputSize1 input size 1.
 	 * @param outputSize1 output size 1, which can be null.
-	 * @param filter1 filter 1, which can be null.
+	 * @param filterSpec1 filter specification 1, which can be null.
 	 * @param depth1 the number 1 of hidden layers plus output layer, which can be 0.
 	 * @param dual1 dual mode 1.
 	 * @param outputSize2 output size 1, which can be null.
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size outputSize2, int depth2) {
+	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filterSpec1, int depth1, boolean dual1, Size outputSize2, int depth2) {
 		if (inputSize1 == null || inputSize1.height <= 0 || inputSize1.width <= 0) return false;
 //		if ((filter1 != null) && (filter1 instanceof DeconvConvFilter)) filter1 = null;
-		if ((filter1 != null) && (filter1.width() < 1 || filter1.height() < 1)) filter1 = null;
+		if ((filterSpec1 != null) && (filterSpec1.width() < 1 || filterSpec1.height() < 1)) filterSpec1 = null;
 		depth1 = depth1 < 0 ? 0 : depth1;
 		depth2 = depth2 < 0 ? 0 : depth2;
-		dual1 = filter1 != null ? dual1 : false;
+		dual1 = filterSpec1 != null ? dual1 : false;
 
 		int inputStackDepth = inputSize1.depth;
 		int hiddenStackDepth = outputSize1 != null ? outputSize1.depth : (outputSize2 != null ? outputSize2.depth : inputSize1.depth);
@@ -349,14 +257,14 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		outputStackDepth = outputStackDepth < 1 ? 1 : outputStackDepth;
 		
 		//Calculating hidden layer number 1.
-		int hBase1 = filter1 != null ? filter1.height() : ZOOMOUT_DEFAULT;
-		int wBase1 = filter1 != null ? filter1.width() : ZOOMOUT_DEFAULT;
+		int hBase1 = filterSpec1 != null ? filterSpec1.height() : ZOOMOUT_DEFAULT;
+		int wBase1 = filterSpec1 != null ? filterSpec1.width() : ZOOMOUT_DEFAULT;
 		int[][] numbers = MatrixNetworkInitializer.constructHiddenOutputNeuronNumbers(inputSize1, outputSize1, hBase1, wBase1, depth1);
 		if (numbers == null) return false;
 		int[] heights = numbers[0];
 		int[] widths = numbers[1];
 		boolean[] filters = new boolean[heights.length];
-		Arrays.fill(filters, filter1 != null);
+		Arrays.fill(filters, filterSpec1 != null);
 		
 		//Calculating hidden layer number 1.
 		if (outputSize2 != null || depth2 > 0) {
@@ -380,15 +288,22 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			}
 		}
 		
-		//Constructing size array.
-		FilterSize[] sizes = new FilterSize[1 + heights.length];
-		sizes[0] = new FilterSize(new Size(inputSize1.width, inputSize1.height, inputStackDepth));
+		//Constructing array of layer specifications.
+		LayerSpec[] layerSpecs = new LayerSpec[1 + heights.length];
+		layerSpecs[0] = new LayerSpec(new Size(inputSize1.width, inputSize1.height, inputStackDepth));
 		for (int i = 0; i < heights.length; i++) {
 			int depth = i == heights.length-1 ? outputStackDepth : hiddenStackDepth;
-			sizes[i+1] = new FilterSize(new Size(widths[i], heights[i], depth));
-			sizes[i+1].filter = filters[i] ? filter1 : null;
+			layerSpecs[i+1] = new LayerSpec(new Size(widths[i], heights[i], depth));
+			layerSpecs[i+1].filterSpec = filters[i] ? filterSpec1 : null;
 		}
-		return initialize(sizes, dual1);
+		for (int i = 0; i < layerSpecs.length; i++) {
+			if (i > 0) layerSpecs[i].prevSize = layerSpecs[i-1].size;
+			if (paramIsVectorized()) {
+				layerSpecs[i].vecRows = layerSpecs[i].size.height;
+				layerSpecs[i].size = new Size(1, layerSpecs[i].size.width*layerSpecs[i].size.height, layerSpecs[i].size.depth);
+			}
+		}
+		return initialize(layerSpecs, dual1);
 	}
 	
 	
@@ -396,21 +311,21 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * Initializing matrix neural network.
 	 * @param inputSize1 input size 1.
 	 * @param outputSize1 output size 1, which can be null.
-	 * @param filter1 filter 1, which can be null.
+	 * @param filterSpec1 filter specification 1, which can be null.
 	 * @param depth1 the number 1 of hidden layers plus output layer, which can be 0.
 	 * @param dual1 dual mode 1.
 	 * @param outputSize2 output size 1, which can be null.
 	 * @param depth2 the number 2 of hidden layers plus output layer, which can be 0.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initializeByDepth(Size inputSize1, Size outputSize1, FilterSpec filter1, int depth1, boolean dual1, Size outputSize2, int depth2) {
+	public boolean initializeByDepth(Size inputSize1, Size outputSize1, FilterSpec filterSpec1, int depth1, boolean dual1, Size outputSize2, int depth2) {
 		if (inputSize1 == null || inputSize1.height <= 0 || inputSize1.width <= 0) return false;
-		if ((filter1 != null) && (filter1 instanceof DeconvConvFilter)) filter1 = null;
-		if ((filter1 != null) && (filter1.width() < 1 || filter1.height() < 1)) filter1 = null;
-		dual1 = filter1 != null ? dual1 : false;
+		if ((filterSpec1 != null) && (filterSpec1 instanceof DeconvConvFilter)) filterSpec1 = null;
+		if ((filterSpec1 != null) && (filterSpec1.width() < 1 || filterSpec1.height() < 1)) filterSpec1 = null;
+		dual1 = filterSpec1 != null ? dual1 : false;
 		int depth = depth1 <= 0 && depth2 <= 0 ? DEPTH_DEFAULT : Math.max(depth1, depth2);
 		if (depth <= 0) return false;
-		if (outputSize1 == null && filter1 != null) return false;
+		if (outputSize1 == null && filterSpec1 != null) return false;
 
 		int inputStackDepth = inputSize1.depth;
 		int hiddenStackDepth = outputSize1 != null ? outputSize1.depth : (outputSize2 != null ? outputSize2.depth : inputSize1.depth);
@@ -420,40 +335,45 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		outputStackDepth = outputStackDepth < 1 ? 1 : outputStackDepth;
 		
 		if (outputSize1 == null && outputSize2 == null) outputSize1 = inputSize1;
-		FilterSize[] sizes = null;
+		LayerSpec[] layerSpecs = null;
 		if (outputSize1 == null) {
-			sizes = new FilterSize[1 + depth];
-			Arrays.fill(sizes, new FilterSize(inputSize1));
-			for (int i = 0; i < sizes.length; i++) sizes[i] = new FilterSize(inputSize1);
-			sizes[sizes.length-1].size = outputSize2;
+			layerSpecs = new LayerSpec[1 + depth];
+			Arrays.fill(layerSpecs, new LayerSpec(inputSize1));
+			for (int i = 0; i < layerSpecs.length; i++) layerSpecs[i] = new LayerSpec(inputSize1);
+			layerSpecs[layerSpecs.length-1].size = outputSize2;
 		}
 		else if (outputSize2 == null) {
-			sizes = new FilterSize[1 + depth];
-			for (int i = 0; i < sizes.length; i++) sizes[i] = new FilterSize(inputSize1, filter1);
-			sizes[0].filter = null;
-			sizes[sizes.length-1].size = outputSize1;
+			layerSpecs = new LayerSpec[1 + depth];
+			for (int i = 0; i < layerSpecs.length; i++) layerSpecs[i] = new LayerSpec(inputSize1, filterSpec1);
+			layerSpecs[0].filterSpec = null;
+			layerSpecs[layerSpecs.length-1].size = outputSize1;
 		}
 		else {
 			depth1 = depth1 <= 0 ? DEPTH_DEFAULT : depth1;
 			depth2 = depth2 <= 0 ? DEPTH_DEFAULT : depth2;
 			
-			FilterSize[] sizes1 = new FilterSize[1 + depth1];
-			for (int i = 0; i < sizes1.length; i++) sizes1[i] = new FilterSize(inputSize1, filter1);
-			sizes1[0].filter = null;
-			sizes1[sizes1.length-1].size = outputSize1;
+			LayerSpec[] layerSpecs1 = new LayerSpec[1 + depth1];
+			for (int i = 0; i < layerSpecs1.length; i++) layerSpecs1[i] = new LayerSpec(inputSize1, filterSpec1);
+			layerSpecs1[0].filterSpec = null;
+			layerSpecs1[layerSpecs1.length-1].size = outputSize1;
 			
-			FilterSize[] sizes2 = new FilterSize[depth2];
-			for (int i = 0; i < sizes2.length; i++) sizes2[i] = new FilterSize(outputSize1);
-			sizes2[sizes2.length-1].size = outputSize2;
+			LayerSpec[] layerSpecs2 = new LayerSpec[depth2];
+			for (int i = 0; i < layerSpecs2.length; i++) layerSpecs2[i] = new LayerSpec(outputSize1);
+			layerSpecs2[layerSpecs2.length-1].size = outputSize2;
 			
-			sizes = Arrays.copyOf(sizes1, sizes1.length+sizes2.length);
-			for (int i = 0; i < sizes2.length; i++) sizes[sizes1.length+i] = sizes2[i];
+			layerSpecs = Arrays.copyOf(layerSpecs1, layerSpecs1.length+layerSpecs2.length);
+			for (int i = 0; i < layerSpecs2.length; i++) layerSpecs[layerSpecs1.length+i] = layerSpecs2[i];
 		}
 		
-		for (int i = 0; i < sizes.length; i++) {
-			sizes[i].size.depth = i == 0 ? inputStackDepth : (i == sizes.length-1 ? outputStackDepth : hiddenStackDepth);
+		for (int i = 0; i < layerSpecs.length; i++) {
+			layerSpecs[i].size.depth = i == 0 ? inputStackDepth : (i == layerSpecs.length-1 ? outputStackDepth : hiddenStackDepth);
+			if (i > 0) layerSpecs[i].prevSize = layerSpecs[i-1].size;
+			if (paramIsVectorized()) {
+				layerSpecs[i].vecRows = layerSpecs[i].size.height;
+				layerSpecs[i].size = new Size(1, layerSpecs[i].size.width*layerSpecs[i].size.height, layerSpecs[i].size.depth);
+			}
 		}
-		return initialize(sizes, dual1);
+		return initialize(layerSpecs, dual1);
 	}
 
 	
@@ -580,7 +500,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		MatrixLayer nextLayer = null;
 		while ((nextLayer = this.getNextLayer()) != null) {
 			result = adaptOutputToNextInput(result, nextLayer);
-			Matrix.copy(result, nextLayer.getInput());
+			MatrixUtil.copy(result, nextLayer.getInput());
 			result = nextLayer.evaluate();
 		}
 		return result;
@@ -609,7 +529,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 //		if (!paramIsHistoryMode()) history.clear();
 		
 		MatrixLayerAbstract inputLayer = getInputLayer();
-		if (input != null) Matrix.copy(input, inputLayer.getInput());
+		if (input != null) MatrixUtil.copy(input, inputLayer.getInput());
 		if (inputLayer.getOutput() != inputLayer.getInput()) inputLayer.setOutput(inputLayer.getInput());
 		
 		for (int i = 1; i < layers.length; i++) layers[i].evaluate();
@@ -758,7 +678,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 				continue;
 			}
 			MatrixLayerImpl layer = (MatrixLayerImpl)layers[i];
-			outputErrors = layer.backwardThisLayerWithoutLearning(outputErrors, learningRate);
+			outputErrors = layer.backwardWithoutLearning(outputErrors, learningRate);
 		}
 		for (int i = layers.length-1; i >= 0; i--) {
 			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) continue;

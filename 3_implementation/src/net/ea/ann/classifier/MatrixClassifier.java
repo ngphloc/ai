@@ -124,13 +124,15 @@ public class MatrixClassifier extends MatrixClassifierAbstract {
 	/**
 	 * Creating matrix neural classifier with neuron channel and norm flag.
 	 * @param neuronChannel specified neuron channel.
+	 * @param rasterChannel raster channel.
 	 * @param isNorm norm flag.
 	 * @return classifier.
 	 */
-	public static MatrixClassifier create(int neuronChannel, boolean isNorm) {
+	public static MatrixClassifier create(int neuronChannel, int rasterChannel, boolean isNorm) {
 		Function activateRef = Raster.toActivationRef(neuronChannel, isNorm);
 		Function contentActivateRef = Raster.toConvActivationRef(neuronChannel, isNorm);
 		MatrixClassifier mac = new MatrixClassifier(neuronChannel, activateRef, contentActivateRef, null);
+		mac.paramSetRasterChannel(rasterChannel);
 		mac.paramSetNorm(isNorm);
 		return mac;
 	}

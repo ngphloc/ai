@@ -90,6 +90,15 @@ public class Size extends java.awt.Dimension {
 
 	
 	/**
+	 * Constructor with specified width.
+	 * @param width specified width.
+	 */
+	public Size(int width) {
+		this(width, 0, 0, 0);
+	}
+
+	
+	/**
 	 * Default constructor.
 	 */
 	public Size() {
@@ -176,4 +185,40 @@ public class Size extends java.awt.Dimension {
 	}
 	
 	
+	/**
+	 * Creating by rows and columns.
+	 * @param rows rows.
+	 * @param columns columns.
+	 * @return size.
+	 */
+	public static Size createByRowsColumns(int rows, int columns) {
+		return new Size(columns, rows);
+	}
+	
+	
+	/**
+	 * Creating by rows, columns, and depth.
+	 * @param rows rows.
+	 * @param columns columns.
+	 * @param depth depth.
+	 * @return size.
+	 */
+	public static Size createByRowsColumns(int rows, int columns, int depth) {
+		return new Size(columns, rows, depth);
+	}
+
+	
+	/**
+	 * Creating by rows, columns, depth, and time.
+	 * @param rows rows.
+	 * @param columns columns.
+	 * @param depth depth.
+	 * @param time time.
+	 * @return size.
+	 */
+	public static Size createByRowsColumns(int rows, int columns, int depth, int time) {
+		return new Size(columns, rows, depth, time);
+	}
+
+
 }

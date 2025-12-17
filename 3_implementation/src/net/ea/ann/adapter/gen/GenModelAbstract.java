@@ -132,25 +132,25 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	/**
 	 * Name of neuron channel field.
 	 */
-	public final static String NEURON_CHANNEL_FIELD = "gma_neuron_channel";
+	public final static String NEURON_CHANNEL_FIELD = RasterAbstract.NEURON_CHANNEL_FIELD;
 
 	
 	/**
 	 * Default neuron channel.
 	 */
-	public static final int NEURON_CHANNEL_DEFAULT = 1;
+	public static final int NEURON_CHANNEL_DEFAULT = RasterAbstract.NEURON_CHANNEL_DEFAULT;
 
 	
 	/**
 	 * Name of raster channel field.
 	 */
-	public final static String RASTER_CHANNEL_FIELD = "gma_raster_channel";
+	public final static String RASTER_CHANNEL_FIELD = RasterAbstract.RASTER_CHANNEL_FIELD;
 
 	
 	/**
 	 * Default raster channel.
 	 */
-	public static final int RASTER_CHANNEL_DEFAULT = RasterAbstract.RASTER_CHANNEL_DEFAULT;
+	public final static int RASTER_CHANNEL_DEFAULT = RasterAbstract.RASTER_CHANNEL_DEFAULT;
 	
 	
 	/**

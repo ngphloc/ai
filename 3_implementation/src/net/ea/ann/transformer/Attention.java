@@ -14,6 +14,7 @@ import java.util.Random;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.Size;
 
@@ -50,11 +51,11 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	 */
 	protected Matrix A = null;
 
-	
+
 	/**
-	 * Add & norm layer.
+	 * Gradient of output weight matrix.
 	 */
-	protected AddNormNetwork addNorm = null;
+	private Matrix dWO = null;
 	
 	
 	/**
@@ -72,9 +73,17 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		heads = null;
 		WO = null;
 		A = null;
-		addNorm = null;
+		resetBackwardInfo();
 	}
 	
+	
+	/**
+	 * Resetting backward information.
+	 */
+	void resetBackwardInfo() {
+		this.dWO = null;
+	}
+
 	
 	/**
 	 * Getting depth.
@@ -375,8 +384,8 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	 * @param inputMask input mask.
 	 */
 	protected void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
-		if (Y() != null && inputY != null) Matrix.copy(inputY, Y());
-		if (X() != null && inputX != null) Matrix.copy(inputX, X());
+		if (Y() != null && inputY != null) MatrixUtil.copy(inputY, Y());
+		if (X() != null && inputX != null) MatrixUtil.copy(inputX, X());
 		if (M() != null && inputMask != null) NeuronValue.copy(inputMask, M());
 	}
 
@@ -397,7 +406,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		for (int i = 0; i < heads.length; i++) aList[i] = heads[i].evaluate();
 		
 		Matrix eval = WO != null ? Matrix.concatV(aList).multiply(WO) : Matrix.concatV(aList);
-		Matrix.copy(eval, A);
+		MatrixUtil.copy(eval, A);
 		
 		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
 			((Error)params[0]).addLayerOInput(this, A);
@@ -409,10 +418,11 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	/**
 	 * Back-warding attention by errors.
 	 * @param errors specified errors.
+	 * @param learning learning mode.
 	 * @param learningRate learning rate.
 	 * @return learning errors.
 	 */
-	protected Error[] backward(Error[] errors, double learningRate) {
+	protected Error[] backward(Error[] errors, boolean learning, double learningRate) {
 		if (!validate() || errors == null || errors.length == 0) return null;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? NetworkAbstract.LEARN_RATE_DEFAULT : learningRate;
 		List<List<Matrix>> headErrsList = Util.newList(this.heads.length);
@@ -450,19 +460,24 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		}
 		if (count == 0) return null;
 		
-		//Training entire weight matrix WO.
-		if (this.WO != null) {
-			dWO = dWO.divide0(count);
-			this.WO = this.WO.add(dWO.multiply0(learningRate));
-		}
-		
 		//Training every attention head.
 		List<Error[]> headOutputErrorsList = Util.newList(0);
 		for (int i = 0; i < this.heads.length; i++) {
 			List<Matrix> headErrs = headErrsList.get(i);
 			Error[] headErrors = Error.create(headErrs.toArray(new Matrix[] {}));
-			headErrors = this.heads[i].backward(headErrors, learningRate);
+			headErrors = this.heads[i].backward(headErrors, learning, learningRate);
 			headOutputErrorsList.add(headErrors);
+		}
+		
+		if (learning) {
+			//Training entire weight matrix WO.
+			if (this.WO != null) {
+				dWO = dWO.divide0(count);
+				this.WO = this.WO.add(dWO.multiply0(learningRate));
+			}
+		}
+		else {
+			this.dWO = this.dWO != null ? this.dWO.add(dWO) : dWO;
 		}
 		
 		//Accumulating errors.
@@ -470,12 +485,47 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		for (int i = 1; i < headOutputErrorsList.size(); i++) {
 			Error.accum(outputErrors, headOutputErrorsList.get(i));
 		}
-		
 		//Restoring layer inputs.
 		for (int i = 0; i < errors.length; i++) errors[i].errorSet(outputErrors[i].error());
 		return errors;
 	}
 	
+	
+	/**
+	 * Learning attention by errors.
+	 * @param errors specified errors.
+	 * @param learningRate learning rate.
+	 * @return learning errors.
+	 */
+	Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
+		resetBackwardInfo();
+		if (outputErrors == null || outputErrors.length == 0) return null;
+		Error[] errors = new Error[outputErrors.length];
+		for (int i = 0; i < outputErrors.length; i++) {
+			errors[i] = backward(new Error[] {outputErrors[i]}, false, learningRate)[0];
+		}
+		return errors;
+	}
+
+		
+	/**
+	 * Updating parameters from backward information.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		if (this.heads != null) {
+			for (int i = 0; i < this.heads.length; i++) {
+				this.heads[i].updateParametersFromBackwardInfo(recordCount, learningRate);
+			}
+		}
+		if (this.WO != null && this.dWO != null) {
+			Matrix dWO = this.dWO.divide0(recordCount);
+			this.WO = this.WO.add(dWO.multiply0(learningRate));
+		}
+		this.dWO = null;
+	}
+
 	
 	/**
 	 * Initializing attention parameters.
@@ -488,7 +538,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 				if (head != null) Attention0.initParams(head, rnd);
 			}
 		}
-		if (attention.WO != null) Matrix.fill(attention.WO, rnd);
+		if (attention.WO != null) MatrixUtil.fill(attention.WO, rnd);
 	}
 
 
@@ -592,6 +642,36 @@ class Attention0 implements Cloneable, Serializable {
 
 	
 	/**
+	 * Gradient of query matrix.
+	 */
+	private Matrix dWQ = null;
+	
+	
+	/**
+	 * Gradient of key matrix.
+	 */
+	private Matrix dWK = null;
+
+	
+	/**
+	 * Gradient of value matrix.
+	 */
+	private Matrix dWV = null;
+
+	
+	/**
+	 * Gradient of the first transposition matrix.
+	 */
+	private Matrix dT1 = null;
+
+	
+	/**
+	 * Gradient of the second transposition matrix.
+	 */
+	private Matrix dT2 = null;
+
+	
+	/**
 	 * Default constructor.
 	 */
 	Attention0() {
@@ -624,7 +704,7 @@ class Attention0 implements Cloneable, Serializable {
 	 * @return matrix.
 	 */
 	Matrix newMatrix(int rows, int columns, Object value) {
-		return Matrix.create(new Size(columns, rows, defineDepth()), value);
+		return MatrixUtil.create(new Size(columns, rows, defineDepth()), value);
 	}
 	
 	
@@ -990,8 +1070,8 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param inputMask input mask.
 	 */
 	void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
-		if (Y != null && inputY != null) Matrix.copy(inputY, Y);
-		if (X != null && inputX != null) Matrix.copy(inputX, X);
+		if (Y != null && inputY != null) MatrixUtil.copy(inputY, Y);
+		if (X != null && inputX != null) MatrixUtil.copy(inputX, X);
 		if (M != null && inputMask != null) NeuronValue.copy(inputMask, M);
 	}
 
@@ -1006,7 +1086,7 @@ class Attention0 implements Cloneable, Serializable {
 		Matrix V = calcV();
 		Matrix softmax = calcQKSoftmax();
 		Matrix eval = softmax.multiply(V);
-		Matrix.copy(eval, A);
+		MatrixUtil.copy(eval, A);
 		return A;
 	}
 	
@@ -1014,10 +1094,11 @@ class Attention0 implements Cloneable, Serializable {
 	/**
 	 * Learning attention by errors.
 	 * @param errors specified errors.
+	 * @param learning learning mode.
 	 * @param learningRate learning rate.
 	 * @return learning errors.
 	 */
-	Error[] backward(Error[] errors, double learningRate) {
+	Error[] backward(Error[] errors, boolean learning, double learningRate) {
 		if (errors == null || errors.length == 0) return null;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? NetworkAbstract.LEARN_RATE_DEFAULT : learningRate;
 		
@@ -1052,7 +1133,6 @@ class Attention0 implements Cloneable, Serializable {
 			//Calculating QK mean.
 			Matrix QKMean = calcK().multiply(this.WQ.transpose());
 			QKMean = QKMean.add(calcQ().multiply(this.WK.transpose()));
-//			QKMean = QKMean.multiply0(0.5);
 
 			//Calculating Y bias with regard to Q and K.
 			Matrix YBiasQK = null;
@@ -1108,35 +1188,20 @@ class Attention0 implements Cloneable, Serializable {
 			
 			XBiasList.add(XBias);
 		}
-		if (count == 0) return null;
 		
-		if (dW != null) dW = dW.divide0(count);
-		if (dWV != null) dWV = dWV.divide0(count);
-		if (dT1 != null) dT1 = dT1.divide0(count);
-		if (dT2 != null) dT2 = dT2.divide0(count);
-		
-		//Updating weight query matrix and weight key matrix.
 		Matrix Q = calcQ();
 		Matrix K = calcK();
-		Matrix WQ = this.WQ.add(dW.multiply(K).multiply0(learningRate));
-		Matrix.copy(WQ, this.WQ);
-		Matrix WK = this.WK.add(dW.multiply(Q).multiply0(learningRate));
-		Matrix.copy(WK, this.WK);
-		
-		//Updating weight value matrix.
-		Matrix WV = this.WV.add(dWV.multiply0(learningRate));
-		Matrix.copy(WV, this.WV);
-
-		//Updating the first transposition matrix T1.
-		if (this.T1 != null) {
-			Matrix T1 = this.T1.add(dT1.multiply0(learningRate));
-			Matrix.copy(T1, this.T1);
+		Matrix dWQ = dW.multiply(K);
+		Matrix dWK = dW.multiply(Q);
+		if (learning) {
+			updateParametersFromBackwardInfo(dWQ, dWK, dWV, dT1, dT2, count, learningRate);
 		}
-
-		//Updating the first transposition matrix T2.
-		if (this.T2 != null) {
-			Matrix T2 = this.T2.add(dT2.multiply0(learningRate));
-			Matrix.copy(T2, this.T2);
+		else {
+			this.dWQ = this.dWQ != null ? this.dWQ.add(dWQ) : dWQ;
+			this.dWK = this.dWK != null ? this.dWK.add(dWK) : dWK;
+			this.dWV = this.dWV != null ? this.dWV.add(dWV) : dWV;
+			this.dT1 = this.dT1 != null ? this.dT1.add(dT1) : dT1;
+			this.dT2 = this.dT2 != null ? this.dT2.add(dT2) : dT2;
 		}
 		
 		//Calculating backward errors.
@@ -1154,16 +1219,95 @@ class Attention0 implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Learning attention by errors.
+	 * @param errors specified errors.
+	 * @param learningRate learning rate.
+	 * @return learning errors.
+	 */
+	Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
+		resetBackwardInfo();
+		if (outputErrors == null || outputErrors.length == 0) return null;
+		Error[] errors = new Error[outputErrors.length];
+		for (int i = 0; i < outputErrors.length; i++) {
+			errors[i] = backward(new Error[] {outputErrors[i]}, false, learningRate)[0];
+		}
+		return errors;
+	}
+
+		
+	/**
+	 * Updating parameters from backward information.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		updateParametersFromBackwardInfo(this.dWQ, this.dWK, this.dWV, this.dT1, this.dT2, recordCount, learningRate);
+		this.dWQ = this.dWK = this.dWV = this.dT1 = this.dT2 = null;
+	}
+	
+	
+	/**
+	 * Updating parameters from backward information.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	private void updateParametersFromBackwardInfo(Matrix dWQ, Matrix dWK, Matrix dWV, Matrix dT1, Matrix dT2, int recordCount, double learningRate) {
+		//Calculating means of gradients.
+		if (dWQ != null) dWQ = dWQ.divide0(recordCount);
+		if (dWK != null) dWK = dWK.divide0(recordCount);
+		if (dWV != null) dWV = dWV.divide0(recordCount);
+		if (dT1 != null) dT1 = dT1.divide0(recordCount);
+		if (dT2 != null) dT2 = dT2.divide0(recordCount);
+
+		//Updating weight query matrix and weight key matrix.
+		if (dWQ != null) {
+			Matrix WQ = this.WQ.add(dWQ.multiply0(learningRate));
+			MatrixUtil.copy(WQ, this.WQ);
+		}
+		if (dWK != null) {
+			Matrix WK = this.WK.add(dWK.multiply0(learningRate));
+			MatrixUtil.copy(WK, this.WK);
+		}
+		
+		//Updating weight value matrix.
+		if (dWV != null) {
+			Matrix WV = this.WV.add(dWV.multiply0(learningRate));
+			MatrixUtil.copy(WV, this.WV);
+		}
+		
+		//Updating the first transposition matrix T1.
+		if (this.T1 != null && dT1 != null) {
+			Matrix T1 = this.T1.add(dT1.multiply0(learningRate));
+			MatrixUtil.copy(T1, this.T1);
+		}
+		
+		//Updating the first transposition matrix T2.
+		if (this.T2 != null && dT2 != null) {
+			Matrix T2 = this.T2.add(dT2.multiply0(learningRate));
+			MatrixUtil.copy(T2, this.T2);
+		}
+	}
+	
+	
+	/**
+	 * Resetting backward information.
+	 */
+	void resetBackwardInfo() {
+		dWQ = dWK = dWV = dT1 = dT2 = null;
+	}
+
+	
+	/**
 	 * Initializing attention parameters.
 	 * @param attention attention.
 	 * @param rnd randomizer.
 	 */
 	static void initParams(Attention0 attention, Random rnd) {
-		if (attention.T1 != null) Matrix.fill(attention.T1, rnd);
-		if (attention.T2 != null) Matrix.fill(attention.T2, rnd);
-		if (attention.WQ != null) Matrix.fill(attention.WQ, rnd);
-		if (attention.WK != null) Matrix.fill(attention.WK, rnd);
-		if (attention.WV != null) Matrix.fill(attention.WV, rnd);
+		if (attention.T1 != null) MatrixUtil.fill(attention.T1, rnd);
+		if (attention.T2 != null) MatrixUtil.fill(attention.T2, rnd);
+		if (attention.WQ != null) MatrixUtil.fill(attention.WQ, rnd);
+		if (attention.WK != null) MatrixUtil.fill(attention.WK, rnd);
+		if (attention.WV != null) MatrixUtil.fill(attention.WV, rnd);
 	}
 	
 	

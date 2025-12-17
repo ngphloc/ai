@@ -11,6 +11,7 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
@@ -104,11 +105,13 @@ public class TransformerClassifier extends TransformerClassifierAbstract {
 	/**
 	 * Creating matrix neural classifier with neuron channel and norm flag.
 	 * @param neuronChannel specified neuron channel.
+	 * @param rasterChannel raster channel.
 	 * @param isNorm norm flag.
 	 * @return classifier.
 	 */
-	public static TransformerClassifier create(int neuronChannel, boolean isNorm) {
+	public static TransformerClassifier create(int neuronChannel, int rasterChannel, boolean isNorm) {
 		TransformerClassifier tramac = new TransformerClassifier(neuronChannel);
+		tramac.paramSetRasterChannel(rasterChannel);
 		tramac.paramSetNorm(isNorm);
 		return tramac;
 	}
@@ -137,13 +140,13 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 	/**
 	 * Field for number of blocks.
 	 */
-	public static final String BLOCKS_NUMBER_FIELD = "tramac_blocks";
+	public static final String BLOCKS_NUMBER_FIELD = net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_FIELD;
 	
 	
 	/**
 	 * Field for number of blocks.
 	 */
-	public static final int BLOCKS_NUMBER_DEFAULT = 1; //TransformerBasic.BLOCKS_NUMBER_DEFAULT;
+	public static final int BLOCKS_NUMBER_DEFAULT = net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_DEFAULT;
 
 	
 	/**
@@ -262,7 +265,7 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 	@Override
 	protected Matrix toMatrix(Raster raster) {
 		Matrix input = transformer.getInput();
-		return Matrix.toMatrix(new Size(input.columns(), input.rows()), raster, neuronChannel, transformer.paramIsNorm());
+		return MatrixUtil.toMatrix(new Size(input.columns(), input.rows()), raster, neuronChannel, paramGetRasterChannel(), transformer.paramIsNorm());
 	}
 
 	

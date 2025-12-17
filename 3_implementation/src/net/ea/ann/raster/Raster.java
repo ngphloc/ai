@@ -43,6 +43,12 @@ public interface Raster extends Serializable, Cloneable {
 
 	
 //	/**
+//	 * Default raster type.
+//	 */
+//	RasterType RASTER_TYPE_DEFAULT = RasterType.RGB;
+	
+	
+//	/**
 //	 * Name of resizing source flag.
 //	 */
 //	static final String SOURCE_RESIZE_FIELD = "raster_resize";
@@ -165,6 +171,36 @@ public interface Raster extends Serializable, Cloneable {
 	 * @return neuron value array.
 	 */
 	NeuronValue[] toNeuronValues(int neuronChannel, Size size, boolean isNorm);
+	
+	
+//	/**
+//	 * Converting raster type to neuron channel.
+//	 * @param rasterType raster type.
+//	 * @return neuron channel.
+//	 */
+//	static int toNeuronChannel(RasterType rasterType) {
+//		int neuronChannel = 3;
+//		
+//        switch (rasterType) {
+//        case GRAY:
+//        	neuronChannel = 1;
+//        	break;
+//        case GB:
+//        	neuronChannel = 2;
+//        	break;
+//        case RGB:
+//        	neuronChannel = 3;
+//        	break;
+//        case ARGB:
+//        	neuronChannel = 4;
+//        	break;
+//        default:
+//        	neuronChannel = 3;
+//        	break;
+//        }
+//        
+//        return neuronChannel;
+//	}
 	
 	
 	/**

@@ -2999,7 +2999,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 			if (gm == null) return (classifier = null);
 			try {
 				boolean isNorm = gm.queryConfig().getAsBoolean(Raster.NORM_FIELD);
-				return classifier != null ? classifier : StackClassifier.create(gm.getRasterChannel(), isNorm);
+				return classifier != null ? classifier : StackClassifier.create(gm.getNeuronChannel(), gm.getRasterChannel(), isNorm);
 			} catch (Throwable e) {Util.trace(e);}
 			return (classifier = null);
 		}

@@ -9,7 +9,6 @@ package net.ea.ann.mane;
 
 import java.io.Serializable;
 
-import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Size;
 
 /**
@@ -47,11 +46,11 @@ public class MatrixLayerInitializer implements Cloneable, Serializable {
 	 * Initializing layer with size, previous layer size, and filter.
 	 * @param size this size.
 	 * @param prevSize previous layer size. It can be null.
-	 * @param filter filter. It can be null.
+	 * @param layerSpec layer specification. It can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Size size, Size prevSize, FilterSpec filter) {
-		return layer.initialize(size, prevSize, filter);
+	public boolean initialize(Size size, Size prevSize, MatrixLayerAbstract.LayerSpec layerSpec) {
+		return layer.initialize(size, prevSize, layerSpec);
 	}
 
 	
@@ -60,11 +59,11 @@ public class MatrixLayerInitializer implements Cloneable, Serializable {
 	 * @param size this size.
 	 * @param prevSize previous size.
 	 * @param prevLayer previous layer. It can be null.
-	 * @param filter filter. It can be null.
+	 * @param layerSpec layer specification. It can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Size size, Size prevSize, MatrixLayerAbstract prevLayer, FilterSpec filter) {
-		return layer.initialize(size, prevSize, prevLayer, filter);
+	public boolean initialize(Size size, Size prevSize, MatrixLayerAbstract prevLayer, MatrixLayerAbstract.LayerSpec layerSpec) {
+		return layer.initialize(size, prevSize, prevLayer, layerSpec);
 	}
 	
 	
@@ -87,18 +86,18 @@ public class MatrixLayerInitializer implements Cloneable, Serializable {
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(Size size, Size prevSize) {
-		return initialize(size, prevSize, (FilterSpec)null);
+		return initialize(size, prevSize, (MatrixLayerAbstract.LayerSpec)null);
 	}
 	
 	
 	/**
 	 * Initializing layer with size and filter.
 	 * @param size this size.
-	 * @param filter filter. It can be null.
+	 * @param layerSpec layer specification. It can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Size size, FilterSpec filter) {
-		return initialize(size, (Size)null, filter);
+	public boolean initialize(Size size, MatrixLayerAbstract.LayerSpec layerSpec) {
+		return initialize(size, (Size)null, layerSpec);
 	}
 
 	

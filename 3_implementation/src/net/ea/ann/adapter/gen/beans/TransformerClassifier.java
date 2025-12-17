@@ -48,7 +48,7 @@ public class TransformerClassifier extends ClassifierModelAbstract {
 	@Override
 	protected Classifier createGenModel() {
 		try {
-			return net.ea.ann.classifier.TransformerClassifier.create(getRasterChannel(), isNorm());
+			return net.ea.ann.classifier.TransformerClassifier.create(getNeuronChannel(), getRasterChannel(), isNorm());
 		} catch (Throwable e) {Util.trace(e);}
 		return null;
 	}

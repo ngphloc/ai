@@ -7,12 +7,15 @@
  */
 package net.ea.ann.mane;
 
+import java.io.Serializable;
+
 import net.ea.ann.conv.Content;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerAbstract;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.mane.filter.Filter;
@@ -21,6 +24,7 @@ import net.ea.ann.mane.filter.MaxPoolFilter;
 import net.ea.ann.mane.filter.ProductFilter;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.Size;
 
 /**
@@ -32,13 +36,113 @@ import net.ea.ann.raster.Size;
  */
 public abstract class MatrixLayerAbstract extends LayerAbstract implements MatrixLayer, NeuronValueCreator {
 
-
+	
 	/**
 	 * Serial version UID for serializable class. 
 	 */
 	private static final long serialVersionUID = 1L;
 
 	
+	/**
+	 * This class contains size and filter.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 *
+	 */
+	public static class LayerSpec implements Cloneable, Serializable {
+		
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
+		
+		/**
+		 * Previous size.
+		 */
+		public Size prevSize = null;
+		
+		/**
+		 * Size.
+		 */
+		public Size size = null;
+		
+		/**
+		 * Weight specification.
+		 */
+		public WeightSpec weightSpec = null;
+		
+		/**
+		 * Filter.
+		 */
+		public FilterSpec filterSpec = null;
+		
+		/**
+		 * Flag to allow vectorization.
+		 */
+		public int vecRows = 0;
+		
+		/**
+		 * Constructor with filter specification.
+		 * @param filterSpec filter specification.
+		 */
+		public LayerSpec(LayerSpec layerSpec) {
+			this(layerSpec.size, layerSpec.filterSpec);
+			this.vecRows = layerSpec.vecRows;
+			this.weightSpec = layerSpec.weightSpec;
+			this.prevSize = layerSpec.prevSize;
+		}
+	
+		/**
+		 * Constructor with size and weight specification.
+		 * @param size size.
+		 * @param weightSpec weight specification.
+		 */
+		public LayerSpec(Size size, WeightSpec weightSpec) {
+			this.size = size;
+			this.weightSpec = weightSpec;
+		}
+
+		/**
+		 * Constructor with size and filter specification.
+		 * @param size size.
+		 * @param filterSpec filter specification.
+		 */
+		public LayerSpec(Size size, FilterSpec filterSpec) {
+			this.size = size;
+			this.filterSpec = filterSpec;
+		}
+	
+		/**
+		 * Constructor with size.
+		 * @param size size.
+		 */
+		public LayerSpec(Size size) {
+			this.size = size;
+		}
+	
+		/**
+		 * Default constructor.
+		 */
+		public LayerSpec() {
+			
+		}
+		
+		/**
+		 * Getting whether to be vectorization.
+		 * @return whether to be vectorization.
+		 */
+		public boolean isVectorized() {return vecRows > 0;}
+		
+		/**
+		 * Getting size of this layer with regard to vectorization.
+		 * @return size of this layer with regard to vectorization.
+		 */
+		public Size sizeByVecRows() {
+			return vecRows > 0 ? new Size(size.height/vecRows, vecRows, size.depth, size.time) : size;
+		}
+	}
+
+
 	/**
 	 * Name of learning filter field.
 	 */
@@ -166,7 +270,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		Matrix output = queryOutput();
 		if (output != null) return output.create(size);
 		NeuronValue value = NeuronValueCreator.newNeuronValue(neuronChannel);
-		return Matrix.create(size, value);
+		return MatrixUtil.create(size, value);
 	}
 
 
@@ -174,8 +278,9 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Constructor with the first weight size and the second weight size.
 	 * @param sizeW1 the first weight size.
 	 * @param sizeW2 the second weight size.
+	 * @param layerSpec layer specification, which can be null.
 	 */
-	protected Weight newWeight(Size sizeW1, Size sizeW2) {
+	protected Weight newWeight(Size sizeW1, Size sizeW2, LayerSpec layerSpec) {
 		return WeightImpl.create(sizeW1, sizeW2, newNeuronValue());
 	}
 
@@ -183,11 +288,11 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	/**
 	 * Creating filter.
 	 * @param filterSize filter size.
-	 * @param filterSpec filter specification.
+	 * @param layerSpec layer specification, which can be null.
 	 * @return filter.
 	 */
-	protected Filter newFilter(Size filterSize, FilterSpec filterSpec) {
-		return newFilter(filterSize, filterSpec, newNeuronValue());
+	protected Filter newFilter(Size filterSize, LayerSpec layerSpec) {
+		return newFilter(filterSize, layerSpec.filterSpec, newNeuronValue());
 	}
 	
 	
@@ -423,9 +528,9 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 	/**
 	 * Removing weights.
-	 * @param filterSpec filter specification.
+	 * @param layerSpec layer specification which can be null.
 	 */
-	protected abstract boolean removeWeights(FilterSpec filterSpec);
+	protected abstract boolean removeWeights(MatrixLayerAbstract.LayerSpec layerSpec);
 
 	
 	/**
@@ -487,14 +592,14 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting matrix neural network.
 	 * @return matrix neural network.
 	 */
-	MatrixNetworkAbstract getNetwork() {return network;}
+	public MatrixNetworkAbstract getNetwork() {return network;}
 	
 	
 	/**
 	 * Setting matrix neural network.
 	 * @param network matrix neural network.
 	 */
-	void setNetwork(MatrixNetworkAbstract network) {this.network = network;}
+	public void setNetwork(MatrixNetworkAbstract network) {this.network = network;}
 	
 	
 	/**
@@ -532,7 +637,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 */
 	Raster toRaster(Matrix matrix) {
 		matrix = isVectorized() ? matrix.vecInverse(vecRows) : matrix;
-		return Matrix.toRaster(matrix, neuronChannel, paramIsNorm(), paramGetDefaultAlpha());
+		return MatrixUtil.toRaster(matrix, neuronChannel, paramIsNorm(), paramGetDefaultAlpha());
 	}
 
 	
@@ -572,17 +677,18 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 */
 	private Matrix toMatrix0(Raster raster, Size size) {
 		Matrix ref = queryOutput().create(size);
-		return Matrix.toMatrix(size, raster, neuronChannel, paramIsNorm(), ref);
+		int rasterChannel = getNetwork() != null ? getNetwork().paramGetRasterChannel() : RasterAbstract.RASTER_CHANNEL_DEFAULT;
+		return MatrixUtil.toMatrix(size, raster, neuronChannel, rasterChannel, paramIsNorm(), ref);
 	}
 
 	
 	/**
 	 * Converting convolutional layer to matrix.
-	 * @param layer convolutional layer.
+	 * @param convLayer convolutional layer.
 	 * @return matrix.
 	 */
-	Matrix convLayerToMatrix(Matrix layer) {
-		return layer != null && isVectorized() ? layer.vec() : layer;
+	Matrix convLayerToMatrix(Matrix convLayer) {
+		return convLayer != null && isVectorized() ? convLayer.vec() : convLayer;
 	}
 	
 	

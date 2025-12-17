@@ -7,10 +7,13 @@
  */
 package net.ea.ann.mane.filter;
 
+import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueV;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Point;
 import net.ea.ann.raster.Size;
 
@@ -52,15 +55,21 @@ public class MaxPoolFilter extends PoolFilter {
 	 */
 	public int depth() {return depth;}
 
-	
+
+	@Override
+	public Filter accumKernel(Kernel dKernel, double factor) {
+		return this;
+	}
+
+
 	/**
 	 * Applying this filter to specific layer. Please attention to this important method.
-	 * @param x x coordinator.
 	 * @param y y coordinator.
+	 * @param x x coordinator.
 	 * @param layer specific layer.
 	 * @return the value resulted from this application.
 	 */
-	private Point apply(int x, int y, Matrix layer) {
+	private Point apply(int y, int x, Matrix layer) {
 		int width = layer.columns();
 		int height = layer.rows();
 		if (x + width() > width) {
@@ -99,9 +108,10 @@ public class MaxPoolFilter extends PoolFilter {
 	 * @param thisOutputLayer current output layer.
 	 */
 	private void forward0(Matrix prevLayer, Matrix thisIndexInputLayer, Matrix thisOutputLayer) {
-		NeuronValue zero = thisIndexInputLayer != null ? thisIndexInputLayer.get(0, 0).zero() : (thisOutputLayer != null ? thisOutputLayer.get(0, 0).zero() : prevLayer.get(0, 0).zero());
-		Matrix.fill(thisIndexInputLayer, zero);
-		Matrix.fill(thisOutputLayer, zero);
+		NeuronValueV zeroV = new NeuronValueV(2, 0);
+		MatrixUtil.fill(thisIndexInputLayer, zeroV);
+		NeuronValue zero = thisOutputLayer != null ? thisOutputLayer.get(0, 0).zero() : prevLayer.get(0, 0).zero();
+		MatrixUtil.fill(thisOutputLayer, zero);
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevLayer.columns(), prevHeight = prevLayer.rows();
@@ -119,12 +129,12 @@ public class MaxPoolFilter extends PoolFilter {
 				if (prevX >= prevWidth) continue;
 				
 				//Filtering
-				Point filteredIndex = this.apply(prevX, prevY, prevLayer);
+				Point filteredIndex = this.apply(prevY, prevX, prevLayer);
 				if (filteredIndex == null) continue;
 				NeuronValue filteredValue = prevLayer.get(filteredIndex.y, filteredIndex.x);
 				if (thisIndexInputLayer != null) {
-					NeuronValueV index = new NeuronValueV(thisY, thisX);
-					thisIndexInputLayer.set(filteredIndex.y, filteredIndex.x, index);
+					NeuronValueV prevIndex = new NeuronValueV((double)filteredIndex.y, (double)filteredIndex.x);
+					thisIndexInputLayer.set(thisY, thisX, prevIndex);
 				}
 				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
 			}
@@ -140,7 +150,7 @@ public class MaxPoolFilter extends PoolFilter {
 	 */
 	private void forward(MatrixStack prevLayers, MatrixStack thisIndexInputLayers, MatrixStack thisOutputLayers) {
 		if (prevLayers.depth() != depth() || thisIndexInputLayers.depth() != depth() || thisOutputLayers.depth() != depth()) throw new IllegalArgumentException();
-		if (thisIndexInputLayers.rows() != prevLayers.rows() || thisIndexInputLayers.columns() != prevLayers.columns()) throw new IllegalArgumentException();
+		if (thisIndexInputLayers.rows() != thisOutputLayers.rows() || thisOutputLayers.columns() != prevLayers.columns()) throw new IllegalArgumentException();
 		
 		for (int d = 0; d < depth(); d++) {
 			forward0(prevLayers.get(d), thisIndexInputLayers.get(d), thisOutputLayers.get(d));
@@ -149,7 +159,7 @@ public class MaxPoolFilter extends PoolFilter {
 	
 
 	@Override
-	public void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer) {
+	public void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
 		MatrixStack prevLayers = prevLayer instanceof MatrixStack ? (MatrixStack)prevLayer : new MatrixStack(prevLayer);
 		MatrixStack thisIndexInputLayers = thisInputLayer instanceof MatrixStack ? (MatrixStack)thisInputLayer : new MatrixStack(thisInputLayer);
 		MatrixStack thisOutputLayers = thisOutputLayer instanceof MatrixStack ? (MatrixStack)thisOutputLayer : new MatrixStack(thisOutputLayer);
@@ -157,6 +167,12 @@ public class MaxPoolFilter extends PoolFilter {
 	}
 
 	
+	@Override
+	public Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+		return null;
+	}
+
+
 	/**
 	 * Calculating derivative of previous layer given current layer as bias layer at specified coordinator.
 	 * @param time time.
@@ -168,8 +184,8 @@ public class MaxPoolFilter extends PoolFilter {
 	 * @param thisActivateRef activation function of current layer.
 	 * @return derivative of previous layer given current layer as bias layers.
 	 */
-	private MatrixStack dValue(int thisX, int thisY, Matrix prevInputLayer, Matrix prevIndexOutputLayer, Matrix thisErrorLayer) {
-		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
+	private Matrix dValue(int thisX, int thisY, Matrix prevInputLayer, Matrix prevIndexOutputLayer, Matrix thisErrorLayer) {
+		int kernelWidth = width(), kernelHeight = height();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayer.columns(), prevHeight = prevInputLayer.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
@@ -195,24 +211,21 @@ public class MaxPoolFilter extends PoolFilter {
 			}
 		}
 
-		Matrix[] dValues = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
+		NeuronValueV thisErrorIndex = (NeuronValueV)prevIndexOutputLayer.get(thisY, thisX);
 		NeuronValue zero = thisError.zero();
-		for (int i = 0; i < kernelDepth; i++) {
-			dValues[i] = prevInputLayer.create(new Size(kernelWidth, kernelHeight));
-			for (int j = 0; j < kernelHeight; j++) {
-				int row = prevY + j;
-				for (int k = 0; k < kernelWidth; k++) {
-					int column = prevX + k;
-					NeuronValueV index = (NeuronValueV)prevIndexOutputLayer.get(row, column);
-					if (index.get(0) == thisY && index.get(1) == thisX)
-						dValues[i].set(j, k, thisError);
-					else
-						dValues[i].set(j, k, zero);
-				}
+		Matrix dPrevValue = prevInputLayer.create(new Size(kernelWidth, kernelHeight));
+		for (int j = 0; j < kernelHeight; j++) {
+			int prevRow = prevY + j;
+			for (int k = 0; k < kernelWidth; k++) {
+				int prevColumn = prevX + k;
+				if (thisErrorIndex.get(0) == prevRow && thisErrorIndex.get(1) == prevColumn)
+					dPrevValue.set(j, k, thisError);
+				else
+					dPrevValue.set(j, k, zero);
 			}
 		}
-		return new MatrixStack(dValues);
+		return dPrevValue;
 	}
 
 	
@@ -223,18 +236,21 @@ public class MaxPoolFilter extends PoolFilter {
 	 * @param nextY next Y coordinator.
 	 * @param prevInputLayers previous input layers.
 	 * @param prevIndexOutputLayers previous index output layers.
-	 * @param thisErrorLayer current layer as bias layer.
+	 * @param thisErrorLayers current layers as bias layers.
 	 * @param thisActivateRef activation function of current layer.
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
-	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevIndexOutputLayers, Matrix thisErrorLayer) {
+	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevIndexOutputLayers, MatrixStack thisErrorLayers) {
+		if (prevInputLayers.depth() != depth() || prevIndexOutputLayers.depth() != depth() || thisErrorLayers.depth() != depth()) throw new IllegalArgumentException();
+		if (prevIndexOutputLayers.rows() != thisErrorLayers.rows() || prevIndexOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
+
 		NeuronValue zero = prevInputLayers.get().get(0, 0).zero();
 		Matrix[] dPrevValues = new Matrix[this.depth()];
 		int[][][] dPrevValuesCount = new int[this.depth()][][];
 		for (int i = 0; i < dPrevValues.length; i++) {
 			int rows = prevInputLayers.rows(), columns = prevInputLayers.columns();
 			dPrevValues[i] = prevInputLayers.get().create(new Size(columns, rows));
-			Matrix.fill(dPrevValues[i], zero);
+			MatrixUtil.fill(dPrevValues[i], zero);
 			dPrevValuesCount[i] = new int[rows][columns];
 			for (int j = 0; j < rows; j++) {
 				for (int k = 0; k < columns; k++) dPrevValuesCount[i][j][k] = 0;
@@ -245,7 +261,7 @@ public class MaxPoolFilter extends PoolFilter {
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
+		int thisWidth = thisErrorLayers.columns(), thisHeight = thisErrorLayers.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
 			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
 			int prevY = yBlock*strideHeight;
@@ -257,17 +273,16 @@ public class MaxPoolFilter extends PoolFilter {
 				if (prevX >= prevWidth) continue;
 				
 				//Calculating gradient.
-				MatrixStack dValues = this.dValue(thisX, thisY, prevInputLayers, prevIndexOutputLayers, thisErrorLayer);
-				if (dValues == null) continue;
-				
-				for (int i = 0; i < dValues.depth(); i++) {
-					for (int j = 0; j < dValues.get(i).rows(); j++) {
-						int row = prevY + j;
-						for (int k = 0; k < dValues.get(i).columns(); k++) {
-							int column = prevX + k;
-							NeuronValue dv = dPrevValues[i].get(row, column).add(dValues.get(i).get(j, k));
-							dPrevValues[i].set(row, column, dv);
-							dPrevValuesCount[i][row][column] = dPrevValuesCount[i][row][column] + 1; 
+				for (int i = 0; i < this.depth(); i++) {
+					Matrix dPrevValue = this.dValue(thisX, thisY, prevInputLayers.get(i), prevIndexOutputLayers.get(i), thisErrorLayers.get(i));
+					if (dPrevValue == null) continue;
+					for (int j = 0; j < dPrevValue.rows(); j++) {
+						int prevRow = prevY + j;
+						for (int k = 0; k < dPrevValue.columns(); k++) {
+							int prevColumn = prevX + k;
+							NeuronValue dv = dPrevValues[i].get(prevRow, prevColumn).add(dPrevValue.get(j, k));
+							dPrevValues[i].set(prevRow, prevColumn, dv);
+							dPrevValuesCount[i][prevRow][prevColumn] = dPrevValuesCount[i][prevRow][prevColumn] + 1; 
 						}
 					}
 				} //End dValues.
@@ -292,29 +307,8 @@ public class MaxPoolFilter extends PoolFilter {
 	}
 
 	
-	/**
-	 * Calculating derivative of previous layers given current layers as bias layers.
-	 * @param time time.
-	 * @param prevInputLayers previous input layers.
-	 * @param prevIndexOutputLayers previous input output layers.
-	 * @param thisErrorLayers current layers as bias layers.
-	 * @return derivative of previous layers given current layers as bias layers.
-	 */
-	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevIndexOutputLayers, MatrixStack thisErrorLayers) {
-		if (prevInputLayers.depth() != depth() || prevIndexOutputLayers.depth() != depth()) throw new IllegalArgumentException();
-		if (prevIndexOutputLayers.rows() != prevInputLayers.rows() || prevIndexOutputLayers.columns() != prevInputLayers.columns()) throw new IllegalArgumentException();
-		
-		MatrixStack dValueSum = null;
-		for (int d = 0; d < thisErrorLayers.depth(); d++) {
-			MatrixStack dValue = dValue(prevInputLayers, prevIndexOutputLayers, thisErrorLayers.get(d));
-			dValueSum = dValueSum != null ? (MatrixStack)dValueSum.add(dValue) : dValue;
-		}
-		return dValueSum;
-	}
-	
-
 	@Override
-	public Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer) {
+	public Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		MatrixStack prevInputLayers = prevInputLayer instanceof MatrixStack ? (MatrixStack)prevInputLayer : new MatrixStack(prevInputLayer);
 		MatrixStack prevIndexOutputLayers = prevOutputLayer instanceof MatrixStack ? (MatrixStack)prevOutputLayer : new MatrixStack(prevOutputLayer);
 		MatrixStack thisErrorLayers = thisErrorLayer instanceof MatrixStack ? (MatrixStack)thisErrorLayer : new MatrixStack(thisErrorLayer);

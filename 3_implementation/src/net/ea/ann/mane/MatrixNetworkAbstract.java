@@ -14,12 +14,13 @@ import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.mane.filter.Filter;
-import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.Size;
 
 /**
@@ -114,6 +115,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	public MatrixNetworkAbstract(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(idRef);
 		this.config.put(LEARN_MAX_ITERATION_FIELD, LEARN_MAX_ITERATION_DEFAULT);
+		this.config.put(RasterAbstract.RASTER_CHANNEL_FIELD, RasterAbstract.RASTER_CHANNEL_DEFAULT);
 		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		this.config.put(Image.ALPHA_FIELD, Image.ALPHA_DEFAULT);
 		this.config.put(LARGE_SCALE_FIELD, LARGE_SCALE_DEFAULT);
@@ -173,11 +175,11 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	/**
 	 * Creating filter.
 	 * @param filterSize filter size.
-	 * @param filterSpec filter specification.
+	 * @param layerSpec layer specification.
 	 * @return filter.
 	 */
-	Filter newFilter(Size filterSize, FilterSpec filterSpec) {
-		Filter filter = newLayer().newFilter(filterSize, filterSpec);
+	Filter newFilter(Size filterSize, MatrixLayerAbstract.LayerSpec layerSpec) {
+		Filter filter = newLayer().newFilter(filterSize, layerSpec);
 		if (filter != null && paramGetMiddleSize() > 0) filter.setMoveStride(true);
 		return filter;
 	}
@@ -226,7 +228,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	public void enterInputs(Record record) {
 		MatrixLayerAbstract inputLayer = getInputLayer();
 		Matrix input = record.input();
-		if (input != null) Matrix.copy(input, inputLayer.getInput());
+		if (input != null) MatrixUtil.copy(input, inputLayer.getInput());
 	}
 
 
@@ -278,6 +280,51 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	}
 	
 	
+	/**
+	 * Back-warding layer as learning matrix neural network.
+	 * @param outputErrors core last errors which are core last biases.
+	 * @param learningRate learning rate.
+	 * @return training error.
+	 */
+	public Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
+		resetBackwardInfo();
+		if (outputErrors == null || outputErrors.length == 0) return null;
+		Error[] errors = new Error[outputErrors.length];
+		for (int i = 0; i < outputErrors.length; i++) {
+			errors[i] = backward(new Error[] {outputErrors[i]}, this, false, learningRate)[0];
+		}
+		return errors;
+	}
+
+	
+	/**
+	 * Updating parameters from backward information.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	public void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		if (layers == null) return;
+		for (int i = layers.length-1; i >= 0; i--) {
+			if (!(layers[i] instanceof MatrixLayerImpl)) continue;
+			MatrixLayerImpl layer = (MatrixLayerImpl)layers[i];
+			layer.updateParametersFromBackwardInfo(recordCount, learningRate);
+		}
+	}
+	
+
+	/**
+	 * Resetting backward information.
+	 */
+	public void resetBackwardInfo() {
+		if (layers == null) return;
+		for (int i = layers.length-1; i >= 0; i--) {
+			if (!(layers[i] instanceof MatrixLayerImpl)) continue;
+			MatrixLayerImpl layer = (MatrixLayerImpl)layers[i];
+			layer.resetBackwardInfo();
+		}
+	}
+	
+
 	/**
 	 * Calculating the last bias which is often the negative of output error, often multiplied with gradient.
 	 * Derived class can override this method but it is better to apply the method {@link #setLikelihoodGradient(LikelihoodGradient)} into changing how to calculate the bias (error). 
@@ -390,6 +437,30 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	}
 	
 
+	/**
+	 * Getting raster channel.
+	 * @return raster channel.
+	 */
+	int paramGetRasterChannel() {
+		if (config.containsKey(RasterAbstract.RASTER_CHANNEL_FIELD))
+			return config.getAsInt(RasterAbstract.RASTER_CHANNEL_FIELD);
+		else
+			return RasterAbstract.RASTER_CHANNEL_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting raster channel.
+	 * @param rasterChannel raster channel.
+	 * @return this network.
+	 */
+	MatrixNetworkAbstract paramSetRasterChannel(int rasterChannel) {
+		rasterChannel = rasterChannel < 1 ? RasterAbstract.RASTER_CHANNEL_DEFAULT : rasterChannel;
+		config.put(RasterAbstract.RASTER_CHANNEL_FIELD, rasterChannel);
+		return this;
+	}
+
+	
 	/**
 	 * Checking vectorization mode.
 	 * @return vectorization mode.

@@ -41,14 +41,14 @@ public class StackClassifier extends ClassifierModelAbstract {
 		if (name != null && !name.isEmpty())
 			return name;
 		else
-			return "stack_classifier";
+			return "classifier.stack";
 	}
 
 	
 	@Override
 	protected Classifier createGenModel() {
 		try {
-			return net.ea.ann.classifier.StackClassifier.create(getNeuronChannel(), isNorm());
+			return net.ea.ann.classifier.StackClassifier.create(getNeuronChannel(), getRasterChannel(), isNorm());
 		} catch (Throwable e) {Util.trace(e);}
 		return null;
 	}

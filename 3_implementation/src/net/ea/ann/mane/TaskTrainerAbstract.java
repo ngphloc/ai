@@ -12,6 +12,7 @@ import java.util.List;
 
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 
 /**
  * This class implements partially specifies trainer applying into learning matrix neural network for specific task such as classification and reinforcement learning.
@@ -48,7 +49,7 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 			}
 			else {
 				Matrix input = record.input();
-				if (input != null) Matrix.copy(input, layer.getInput());
+				if (input != null) MatrixUtil.copy(input, layer.getInput());
 			}
 			
 			Error bias = new Error((Matrix)null);

@@ -21,6 +21,7 @@ import net.ea.ann.adapter.gen.beans.ForestClassifier;
 import net.ea.ann.adapter.gen.beans.MatrixClassifier;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
 import net.ea.ann.adapter.gen.beans.TransformerClassifier;
+import net.ea.ann.adapter.gen.beans.VGG;
 import net.ea.ann.classifier.Classifier;
 import net.ea.ann.classifier.ClassifierAbstract;
 import net.ea.ann.classifier.ClassifierAssoc;
@@ -235,7 +236,7 @@ public class GenUIClassifier extends GenUI {
 	 * @return local generative model.
 	 */
 	static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
-		return queryLocalGenModel(initialGM, initialUI, new GenModelRemote[] {new MatrixClassifier(), new TransformerClassifier(), new ForestClassifier(), new StackClassifier()}, new GenUICreator() {
+		return queryLocalGenModel(initialGM, initialUI, new GenModelRemote[] {new VGG(), new MatrixClassifier(), new TransformerClassifier(), new ForestClassifier(), new StackClassifier()}, new GenUICreator() {
 			@Override
 			public GenUI create(GenModelRemote gm) {
 				return new GenUIClassifier(gm, false);
@@ -257,7 +258,7 @@ public class GenUIClassifier extends GenUI {
 		}
 
 		if (arg == null) {
-			GenUIClassifier classifierUI = (GenUIClassifier)queryLocalGenModel(new MatrixClassifier(), null);
+			GenUIClassifier classifierUI = (GenUIClassifier)queryLocalGenModel(new VGG(), null);
 			if (classifierUI != null) classifierUI.setVisible(true);
 		}
 		else if (arg.equalsIgnoreCase("mane") || arg.equalsIgnoreCase("gen") || arg.equalsIgnoreCase("general"))

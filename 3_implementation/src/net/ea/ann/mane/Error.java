@@ -14,6 +14,7 @@ import java.util.Set;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 
 
 /**
@@ -308,28 +309,28 @@ public class Error implements Cloneable, Serializable {
 			Error0 result = new Error0();
 			
 			if (this.error != null && error.error != null)
-				result.error = Matrix.sum(this.error, error.error);
+				result.error = MatrixUtil.sum(this.error, error.error);
 			else if (this.error != null && error.error == null)
 				result.error = this.error;
 			else if (this.error == null && error.error != null)
 				result.error = error.error;
 			
 			if (this.input != null && error.input != null)
-				result.input = Matrix.sum(this.input, error.input);
+				result.input = MatrixUtil.sum(this.input, error.input);
 			else if (this.input != null && error.input == null)
 				result.input = this.input;
 			else if (this.input == null && error.input != null)
 				result.input = error.input;
 			
 			if (this.output != null && error.output != null)
-				result.output = Matrix.sum(this.output, error.output);
+				result.output = MatrixUtil.sum(this.output, error.output);
 			else if (this.output != null && error.output == null)
 				result.output = this.output;
 			else if (this.output == null && error.output != null)
 				result.output = error.output;
 
 			if (this.realOutput != null && error.realOutput != null)
-				result.realOutput = Matrix.sum(this.realOutput, error.realOutput);
+				result.realOutput = MatrixUtil.sum(this.realOutput, error.realOutput);
 			else if (this.realOutput != null && error.realOutput == null)
 				result.realOutput = this.realOutput;
 			else if (this.realOutput == null && error.realOutput != null)

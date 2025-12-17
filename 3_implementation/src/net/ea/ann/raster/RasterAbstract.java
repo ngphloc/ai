@@ -24,9 +24,27 @@ public abstract class RasterAbstract implements Raster {
 
 	
 	/**
+	 * Name of neuron channel field.
+	 */
+	public final static String NEURON_CHANNEL_FIELD = "net_neuron_channel";
+
+	
+	/**
+	 * Default neuron channel.
+	 */
+	public final static int NEURON_CHANNEL_DEFAULT = 1;
+
+	
+	/**
+	 * Name of raster channel field.
+	 */
+	public final static String RASTER_CHANNEL_FIELD = "net_raster_channel";
+
+	
+	/**
 	 * Default raster channel.
 	 */
-	public static final int RASTER_CHANNEL_DEFAULT = 3;
+	public final static int RASTER_CHANNEL_DEFAULT = 3;
 
 	
 	/**

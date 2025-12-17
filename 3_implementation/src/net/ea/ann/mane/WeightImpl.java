@@ -13,6 +13,7 @@ import java.util.Random;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.Size;
 
@@ -38,7 +39,7 @@ public class WeightImpl implements Weight {
 	 * @version 1.0
 	 *
 	 */
-	public static class Kernel implements net.ea.ann.mane.Weight.Kernel {
+	public static class WKernel implements Kernel {
 		
 		/**
 		 * Serial version UID for serializable class.
@@ -60,8 +61,8 @@ public class WeightImpl implements Weight {
 		 * @param W1 the first weight.
 		 * @param W2 the second weight.
 		 */
-		public Kernel(MatrixStack[] W1, MatrixStack[] W2) {
-			if (!checkValid(W1, W1)) throw new IllegalArgumentException();
+		public WKernel(MatrixStack[] W1, MatrixStack[] W2) {
+			if (!checkValid(W1, W2)) throw new IllegalArgumentException();
 			this.W1 = W1;
 			this.W2 = W2;
 		}
@@ -81,24 +82,24 @@ public class WeightImpl implements Weight {
 		}
 
 		@Override
-		public net.ea.ann.mane.Weight.Kernel add(net.ea.ann.mane.Weight.Kernel kernel) {
-			MatrixStack[] sum1 = this.W1 != null ? MatrixStack.sum(this.W1, ((Kernel)kernel).W1) : null;
-			MatrixStack[] sum2 = this.W2 != null ? MatrixStack.sum(this.W2, ((Kernel)kernel).W2) : null;
-			return new Kernel(sum1, sum2);
+		public WKernel add(Kernel kernel) {
+			MatrixStack[] sum1 = this.W1 != null ? MatrixStack.sum2(this.W1, ((WKernel)kernel).W1) : null;
+			MatrixStack[] sum2 = this.W2 != null ? MatrixStack.sum2(this.W2, ((WKernel)kernel).W2) : null;
+			return new WKernel(sum1, sum2);
 		}
 
 		@Override
-		public net.ea.ann.mane.Weight.Kernel multiply(double value) {
+		public WKernel multiply(double value) {
 			MatrixStack[] d1 = this.W1 != null ? MatrixStack.multiply(this.W1, value) : null;
 			MatrixStack[] d2 = this.W2 != null ? MatrixStack.multiply(this.W2, value) : null;
-			return new Kernel(d1, d2);
+			return new WKernel(d1, d2);
 		}
 
 		@Override
-		public net.ea.ann.mane.Weight.Kernel divide(double value) {
+		public WKernel divide(double value) {
 			MatrixStack[] d1 = this.W1 != null ? MatrixStack.divide(this.W1, value) : null;
 			MatrixStack[] d2 = this.W2 != null ? MatrixStack.divide(this.W2, value) : null;
-			return new Kernel(d1, d2);
+			return new WKernel(d1, d2);
 		}
 
 	}
@@ -107,7 +108,7 @@ public class WeightImpl implements Weight {
 	/**
 	 * The kernel.
 	 */
-	protected Kernel kernel = null;
+	protected WKernel kernel = null;
 	
 	
 	/**
@@ -115,7 +116,7 @@ public class WeightImpl implements Weight {
 	 * @param W1 the first weight.
 	 * @param W2 the second weight.
 	 */
-	public WeightImpl(Kernel w) {
+	public WeightImpl(WKernel w) {
 		this.kernel = w;
 	}
 
@@ -145,7 +146,7 @@ public class WeightImpl implements Weight {
 	 * Getting internal weight.
 	 * @return internal weight.
 	 */
-	public Kernel kernel() {return kernel;}
+	public WKernel kernel() {return kernel;}
 	
 	
 	/**
@@ -185,8 +186,8 @@ public class WeightImpl implements Weight {
 
 
 	@Override
-	public Weight accumKernel(net.ea.ann.mane.Weight.Kernel dKernel, double factor) {
-		this.kernel = (Kernel)this.kernel.add(dKernel.multiply(factor));
+	public Weight accumKernel(Kernel dKernel, double factor) {
+		this.kernel = (WKernel)this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 
@@ -195,18 +196,17 @@ public class WeightImpl implements Weight {
 	 * Evaluating inputs.
 	 * @param time time.
 	 * @param inputs inputs.
-	 * @param biases biases.
+	 * @param bias bias.
 	 * @return evaluated value.
 	 */
-	private Matrix evaluate(int time, MatrixStack inputs, MatrixStack biases) {
+	private Matrix evaluate(int time, MatrixStack inputs, Matrix bias) {
 		int depth = depth();
-		if (inputs.depth() != depth || inputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix sum = null;
 		for (int d = 0; d < depth; d++) {
-			Matrix value = new WCore(W1(time, d), W2(time, d)).evaluate(inputs.get(d), biases.get(d));
+			Matrix value = new WCore(W1(time, d), W2(time, d)).evaluate(inputs.get(d), null);
 			sum = sum != null ? sum.add(value) : value;
 		}
-		return sum;
+		return sum.add(bias);
 	}
 	
 	
@@ -218,10 +218,11 @@ public class WeightImpl implements Weight {
 	 * @return evaluated value.
 	 */
 	private MatrixStack evaluate(MatrixStack inputs, MatrixStack biases) {
+		if (inputs.depth() != depth() || inputs.depth() != depth() || biases.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
 		Matrix[] values = new Matrix[time];
 		for (int t = 0; t < time; t++) {
-			values[t] = evaluate(t, inputs, biases);
+			values[t] = evaluate(t, inputs, biases.get(t));
 		}
 		return new MatrixStack(values);
 
@@ -242,17 +243,16 @@ public class WeightImpl implements Weight {
 	 * @param time time.
 	 * @param prevInputs previous inputs.
 	 * @param prevOutputs previous outputs.
-	 * @param thisErrors current errors.
+	 * @param thisError current error.
 	 * @param prevActivateRef previous activation function.
 	 * @return gradient of previous layers.
 	 */
-	private MatrixStack dValue(int time, MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef) {
+	private MatrixStack dValue(int time, MatrixStack prevInputs, MatrixStack prevOutputs, Matrix thisError, Function prevActivateRef) {
 		int depth = depth();
-		if (prevInputs.depth() != depth || prevOutputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix[] dValues = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
 			dValues[d] = new WCore(W1(time, d), W2(time, d)).
-				dValue(prevInputs.get(d), prevOutputs.get(d), thisErrors.get(d), prevActivateRef);
+				dValue(prevInputs.get(d), prevOutputs.get(d), thisError, prevActivateRef);
 		}
 		return new MatrixStack(dValues);
 	}
@@ -267,11 +267,12 @@ public class WeightImpl implements Weight {
 	 * @return gradient of previous layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef) {
+		if (prevInputs.depth() != depth() || prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
 		MatrixStack sum = null;
 		for (int t = 0; t < time; t++) {
-			MatrixStack dValues = dValue(t, prevInputs, prevOutputs, thisErrors, prevActivateRef);
-			sum = sum != null ? (MatrixStack)sum.add(dValues) : dValues;
+			MatrixStack dValue = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef);
+			sum = sum != null ? (MatrixStack)sum.add(dValue) : dValue;
 		}
 		return sum;
 	}
@@ -291,16 +292,15 @@ public class WeightImpl implements Weight {
 	 * Calculating gradient of the current first weight.
 	 * @param time time.
 	 * @param prevOutputs previous outputs.
-	 * @param thisErrors current errors.
+	 * @param thisError current error.
 	 * @return gradient of the current first weight.
 	 */
-	private MatrixStack dW1(int time, MatrixStack prevOutputs, MatrixStack thisErrors) {
+	private MatrixStack dW1(int time, MatrixStack prevOutputs, Matrix thisError) {
 		if (this.W1() == null) return null;
 		int depth = depth();
-		if (prevOutputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix[] dW1s = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			dW1s[d] = new WCore(W1(time, d), W2(time, d)).dW1(prevOutputs.get(d), thisErrors.get(d));
+			dW1s[d] = new WCore(W1(time, d), W2(time, d)).dW1(prevOutputs.get(d), thisError);
 		}
 		return new MatrixStack(dW1s);
 	}
@@ -315,10 +315,11 @@ public class WeightImpl implements Weight {
 	 */
 	private MatrixStack[] dW1(MatrixStack prevOutputs, MatrixStack thisErrors) {
 		if (this.W1() == null) return null;
+		if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
 		MatrixStack[] dW1s = new MatrixStack[time];
 		for (int t = 0; t < time; t++) {
-			dW1s[t] = dW1(t, prevOutputs, thisErrors);
+			dW1s[t] = dW1(t, prevOutputs, thisErrors.get(t));
 		}
 		return dW1s;
 	}
@@ -328,16 +329,16 @@ public class WeightImpl implements Weight {
 	 * Calculating gradient of the current second weight.
 	 * @param time time.
 	 * @param prevOutputs previous outputs.
-	 * @param thisErrors current errors.
+	 * @param thisError current error.
 	 * @return gradient of the current second weight.
 	 */
-	private MatrixStack dW2(int time, MatrixStack prevOutputs, MatrixStack thisErrors) {
+	private MatrixStack dW2(int time, MatrixStack prevOutputs, Matrix thisError) {
 		if (this.W2() == null) return null;
 		int depth = depth();
 		if (prevOutputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix[] dW2s = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			dW2s[d] = new WCore(W1(time, d), W2(time, d)).dW2(prevOutputs.get(d), thisErrors.get(d));
+			dW2s[d] = new WCore(W1(time, d), W2(time, d)).dW2(prevOutputs.get(d), thisError);
 		}
 		return new MatrixStack(dW2s);
 	}
@@ -352,22 +353,23 @@ public class WeightImpl implements Weight {
 	 */
 	private MatrixStack[] dW2(MatrixStack prevOutputs, MatrixStack thisErrors) {
 		if (this.W2() == null) return null;
+		if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
 		MatrixStack[] dW2s = new MatrixStack[time];
 		for (int t = 0; t < time; t++) {
-			dW2s[t] = dW2(t, prevOutputs, thisErrors);
+			dW2s[t] = dW2(t, prevOutputs, thisErrors.get(t));
 		}
 		return dW2s;
 	}
 
 
 	@Override
-	public Kernel dKernel(Matrix prevOutput, Matrix thisError) {
+	public WKernel dKernel(Matrix prevOutput, Matrix thisError) {
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
 		MatrixStack[] dW1 = dW1(prevOutputs, thisErrors);
 		MatrixStack[] dW2 = dW2(prevOutputs, thisErrors);
-		return new Kernel(dW1, dW2);
+		return new WKernel(dW1, dW2);
 	}
 
 
@@ -376,10 +378,10 @@ public class WeightImpl implements Weight {
 		MatrixStack[] W1 = W1();
 		MatrixStack[] W2 = W1();
 		if (W1 != null) {
-			for (MatrixStack w1 : W1) MatrixStack.fill(w1, v);
+			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, v);
 		}
 		if (W2 != null) {
-			for (MatrixStack w2 : W2) MatrixStack.fill(w2, v);
+			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, v);
 		}
 	}
 	
@@ -389,10 +391,10 @@ public class WeightImpl implements Weight {
 		MatrixStack[] W1 = W1();
 		MatrixStack[] W2 = W1();
 		if (W1 != null) {
-			for (MatrixStack w1 : W1) MatrixStack.fill(w1, rnd);
+			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, rnd);
 		}
 		if (W2 != null) {
-			for (MatrixStack w2 : W2) MatrixStack.fill(w2, rnd);
+			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, rnd);
 		}
 	}
 
@@ -403,10 +405,10 @@ public class WeightImpl implements Weight {
 		MatrixStack[] W1 = W1();
 		MatrixStack[] W2 = W1();
 		if (W1 != null) {
-			for (MatrixStack w1 : W1) size += Matrix.capacity(w1);
+			for (MatrixStack w1 : W1) size += MatrixUtil.capacity(w1);
 		}
 		if (W2 != null) {
-			for (MatrixStack w2 : W2) size += Matrix.capacity(w2);
+			for (MatrixStack w2 : W2) size += MatrixUtil.capacity(w2);
 		}
 		return size;
 	}
@@ -433,7 +435,7 @@ public class WeightImpl implements Weight {
 		}
 		MatrixStack[] W = new MatrixStack[time];
 		for (int t = 0; t < time; t++) {
-			Matrix matrix = Matrix.create(new Size(size.width, size.height, depth, 1), hint); 
+			Matrix matrix = MatrixUtil.create(new Size(size.width, size.height, depth, 1), hint); 
 			W[t] = matrix instanceof MatrixStack ? (MatrixStack)matrix : new MatrixStack(matrix);
 		}
 		return W;
@@ -450,7 +452,7 @@ public class WeightImpl implements Weight {
 	public static WeightImpl create(Size sizeW1, Size sizeW2, NeuronValue hint) {
 		MatrixStack[] W1 = sizeW1 != null ? createW(sizeW1, hint) : null;
 		MatrixStack[] W2 = sizeW2 != null ? createW(sizeW2, hint) : null;
-		return new WeightImpl(new Kernel(W1, W2));
+		return new WeightImpl(new WKernel(W1, W2));
 	}
 
 
@@ -518,7 +520,7 @@ class WCore implements Cloneable, Serializable {
 	Matrix evaluate(Matrix input, Matrix bias) {
 		if (this.W1 != null) input = this.W1.multiply(input);
 		if (this.W2 != null) input = input.multiply(this.W2);
-		return input.add(bias);
+		return bias != null ? input.add(bias) : input;
 	}
 	
 	

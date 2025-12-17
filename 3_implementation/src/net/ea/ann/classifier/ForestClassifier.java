@@ -44,6 +44,11 @@ public class ForestClassifier extends ClassifierAbstract {
 	public static enum TreeModel {
 		
 		/**
+		 * VGG model.
+		 */
+		vgg,
+
+		/**
 		 * Matrix neural network classifier.
 		 */
 		mac,
@@ -79,7 +84,11 @@ public class ForestClassifier extends ClassifierAbstract {
 		this.config.put(TREE_MODEL_FIELD, TREE_MODEL_DEFAULT);
 		
 		try {
-			ClassifierAbstract classifier = new MatrixClassifier(neuronChannel);
+			ClassifierAbstract classifier = new VGG(neuronChannel);
+			this.config.putAll(classifier.getConfig());
+			classifier.close();
+
+			classifier = new MatrixClassifier(neuronChannel);
 			this.config.putAll(classifier.getConfig());
 			classifier.close();
 			
@@ -107,14 +116,17 @@ public class ForestClassifier extends ClassifierAbstract {
 		TreeModel model = paramGetTreeModel();
 		ClassifierAbstract classifier = null;
 		switch (model) {
+		case vgg:
+			classifier = VGG.create(this.neuronChannel, paramGetRasterChannel(), this.paramIsNorm());
+			break;
 		case mac:
-			classifier = MatrixClassifier.create(this.neuronChannel, this.paramIsNorm());
+			classifier = MatrixClassifier.create(this.neuronChannel, paramGetRasterChannel(), this.paramIsNorm());
 			break;
 		case tramac:
-			classifier = TransformerClassifier.create(this.neuronChannel, this.paramIsNorm());
+			classifier = TransformerClassifier.create(this.neuronChannel, paramGetRasterChannel(), this.paramIsNorm());
 			break;
 		default:
-			classifier = MatrixClassifier.create(this.neuronChannel, this.paramIsNorm());
+			classifier = MatrixClassifier.create(this.neuronChannel, paramGetRasterChannel(), this.paramIsNorm());
 			break;
 		}
 		classifier.updateConfig(this.config);
@@ -222,14 +234,14 @@ public class ForestClassifier extends ClassifierAbstract {
 	}
 
 
-	/**
-	 * Getting the number of blocks.
-	 * @return the number of blocks.
-	 */
-	int paramGetBlocksNumber() {
-		int blocksNumber = config.getAsInt(TransformerClassifierAbstract.BLOCKS_NUMBER_FIELD);
-		return blocksNumber < 1 ? TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT : blocksNumber;
-	}
+//	/**
+//	 * Getting the number of blocks.
+//	 * @return the number of blocks.
+//	 */
+//	int paramGetBlocksNumber() {
+//		int blocksNumber = config.getAsInt(TransformerClassifierAbstract.BLOCKS_NUMBER_FIELD);
+//		return blocksNumber < 1 ? TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT : blocksNumber;
+//	}
 	
 	
 	/**
@@ -238,16 +250,19 @@ public class ForestClassifier extends ClassifierAbstract {
 	 * @return tree model.
 	 */
 	public static TreeModel toTreeModel(int treeModelIndex) {
-		TreeModel treeModel = TreeModel.mac;
+		TreeModel treeModel = TreeModel.vgg;
 		switch (treeModelIndex) {
 		case 0:
-			treeModel = TreeModel.mac;
+			treeModel = TreeModel.vgg;
 			break;
 		case 1:
+			treeModel = TreeModel.mac;
+			break;
+		case 2:
 			treeModel = TreeModel.tramac;
 			break;
 		default:
-			treeModel = TreeModel.mac;
+			treeModel = TreeModel.vgg;
 			break;
 		}
 		return treeModel;
@@ -262,11 +277,14 @@ public class ForestClassifier extends ClassifierAbstract {
 	static int toTreeModelIndex(TreeModel treeModel) {
 		int treeModelIndex = TREE_MODEL_DEFAULT;
 		switch (treeModel) {
-		case mac:
+		case vgg:
 			treeModelIndex = 0;
 			break;
-		case tramac:
+		case mac:
 			treeModelIndex = 1;
+			break;
+		case tramac:
+			treeModelIndex = 2;
 			break;
 		default:
 			treeModelIndex = TREE_MODEL_DEFAULT;
@@ -282,8 +300,11 @@ public class ForestClassifier extends ClassifierAbstract {
 	 * @return text of tree model.
 	 */
 	static String toTreeModelText(TreeModel treeModel) {
-		String treeModelText = "mac";
+		String treeModelText = "vgg";
 		switch (treeModel) {
+		case vgg:
+			treeModelText = "vgg";
+			break;
 		case mac:
 			treeModelText = "mac";
 			break;
@@ -291,7 +312,7 @@ public class ForestClassifier extends ClassifierAbstract {
 			treeModelText = "tramac";
 			break;
 		default:
-			treeModelText = "mac";
+			treeModelText = "vgg";
 			break;
 		}
 		return treeModelText;
@@ -347,11 +368,13 @@ public class ForestClassifier extends ClassifierAbstract {
 	/**
 	 * Creating matrix neural classifier with neuron channel and norm flag.
 	 * @param neuronChannel specified neuron channel.
+	 * @param rasterChannel raster channel.
 	 * @param isNorm norm flag.
 	 * @return classifier.
 	 */
-	public static ForestClassifier create(int neuronChannel, boolean isNorm) {
+	public static ForestClassifier create(int neuronChannel, int rasterChannel, boolean isNorm) {
 		ForestClassifier forest = new ForestClassifier(neuronChannel);
+		forest.paramSetRasterChannel(rasterChannel);
 		forest.paramSetNorm(isNorm);
 		return forest;
 	}

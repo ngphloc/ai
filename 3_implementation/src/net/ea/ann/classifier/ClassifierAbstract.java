@@ -22,14 +22,17 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.generator.GeneratorWeighted;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
+import net.ea.ann.mane.beans.VGG;
 import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
+import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
 import net.ea.ann.raster.RasterProperty.Label;
@@ -80,37 +83,37 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Field for convolutional network.
 	 */
-	public static final String CONV_FIELD = "classifier_conv";
+	public static final String CONV_FIELD = VGG.CONV_FIELD;
 	
 	
 	/**
 	 * Default value for convolutional network.
 	 */
-	public static final boolean CONV_DEFAULT = false;
+	public static final boolean CONV_DEFAULT = VGG.CONV_DEFAULT;
 
 	
 	/**
 	 * Field for filter size.
 	 */
-	public static final String FILTER_SIZE_FIELD = "classifier_filter_size";
+	public static final String FILTER_SIZE_FIELD = VGG.FILTER_SIZE_FIELD;
 	
 	
 	/**
 	 * Default value for filter size.
 	 */
-	public static final int FILTER_SIZE_DEFAULT = MatrixNetworkImpl.BASE_DEFAULT;
+	public static final int FILTER_SIZE_DEFAULT = VGG.FILTER_SIZE_DEFAULT;
 
 	
 	/**
 	 * Field for depth.
 	 */
-	public static final String DEPTH_FIELD = "classifier_depth";
+	public static final String DEPTH_FIELD = VGG.LAYERS_NUMBER_FIELD;
 	
 	
 	/**
 	 * Default value for depth.
 	 */
-	public static final int DEPTH_DEFAULT = MatrixNetworkImpl.DEPTH_DEFAULT;
+	public static final int DEPTH_DEFAULT = VGG.LAYERS_NUMBER_DEFAULT;
 
 	
 	/**
@@ -194,7 +197,19 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Default value for depth.
 	 */
-	public static final int STACK_SIZE_DEFAULT = 1; //MatrixNetworkImpl.DEPTH_DEFAULT;
+	public static final int STACK_SIZE_DEFAULT = VGG.BLOCKS_NUMBER_DEFAULT;
+
+	
+	/**
+	 * Field for transformer-based weight mode.
+	 */
+	public final static String TRANS_WEIGHT_FIELD = VGG.TRANS_WEIGHT_FIELD;
+	
+	
+	/**
+	 * Default value for transformer-based weight mode.
+	 */
+	public final static boolean TRANS_WEIGHT_DEFAULT = VGG.TRANS_WEIGHT_DEFAULT;
 
 	
 	/**
@@ -244,6 +259,8 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		super(idRef);
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
 
+		config.put(RasterAbstract.NEURON_CHANNEL_FIELD, RasterAbstract.NEURON_CHANNEL_DEFAULT);
+		config.put(RasterAbstract.RASTER_CHANNEL_FIELD, RasterAbstract.RASTER_CHANNEL_DEFAULT);
 		config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		config.put(MatrixNetworkAbstract.VECTORIZED_FIELD, MatrixNetworkAbstract.VECTORIZED_DEFAULT);
 		config.put(BYCOLUMN_FIELD, BYCOLUMN_DEFAULT);
@@ -471,7 +488,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @param nCoreClasses the number of rows and columns of core classes.
 	 * @return true if configuration is successful.
 	 */
-	private boolean configClassInfo(Size nCoreClasses) {
+	boolean configClassInfo(Size nCoreClasses) {
 		Map<Integer, int[]> outputClassMap = Util.newMap(0);
 		Map<Integer, int[]> classOutputMap = Util.newMap(0);
 		int nClass = paramIsByColumn() ? nCoreClasses.height : nCoreClasses.width;
@@ -585,7 +602,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 */
 	NeuronValue[] getOutput(Matrix output, int groupIndex) {
 		Matrix group = paramIsByColumn() ? output.getColumn(groupIndex) : output.getRow(groupIndex);
-		return Matrix.extractValues(group);
+		return MatrixUtil.extractValues(group);
 	}
 	
 	
@@ -840,7 +857,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		
 		NeuronValue[] errorArray = null;
 		for (Error error : errors) {
-			NeuronValue[] values = Matrix.extractValues(error.error());
+			NeuronValue[] values = MatrixUtil.extractValues(error.error());
 			errorArray = errorArray == null ? values : NeuronValue.concatArray(errorArray, values);
 		}
 		return errorArray;
@@ -926,9 +943,9 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	Matrix calcBaseline(Iterable<Record> sample) {
 		Matrix o = getOutput();
 		Matrix baseline = o.create(new Size(o.columns(), o.rows()));
-		Matrix.fill(baseline, 0);
+		MatrixUtil.fill(baseline, 0);
 		Matrix countBaseline = baseline.create(new Size(baseline.columns(), baseline.rows()));
-		Matrix.fill(countBaseline, 0);
+		MatrixUtil.fill(countBaseline, 0);
 		
 		int combNumber = paramGetCombNumber();
 		int groups = getNumberOfGroups();
@@ -1025,9 +1042,9 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	private Matrix calcAdjustline(Iterable<Record> sample, MatrixNetworkImpl adjuster) {
 		Matrix o = getOutput();
 		Matrix adjustline = o.create(new Size(o.columns(), o.rows()));
-		Matrix.fill(adjustline, 0);
+		MatrixUtil.fill(adjustline, 0);
 		Matrix countAdjustline = adjustline.create(new Size(adjustline.columns(), adjustline.rows()));
-		Matrix.fill(countAdjustline, 0);
+		MatrixUtil.fill(countAdjustline, 0);
 
 		for (Record record : sample) {
 			Matrix output = evaluate(record.input());
@@ -1084,14 +1101,14 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	Matrix[] calcBaselineAdjust(Iterable<Record> sample, MatrixNetworkImpl adjuster) {
 		Matrix o = getOutput();
 		Matrix baseline = o.create(new Size(o.columns(), o.rows()));
-		Matrix.fill(baseline, 0);
+		MatrixUtil.fill(baseline, 0);
 		Matrix countBaseline = baseline.create(new Size(baseline.columns(), baseline.rows()));
-		Matrix.fill(countBaseline, 0);
+		MatrixUtil.fill(countBaseline, 0);
 		
 		Matrix adjustline = o.create(new Size(o.columns(), o.rows()));
-		Matrix.fill(adjustline, 0);
+		MatrixUtil.fill(adjustline, 0);
 		Matrix countAdjustline = adjustline.create(new Size(adjustline.columns(), adjustline.rows()));
-		Matrix.fill(countAdjustline, 0);
+		MatrixUtil.fill(countAdjustline, 0);
 		
 		int combNumber = paramGetCombNumber();
 		int groups = getNumberOfGroups();
@@ -1237,6 +1254,30 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	
 	
 	/**
+	 * Getting raster channel.
+	 * @return raster channel.
+	 */
+	int paramGetRasterChannel() {
+		if (config.containsKey(RasterAbstract.RASTER_CHANNEL_FIELD))
+			return config.getAsInt(RasterAbstract.RASTER_CHANNEL_FIELD);
+		else
+			return RasterAbstract.RASTER_CHANNEL_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting raster channel.
+	 * @param rasterChannel raster channel.
+	 * @return this network.
+	 */
+	ClassifierAbstract paramSetRasterChannel(int rasterChannel) {
+		rasterChannel = rasterChannel < 1 ? RasterAbstract.RASTER_CHANNEL_DEFAULT : rasterChannel;
+		config.put(RasterAbstract.RASTER_CHANNEL_FIELD, rasterChannel);
+		return this;
+	}
+
+	
+	/**
 	 * Checking normalization mode.
 	 * @return normalization mode in rang [0, 1].
 	 */
@@ -1349,8 +1390,6 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		return this;
 	}
 
-	
-	
 	
 	/**
 	 * Getting filter size.
@@ -1575,6 +1614,29 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	ClassifierAbstract paramSetStackSize(int stackSize) {
 		stackSize = stackSize < 1 ? STACK_SIZE_DEFAULT : stackSize;
 		config.put(STACK_SIZE_FIELD, stackSize);
+		return this;
+	}
+
+
+	/**
+	 * Checking transformer-based weight mode.
+	 * @return transformer-based weight mode.
+	 */
+	boolean paramIsTransWeight() {
+		if (config.containsKey(TRANS_WEIGHT_FIELD))
+			return config.getAsBoolean(TRANS_WEIGHT_FIELD);
+		else
+			return TRANS_WEIGHT_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting transformer-based weight mode.
+	 * @param transWeight transformer-based weight mode.
+	 * @return this classifier.
+	 */
+	ClassifierAbstract paramSetTransWeight(boolean transWeight) {
+		config.put(TRANS_WEIGHT_FIELD, transWeight);
 		return this;
 	}
 
