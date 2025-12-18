@@ -203,13 +203,13 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Field for transformer-based weight mode.
 	 */
-	public final static String TRANS_WEIGHT_FIELD = VGG.TRANS_WEIGHT_FIELD;
+	public final static String TRANS_WEIGHT_FIELD = VGG.TRANSFORMER_WEIGHT_FIELD;
 	
 	
 	/**
 	 * Default value for transformer-based weight mode.
 	 */
-	public final static boolean TRANS_WEIGHT_DEFAULT = VGG.TRANS_WEIGHT_DEFAULT;
+	public final static boolean TRANS_WEIGHT_DEFAULT = VGG.TRANSFORMER_WEIGHT_DEFAULT;
 
 	
 	/**
@@ -271,7 +271,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		config.put(DUAL_FIELD, DUAL_DEFAULT);
 		config.put(BASELINE_FIELD, BASELINE_DEFAULT);
 		config.put(ADJUST_FIELD, ADJUST_DEFAULT);
-		config.put(MatrixNetworkImpl.MIDSIZE_FIELD, MatrixNetworkImpl.MIDSIZE_DEFAULT);
+		config.put(MatrixNetworkImpl.MIDDLE_SIZE_DEFAULT_FIELD, MatrixNetworkImpl.MIDDLE_SIZE_DEFAULT_DEFAULT);
 		config.put(SAMPLE_WEIGHT_FIELD, SAMPLE_WEIGHT_DEFAULT);
 		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
 		config.put(CREATE_ADJUSTER_FIELD, CREATE_ADJUSTER_DEFAULT);
@@ -1509,10 +1509,10 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @return middle size.
 	 */
 	public int paramGetMiddleSize() {
-		if (config.containsKey(MatrixNetworkImpl.MIDSIZE_FIELD))
-			return config.getAsInt(MatrixNetworkImpl.MIDSIZE_FIELD);
+		if (config.containsKey(MatrixNetworkImpl.MIDDLE_SIZE_DEFAULT_FIELD))
+			return config.getAsInt(MatrixNetworkImpl.MIDDLE_SIZE_DEFAULT_FIELD);
 		else
-			return MatrixNetworkImpl.MIDSIZE_DEFAULT;
+			return MatrixNetworkImpl.MIDDLE_SIZE_DEFAULT_DEFAULT;
 	}
 	
 	
@@ -1522,7 +1522,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * @return this classifier.
 	 */
 	public ClassifierAbstract paramSetMiddleSize(int minSize) {
-		config.put(MatrixNetworkImpl.MIDSIZE_FIELD, minSize);
+		config.put(MatrixNetworkImpl.MIDDLE_SIZE_DEFAULT_FIELD, minSize);
 		return this;
 	}
 

@@ -15,6 +15,7 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.filter.Filter;
 import net.ea.ann.mane.filter.FilterSpec;
+import net.ea.ann.mane.weight.NetworkWeight;
 import net.ea.ann.raster.Size;
 
 /**
@@ -600,8 +601,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 					Matrix prevInput = getPrevOutput();
 					prevInput = prevInput != null ? prevInput : this.prevLayer.queryOutput(); //Xk-1
 					Matrix prevOutput = getInput();
-					if (this.weight instanceof WeightTrans) {
-						errors[i] = ((WeightTrans)this.weight).dValue(prevInput, prevOutput, errors[i], this.activateRef, learning, learningRate);
+					if (this.weight instanceof NetworkWeight) {
+						errors[i] = ((NetworkWeight)this.weight).dValue(prevInput, prevOutput, errors[i], this.activateRef, learning, learningRate);
 						dWKernels[i] = null;
 					}
 					else {

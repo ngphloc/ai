@@ -19,9 +19,9 @@ import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.Weight;
 import net.ea.ann.mane.WeightSpec;
-import net.ea.ann.mane.WeightTrans;
 import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.mane.filter.FilterSpec.Type;
+import net.ea.ann.mane.weight.TransformerWeight;
 import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerBasic;
@@ -46,13 +46,13 @@ public class VGG extends MatrixNetworkImpl {
 	/**
 	 * Default base.
 	 */
-	final static int BASE = ZOOMOUT_DEFAULT;
+	private final static int BASE = ZOOMOUT_DEFAULT;
 	
 	
 	/**
 	 * Field for middle size.
 	 */
-	public final static String MIDDLE_SIZE_FIELD = "vgg_middle_size";
+	public final static String MIDDLE_SIZE_FIELD = "vgg_midsize";
 	
 	
 	/**
@@ -172,13 +172,13 @@ public class VGG extends MatrixNetworkImpl {
 	/**
 	 * Field for transformer-based weight mode.
 	 */
-	public final static String TRANS_WEIGHT_FIELD = "mane_trans_weight";
+	public final static String TRANSFORMER_WEIGHT_FIELD = "mane_transformer_weight";
 	
 	
 	/**
 	 * Default value for transformer-based weight mode.
 	 */
-	public final static boolean TRANS_WEIGHT_DEFAULT = false;
+	public final static boolean TRANSFORMER_WEIGHT_DEFAULT = false;
 
 	
 	/**
@@ -199,7 +199,7 @@ public class VGG extends MatrixNetworkImpl {
 		config.put(FFN_LENGTH_FIELD, FFN_LENGTH_DEFAULT);
 		config.put(COWEIGHT_FIELD, COWEIGHT_DEFAULT);
 		config.put(INCLUDE_MAXPOOL_FIELD, INCLUDE_MAXPOOL_DEFAULT);
-		config.put(TRANS_WEIGHT_FIELD, TRANS_WEIGHT_DEFAULT);
+		config.put(TRANSFORMER_WEIGHT_FIELD, TRANSFORMER_WEIGHT_DEFAULT);
 	}
 	
 
@@ -254,21 +254,21 @@ public class VGG extends MatrixNetworkImpl {
 				if (layerSpec.weightSpec == null || layerSpec.weightSpec.type != net.ea.ann.mane.WeightSpec.Type.transformer)
 					return super.newWeight(sizeW1, sizeW2, layerSpec);
 				
-				return WeightTrans.create(neuronChannel, prevSize, thisSize);
+				return TransformerWeight.create(neuronChannel, prevSize, thisSize);
 			}
 
 			@Override
 			protected void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
 				super.updateParametersFromBackwardInfo(recordCount, learningRate);
-				if ((this.weight == null) || !(this.weight instanceof WeightTrans)) return;
-				((WeightTrans)this.weight).updateParametersFromBackwardInfo(recordCount, learningRate);
+				if ((this.weight == null) || !(this.weight instanceof TransformerWeight)) return;
+				((TransformerWeight)this.weight).updateParametersFromBackwardInfo(recordCount, learningRate);
 			}
 
 			@Override
 			protected void resetBackwardInfo() {
 				super.resetBackwardInfo();
-				if ((this.weight == null) || !(this.weight instanceof WeightTrans)) return;
-				((WeightTrans)this.weight).resetBackwardInfo();
+				if ((this.weight == null) || !(this.weight instanceof TransformerWeight)) return;
+				((TransformerWeight)this.weight).resetBackwardInfo();
 			}
 			
 		};
@@ -302,15 +302,28 @@ public class VGG extends MatrixNetworkImpl {
 		if (numbers == null) return false;
 		int[] heights = numbers[0];
 		int[] widths = numbers[1];
+		int[] tempHeights = new int[heights.length+1], tempWidths = new int[widths.length+1];
+		tempHeights[0] = inputSize.height;
+		tempWidths[0] = inputSize.width;
+		for (int i = 0; i < heights.length; i++) {
+			tempHeights[i+1] = heights[i];
+			tempWidths[i+1] = widths[i];
+		}
+		heights = tempHeights;
+		widths = tempWidths;
 
 		List<Size> blockSizes = Util.newList(0);
 		int power = 1;
 		for (int i = 0; i < heights.length; i++) {
-			if (i == 0 || i == heights.length-1) {
+			if (blockSizes.size() == 0) {
 				blockSizes.add(new Size(widths[i], heights[i], (int)Math.pow(filtersNumberPerLayer, power)));
 				power++;
+				continue;
 			}
-			else if (widths[i] != widths[i-1] || heights[i] != heights[i-1]) {
+			
+			int prevWidth = blockSizes.get(blockSizes.size()-1).width;
+			int prevHeight = blockSizes.get(blockSizes.size()-1).height;
+			if (widths[i] != prevWidth || heights[i] != prevHeight) {
 				blockSizes.add(new Size(widths[i], heights[i], (int)Math.pow(filtersNumberPerLayer, power)));
 				power++;
 			}
@@ -336,9 +349,11 @@ public class VGG extends MatrixNetworkImpl {
 				}
 				layerSpecs.add(size);
 			}
-			if (paramIsIncludeMaxPool() /*&& paramIsConv()*/) {
-				LayerSpec layerSpec = new LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth));
-				if (layerSpecs.size() > 0) layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
+			if (i < blockSizes.size()-1 && paramIsIncludeMaxPool() /*&& paramIsConv()*/) {
+				Size poolSize = new Size(blockSizes.get(i+1).width, blockSizes.get(i+1).height, blockSize.depth);
+				LayerSpec layerSpec = new LayerSpec(poolSize);
+				if (layerSpecs.size() > 0)
+					layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 				layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
 				layerSpec.filterSpec.coweight = paramIsCoweight();
 				layerSpec.filterSpec.moveStride = true;
@@ -640,10 +655,10 @@ public class VGG extends MatrixNetworkImpl {
 	 * @return transformer-based weight mode.
 	 */
 	boolean paramIsTransWeight() {
-		if (config.containsKey(TRANS_WEIGHT_FIELD))
-			return config.getAsBoolean(TRANS_WEIGHT_FIELD);
+		if (config.containsKey(TRANSFORMER_WEIGHT_FIELD))
+			return config.getAsBoolean(TRANSFORMER_WEIGHT_FIELD);
 		else
-			return TRANS_WEIGHT_DEFAULT;
+			return TRANSFORMER_WEIGHT_DEFAULT;
 	}
 	
 	
@@ -653,7 +668,7 @@ public class VGG extends MatrixNetworkImpl {
 	 * @return this classifier.
 	 */
 	VGG paramSetTransWeight(boolean transWeight) {
-		config.put(TRANS_WEIGHT_FIELD, transWeight);
+		config.put(TRANSFORMER_WEIGHT_FIELD, transWeight);
 		return this;
 	}
 

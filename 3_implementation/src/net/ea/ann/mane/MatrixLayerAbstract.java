@@ -309,16 +309,15 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		switch (filterSpec.type) {
 			case kernel:
 				filter = ProductFilter.create(factor, filterSize, hint);
-				filter.setMoveStride(false);
 				break;
 			case pool:
 				Size adjustedSize = new Size(filterSize.width, filterSize.height, filterSize.time, 1);
 				filter = MaxPoolFilter.create(adjustedSize);
-				filter.setMoveStride(true);
 				break;
 			default:
 				break;
 		}
+		filter.setMoveStride(filterSpec.moveStride);
 		return filter;
 	}
 

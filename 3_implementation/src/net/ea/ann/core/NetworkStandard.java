@@ -134,7 +134,9 @@ public interface NetworkStandard extends Network, Evaluator {
 	 * @param minimum number of hidden layers.
 	 * @return array of hidden neurons.
 	 */
-	static int[] constructHiddenNeuronNumbers(int nInput, int nOutput, int base, int hiddenLayerMin) {
+	@SuppressWarnings("unused")
+	@Deprecated
+	private static int[] constructHiddenNeuronNumbers0(int nInput, int nOutput, int base, int hiddenLayerMin) {
 		if (nInput <= 0 || nOutput <= 0 || base < 2) return null;
 		if (nInput == nOutput) return null;
 	
@@ -168,6 +170,49 @@ public interface NetworkStandard extends Network, Evaluator {
 		return nHiddenNeuron;
 	}
 	
+	
+	/**
+	 * Create array of hidden neurons.
+	 * @param nInput number of input neurons.
+	 * @param nOutput number of output neurons.
+	 * @param base base.
+	 * @param minimum number of hidden layers.
+	 * @return array of hidden neurons.
+	 */
+	static int[] constructHiddenNeuronNumbers(int nInput, int nOutput, int base, int hiddenLayerMin) {
+		if (nInput <= 0 || nOutput <= 0 || base < 2) return null;
+		if (nInput == nOutput) return null;
+	
+		//Determining minimum and maximum.
+		int min = Math.min(nInput, nOutput);
+		int max = Math.max(nInput, nOutput);
+		
+		//Calculating array of hidden size.
+		int[] nHiddenNeuron = null;
+		int n = (int) (Math.log(max/min) / Math.log(base)); //min*base^x = max
+		if (n <= 1)
+			nHiddenNeuron = new int[] {nOutput};
+		else {
+			nHiddenNeuron = new int[n];
+			for (int i = 0; i < n; i++) nHiddenNeuron[i] = (int) (min*Math.pow(base, i+1));
+		}
+
+		//Re-ordering the hidden sizes.
+		if (nInput > nOutput) {
+			int[] array = new int[nHiddenNeuron.length];
+			for (int i = 0; i < nHiddenNeuron.length; i++) array[i] = nHiddenNeuron[(array.length-i) - 1];
+			nHiddenNeuron = array;
+		}
+		
+		//Checking hidden layer minimum.
+		if (hiddenLayerMin < 1 || nHiddenNeuron.length >= hiddenLayerMin) return nHiddenNeuron;
+		int length = nHiddenNeuron.length;
+		int pad = hiddenLayerMin - length;
+		nHiddenNeuron = Arrays.copyOf(nHiddenNeuron, length + pad);
+		Arrays.fill(nHiddenNeuron, length, length + pad, nHiddenNeuron[length-1]);
+		return nHiddenNeuron;
+	}
+
 	
 	/**
 	 * Create array of hidden neurons.

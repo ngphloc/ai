@@ -64,15 +64,15 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 	
 	/**
-	 * Field for middle size.
+	 * Field for default middle size. This field is applied into depth initialization by depth (if it is <= 0).
 	 */
-	public static final String MIDSIZE_FIELD = "classifier_midsize";
+	public static final String MIDDLE_SIZE_DEFAULT_FIELD = "mane_midsize_default";
 	
 	
 	/**
-	 * Default value for middle size.
+	 * Default value for default middle size. This field is applied into depth initialization by depth (if it is <= 0).
 	 */
-	public static final int MIDSIZE_DEFAULT = 0;
+	public static final int MIDDLE_SIZE_DEFAULT_DEFAULT = 0;
 
 	
 	/**
@@ -121,7 +121,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 		this.config.put(LARGE_SCALE_FIELD, LARGE_SCALE_DEFAULT);
 		this.config.put(VECTORIZED_FIELD, VECTORIZED_DEFAULT);
 		this.config.put(MatrixLayerAbstract.LEARN_FILTER_FIELD, MatrixLayerAbstract.LEARN_FILTER_DEFAULT);
-		this.config.put(MIDSIZE_FIELD, MIDSIZE_DEFAULT);
+		this.config.put(MIDDLE_SIZE_DEFAULT_FIELD, MIDDLE_SIZE_DEFAULT_DEFAULT);
 
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
 		this.activateRef = activateRef == null ? (activateRef = Raster.toActivationRef(this.neuronChannel, paramIsNorm())) : activateRef;
@@ -179,9 +179,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @return filter.
 	 */
 	Filter newFilter(Size filterSize, MatrixLayerAbstract.LayerSpec layerSpec) {
-		Filter filter = newLayer().newFilter(filterSize, layerSpec);
-		if (filter != null && paramGetMiddleSize() > 0) filter.setMoveStride(true);
-		return filter;
+		return newLayer().newFilter(filterSize, layerSpec);
 	}
 	
 	
@@ -511,10 +509,10 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @return middle size.
 	 */
 	public int paramGetMiddleSize() {
-		if (config.containsKey(MIDSIZE_FIELD))
-			return config.getAsInt(MIDSIZE_FIELD);
+		if (config.containsKey(MIDDLE_SIZE_DEFAULT_FIELD))
+			return config.getAsInt(MIDDLE_SIZE_DEFAULT_FIELD);
 		else
-			return MIDSIZE_DEFAULT;
+			return MIDDLE_SIZE_DEFAULT_DEFAULT;
 	}
 	
 	
@@ -524,7 +522,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @return this network.
 	 */
 	public MatrixNetworkAbstract paramSetMiddleSize(int minSize) {
-		config.put(MIDSIZE_FIELD, minSize);
+		config.put(MIDDLE_SIZE_DEFAULT_FIELD, minSize);
 		return this;
 	}
 

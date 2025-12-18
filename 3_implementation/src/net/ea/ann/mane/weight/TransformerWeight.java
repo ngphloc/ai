@@ -5,14 +5,16 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane;
+package net.ea.ann.mane.weight;
 
 import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
+import net.ea.ann.mane.Error;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.Kernel.NullKernel;
-import net.ea.ann.mane.WeightImpl.WKernel;
+import net.ea.ann.mane.Weight;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerImpl;
 import net.ea.ann.transformer.TransformerInitializer;
@@ -24,7 +26,7 @@ import net.ea.ann.transformer.TransformerInitializer;
  * @version 1.0
  *
  */
-public class WeightTrans implements Weight {
+public class TransformerWeight implements NetworkWeight {
 
 
 	/**
@@ -45,7 +47,7 @@ public class WeightTrans implements Weight {
 	 * @param prevSize previous size.
 	 * @param thisSize current size.
 	 */
-	protected WeightTrans(int neuronChannel, Size prevSize, Size thisSize) {
+	protected TransformerWeight(int neuronChannel, Size prevSize, Size thisSize) {
 		Size size = new Size(thisSize.width, thisSize.height, prevSize.depth, thisSize.depth);
 		this.kernel = new TKernel(neuronChannel, size);
 	}
@@ -145,29 +147,75 @@ public class WeightTrans implements Weight {
 	}
 
 	
+//	/**
+//	 * Calculate gradient of previous layers.
+//	 * @param time time.
+//	 * @param prevInputs previous inputs.
+//	 * @param prevOutputs previous outputs.
+//	 * @param thisError current error.
+//	 * @param prevActivateRef previous activation function.
+//	 * @param learning learning mode.
+//	 * @param learningRate learning rate.
+//	 * @return gradient of previous layers.
+//	 */
+//	private MatrixStack dValue(int time, MatrixStack prevInputs, MatrixStack prevOutputs, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
+//		int depth = depth();
+//		Matrix[] dValues = new Matrix[depth];
+//		Matrix derivative = prevOutputs.get(time) != null && prevActivateRef != null ? prevOutputs.get(time).derivativeWise(prevActivateRef) : null;
+//		for (int d = 0; d < depth; d++) {
+//			dValues[d] = tra(time, d).backward(new Error[] {new Error(thisError)}, null, learning, learningRate)[0].error();
+//			if (derivative != null) dValues[d] = derivative.multiplyWise(dValues[d]);
+//		}
+//		return new MatrixStack(dValues);
+//	}
+	
+	
 	/**
 	 * Calculate gradient of previous layers.
 	 * @param time time.
 	 * @param prevInputs previous inputs.
-	 * @param prevOutputs previous outputs.
+	 * @param prevOutput previous output.
 	 * @param thisError current error.
 	 * @param prevActivateRef previous activation function.
 	 * @param learning learning mode.
 	 * @param learningRate learning rate.
 	 * @return gradient of previous layers.
 	 */
-	private MatrixStack dValue(int time, MatrixStack prevInputs, MatrixStack prevOutputs, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
+	private Matrix dValue(int time, MatrixStack prevInputs, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
 		int depth = depth();
-		Matrix[] dValues = new Matrix[depth];
-		Matrix derivative = prevOutputs.get(time) != null && prevActivateRef != null ? prevOutputs.get(time).derivativeWise(prevActivateRef) : null;
+		Matrix sum = null;
+		Matrix derivative = prevOutput != null && prevActivateRef != null ? prevOutput.derivativeWise(prevActivateRef) : null;
 		for (int d = 0; d < depth; d++) {
-			dValues[d] = tra(time, d).backward(new Error[] {new Error(thisError)}, null, learning, learningRate)[0].error();
-			if (derivative != null) dValues[d] = derivative.multiplyWise(dValues[d]);
+			Matrix dValue = tra(time, d).backward(new Error[] {new Error(thisError)}, null, learning, learningRate)[0].error();
+			if (derivative != null) dValue = derivative.multiplyWise(dValue);
+			sum = sum != null ? sum.add(dValue) : dValue;
 		}
-		return new MatrixStack(dValues);
+		return sum;
 	}
+
 	
-	
+//	/**
+//	 * Calculate gradient of previous layers.
+//	 * @param prevInputs previous inputs.
+//	 * @param prevOutputs previous outputs.
+//	 * @param thisErrors current errors.
+//	 * @param prevActivateRef previous activation function.
+//	 * @param learning learning mode.
+//	 * @param learningRate learning rate.
+//	 * @return gradient of previous layers.
+//	 */
+//	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef, boolean learning, double learningRate) {
+//		if (prevInputs.depth() != depth() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+//		int time = time();
+//		MatrixStack sum = null;
+//		for (int t = 0; t < time; t++) {
+//			MatrixStack dValue = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef, learning, learningRate);
+//			sum = sum != null ? (MatrixStack)sum.add(dValue) : dValue;
+//		}
+//		return sum;
+//	}
+
+
 	/**
 	 * Calculate gradient of previous layers.
 	 * @param prevInputs previous inputs.
@@ -181,25 +229,15 @@ public class WeightTrans implements Weight {
 	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef, boolean learning, double learningRate) {
 		if (prevInputs.depth() != depth() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
-		MatrixStack sum = null;
+		Matrix[] dValues = new Matrix[time];
 		for (int t = 0; t < time; t++) {
-			MatrixStack dValue = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef, learning, learningRate);
-			sum = sum != null ? (MatrixStack)sum.add(dValue) : dValue;
+			dValues[t] = dValue(t, prevInputs, prevOutputs.get(t), thisErrors.get(t), prevActivateRef, learning, learningRate);
 		}
-		return sum;
+		return new MatrixStack(dValues);
 	}
 
-
-	/**
-	 * Calculate gradient of previous layers.
-	 * @param prevInput previous inputs.
-	 * @param prevOutput previous outputs.
-	 * @param thisError current errors.
-	 * @param prevActivateRef previous activation function.
-	 * @param learning learning mode.
-	 * @param learningRate learning rate.
-	 * @return gradient of previous layers.
-	 */
+	
+	@Override
 	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
 		MatrixStack prevInputs = prevInput instanceof MatrixStack ? (MatrixStack)prevInput : new MatrixStack(prevInput);
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
@@ -212,12 +250,6 @@ public class WeightTrans implements Weight {
 	@Override
 	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
 		return dValue(prevInput, prevOutput, thisError, prevActivateRef, true, Network.LEARN_RATE_DEFAULT);
-	}
-
-	
-	@Override
-	public WKernel dKernel(Matrix prevOutput, Matrix thisError) {
-		throw new RuntimeException("Transformer-based weight does not calculate gradient of kernel");
 	}
 
 	
@@ -253,8 +285,8 @@ public class WeightTrans implements Weight {
 	 * @param prevSize previous size.
 	 * @param thisSize current size.
 	 */
-	public static WeightTrans create(int neuronChannel, Size prevSize, Size thisSize) { 
-		return new WeightTrans(neuronChannel, prevSize, thisSize);
+	public static TransformerWeight create(int neuronChannel, Size prevSize, Size thisSize) { 
+		return new TransformerWeight(neuronChannel, prevSize, thisSize);
 	}
 	
 	

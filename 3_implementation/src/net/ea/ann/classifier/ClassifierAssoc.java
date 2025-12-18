@@ -495,13 +495,13 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			result.append(params.depth + ", ");
 			result.append(params.paramSize + ", ");
 			result.append("model=" + params.model + "~dataset=" + params.dataset +
-				"~entropy=" + params.entropyTrainer +
+				//"~entropy=" + params.entropyTrainer +
 				"~conv=" + params.conv +
 				"~transw=" + params.transWeight +
 				"~vec=" + params.vectorized +
 				"~baseline=" + params.baseline +
 				"~adjust=" + params.adjust +
-				"~dual=" + params.dual +
+				//"~dual=" + params.dual +
 				"~tree=" + params.treeModel + "\n");
 			writer.write(result.toString() + "\n");
 			writer.flush();
