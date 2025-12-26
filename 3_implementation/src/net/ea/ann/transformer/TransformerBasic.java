@@ -22,6 +22,7 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
@@ -30,7 +31,6 @@ import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.TaskTrainer;
-import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
 
@@ -674,12 +674,13 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param learningRate learning rate.
 	 */
 	void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
-		if (blocks == null) return;
-		for (int i = blocks.length-1; i >= 0; i--) {
-			blocks[i].updateParametersFromBackwardInfo(recordCount, learningRate);
-			if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
-			TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
-			attach.updateParametersFromBackwardInfo(recordCount, learningRate);
+		if (blocks != null) {
+			for (int i = blocks.length-1; i >= 0; i--) {
+				blocks[i].updateParametersFromBackwardInfo(recordCount, learningRate);
+				if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
+				TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
+				attach.updateParametersFromBackwardInfo(recordCount, learningRate);
+			}
 		}
 	}
 
@@ -688,12 +689,13 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * Resetting backward information.
 	 */
 	void resetBackwardInfo() {
-		if (blocks == null) return;
-		for (int i = blocks.length-1; i >= 0; i--) {
-			blocks[i].resetBackwardInfo();
-			if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
-			TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
-			attach.resetBackwardInfo();
+		if (blocks != null) {
+			for (int i = blocks.length-1; i >= 0; i--) {
+				blocks[i].resetBackwardInfo();
+				if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
+				TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
+				attach.resetBackwardInfo();
+			}
 		}
 	}
 	

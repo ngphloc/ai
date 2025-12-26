@@ -17,7 +17,6 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
-import net.ea.ann.mane.filter.Filter;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
@@ -439,7 +438,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Getting raster channel.
 	 * @return raster channel.
 	 */
-	int paramGetRasterChannel() {
+	public int paramGetRasterChannel() {
 		if (config.containsKey(RasterAbstract.RASTER_CHANNEL_FIELD))
 			return config.getAsInt(RasterAbstract.RASTER_CHANNEL_FIELD);
 		else
@@ -518,11 +517,11 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 	/**
 	 * Setting middle size.
-	 * @param minSize middle size.
+	 * @param middleSize middle size.
 	 * @return this network.
 	 */
-	public MatrixNetworkAbstract paramSetMiddleSize(int minSize) {
-		config.put(MIDDLE_SIZE_DEFAULT_FIELD, minSize);
+	MatrixNetworkAbstract paramSetMiddleSize(int middleSize) {
+		config.put(MIDDLE_SIZE_DEFAULT_FIELD, middleSize);
 		return this;
 	}
 

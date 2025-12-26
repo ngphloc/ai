@@ -54,7 +54,7 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 	 * @param v value.
 	 */
 	public void initParams(double v) {
-		if (layer.weight != null) layer.weight.fill(v);
+		if (layer.weight != null) layer.weight.initialize(v);
 		if (layer.bias != null) MatrixUtil.fill(layer.bias, v);
 		
 		if (layer.filter != null) layer.filter.initialize(v);
@@ -67,7 +67,7 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 	 * @param rnd randomizer.
 	 */
 	public void initParams(Random rnd) {
-		if (layer.weight != null) layer.weight.fill(rnd);
+		if (layer.weight != null) layer.weight.initialize(rnd);
 		if (layer.bias != null) MatrixUtil.fill(layer.bias, rnd);
 		
 		if (layer.filter != null) layer.filter.initialize(rnd);

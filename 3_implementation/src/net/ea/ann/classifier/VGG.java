@@ -16,11 +16,11 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Error;
+import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
-import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterProperty.Label;
 import net.ea.ann.raster.Size;
@@ -163,18 +163,6 @@ class VGGAbstract extends ClassifierAbstract {
 
 	
 	/**
-	 * Field for number of blocks.
-	 */
-	public static final String BLOCKS_NUMBER_FIELD = net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_FIELD;
-	
-	
-	/**
-	 * Field for number of blocks.
-	 */
-	public static final int BLOCKS_NUMBER_DEFAULT = net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_DEFAULT;
-
-	
-	/**
 	 * Classifier nut.
 	 */
 	protected net.ea.ann.mane.beans.VGG nut = null;
@@ -189,7 +177,6 @@ class VGGAbstract extends ClassifierAbstract {
 	 */
 	public VGGAbstract(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, idRef);
-		this.config.put(BLOCKS_NUMBER_FIELD, BLOCKS_NUMBER_DEFAULT);
 		
 		this.nut = new net.ea.ann.mane.beans.VGG(this.neuronChannel, activateRef, convActivateRef, idRef);
 		try {
@@ -370,8 +357,8 @@ class VGGAbstract extends ClassifierAbstract {
 	 * @return the number of blocks.
 	 */
 	int paramGetBlocksNumber() {
-		int blocksNumber = config.getAsInt(BLOCKS_NUMBER_FIELD);
-		return blocksNumber < 1 ? BLOCKS_NUMBER_DEFAULT : blocksNumber;
+		int blocksNumber = config.getAsInt(net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_FIELD);
+		return blocksNumber < 1 ? net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_DEFAULT : blocksNumber;
 	}
 	
 	
@@ -381,8 +368,103 @@ class VGGAbstract extends ClassifierAbstract {
 	 * @return this classifier.
 	 */
 	VGGAbstract paramSetBlocksNumber(int blockNumber) {
-		blockNumber = blockNumber < 1 ? BLOCKS_NUMBER_DEFAULT : blockNumber;
-		config.put(BLOCKS_NUMBER_FIELD, blockNumber);
+		blockNumber = blockNumber < 1 ? net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_DEFAULT : blockNumber;
+		config.put(net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_FIELD, blockNumber);
+		return this;
+	}
+
+
+	/**
+	 * Getting number of layers per block.
+	 * @return number of layers per block.
+	 */
+	int paramGetLayersNumber() {
+		if (config.containsKey(net.ea.ann.mane.beans.VGG.LAYERS_NUMBER_FIELD))
+			return config.getAsInt(net.ea.ann.mane.beans.VGG.LAYERS_NUMBER_FIELD);
+		else
+			return net.ea.ann.mane.beans.VGG.LAYERS_NUMBER_DEFAULT;
+	}
+
+	
+	/**
+	 * Setting number of layers per block.
+	 * @param layersNumber number of layers per block.
+	 * @return this VGG.
+	 */
+	VGGAbstract paramSetLayersNumber(int layersNumber) {
+		layersNumber = layersNumber < 1 ? net.ea.ann.mane.beans.VGG.LAYERS_NUMBER_DEFAULT : layersNumber;
+		config.put(net.ea.ann.mane.beans.VGG.LAYERS_NUMBER_FIELD, layersNumber);
+		return this;
+	}
+
+	
+	/**
+	 * Getting number of filters per layer.
+	 * @return number of filters per layer.
+	 */
+	int paramGetFiltersNumber() {
+		if (config.containsKey(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD))
+			return config.getAsInt(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD);
+		else
+			return net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT;
+	}
+
+
+	/**
+	 * Setting number of filters per layer.
+	 * @param filtersNumber number of filters per layer.
+	 * @return this VGG.
+	 */
+	VGGAbstract paramSetFiltersNumber(int filtersNumber) {
+		filtersNumber = filtersNumber < 1 ? net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT : filtersNumber;
+		config.put(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD, filtersNumber);
+		return this;
+	}
+
+
+	/**
+	 * Getting VGG middle size.
+	 * @return VGG middle size.
+	 */
+	Size paramGetVGGMiddleSize() {
+		String sizeText = config.containsKey(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_FIELD) ? config.getAsString(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_FIELD) : net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT_TEXT;
+		return net.ea.ann.mane.beans.VGG.paramGetVGGMiddleSize(sizeText);
+	}
+
+	
+	/**
+	 * Setting VGG middle size.
+	 * @param middleSize VGG middle size.
+	 * @return this VGG.
+	 */
+	VGGAbstract paramSetVGGMiddleSize(Size middleSize) {
+		int width = middleSize.width < 1 ? MatrixNetworkImpl.MINSIZE : middleSize.width;
+		int height = middleSize.height < 1 ? MatrixNetworkImpl.MINSIZE : middleSize.height;
+		config.put(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_FIELD, width + ", " + height);
+		return this;
+	}
+
+
+	/**
+	 * Getting length of feed-forward network.
+	 * @return length of feed-forward network.
+	 */
+	int paramGetFFNLength() {
+		if (config.containsKey(net.ea.ann.mane.beans.VGG.FFN_LENGTH_FIELD))
+			return config.getAsInt(net.ea.ann.mane.beans.VGG.FFN_LENGTH_FIELD);
+		else
+			return net.ea.ann.mane.beans.VGG.FFN_LENGTH_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting length of feed-forward network.
+	 * @param ffnLength length of feed-forward network.
+	 * @return this VGG.
+	 */
+	VGGAbstract paramSetFFNLength(int ffnLength) {
+		ffnLength = ffnLength < 1 ? net.ea.ann.mane.beans.VGG.FFN_LENGTH_DEFAULT : ffnLength;
+		config.put(net.ea.ann.mane.beans.VGG.FFN_LENGTH_FIELD, ffnLength);
 		return this;
 	}
 

@@ -13,9 +13,10 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Kernel;
-import net.ea.ann.mane.Kernel.NullKernel;
 import net.ea.ann.mane.Weight;
+import net.ea.ann.mane.Kernel.NullKernel;
 import net.ea.ann.raster.Size;
+import net.ea.ann.transformer.TransformerAssoc;
 import net.ea.ann.transformer.TransformerImpl;
 import net.ea.ann.transformer.TransformerInitializer;
 
@@ -106,7 +107,7 @@ public class TransformerWeight implements NetworkWeight {
 	 * @param time time.
 	 * @param inputs inputs.
 	 * @param bias bias.
-	 * @return evaluated value.
+	 * @return evaluated layer.
 	 */
 	private Matrix evaluate(int time, MatrixStack inputs, Matrix bias) {
 		int depth = depth();
@@ -124,7 +125,7 @@ public class TransformerWeight implements NetworkWeight {
 	 * @param time time.
 	 * @param inputs inputs.
 	 * @param biases biases.
-	 * @return evaluated value.
+	 * @return evaluated layer.
 	 */
 	private MatrixStack evaluate(MatrixStack inputs, MatrixStack biases) {
 		if (inputs.depth() != depth() || biases.depth() != time()) throw new IllegalArgumentException();
@@ -252,12 +253,8 @@ public class TransformerWeight implements NetworkWeight {
 		return dValue(prevInput, prevOutput, thisError, prevActivateRef, true, Network.LEARN_RATE_DEFAULT);
 	}
 
-	
-	/**
-	 * Updating parameters from backward information.
-	 * @param recordCount count of records in sample.
-	 * @param learningRate learning rate.
-	 */
+
+	@Override
 	public void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
 		for (int t = 0; t < time(); t++) {
 			for (int d = 0; d < depth(); d++) {
@@ -266,10 +263,8 @@ public class TransformerWeight implements NetworkWeight {
 		}
 	}
 	
-	
-	/**
-	 * Resetting backward information.
-	 */
+
+	@Override
 	public void resetBackwardInfo() {
 		for (int t = 0; t < time(); t++) {
 			for (int d = 0; d < depth(); d++) {
@@ -279,6 +274,18 @@ public class TransformerWeight implements NetworkWeight {
 	}
 
 	
+	@Override
+	public int sizeOfParams() {
+		int size = 0;
+		for (int t = 0; t < time(); t++) {
+			for (int d = 0; d < depth(); d++) {
+				size += new TransformerAssoc(tra(t, d)).sizeOfParams();
+			}
+		}
+		return size;
+	}
+
+
 	/**
 	 * Creating transformer-based weight with neuron channel, previous size, and current size.
 	 * @param neuronChannel neuron channel.
@@ -319,7 +326,7 @@ class TKernel extends NullKernel {
 	 * COnstructor with size.
 	 * @param size size.
 	 */
-	TKernel(int neuronChannel, Size size) {
+	public TKernel(int neuronChannel, Size size) {
 		int n = size.height, dm = size.width;
 		if (n <= 0 || dm <= 0) throw new IllegalArgumentException();
 		int depth = size.depth < 1 ? 1 : size.depth;
@@ -328,7 +335,7 @@ class TKernel extends NullKernel {
 		for (int t = 0; t < time; t++) {
 			for (int d = 0; d < depth; d++) {
 				this.transformers[t][d] = new TransformerImpl(neuronChannel);
-				new TransformerInitializer(this.transformers[t][d]).initializeOnlyEncoder(n, dm);
+				if (!new TransformerInitializer(this.transformers[t][d]).initializeOnlyEncoder(n, dm)) throw new IllegalArgumentException();
 				this.transformers[t][d].removeOutputFFN();
 			}
 		}
@@ -339,7 +346,7 @@ class TKernel extends NullKernel {
 	 * Getting width.
 	 * @return width.
 	 */
-	int width() {
+	public int width() {
 		return transformers[0][0].encoder().getInput().columns();
 	}
 	
@@ -348,7 +355,7 @@ class TKernel extends NullKernel {
 	 * Getting height.
 	 * @return height.
 	 */
-	int height() {
+	public int height() {
 		return transformers[0][0].encoder().getInput().rows();
 	}
 
@@ -357,14 +364,14 @@ class TKernel extends NullKernel {
 	 * Getting depth.
 	 * @return depth.
 	 */
-	int depth() {return transformers[0].length;}
+	public int depth() {return transformers[0].length;}
 
 	
 	/**
 	 * Getting time.
 	 * @return time.
 	 */
-	int time() {return transformers.length;}
+	public int time() {return transformers.length;}
 
 	
 	/**
@@ -373,7 +380,7 @@ class TKernel extends NullKernel {
 	 * @param depth depth.
 	 * @return transformer at specified time and depth.
 	 */
-	TransformerImpl transformer(int time, int depth) {return transformers[time][depth];}
+	public TransformerImpl transformer(int time, int depth) {return transformers[time][depth];}
 
 
 }

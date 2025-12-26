@@ -23,7 +23,6 @@ import net.ea.ann.core.Network;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.MatrixUtil;
-import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Raster3DImpl;
 import net.ea.ann.raster.RasterAssoc;

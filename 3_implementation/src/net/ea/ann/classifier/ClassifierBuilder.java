@@ -17,7 +17,12 @@ import net.ea.ann.classifier.ForestClassifier.TreeModel;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.mane.MatrixNetworkAbstract;
+import net.ea.ann.mane.WeightSpec;
+import net.ea.ann.mane.FilterSpec;
+import net.ea.ann.mane.FilterSpec.PoolType;
+import net.ea.ann.mane.WeightSpec.Type;
 import net.ea.ann.raster.RasterAbstract;
+import net.ea.ann.raster.Size;
 
 /**
  * This class provides utility methods to create classifier model.
@@ -119,6 +124,12 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Filter size.
+	 */
+	protected int filterSize = ClassifierAbstract.FILTER_SIZE_DEFAULT;
+	
+	
+	/**
 	 * Vectorization mode.
 	 */
 	protected boolean vectorized = MatrixNetworkAbstract.VECTORIZED_DEFAULT;
@@ -161,10 +172,34 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Transformer-based weight mode.
+	 * Pooling type.
 	 */
-	protected boolean transWeight = ClassifierAbstract.TRANS_WEIGHT_DEFAULT;
+	protected PoolType poolType = ClassifierAbstract.POOL_TYPE_DEFAULT;
+
 	
+	/**
+	 * Weight type.
+	 */
+	protected Type weightType = ClassifierAbstract.WEIGHT_TYPE_DEFAULT;
+	
+	
+	/**
+	 * Number of filters,
+	 */
+	protected int filtersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT;
+	
+	
+	/**
+	 * Middle size.
+	 */
+	protected Size middleSize = net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT;
+	
+	
+	/**
+	 * Length of feed-forward network.,
+	 */
+	protected int ffnLength = net.ea.ann.mane.beans.VGG.FFN_LENGTH_DEFAULT;
+
 	
 	/**
 	 * Tree model.
@@ -450,6 +485,26 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Getting filter size.
+	 * @return filter size.
+	 */
+	public int getFilterSize() {
+		return filterSize;
+	}
+	
+	
+	/**
+	 * Setting filter size.
+	 * @param filterSize filter size.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setFilterSize(int filterSize) {
+		this.filterSize = filterSize;
+		return this;
+	}
+
+	
+	/**
 	 * Getting vectorization mode.
 	 * @return vectorization mode.
 	 */
@@ -590,21 +645,101 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 
 	
 	/**
-	 * Getting transformer-based weight mode.
-	 * @return transformer-based weight mode.
+	 * Getting pooling type.
+	 * @return pooling type.
 	 */
-	public boolean isTransWeight() {
-		return transWeight;
+	public PoolType getPoolType() {
+		return poolType;
 	}
 	
 	
 	/**
-	 * Setting transformer-based weight mode.
-	 * @param transWeight transformer-based weight mode.
+	 * Setting pooling type.
+	 * @param poolType pooling type.
 	 * @return this builder.
 	 */
-	public ClassifierBuilder setTransWeight(boolean transWeight) {
-		this.transWeight = transWeight;
+	public ClassifierBuilder setPoolType(PoolType poolType) {
+		this.poolType = poolType;
+		return this;
+	}
+
+	
+	/**
+	 * Getting weight type.
+	 * @return weight type.
+	 */
+	public Type getWeightType() {
+		return weightType;
+	}
+	
+	
+	/**
+	 * Setting weight type.
+	 * @param weightType weight type.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setWeightType(Type weightType) {
+		this.weightType = weightType;
+		return this;
+	}
+
+	
+	/**
+	 * Getting number of filters.
+	 * @return number of filters.
+	 */
+	public int getFiltersNumber() {
+		return filtersNumber;
+	}
+	
+	
+	/**
+	 * Setting number of filters.
+	 * @param filtersNumber number of filters.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setFiltersNumber(int filtersNumber) {
+		this.filtersNumber = filtersNumber;
+		return this;
+	}
+
+	
+	/**
+	 * Getting middle size.
+	 * @return middle size.
+	 */
+	public Size getMiddleSize() {
+		return middleSize;
+	}
+	
+	
+	/**
+	 * Setting middle size.
+	 * @param middle size.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setMiddleSize(Size middleSize) {
+		this.middleSize = middleSize;
+		return this;
+	}
+
+	
+	/**
+	 * Getting length of feed-forward network.
+	 * @return length of feed-forward network.
+	 */
+	public int getFFNLength() {
+		return ffnLength;
+	}
+	
+	
+	/**
+	 * Setting length of feed-forward network.
+	 * @param ffnLength length of feed-forward network.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setFFNLength(int ffnLength) {
+		this.ffnLength = ffnLength;
 		return this;
 	}
 
@@ -671,7 +806,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			ca.paramSetLearningRate(learningRate);
 			ca.paramSetBatches(batches);
 			ca.paramSetConv(conv);
-			ca.paramSetTransWeight(transWeight);
+			ca.paramSetFilterSize(filterSize);
+			ca.paramSetPoolType(poolType);
+			ca.paramSetWeightType(weightType);
 			ca.paramSetVectorized(vectorized);
 			ca.paramSetBaseline(baseline);
 			ca.paramSetAdjust(adjust);
@@ -683,7 +820,10 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		if (classifier instanceof VGG) {
 			VGG vgg = (VGG)classifier;
 			vgg.paramSetBlocksNumber(blocks);
-			vgg.nut.paramSetLayersNumber(depth);
+			vgg.paramSetLayersNumber(depth);
+			vgg.paramSetFiltersNumber(filtersNumber);
+			vgg.paramSetVGGMiddleSize(middleSize);
+			vgg.paramSetFFNLength(ffnLength);
 		}
 		else if (classifier instanceof MatrixClassifier) {
 
@@ -779,14 +919,41 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		} catch (Throwable e) {}
 		printer.println("Including convolutional neural network is " + conv + "\n");
 	
-		boolean transWeight = ClassifierAbstract.TRANS_WEIGHT_DEFAULT;
-		if (!conv) {
-			printer.print("Transformer-based weight (" + transWeight + " is default):");
+		int defaultFilterSize = ClassifierAbstract.FILTER_SIZE_DEFAULT;
+		int filterSize = defaultFilterSize;
+		if (conv) {
+			printer.print("Filter size (default " + filterSize + "):");
 			try {
 				String line = scanner.nextLine().trim();
-				if (!line.isBlank() && !line.isEmpty()) transWeight = Boolean.parseBoolean(line);
+				if (!line.isBlank() && !line.isEmpty()) filterSize = Integer.parseInt(line);
 			} catch (Throwable e) {}
-			printer.println("Baseline is " + transWeight + "\n");
+			if (Double.isNaN(filterSize)) filterSize = defaultFilterSize;
+			if (filterSize <= 0) filterSize = defaultFilterSize;
+			printer.println("Filter size is " + filterSize + "\n");
+		}
+		
+		PoolType poolType = PoolType.max;
+		if (conv) {
+			printer.print("Pooling type (0-max, 1-average) (default pooling type" + " is " + poolType + "):");
+			int poolTypeIndex = FilterSpec.poolTypeToInt(poolType);
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) poolTypeIndex = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (!Double.isNaN(poolTypeIndex) && poolTypeIndex >= 0) poolType = FilterSpec.intToPoolType(poolTypeIndex);
+			printer.println("Pooling type is " + poolType + "\n");
+		}
+
+		Type weightType = Type.normal;
+		if (!conv) {
+			printer.print("Weight type (0-normal, 1-transformer) (default weight type" + " is " + weightType + "):");
+			int weightTypeIndex = WeightSpec.typeToInt(weightType);
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) weightTypeIndex = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (!Double.isNaN(weightTypeIndex) && weightTypeIndex >= 0) weightType = WeightSpec.intToType(weightTypeIndex);
+			printer.println("Weight type is " + weightType + "\n");
 		}
 
 		boolean vectorized = MatrixNetworkAbstract.VECTORIZED_DEFAULT;
@@ -818,7 +985,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		}
 	
 		boolean dual = conv ? ClassifierAbstract.DUAL_DEFAULT : false;
-		if (conv) {
+		if (conv && dual) {
 			printer.print("Dual mode (" + dual + " is default):");
 			try {
 				String line = scanner.nextLine().trim();
@@ -855,7 +1022,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setLearningRate(lr);
 		builder.setBatches(batches);
 		builder.setConv(conv);
-		builder.setTransWeight(transWeight);
+		builder.setFilterSize(filterSize);
+		builder.setPoolType(poolType);
+		builder.setWeightType(weightType);
 		builder.setVectorized(vectorized);
 		builder.setBaseline(baseline);
 		builder.setAdjust(adjust);
@@ -863,6 +1032,44 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setDepth(depth);
 		builder.setEntropyTrainer(entropyTrainer);
 
+		if (builder.getModel() == ClassifierModel.vgg) {
+			int defaultMiddleSize = net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT.width;
+			int middleSize = defaultMiddleSize;
+			printer.print("Middle size (default (" + defaultMiddleSize + ", " + defaultMiddleSize + ") ):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) middleSize = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (Double.isNaN(middleSize)) middleSize = defaultMiddleSize;
+			if (middleSize <= 0) middleSize = defaultMiddleSize;
+			printer.println("Middle size is (" + middleSize + ", " + middleSize + ") )\n");
+			builder.setMiddleSize(new Size(middleSize, middleSize));
+
+			int defaultFiltersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT;
+			int filtersNumber = defaultFiltersNumber;
+			printer.print("Number of " + (conv ? "filters" : "weights") + " is (default " + defaultFiltersNumber + "):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) filtersNumber = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (Double.isNaN(filtersNumber)) filtersNumber = defaultFiltersNumber;
+			if (filtersNumber <= 0) filtersNumber = defaultFiltersNumber;
+			printer.println("Number of " + (conv ? "filters" : "weights") + " is " + filtersNumber + "\n");
+			builder.setFiltersNumber(filtersNumber);
+
+			int defaultFFNLength = net.ea.ann.mane.beans.VGG.FFN_LENGTH_DEFAULT;
+			int ffnLength = defaultFFNLength;
+			printer.print("Feed-forward network length (default " + defaultFFNLength + "):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) ffnLength = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (Double.isNaN(ffnLength)) ffnLength = defaultFFNLength;
+			if (ffnLength <= 0) ffnLength = defaultFFNLength;
+			printer.println("Feed-forward network length is " + ffnLength + "\n");
+			builder.setFFNLength(ffnLength);
+		}
+		
 		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.tramac) {
 			int defaultBlocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 			int blocks = defaultBlocks;

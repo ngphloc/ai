@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.filter;
+package net.ea.ann.mane;
 
 import java.io.Serializable;
 import java.util.Random;
@@ -13,7 +13,6 @@ import java.util.Random;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.mane.Kernel;
 
 /**
  * This interface represents a filter.
@@ -94,21 +93,21 @@ public interface Filter extends Serializable, Cloneable {
 	 * Getting applying activation function mode.
 	 * @return applying activation function mode.
 	 */
-	default boolean applyActivate() {return true;}
+	default boolean doesApplyActivate() {return true;}
 	
 	
 	/**
 	 * Initializing parameters by specified value.
 	 * @param v value.
 	 */
-	default void initialize(double v) {}
+	default void initParams(double v) {}
 	
 	
 	/**
 	 * Initializing parameters.
 	 * @param rnd randomizer.
 	 */
-	default void initialize(Random rnd) {}
+	default void initParams(Random rnd) {}
 	
 	
 	/**
@@ -140,6 +139,17 @@ public interface Filter extends Serializable, Cloneable {
 
 	
 	/**
+	 * Calculating derivative of previous layers given current layers as bias layers.
+	 * @param prevInputLayer previous input layer.
+	 * @param prevOutputLayer previous output layer.
+	 * @param thisErrorLayer current layer as bias layer.
+	 * @param thisActivateRef activation function of current layer.
+	 * @return derivative of previous layers given current layers as bias layers.
+	 */
+	Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
+
+	
+	/**
 	 * Calculating derivative of kernel of previous layers given current layers as bias layers.
 	 * @param time time.
 	 * @param prevInputLayer previous input layer.
@@ -151,59 +161,7 @@ public interface Filter extends Serializable, Cloneable {
 	Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 
 	
-	/**
-	 * Calculating derivative of previous layers given current layers as bias layers.
-	 * @param nextX next X coordinator.
-	 * @param nextY next Y coordinator.
-	 * @param prevOutputLayer previous output layer.
-	 * @param thisErrorLayer current layer as bias layer.
-	 * @param thisActivateRef activation function of current layer.
-	 * @return derivative of previous layers given current layers as bias layers.
-	 */
-	Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
-
-	
 }
 
 
-
-/**
- * This class is an abstract implementation of filter.
- * 
- * @author Loc Nguyen
- * @version 1.0
- *
- */
-abstract class FilterAbstract implements Filter {
-
-
-	/**
-	 * Serial version UID for serializable class.
-	 */
-	private static final long serialVersionUID = 1L;
-
-	
-	/**
-	 * Flag to indicate whether to move according to stride when filtering.
-	 */
-	protected boolean moveStride = MOVE_STRIDE;
-
-	
-	/**
-	 * Default constructor.
-	 */
-	protected FilterAbstract() {
-		super();
-	}
-
-	
-	@Override
-	public boolean isMoveStride() {return moveStride;}
-
-
-	@Override
-	public void setMoveStride(boolean moveStride) {this.moveStride = moveStride;}
-
-
-}
 

@@ -42,6 +42,11 @@ public class WeightSpec implements Cloneable, Serializable {
 		 */
 		transformer,
 		
+		/**
+		 * Null weight.
+		 */
+		nil,
+		
 	}
 
 	
@@ -58,5 +63,50 @@ public class WeightSpec implements Cloneable, Serializable {
 		this.type = type;
 	}
 
+
+	/**
+	 * Converting type to integer number.
+	 * @param type type.
+	 * @return integer number.
+	 */
+	public static int typeToInt(Type type) {
+		return type.ordinal();
+	}
+	
+
+	/**
+	 * Converting integer number to type.
+	 * @param typeOrdinal integer number.
+	 * @return type.
+	 */
+	public static Type intToType(int typeOrdinal) {
+		Type type = Type.normal;
+		switch (typeOrdinal) {
+		case 0:
+			type = Type.normal;
+			break;
+		case 1:
+			type = Type.transformer;
+			break;
+		case 2:
+			type = Type.nil;
+			break;
+		default:
+			type = Type.normal;
+			break;
+		}
+		return type;
+	}
+	
+	
+	/**
+	 * Converting string to type.
+	 * @param typeText string.
+	 * @return type.
+	 */
+	public static Type stringToType(String typeText) {
+		return Type.valueOf(typeText);
+	}
+	
 	
 }

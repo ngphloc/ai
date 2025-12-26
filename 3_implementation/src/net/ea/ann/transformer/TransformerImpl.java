@@ -20,13 +20,13 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.TaskTrainer;
-import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerImpl.Attention0;
@@ -1023,7 +1023,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	
 
 	/**
-	 * Removing output adapter.
+	 * Removing output feed-forward network.
 	 */
 	public TransformerAbstract removeOutputFFN() {
 		if (!validate()) return this;

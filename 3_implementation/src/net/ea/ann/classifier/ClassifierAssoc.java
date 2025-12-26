@@ -35,10 +35,13 @@ import net.ea.ann.core.value.NeuronValueV;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.mane.FilterSpec.PoolType;
+import net.ea.ann.mane.WeightSpec.Type;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
+import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerAssoc;
 
 /**
@@ -166,6 +169,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		public boolean conv = ClassifierAbstract.CONV_DEFAULT;
 		
 		/**
+		 * Filtering size.
+		 */
+		public int filterSize = ClassifierAbstract.FILTER_SIZE_DEFAULT;
+		
+		/**
 		 * Vectorization mode.
 		 */
 		public boolean vectorized = MatrixNetworkAbstract.VECTORIZED_DEFAULT;
@@ -196,9 +204,29 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		public int blocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 
 		/**
-		 * Transformer-based weight mode.
+		 * Pooling type.
 		 */
-		public boolean transWeight = ClassifierAbstract.TRANS_WEIGHT_DEFAULT;
+		public PoolType poolType = ClassifierAbstract.POOL_TYPE_DEFAULT;
+		
+		/**
+		 * Weight type.
+		 */
+		public Type weightType = ClassifierAbstract.WEIGHT_TYPE_DEFAULT;
+		
+		/**
+		 * Number of filters.
+		 */
+		public int filtersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT;
+		
+		/**
+		 * Middle size.
+		 */
+		public Size middleSize = net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT;
+		
+		/**
+		 * Lenght of feed-forward network.
+		 */
+		public int ffnLength = net.ea.ann.mane.beans.VGG.FFN_LENGTH_DEFAULT;
 		
 		/**
 		 * Tree model.
@@ -246,13 +274,17 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			this.learningRate = builder.learningRate;
 			this.batches = builder.batches;
 			this.conv = builder.conv;
+			this.filterSize = builder.filterSize;
+			this.poolType = builder.poolType;
+			this.weightType = builder.weightType;
 			this.vectorized = builder.vectorized;
 			this.baseline = builder.baseline;
 			this.adjust = builder.adjust;
 			this.dual = builder.dual;
 			this.entropyTrainer = builder.entropyTrainer;
 			this.blocks = builder.blocks;
-			this.transWeight = builder.transWeight;
+			this.filtersNumber = builder.filtersNumber;
+			this.middleSize = builder.middleSize;
 			this.treeModel = builder.treeModel;
 		}
 		
@@ -497,7 +529,8 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			result.append("model=" + params.model + "~dataset=" + params.dataset +
 				//"~entropy=" + params.entropyTrainer +
 				"~conv=" + params.conv +
-				"~transw=" + params.transWeight +
+				//"~pool=" + params.poolType +
+				"~weight=" + params.weightType +
 				"~vec=" + params.vectorized +
 				"~baseline=" + params.baseline +
 				"~adjust=" + params.adjust +
@@ -845,18 +878,15 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	private static void classifyCIFAR10(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int batches) {
 		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
 		int maxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
-		int neuronChannel = RasterAbstract.NEURON_CHANNEL_DEFAULT;
-		int rasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
-		double learningRate = Network.LEARN_RATE_DEFAULT;
-		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
-		boolean dual = ClassifierAbstract.DUAL_DEFAULT;
-		ClassifierBuilder builder = new ClassifierBuilder(neuronChannel);
-		builder.setRasterChannel(rasterChannel);
-		builder.setLearningRate(learningRate);
+		ClassifierBuilder builder = new ClassifierBuilder(RasterAbstract.NEURON_CHANNEL_DEFAULT);
+		builder.setRasterChannel(RasterAbstract.RASTER_CHANNEL_DEFAULT);
+		builder.setLearningRate(Network.LEARN_RATE_DEFAULT);
 		builder.setBatches(batches);
-		builder.setBaseline(baseline);
-		builder.setDual(dual);
+		builder.setBaseline(ClassifierAbstract.BASELINE_DEFAULT);
+		builder.setDual(ClassifierAbstract.DUAL_DEFAULT);
 		builder.setAdjust(ClassifierAbstract.ADJUST_DEFAULT);
+		builder.setMiddleSize(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT);
+		builder.setPoolType(ClassifierAbstract.POOL_TYPE_DEFAULT /*net.ea.ann.mane.FilterSpec.PoolType.average*/);
 
 		int minBaseSize = baseRastersList.get(0).size();
 		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());
@@ -865,35 +895,44 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			System.out.println("Batches are re-calculated as " + builder.getBatches() + "\n");
 		}
 
-		boolean[] vectorizeds = new boolean[] {false, true};
-		int[] depths = new int[] {ClassifierAbstract.DEPTH_DEFAULT};
-		boolean[] convs = new boolean[] {false, true};
-		boolean[] transWeights = new boolean[] {false, true};
-		ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.vgg};
-		for (boolean vectorized : vectorizeds) {
-			builder.setVectorized(vectorized);
-			for (int depth : depths) {
-				builder.setDepth(depth);
-				for (boolean conv : convs) {
-					builder.setConv(conv);
-					for (boolean transWeight : transWeights) {
-						if (conv && transWeight) continue;
-						builder.setTransWeight(transWeight);
-						for (ClassifierModel model : models) {
-							builder.setModel(model);
-								System.out.println("Training " +
-									("vectorized=" + vectorized) +
-									(", depth=" + depth) +
-									(", conv=" + conv) +
-									(", transw=" + transWeight) +
-									(", model=" + model));
-								classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
-								System.out.println("\n");
-						} //Model.
-					} //Transformer-based weight.
-				} //CNN.
-			} //Depth.
-		} //Vectorization.
+		int sample = 10;
+		for (int iter = 0; iter < sample; iter++) {
+			boolean[] vectorizeds = new boolean[] {false, true};
+			int[] depths = new int[] {2};
+			int[] filters = new int[] {2};
+			boolean[] convs = new boolean[] {false, true};
+			Type[] weightTypes = new Type[] {Type.normal, Type.transformer};
+			ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.vgg};
+			for (boolean vectorized : vectorizeds) {
+				builder.setVectorized(vectorized);
+				for (int filter : filters) {
+					builder.setFiltersNumber(filter);
+					for (int depth : depths) {
+						builder.setDepth(depth);
+						for (boolean conv : convs) {
+							builder.setConv(conv);
+							for (Type weightType : weightTypes) {
+								if (conv && weightType == Type.transformer) continue;
+								builder.setWeightType(weightType);
+								for (ClassifierModel model : models) {
+									builder.setModel(model);
+										System.out.println("Training " +
+											("vectorized=" + vectorized) +
+											(", depth=" + depth) +
+											(", filters=" + filter) +
+											(", conv=" + conv) +
+											//(", pool=" + pool) +
+											(", weight=" + weightType) +
+											(", model=" + model));
+										classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
+										System.out.println("\n");
+								} //Model.
+							} //Transformer-based weight.
+						} //CNN.
+					} //Depth.
+				} //Filters.
+			} //Vectorization.
+		} //Iteration.
 		
 	}
 

@@ -231,6 +231,18 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Checking whether to be flatten.
+	 * @param depth depth.
+	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
+	 * @return whether to be flatten.
+	 */
+	public static boolean isFlatten(int depth, int neuronChannel, int rasterChannel) {
+		return depth <= 1 && neuronChannel < rasterChannel && neuronChannel <= 1;
+	}
+	
+	
+	/**
 	 * Extracting raster into matrix.
 	 * @param size size.
 	 * @param rows rows.
@@ -245,7 +257,7 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	public static Matrix toMatrix(Size size, Raster raster, int neuronChannel, int rasterChannel, boolean isNorm, Matrix ref) {
 		int depth = raster.getDepth() < 1 ? 1 : raster.getDepth();
 		NeuronValue[] values = null;
-		boolean flatten = depth == 1 && neuronChannel < rasterChannel && neuronChannel == 1;
+		boolean flatten = isFlatten(depth, neuronChannel, rasterChannel);
 		if (flatten)
 			values = raster.toNeuronValues(rasterChannel, size, isNorm);
 		else

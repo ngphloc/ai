@@ -71,17 +71,17 @@ public interface Weight extends Cloneable, Serializable {
 
 	
 	/**
-	 * Filling weight with specified value.
+	 * Initializing weight with specified value.
 	 * @param v specified value.
 	 */
-	default void fill(double v) {}
+	default void initialize(double v) {}
 	
 	
 	/**
 	 * Filling weight with randomizer.
 	 * @param rnd randomizer.
 	 */
-	default void fill(Random rnd) {}
+	default void initialize(Random rnd) {}
 
 
 	/**

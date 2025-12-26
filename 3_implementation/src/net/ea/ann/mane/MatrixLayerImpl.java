@@ -13,9 +13,9 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.mane.filter.Filter;
-import net.ea.ann.mane.filter.FilterSpec;
+import net.ea.ann.mane.filter.NetworkFilter;
 import net.ea.ann.mane.weight.NetworkWeight;
+import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.raster.Size;
 
 /**
@@ -173,6 +173,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		this.dWBiasAccum = null;
 		this.dFKernelAccum = null;
 		this.dFBiasAccum = null;
+		
+		if (this.weight != null && this.weight instanceof NetworkWeight) ((NetworkWeight)this.weight).resetBackwardInfo();
+		if (this.filter != null && this.filter instanceof NetworkFilter) ((NetworkFilter)this.filter).resetBackwardInfo();
 	}
 	
 	
@@ -466,15 +469,21 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	/**
 	 * Calculating gradient of filter value.
 	 * @param error current error.
+	 * @param learning learning mode.
+	 * @param learningRate learning rate.
 	 * @return gradient of filter value.
 	 */
-	private Matrix dFilterValue(Matrix error) {
+	private Matrix dFilterValue(Matrix error, boolean learning, double learningRate) {
 		if (this.filter == null) return null;
 		Matrix thisPrevInputConv = matrixToConvLayer(getPrevInput());
 		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(this.prevLayer.queryOutput());
 		Matrix errorConv = matrixToConvLayer(error);
 		
-		Matrix dValue = this.filter.dValue(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef);
+		Matrix dValue = null;
+		if (this.filter instanceof NetworkFilter)
+			dValue = ((NetworkFilter)this.filter).dValue(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef, learning, learningRate);
+		else
+			dValue = this.filter.dValue(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef);
 		return dValue != null ? this.prevLayer.convLayerToMatrix(dValue) : null;
 	}
 	
@@ -490,7 +499,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		Matrix thisPrevInputConv = matrixToConvLayer(this.prevInput);
 		Matrix errorConv = matrixToConvLayer(error);
 		
-		return this.filter.dKernel(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef);
+		if (this.filter instanceof NetworkFilter)
+			return null;
+		else
+			return this.filter.dKernel(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef);
 	}
 
 	
@@ -529,7 +541,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		
 		this.input = prevOutput != null ? prevOutput : this.prevLayer.queryOutput();
 		this.input = this.weight.evaluate(this.input, this.bias);
-		this.output = this.activateRef != null ? this.input.evaluate0(this.activateRef) : this.input;
+		this.output = (this.activateRef != null) && !(this.weight instanceof NullWeight) ? this.input.evaluate0(this.activateRef) : this.input;
 		return this.output;
 	}
 
@@ -582,7 +594,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			}
 			else if (this.nextLayer.getFilter() == null && this.nextLayer.getWeight().backwardErrorMode()) {
 				Matrix input = queryInput(), output = queryOutput(); //X^k-1 = input, Xk = output.
-				Function thisActivateRef = input == getInput() ? this.activateRef : (input == getPrevInput() && this.filter.applyActivate() ? this.convActivateRef : null ); //Getting right-most activation function.
+				Function thisActivateRef = input == getInput() ? this.activateRef : (input == getPrevInput() && this.filter.doesApplyActivate() ? this.convActivateRef : null ); //Getting right-most activation function.
 				errors[i] = this.nextLayer.getWeight().dValue(input, output, outputErrors[i].error(), thisActivateRef);
 			}
 			else {
@@ -617,12 +629,12 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				if (this.weight != null && this.weight.backwardErrorMode()) {
 					//Calculating value errors at this layer.
 					Matrix prevInput = getPrevInput(), prevOutput = getPrevOutput(); //X^k-1 = input, Xk = output.
-					Function thisActivateRef = this.filter.applyActivate() ? this.convActivateRef : null;
+					Function thisActivateRef = this.filter.doesApplyActivate() ? this.convActivateRef : null;
 					errors[i] = this.weight.dValue(prevInput, prevOutput, errors[i], thisActivateRef);
 				}
 				dFBiases[i] = Filter.CALC_ERROR_MEAN ? MatrixUtil.valueMean1(errors[i]) : MatrixUtil.valueSum1(errors[i]); //Filter errors.
 				dFKernels[i] = dFilterKernel(errors[i]);
-				outputErrors[i].errorSet(dFilterValue(errors[i])); //Please pay attention to this code line to back-warding value errors.
+				outputErrors[i].errorSet(dFilterValue(errors[i], learning, learningRate)); //Please pay attention to this code line to back-warding value errors.
 			}
 			else {
 				outputErrors[i].errorSet(errors[i]); //Please pay attention to this code line to back-warding value errors.
@@ -713,6 +725,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			this.weight.accumKernel(dWMean, learningRate);
 			this.dWKernelAccum = null;
 		}
+		if (this.weight != null && this.weight instanceof NetworkWeight) {
+			((NetworkWeight)this.weight).updateParametersFromBackwardInfo(recordCount, learningRate);
+		}
 
 		//Update filter and filter bias.
 		if (this.filter != null && this.isLearnFilter()) {
@@ -728,6 +743,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				accumFilterKernel(dFilterKernelMean, learningRate);
 				this.dFKernelAccum = null;
 			}
+		}
+		if (this.filter != null && this.isLearnFilter() && this.filter instanceof NetworkFilter) {
+			((NetworkFilter)this.filter).updateParametersFromBackwardInfo(recordCount, learningRate);
 		}
 		
 		//Resetting all accumulative quantities only in this class.

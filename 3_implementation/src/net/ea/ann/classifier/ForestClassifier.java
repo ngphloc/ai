@@ -4,8 +4,8 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Error;
+import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.Record;
-import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
 

@@ -21,7 +21,6 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
-import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Size;
 
 /**
@@ -55,7 +54,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	/**
 	 * Default value of minimum width field.
 	 */
-	public final static int MINSIZE = 32; //ImageListItem.ICON_MINSIZE/BASE_DEFAULT;
+	public final static int MINSIZE = 16; //ImageListItem.ICON_MINSIZE/BASE_DEFAULT;
 
 	
 //	/**

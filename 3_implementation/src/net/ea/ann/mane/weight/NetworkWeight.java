@@ -10,7 +10,7 @@ package net.ea.ann.mane.weight;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Weight;
-import net.ea.ann.mane.WeightImpl.WKernel;
+import net.ea.ann.mane.weight.WeightImpl.WKernel;
 
 /**
  * This class represent network weight.
@@ -40,4 +40,18 @@ public interface NetworkWeight extends Weight {
 	}
 	
 	
+	/**
+	 * Updating parameters from backward information.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	void updateParametersFromBackwardInfo(int recordCount, double learningRate);
+	
+	
+	/**
+	 * Resetting backward information.
+	 */
+	void resetBackwardInfo();
+
+		
 }

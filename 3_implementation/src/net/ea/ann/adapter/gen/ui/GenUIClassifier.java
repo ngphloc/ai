@@ -29,7 +29,9 @@ import net.ea.ann.classifier.ClassifierAssoc.ClassifyInfo;
 import net.ea.ann.classifier.ClassifierAssoc.ClassifyParams;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
+import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.MatrixNetworkAbstract;
+import net.ea.ann.mane.WeightSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.hudup.core.data.DataConfig;
@@ -202,6 +204,8 @@ public class GenUIClassifier extends GenUI {
 				params.batches = config.getAsInt(NetworkAbstract.LEARN_MAX_ITERATION_FIELD);
 			if (config.containsKey(ClassifierAbstract.CONV_FIELD))
 				params.conv = config.getAsBoolean(ClassifierAbstract.CONV_FIELD);
+			if (config.containsKey(ClassifierAbstract.FILTER_SIZE_FIELD))
+				params.filterSize = config.getAsInt(ClassifierAbstract.FILTER_SIZE_FIELD);
 			if (config.containsKey(MatrixNetworkAbstract.VECTORIZED_FIELD))
 				params.vectorized = config.getAsBoolean(MatrixNetworkAbstract.VECTORIZED_FIELD);
 			if (config.containsKey(ClassifierAbstract.BASELINE_FIELD))
@@ -214,9 +218,18 @@ public class GenUIClassifier extends GenUI {
 				params.entropyTrainer = config.getAsBoolean(ClassifierAbstract.ENTROPY_TRAINER_FIELD);
 			if (config.containsKey(net.ea.ann.classifier.TransformerClassifier.BLOCKS_NUMBER_FIELD))
 				params.blocks = config.getAsInt(net.ea.ann.classifier.TransformerClassifier.BLOCKS_NUMBER_FIELD);
+			if (config.containsKey(net.ea.ann.mane.beans.VGG.POOL_TYPE_FIELD))
+				params.poolType = FilterSpec.intToPoolType(config.getAsInt(net.ea.ann.mane.beans.VGG.POOL_TYPE_FIELD));
+			if (config.containsKey(net.ea.ann.mane.beans.VGG.WEIGHT_TYPE_FIELD))
+				params.weightType = WeightSpec.intToType(config.getAsInt(net.ea.ann.mane.beans.VGG.WEIGHT_TYPE_FIELD));
+			if (config.containsKey(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD))
+				params.filtersNumber = config.getAsInt(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD);
+			if (config.containsKey(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_FIELD))
+				params.middleSize = net.ea.ann.mane.beans.VGG.paramGetVGGMiddleSize(config.getAsString(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_FIELD));
+			if (config.containsKey(net.ea.ann.mane.beans.VGG.FFN_LENGTH_FIELD))
+				params.ffnLength = config.getAsInt(net.ea.ann.mane.beans.VGG.FFN_LENGTH_FIELD);
 			if (config.containsKey(net.ea.ann.classifier.ForestClassifier.TREE_MODEL_FIELD))
 				params.treeModel = net.ea.ann.classifier.ForestClassifier.toTreeModel(config.getAsInt(net.ea.ann.classifier.ForestClassifier.TREE_MODEL_FIELD));
-			
 			if (config.containsKey(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED))
 				params.maxIteration = config.getAsInt(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED);
 			Classifier classifier = gm.getParameter() != null && gm.getParameter() instanceof Classifier ? (Classifier)gm.getParameter() : null;

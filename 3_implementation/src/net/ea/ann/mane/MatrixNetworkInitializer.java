@@ -13,7 +13,6 @@ import java.util.Arrays;
 
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.NetworkStandard;
-import net.ea.ann.mane.filter.FilterSpec;
 import net.ea.ann.raster.Size;
 
 /**

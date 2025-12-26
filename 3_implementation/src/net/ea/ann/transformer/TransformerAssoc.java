@@ -48,7 +48,7 @@ public class TransformerAssoc implements Cloneable, Serializable {
 	 * @return size of attention parameters.
 	 */
 	private static int sizeOfParams(Attention attention) {
-		if (!attention.validate()) return 0;
+		if (attention == null || !attention.validate()) return 0;
 		int size = 0;
 		if (attention.WO != null) size += attention.WO.rows()*attention.WO.columns();
 		for (int i = 0; i < attention.h(); i++) {
@@ -71,7 +71,8 @@ public class TransformerAssoc implements Cloneable, Serializable {
 	 */
 	private static int sizeOfParams(TransformerBlock block) {
 		if (!block.validate()) return 0;
-		int size = sizeOfParams(block.attention) + new MatrixNetworkAssoc(block.ffn).sizeOfParams();
+		int size = sizeOfParams(block.attention);
+		if (block.ffn != null) size += new MatrixNetworkAssoc(block.ffn).sizeOfParams();
 		if (block.outputAdapter != null) size += new MatrixNetworkAssoc(block.outputAdapter).sizeOfParams();
 		return size;
 	}

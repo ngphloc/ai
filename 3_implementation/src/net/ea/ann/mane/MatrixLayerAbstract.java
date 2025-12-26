@@ -18,10 +18,10 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
-import net.ea.ann.mane.filter.Filter;
-import net.ea.ann.mane.filter.FilterSpec;
+import net.ea.ann.mane.filter.AveragePoolFilter;
 import net.ea.ann.mane.filter.MaxPoolFilter;
 import net.ea.ann.mane.filter.ProductFilter;
+import net.ea.ann.mane.weight.WeightImpl;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
@@ -312,7 +312,17 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 				break;
 			case pool:
 				Size adjustedSize = new Size(filterSize.width, filterSize.height, filterSize.time, 1);
-				filter = MaxPoolFilter.create(adjustedSize);
+				switch (filterSpec.poolType) {
+				case max:
+					filter = MaxPoolFilter.create(adjustedSize);
+					break;
+				case average:
+					filter = AveragePoolFilter.create(adjustedSize);
+					break;
+				default:
+					filter = MaxPoolFilter.create(adjustedSize);
+					break;
+				}
 				break;
 			default:
 				break;
