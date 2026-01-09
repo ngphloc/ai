@@ -25,6 +25,7 @@ public interface Weight extends Cloneable, Serializable {
 	
 	/**
 	 * Getting back-warding error mode.
+	 * If back-warding error mode is true, the weight will be applied into calculating the error of previous layer.
 	 * @return back-warding error mode.
 	 */
 	default boolean backwardErrorMode( ) {return true;}
@@ -74,14 +75,14 @@ public interface Weight extends Cloneable, Serializable {
 	 * Initializing weight with specified value.
 	 * @param v specified value.
 	 */
-	default void initialize(double v) {}
+	default void initParams(double v) {}
 	
 	
 	/**
 	 * Filling weight with randomizer.
 	 * @param rnd randomizer.
 	 */
-	default void initialize(Random rnd) {}
+	default void initParams(Random rnd) {}
 
 
 	/**

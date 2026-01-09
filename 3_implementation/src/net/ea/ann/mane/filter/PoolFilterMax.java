@@ -20,7 +20,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class MaxPoolFilter extends PoolFilter {
+public class PoolFilterMax extends PoolFilter {
 
 
 	/**
@@ -39,7 +39,7 @@ public class MaxPoolFilter extends PoolFilter {
 	 * Constructor with size.
 	 * @param size size.
 	 */
-	protected MaxPoolFilter(Size size) {
+	protected PoolFilterMax(Size size) {
 		super(size);
 		this.depth = size.depth < 1 ? 1 : size.depth; 
 	}
@@ -253,8 +253,8 @@ public class MaxPoolFilter extends PoolFilter {
 	 * @param size specific kernel size.
 	 * @return max pooling filter created from specific kernel size.
 	 */
-	public static MaxPoolFilter create(Size size) {
-		return new MaxPoolFilter(size);
+	public static PoolFilterMax create(Size size) {
+		return new PoolFilterMax(size);
 	}
 
 

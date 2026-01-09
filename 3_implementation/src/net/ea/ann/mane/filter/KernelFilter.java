@@ -195,7 +195,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @param bias bias.
 	 * @param thisActivateRef current activation function.
 	 */
-	private void forward(int time, MatrixStack prevLayers, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
+	void forward(int time, MatrixStack prevLayers, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
 		NeuronValue zero = thisInputLayer != null ? thisInputLayer.get(0, 0).zero() : (thisOutputLayer != null ? thisOutputLayer.get(0, 0).zero() : prevLayers.get().get(0, 0).zero());
 		MatrixUtil.fill(thisInputLayer, zero);
 		MatrixUtil.fill(thisOutputLayer, zero);

@@ -91,6 +91,7 @@ public interface Filter extends Serializable, Cloneable {
 	
 	/**
 	 * Getting applying activation function mode.
+	 * If activation function mode is false, the filter does not apply activation function like ReLU into squashing the output.
 	 * @return applying activation function mode.
 	 */
 	default boolean doesApplyActivate() {return true;}

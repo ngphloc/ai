@@ -24,7 +24,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class ProductFilter extends KernelFilter {
+public class KernelFilterProduct extends KernelFilter {
 
 
 	/**
@@ -62,7 +62,7 @@ public class ProductFilter extends KernelFilter {
 	 * @param kernel specific kernel.
 	 * @param weight specific weight.
 	 */
-	protected ProductFilter(FKernel kernel, NeuronValue weight) {
+	protected KernelFilterProduct(FKernel kernel, NeuronValue weight) {
 		super();
 		if (!checkValid(kernel)) throw new IllegalArgumentException();
 		this.kernel = kernel;
@@ -169,7 +169,7 @@ public class ProductFilter extends KernelFilter {
 	
 
 	@Override
-	public ProductFilter accumKernel(Kernel dKernel, double factor) {
+	public KernelFilterProduct accumKernel(Kernel dKernel, double factor) {
 		this.kernel = this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
@@ -347,24 +347,13 @@ public class ProductFilter extends KernelFilter {
 
 
 	/**
-	 * Creating product filter with specific kernel and weight.
-	 * @param kernel specific kernel.
-	 * @param weight specific weight.
-	 * @return product filter created from specific kernel and weight.
-	 */
-	public static ProductFilter create(FKernel kernel, NeuronValue weight) {
-		return checkValid(kernel) ? new ProductFilter(kernel, weight) : null; 
-	}
-	
-	
-	/**
-	 * Creating product filter with real kernel.
-	 * @param kernelValue real kernel value.
+	 * Creating kernel with kernel value.
+	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
-	 * @return product filter created from real kernel and weight.
+	 * @return kernel created from kernel value.
 	 */
-	public static ProductFilter create(double kernelValue, Size size, NeuronValue hint) {
+	static FKernel createKernel(double kernelValue, Size size, NeuronValue hint) {
 		if (size.width < 1 || size.height < 1 || hint == null) return null;
 		int depth = 1, time = 1;
 		if (size.depth < 1)
@@ -384,8 +373,22 @@ public class ProductFilter extends KernelFilter {
 			W[t] = matrix instanceof MatrixStack ? (MatrixStack)matrix : new MatrixStack(matrix);
 			MatrixUtil.fill(W[t], value);
 		}
-		return create(new FKernel(W), value.unit());
+		return new FKernel(W);
+	}
+	
+	
+	/**
+	 * Creating product filter with kernel value.
+	 * @param kernelValue kernel value.
+	 * @param size size of kernel.
+	 * @param hint hint value.
+	 * @return product filter created from kernel value.
+	 */
+	public static KernelFilterProduct create(double kernelValue, Size size, NeuronValue hint) {
+		return new KernelFilterProduct(createKernel(kernelValue, size, hint), hint.unit());
 	}
 	
 	
 }
+
+

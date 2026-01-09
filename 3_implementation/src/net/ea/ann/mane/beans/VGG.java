@@ -18,12 +18,9 @@ import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.FilterSpec.Type;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
-import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
-import net.ea.ann.mane.Weight;
 import net.ea.ann.mane.WeightSpec;
-import net.ea.ann.mane.weight.TransformerWeight;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerBasic;
 import net.hudup.core.parser.TextParserUtil;
@@ -31,7 +28,7 @@ import net.hudup.core.parser.TextParserUtil;
 /**
  * This class is an implementation of VGG blocks developed by Simonyan and Zisserman with support of matrix.
  * 
- * @author Simonyan and Zisserman, Loc Nguyen
+ * @author Simonyan and Zisserman, implemented by Loc Nguyen
  * @version 1.0
  *
  */
@@ -240,36 +237,6 @@ public class VGG extends MatrixNetworkImpl {
 	}
 
 	
-	@Override
-	protected MatrixLayerAbstract newLayer() {
-		MatrixLayerImpl layer = new MatrixLayerImpl(neuronChannel, activateRef, convActivateRef, idRef) {
-			
-			/**
-			 * Serial version UID for serializable class. 
-			 */
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			protected Weight newWeight(Size sizeW1, Size sizeW2, LayerSpec layerSpec) {
-				if (sizeW2 != null || layerSpec == null)
-					return super.newWeight(sizeW1, sizeW2, layerSpec);
-				Size prevSize = layerSpec.prevSize, thisSize = layerSpec.size;
-				if (prevSize == null || thisSize == null)
-					return super.newWeight(sizeW1, sizeW2, layerSpec);
-				if (prevSize.width != thisSize.width || prevSize.height != thisSize.height)
-					return super.newWeight(sizeW1, sizeW2, layerSpec);
-				if (layerSpec.weightSpec == null || layerSpec.weightSpec.type != net.ea.ann.mane.WeightSpec.Type.transformer)
-					return super.newWeight(sizeW1, sizeW2, layerSpec);
-				
-				return TransformerWeight.create(neuronChannel, prevSize, thisSize);
-			}
-
-		};
-		layer.setNetwork(this);
-		return layer;
-	}
-
-
 	/**
 	 * Initializing VGG model.
 	 * @param inputSize input size.
@@ -331,15 +298,15 @@ public class VGG extends MatrixNetworkImpl {
 		for (int i = 0; i < blockSizes.size(); i++) {
 			Size blockSize = blockSizes.get(i);
 			for (int j = 0; j < layersNumberPerBlock; j++) {
-				LayerSpec size = new LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth));
-				if (layerSpecs.size() > 0) size.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
-				size.weightSpec = new WeightSpec(paramGetWeightType());
+				LayerSpec layerSpec = new LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth));
+				if (layerSpecs.size() > 0) layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
+				layerSpec.weightSpec = new WeightSpec(paramGetWeightType());
 				if (paramIsConv()) {
-					size.filterSpec = new FilterSpec(filterSize, filterSize, Type.kernel);
-					size.filterSpec.coweight = paramIsCoweight();
-					size.filterSpec.moveStride = false;
+					layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, Type.kernel);
+					layerSpec.filterSpec.coweight = paramIsCoweight();
+					layerSpec.filterSpec.moveStride = false;
 				}
-				layerSpecs.add(size);
+				layerSpecs.add(layerSpec);
 			}
 			if (i < blockSizes.size()-1) {
 				Size poolSize = new Size(blockSizes.get(i+1).width, blockSizes.get(i+1).height, blockSize.depth);
@@ -400,19 +367,6 @@ public class VGG extends MatrixNetworkImpl {
 
 	
 	/**
-	 * Setting VGG middle size.
-	 * @param middleSize VGG middle size.
-	 * @return this VGG.
-	 */
-	public VGG paramSetVGGMiddleSize(Size middleSize) {
-		int width = middleSize.width < 1 ? MINSIZE : middleSize.width;
-		int height = middleSize.height < 1 ? MINSIZE : middleSize.height;
-		config.put(MIDDLE_SIZE_FIELD, width + ", " + height);
-		return this;
-	}
-	
-	
-	/**
 	 * Getting VGG middle size.
 	 * @param sizeText size text.
 	 * @return VGG middle size.
@@ -440,6 +394,19 @@ public class VGG extends MatrixNetworkImpl {
 	public Size paramGetVGGMiddleSize() {
 		String sizeText = config.containsKey(MIDDLE_SIZE_FIELD) ? config.getAsString(MIDDLE_SIZE_FIELD) : MIDDLE_SIZE_DEFAULT_TEXT;
 		return paramGetVGGMiddleSize(sizeText);
+	}
+	
+	
+	/**
+	 * Setting VGG middle size.
+	 * @param middleSize VGG middle size.
+	 * @return this VGG.
+	 */
+	public VGG paramSetVGGMiddleSize(Size middleSize) {
+		int width = middleSize.width < 1 ? MINSIZE : middleSize.width;
+		int height = middleSize.height < 1 ? MINSIZE : middleSize.height;
+		config.put(MIDDLE_SIZE_FIELD, width + ", " + height);
+		return this;
 	}
 	
 	

@@ -10,6 +10,11 @@ package net.ea.ann.mane;
 import java.awt.Dimension;
 import java.io.Serializable;
 
+import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.filter.KernelFilterMax;
+import net.ea.ann.mane.filter.KernelFilterProduct;
+import net.ea.ann.mane.filter.PoolFilterAverage;
+import net.ea.ann.mane.filter.PoolFilterMax;
 import net.ea.ann.raster.Size;
 
 /**
@@ -67,6 +72,10 @@ public class FilterSpec implements Cloneable, Serializable {
 		 */
 		product,
 		
+		/**
+		 * Max filter type.
+		 */
+		max,
 	}
 
 	
@@ -95,6 +104,12 @@ public class FilterSpec implements Cloneable, Serializable {
 	 * Filter type.
 	 */
 	public Type type = Type.kernel;
+	
+	
+	/**
+	 * Kernel type.
+	 */
+	public KernelType kernelType = KernelType.product;
 	
 	
 	/**
@@ -276,6 +291,9 @@ public class FilterSpec implements Cloneable, Serializable {
 		case 0:
 			kernelType = KernelType.product;
 			break;
+		case 1:
+			kernelType = KernelType.max;
+			break;
 		default:
 			kernelType = KernelType.product;
 			break;
@@ -335,5 +353,51 @@ public class FilterSpec implements Cloneable, Serializable {
 		return PoolType.valueOf(poolTypeText);
 	}
 	
+	
+	/**
+	 * Creating default filter.
+	 * @param filterSize filter size.
+	 * @param hint matrix hint.
+	 * @return default filter.
+	 */
+	public static Filter newFilter(Size filterSize, FilterSpec filterSpec, NeuronValue hint) {
+		if (filterSize == null || filterSize.width <= 0 || filterSize.height <= 0) return null;
+		double factor = 1.0 / (filterSize.width*filterSize.height);
+		Filter filter = null;
+		switch (filterSpec.type) {
+			case kernel:
+				switch (filterSpec.kernelType) {
+				case product:
+					filter = KernelFilterProduct.create(factor, filterSize, hint);
+					break;
+				case max:
+					filter = KernelFilterMax.create(factor, filterSize, hint);
+					break;
+				default:
+					filter = KernelFilterProduct.create(factor, filterSize, hint);
+					break;
+				}
+				break;
+			case pool:
+				Size adjustedSize = new Size(filterSize.width, filterSize.height, filterSize.time, 1);
+				switch (filterSpec.poolType) {
+				case max:
+					filter = PoolFilterMax.create(adjustedSize);
+					break;
+				case average:
+					filter = PoolFilterAverage.create(adjustedSize);
+					break;
+				default:
+					filter = PoolFilterMax.create(adjustedSize);
+					break;
+				}
+				break;
+			default:
+				break;
+		}
+		filter.setMoveStride(filterSpec.moveStride);
+		return filter;
+	}
+
 	
 }

@@ -208,7 +208,7 @@ public class WeightImpl implements Weight {
 			Matrix value = new WCore(W1(time, d), W2(time, d)).evaluate(inputs.get(d), null);
 			sum = sum != null ? sum.add(value) : value;
 		}
-		return sum.add(bias);
+		return bias != null ? sum.add(bias) : sum;
 	}
 	
 	
@@ -224,7 +224,7 @@ public class WeightImpl implements Weight {
 		int time = time();
 		Matrix[] values = new Matrix[time];
 		for (int t = 0; t < time; t++) {
-			values[t] = evaluate(t, inputs, biases.get(t));
+			values[t] = evaluate(t, inputs, biases!=null?biases.get(t):null);
 		}
 		return new MatrixStack(values);
 
@@ -234,7 +234,7 @@ public class WeightImpl implements Weight {
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
 		MatrixStack inputs = input instanceof MatrixStack ? (MatrixStack)input : new MatrixStack(input);
-		MatrixStack biases = bias instanceof MatrixStack ? (MatrixStack)bias : new MatrixStack(bias);
+		MatrixStack biases = bias != null ? (bias instanceof MatrixStack ? (MatrixStack)bias : new MatrixStack(bias)) : null;
 		MatrixStack values = evaluate(inputs, biases);
 		return values.depth() == 1 ? values.get() : values;
 	}

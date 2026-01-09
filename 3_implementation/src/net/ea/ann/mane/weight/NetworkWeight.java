@@ -7,6 +7,7 @@
  */
 package net.ea.ann.mane.weight;
 
+import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Weight;
@@ -21,6 +22,10 @@ import net.ea.ann.mane.weight.WeightImpl.WKernel;
 public interface NetworkWeight extends Weight {
 
 	
+	@Override
+	default boolean backwardErrorMode() {return false;}
+
+
 	/**
 	 * Calculate gradient of previous layers.
 	 * @param prevInput previous inputs.
@@ -32,6 +37,12 @@ public interface NetworkWeight extends Weight {
 	 * @return gradient of previous layers.
 	 */
 	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate);
+
+
+	@Override
+	default Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
+		return dValue(prevInput, prevOutput, thisError, prevActivateRef, true, Network.LEARN_RATE_DEFAULT);
+	}
 
 
 	@Override

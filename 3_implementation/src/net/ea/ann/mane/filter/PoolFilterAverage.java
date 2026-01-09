@@ -19,7 +19,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class AveragePoolFilter extends PoolFilter {
+public class PoolFilterAverage extends PoolFilter {
 
 
 	/**
@@ -38,7 +38,7 @@ public class AveragePoolFilter extends PoolFilter {
 	 * Constructor with size.
 	 * @param size size.
 	 */
-	protected AveragePoolFilter(Size size) {
+	protected PoolFilterAverage(Size size) {
 		super(size);
 		this.depth = size.depth < 1 ? 1 : size.depth; 
 	}
@@ -162,8 +162,8 @@ public class AveragePoolFilter extends PoolFilter {
 	 * @param size specific kernel size.
 	 * @return average pooling filter created from specific kernel size.
 	 */
-	public static AveragePoolFilter create(Size size) {
-		return new AveragePoolFilter(size);
+	public static PoolFilterAverage create(Size size) {
+		return new PoolFilterAverage(size);
 	}
 
 

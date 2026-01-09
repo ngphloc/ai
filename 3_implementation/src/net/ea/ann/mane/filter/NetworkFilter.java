@@ -7,6 +7,7 @@
  */
 package net.ea.ann.mane.filter;
 
+import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Filter;
@@ -21,6 +22,10 @@ import net.ea.ann.mane.Kernel;
 public interface NetworkFilter extends Filter {
 
 	
+	@Override
+	default boolean doesApplyActivate() {return false;}
+
+
 	/**
 	 * Calculating derivative of previous layers given current layers as bias layers.
 	 * @param prevInputLayer previous input layer.
@@ -34,6 +39,12 @@ public interface NetworkFilter extends Filter {
 	Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef, boolean learning, double learningRate);
 
 	
+	@Override
+	default Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+		return dValue(prevInputLayer, prevOutputLayer, thisErrorLayer, thisActivateRef, true, Network.LEARN_RATE_DEFAULT);
+	}
+
+
 	@Override
 	default Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		throw new RuntimeException("Network-based filter does not calculate gradient of kernel");

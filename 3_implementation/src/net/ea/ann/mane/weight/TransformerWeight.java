@@ -7,14 +7,13 @@
  */
 package net.ea.ann.mane.weight;
 
-import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Kernel;
-import net.ea.ann.mane.Weight;
 import net.ea.ann.mane.Kernel.NullKernel;
+import net.ea.ann.mane.Weight;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerAssoc;
 import net.ea.ann.transformer.TransformerImpl;
@@ -27,7 +26,7 @@ import net.ea.ann.transformer.TransformerInitializer;
  * @version 1.0
  *
  */
-public class TransformerWeight implements NetworkWeight {
+public class TransformerWeight extends NetworkWeightAbstract {
 
 
 	/**
@@ -49,36 +48,25 @@ public class TransformerWeight implements NetworkWeight {
 	 * @param thisSize current size.
 	 */
 	protected TransformerWeight(int neuronChannel, Size prevSize, Size thisSize) {
+		super();
 		Size size = new Size(thisSize.width, thisSize.height, prevSize.depth, thisSize.depth);
 		this.kernel = new TKernel(neuronChannel, size);
 	}
 
 	
-	/**
-	 * Getting width.
-	 * @return width.
-	 */
+	@Override
 	int width() {return kernel.width();}
 	
-	
-	/**
-	 * Getting height.
-	 * @return height.
-	 */
+
+	@Override
 	int height() {return kernel.height();}
 
-	
-	/**
-	 * Getting depth.
-	 * @return depth.
-	 */
+
+	@Override
 	int depth() {return kernel.depth();}
 
-	
-	/**
-	 * Getting time.
-	 * @return time.
-	 */
+
+	@Override
 	int time() {return kernel.time();}
 
 	
@@ -88,101 +76,30 @@ public class TransformerWeight implements NetworkWeight {
 	 * @param depth depth.
 	 * @return transformer at specified time and depth.
 	 */
-	TransformerImpl tra(int time, int depth) {return kernel.transformer(time, depth);}
+	private TransformerImpl tra(int time, int depth) {return kernel.transformer(time, depth);}
 	
 	
-	@Override
-	public boolean backwardErrorMode() {return false;}
-
-
 	@Override
 	public Weight accumKernel(Kernel dKernel, double factor) {
 		this.kernel = (TKernel)this.kernel.add(dKernel);
 		return this;
 	}
 
-	
-	/**
-	 * Evaluating inputs.
-	 * @param time time.
-	 * @param inputs inputs.
-	 * @param bias bias.
-	 * @return evaluated layer.
-	 */
-	private Matrix evaluate(int time, MatrixStack inputs, Matrix bias) {
+
+	@Override
+	Matrix evaluate(int time, MatrixStack inputs, Matrix bias) {
 		int depth = depth();
 		Matrix sum = null;
 		for (int d = 0; d < depth; d++) {
 			Matrix value = tra(time, d).evaluate(inputs.get(d));
 			sum = sum != null ? sum.add(value) : value;
 		}
-		return sum.add(bias);
-	}
-	
-	
-	/**
-	 * Evaluating inputs.
-	 * @param time time.
-	 * @param inputs inputs.
-	 * @param biases biases.
-	 * @return evaluated layer.
-	 */
-	private MatrixStack evaluate(MatrixStack inputs, MatrixStack biases) {
-		if (inputs.depth() != depth() || biases.depth() != time()) throw new IllegalArgumentException();
-		int time = time();
-		Matrix[] values = new Matrix[time];
-		for (int t = 0; t < time; t++) {
-			values[t] = evaluate(t, inputs, biases.get(t));
-		}
-		return new MatrixStack(values);
-
+		return bias != null ? sum.add(bias) : sum;
 	}
 	
 
 	@Override
-	public Matrix evaluate(Matrix input, Matrix bias) {
-		MatrixStack inputs = input instanceof MatrixStack ? (MatrixStack)input : new MatrixStack(input);
-		MatrixStack biases = bias instanceof MatrixStack ? (MatrixStack)bias : new MatrixStack(bias);
-		MatrixStack values = evaluate(inputs, biases);
-		return values.depth() == 1 ? values.get() : values;
-	}
-
-	
-//	/**
-//	 * Calculate gradient of previous layers.
-//	 * @param time time.
-//	 * @param prevInputs previous inputs.
-//	 * @param prevOutputs previous outputs.
-//	 * @param thisError current error.
-//	 * @param prevActivateRef previous activation function.
-//	 * @param learning learning mode.
-//	 * @param learningRate learning rate.
-//	 * @return gradient of previous layers.
-//	 */
-//	private MatrixStack dValue(int time, MatrixStack prevInputs, MatrixStack prevOutputs, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
-//		int depth = depth();
-//		Matrix[] dValues = new Matrix[depth];
-//		Matrix derivative = prevOutputs.get(time) != null && prevActivateRef != null ? prevOutputs.get(time).derivativeWise(prevActivateRef) : null;
-//		for (int d = 0; d < depth; d++) {
-//			dValues[d] = tra(time, d).backward(new Error[] {new Error(thisError)}, null, learning, learningRate)[0].error();
-//			if (derivative != null) dValues[d] = derivative.multiplyWise(dValues[d]);
-//		}
-//		return new MatrixStack(dValues);
-//	}
-	
-	
-	/**
-	 * Calculate gradient of previous layers.
-	 * @param time time.
-	 * @param prevInputs previous inputs.
-	 * @param prevOutput previous output.
-	 * @param thisError current error.
-	 * @param prevActivateRef previous activation function.
-	 * @param learning learning mode.
-	 * @param learningRate learning rate.
-	 * @return gradient of previous layers.
-	 */
-	private Matrix dValue(int time, MatrixStack prevInputs, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
+	Matrix dValue(int time, MatrixStack prevInputs, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
 		int depth = depth();
 		Matrix sum = null;
 		Matrix derivative = prevOutput != null && prevActivateRef != null ? prevOutput.derivativeWise(prevActivateRef) : null;
@@ -195,65 +112,6 @@ public class TransformerWeight implements NetworkWeight {
 	}
 
 	
-//	/**
-//	 * Calculate gradient of previous layers.
-//	 * @param prevInputs previous inputs.
-//	 * @param prevOutputs previous outputs.
-//	 * @param thisErrors current errors.
-//	 * @param prevActivateRef previous activation function.
-//	 * @param learning learning mode.
-//	 * @param learningRate learning rate.
-//	 * @return gradient of previous layers.
-//	 */
-//	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef, boolean learning, double learningRate) {
-//		if (prevInputs.depth() != depth() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-//		int time = time();
-//		MatrixStack sum = null;
-//		for (int t = 0; t < time; t++) {
-//			MatrixStack dValue = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef, learning, learningRate);
-//			sum = sum != null ? (MatrixStack)sum.add(dValue) : dValue;
-//		}
-//		return sum;
-//	}
-
-
-	/**
-	 * Calculate gradient of previous layers.
-	 * @param prevInputs previous inputs.
-	 * @param prevOutputs previous outputs.
-	 * @param thisErrors current errors.
-	 * @param prevActivateRef previous activation function.
-	 * @param learning learning mode.
-	 * @param learningRate learning rate.
-	 * @return gradient of previous layers.
-	 */
-	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef, boolean learning, double learningRate) {
-		if (prevInputs.depth() != depth() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-		int time = time();
-		Matrix[] dValues = new Matrix[time];
-		for (int t = 0; t < time; t++) {
-			dValues[t] = dValue(t, prevInputs, prevOutputs.get(t), thisErrors.get(t), prevActivateRef, learning, learningRate);
-		}
-		return new MatrixStack(dValues);
-	}
-
-	
-	@Override
-	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
-		MatrixStack prevInputs = prevInput instanceof MatrixStack ? (MatrixStack)prevInput : new MatrixStack(prevInput);
-		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
-		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
-		MatrixStack dValue = dValue(prevInputs, prevOutputs, thisErrors, prevActivateRef, learning, learningRate);
-		return dValue.depth() == 1 ? dValue.get() : dValue;
-	}
-	
-	
-	@Override
-	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
-		return dValue(prevInput, prevOutput, thisError, prevActivateRef, true, Network.LEARN_RATE_DEFAULT);
-	}
-
-
 	@Override
 	public void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
 		for (int t = 0; t < time(); t++) {
@@ -326,7 +184,7 @@ class TKernel extends NullKernel {
 	 * COnstructor with size.
 	 * @param size size.
 	 */
-	public TKernel(int neuronChannel, Size size) {
+	TKernel(int neuronChannel, Size size) {
 		int n = size.height, dm = size.width;
 		if (n <= 0 || dm <= 0) throw new IllegalArgumentException();
 		int depth = size.depth < 1 ? 1 : size.depth;
@@ -346,7 +204,7 @@ class TKernel extends NullKernel {
 	 * Getting width.
 	 * @return width.
 	 */
-	public int width() {
+	int width() {
 		return transformers[0][0].encoder().getInput().columns();
 	}
 	
@@ -355,7 +213,7 @@ class TKernel extends NullKernel {
 	 * Getting height.
 	 * @return height.
 	 */
-	public int height() {
+	int height() {
 		return transformers[0][0].encoder().getInput().rows();
 	}
 
@@ -364,14 +222,14 @@ class TKernel extends NullKernel {
 	 * Getting depth.
 	 * @return depth.
 	 */
-	public int depth() {return transformers[0].length;}
+	int depth() {return transformers[0].length;}
 
 	
 	/**
 	 * Getting time.
 	 * @return time.
 	 */
-	public int time() {return transformers.length;}
+	int time() {return transformers.length;}
 
 	
 	/**
@@ -380,7 +238,7 @@ class TKernel extends NullKernel {
 	 * @param depth depth.
 	 * @return transformer at specified time and depth.
 	 */
-	public TransformerImpl transformer(int time, int depth) {return transformers[time][depth];}
+	TransformerImpl transformer(int time, int depth) {return transformers[time][depth];}
 
 
 }

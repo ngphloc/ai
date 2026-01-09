@@ -64,7 +64,8 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 	 * @param initValue initial value.
 	 */
 	public NeuronValueVectorImpl(int dim, NeuronValue initValue) {
-		this.v = new NeuronValue[dim < 0 ? 0 : dim];
+		if (dim <= 0) throw new IllegalArgumentException();
+		this.v = new NeuronValue[dim];
 		for (int i = 0; i < this.v.length; i++) this.v[i] = initValue;
 		if (this.v.length > 0) this.zeroValue = initValue.zero();
 	}
@@ -75,7 +76,8 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 	 * @param array double array.
 	 */
 	public NeuronValueVectorImpl(NeuronValue...array) {
-		this.v = array != null ? new NeuronValue[array.length] : new NeuronValue[0];
+		if (array == null || array.length == 0) throw new IllegalArgumentException();
+		this.v = new NeuronValue[array.length];
 		for (int i = 0; i < this.v.length; i++) this.v[i] = array[i];
 		if (this.v.length > 0) this.zeroValue = this.v[0].zero();
 	}
@@ -86,6 +88,7 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 	 * @param values values collection.
 	 */
 	public NeuronValueVectorImpl(Collection<NeuronValue> values) {
+		if (values == null || values.size() == 0) throw new IllegalArgumentException();
 		this.v = new NeuronValue[values.size()];
 		int i = 0;
 		for (NeuronValue value : values) {

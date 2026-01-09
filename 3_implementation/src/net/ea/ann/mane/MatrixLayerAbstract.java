@@ -18,10 +18,6 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
-import net.ea.ann.mane.filter.AveragePoolFilter;
-import net.ea.ann.mane.filter.MaxPoolFilter;
-import net.ea.ann.mane.filter.ProductFilter;
-import net.ea.ann.mane.weight.WeightImpl;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
@@ -281,7 +277,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param layerSpec layer specification, which can be null.
 	 */
 	protected Weight newWeight(Size sizeW1, Size sizeW2, LayerSpec layerSpec) {
-		return WeightImpl.create(sizeW1, sizeW2, newNeuronValue());
+		return WeightSpec.newWeight(sizeW1, sizeW2, newNeuronValue(), layerSpec, this.neuronChannel);
 	}
 
 	
@@ -292,45 +288,9 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @return filter.
 	 */
 	protected Filter newFilter(Size filterSize, LayerSpec layerSpec) {
-		return newFilter(filterSize, layerSpec.filterSpec, newNeuronValue());
+		return FilterSpec.newFilter(filterSize, layerSpec.filterSpec, newNeuronValue());
 	}
 	
-	
-	/**
-	 * Creating default filter.
-	 * @param filterSize filter size.
-	 * @param hint matrix hint.
-	 * @return default filter.
-	 */
-	private static Filter newFilter(Size filterSize, FilterSpec filterSpec, NeuronValue hint) {
-		if (filterSize == null || filterSize.width <= 0 || filterSize.height <= 0) return null;
-		double factor = 1.0 / (filterSize.width*filterSize.height);
-		Filter filter = null;
-		switch (filterSpec.type) {
-			case kernel:
-				filter = ProductFilter.create(factor, filterSize, hint);
-				break;
-			case pool:
-				Size adjustedSize = new Size(filterSize.width, filterSize.height, filterSize.time, 1);
-				switch (filterSpec.poolType) {
-				case max:
-					filter = MaxPoolFilter.create(adjustedSize);
-					break;
-				case average:
-					filter = AveragePoolFilter.create(adjustedSize);
-					break;
-				default:
-					filter = MaxPoolFilter.create(adjustedSize);
-					break;
-				}
-				break;
-			default:
-				break;
-		}
-		filter.setMoveStride(filterSpec.moveStride);
-		return filter;
-	}
-
 	
 	@Override
 	public MatrixLayerAbstract getPrevLayer() {
