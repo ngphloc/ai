@@ -13,6 +13,7 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.FilterSpec.Type;
@@ -96,7 +97,7 @@ public class NiNFilter extends FilterNetwork {
 			LayerSpec layerSpec = new LayerSpec(new Size(inputSize.width, inputSize.height, kernelSize.depth));
 			if (layerSpecs.size() > 0) layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 			layerSpec.filterSpec = new FilterSpec(kernelSize.width, kernelSize.height, Type.kernel);
-			layerSpec.filterSpec.kernelType = KernelType.max;
+			layerSpec.filterSpec.kernelType = KernelType.product_max;
 			layerSpec.filterSpec.moveStride = false;
 			layerSpecs.add(layerSpec);
 		}
@@ -104,4 +105,20 @@ public class NiNFilter extends FilterNetwork {
 	}
 
 
+	/**
+	 * Creating NiN (network-in-network) filter.
+	 * @param inputSize input size.
+	 * @param kernelSize kernel size.
+	 * @param hint hinting value.
+	 * @return NiN (network-in-network) filter.
+	 */
+	public NiNFilter create(Size inputSize, Size kernelSize, NeuronValue hint) {
+		int length = kernelSize.time < 1 ? 1 : kernelSize.time;
+		int neuronChannel = hint.dim();
+		NiNFilter filter = new NiNFilter(neuronChannel);
+		if (!filter.initialize(inputSize, kernelSize, length)) return null;
+		return filter;
+	}
+	
+	
 }

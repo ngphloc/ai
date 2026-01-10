@@ -7,9 +7,7 @@
  */
 package net.ea.ann.mane.weight;
 
-import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
-import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.Kernel.NullKernel;
@@ -87,31 +85,17 @@ public class TransformerWeight extends NetworkWeightAbstract {
 
 
 	@Override
-	Matrix evaluate(int time, MatrixStack inputs, Matrix bias) {
-		int depth = depth();
-		Matrix sum = null;
-		for (int d = 0; d < depth; d++) {
-			Matrix value = tra(time, d).evaluate(inputs.get(d));
-			sum = sum != null ? sum.add(value) : value;
-		}
-		return bias != null ? sum.add(bias) : sum;
+	Matrix evaluate(int time, int depth, Matrix input) {
+		return tra(time, depth).evaluate(input);
 	}
-	
+
 
 	@Override
-	Matrix dValue(int time, MatrixStack prevInputs, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
-		int depth = depth();
-		Matrix sum = null;
-		Matrix derivative = prevOutput != null && prevActivateRef != null ? prevOutput.derivativeWise(prevActivateRef) : null;
-		for (int d = 0; d < depth; d++) {
-			Matrix dValue = tra(time, d).backward(new Error[] {new Error(thisError)}, null, learning, learningRate)[0].error();
-			if (derivative != null) dValue = derivative.multiplyWise(dValue);
-			sum = sum != null ? sum.add(dValue) : dValue;
-		}
-		return sum;
+	Matrix dValue(int time, int depth, Matrix thisError, boolean learning, double learningRate) {
+		return tra(time, depth).backward(new Error[] {new Error(thisError)}, null, learning, learningRate)[0].error();
 	}
 
-	
+
 	@Override
 	public void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
 		for (int t = 0; t < time(); t++) {

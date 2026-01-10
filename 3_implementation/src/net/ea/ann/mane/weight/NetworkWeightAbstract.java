@@ -63,13 +63,31 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 
 	
 	/**
+	 * Evaluate input.
+	 * @param time time.
+	 * @param depth depth.
+	 * @param input input.
+	 * @return evaluated layer.
+	 */
+	abstract Matrix evaluate(int time, int depth, Matrix input);
+	
+	
+	/**
 	 * Evaluating inputs.
 	 * @param time time.
 	 * @param inputs inputs.
 	 * @param bias bias.
 	 * @return evaluated layer.
 	 */
-	abstract Matrix evaluate(int time, MatrixStack inputs, Matrix bias);
+	private Matrix evaluate(int time, MatrixStack inputs, Matrix bias) {
+		int depth = depth();
+		Matrix sum = null;
+		for (int d = 0; d < depth; d++) {
+			Matrix value = evaluate(time, d, inputs.get(d));
+			sum = sum != null ? sum.add(value) : value;
+		}
+		return bias != null ? sum.add(bias) : sum;
+	}
 
 		
 	/**
@@ -102,6 +120,18 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 	/**
 	 * Calculate gradient of previous layers.
 	 * @param time time.
+	 * @param depth depth.
+	 * @param thisError current error.
+	 * @param learning learning mode.
+	 * @param learningRate learning rate.
+	 * @return gradient of previous layers.
+	 */
+	abstract Matrix dValue(int time, int depth, Matrix thisError, boolean learning, double learningRate);
+	
+	
+	/**
+	 * Calculate gradient of previous layers.
+	 * @param time time.
 	 * @param prevInputs previous inputs.
 	 * @param prevOutput previous output.
 	 * @param thisError current error.
@@ -110,7 +140,17 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 	 * @param learningRate learning rate.
 	 * @return gradient of previous layers.
 	 */
-	abstract Matrix dValue(int time, MatrixStack prevInputs, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate);
+	private Matrix dValue(int time, MatrixStack prevInputs, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
+		int depth = depth();
+		Matrix sum = null;
+		Matrix derivative = prevOutput != null && prevActivateRef != null ? prevOutput.derivativeWise(prevActivateRef) : null;
+		for (int d = 0; d < depth; d++) {
+			Matrix dValue = dValue(time, d, thisError, learning, learningRate);
+			if (derivative != null) dValue = derivative.multiplyWise(dValue);
+			sum = sum != null ? sum.add(dValue) : dValue;
+		}
+		return sum;
+	}
 
 		
 	/**
@@ -125,6 +165,8 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 	 */
 	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef, boolean learning, double learningRate) {
 		if (prevInputs.depth() != depth() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+		if (prevOutputs.rows() != thisErrors.rows() || prevOutputs.columns() != thisErrors.columns()) throw new IllegalArgumentException();
+		
 		int time = time();
 		Matrix[] dValues = new Matrix[time];
 		for (int t = 0; t < time; t++) {

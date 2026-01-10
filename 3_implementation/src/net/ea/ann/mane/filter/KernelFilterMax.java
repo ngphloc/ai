@@ -76,19 +76,19 @@ public class KernelFilterMax extends KernelFilterProduct {
 	@Override
 	NeuronValue apply(int time, int y, int x, MatrixStack layers) {
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
-		int width = layers.columns(), height = layers.rows();
 		NeuronValue zero = layers.get().get(0, 0).zero();
-		if (x + kernelWidth > width) {
-			if (isPadZero())
-				return x >= width ? null : null/*zero*/;
-			else
-				x = width - kernelWidth;
-		}
+		int width = layers.columns(), height = layers.rows();
 		if (y + kernelHeight > height) {
 			if (isPadZero())
-				return y >= height ? null : null/*zero*/;
+				return y >= height ? null : null;
 			else
 				y = height - kernelHeight;
+		}
+		if (x + kernelWidth > width) {
+			if (isPadZero())
+				return x >= width ? null : null;
+			else
+				x = width - kernelWidth;
 		}
 		
 		NeuronValue[] result = new NeuronValue[kernelDepth];
@@ -146,22 +146,12 @@ public class KernelFilterMax extends KernelFilterProduct {
 
 
 	@Override
-	MatrixStack dValue(int time, int thisX, int thisY, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+	MatrixStack dValue(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-		int prevX = xBlock*strideWidth;
-		if (prevX + kernelWidth > prevWidth) {
-			if (isPadZero())
-				return prevX >= prevWidth ? null : null;
-			else {
-				prevX = prevWidth - kernelWidth;
-				thisX = prevX/strideWidth;
-			}
-		}
 		int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
 		int prevY = yBlock*strideHeight;
 		if (prevY + kernelHeight > prevHeight) {
@@ -170,6 +160,16 @@ public class KernelFilterMax extends KernelFilterProduct {
 			else {
 				prevY = prevHeight - kernelHeight;
 				thisY = prevY/strideHeight;
+			}
+		}
+		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
+		int prevX = xBlock*strideWidth;
+		if (prevX + kernelWidth > prevWidth) {
+			if (isPadZero())
+				return prevX >= prevWidth ? null : null;
+			else {
+				prevX = prevWidth - kernelWidth;
+				thisX = prevX/strideWidth;
 			}
 		}
 
@@ -201,22 +201,12 @@ public class KernelFilterMax extends KernelFilterProduct {
 
 
 	@Override
-	MatrixStack dKernel(int time, int thisX, int thisY, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+	MatrixStack dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-		int prevX = xBlock*strideWidth;
-		if (prevX + kernelWidth > prevWidth) {
-			if (isPadZero())
-				return prevX >= prevWidth ? null : null;
-			else {
-				prevX = prevWidth - kernelWidth;
-				thisX = prevX/strideWidth;
-			}
-		}
 		int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
 		int prevY = yBlock*strideHeight;
 		if (prevY + kernelHeight > prevHeight) {
@@ -225,6 +215,16 @@ public class KernelFilterMax extends KernelFilterProduct {
 			else {
 				prevY = prevHeight - kernelHeight;
 				thisY = prevY/strideHeight;
+			}
+		}
+		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
+		int prevX = xBlock*strideWidth;
+		if (prevX + kernelWidth > prevWidth) {
+			if (isPadZero())
+				return prevX >= prevWidth ? null : null;
+			else {
+				prevX = prevWidth - kernelWidth;
+				thisX = prevX/strideWidth;
 			}
 		}
 

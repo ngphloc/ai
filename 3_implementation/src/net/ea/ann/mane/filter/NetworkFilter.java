@@ -14,7 +14,7 @@ import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
 
 /**
- * This class represent network weight.
+ * This interface represent network filter.
  * @author Loc Nguyen
  * @version 1.0
  *

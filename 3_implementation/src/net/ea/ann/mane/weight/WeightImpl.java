@@ -508,9 +508,7 @@ class WCore implements Cloneable, Serializable {
 	 * @param W2 the second weight.
 	 * @return true if the two weights are mutually valid.
 	 */
-	private static boolean checkValid(Matrix W1, Matrix W2) {
-		return W1 != null || W2 != null;
-	}
+	private static boolean checkValid(Matrix W1, Matrix W2) {return W1 != null || W2 != null;}
 	
 	
 	/**

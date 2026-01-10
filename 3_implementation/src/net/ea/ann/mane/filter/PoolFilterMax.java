@@ -57,19 +57,18 @@ public class PoolFilterMax extends PoolFilter {
 	 * @return the index value resulted from this application.
 	 */
 	private Point apply(int y, int x, Matrix layer) {
-		int width = layer.columns();
-		int height = layer.rows();
-		if (x + width() > width) {
-			if (isPadZero())
-				return x >= width ? null : null;
-			else
-				x = width - width();
-		}
+		int width = layer.columns(), height = layer.rows();
 		if (y + height() > height) {
 			if (isPadZero())
 				return y >= height ? null : null;
 			else
 				y = height - height();
+		}
+		if (x + width() > width) {
+			if (isPadZero())
+				return x >= width ? null : null;
+			else
+				x = width - width();
 		}
 
 		int maxRow = 0, maxColumn = 0;
@@ -131,16 +130,6 @@ public class PoolFilterMax extends PoolFilter {
 		int prevWidth = prevInputLayer.columns(), prevHeight = prevInputLayer.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-		int prevX = xBlock*strideWidth;
-		if (prevX + kernelWidth > prevWidth) {
-			if (isPadZero())
-				return prevX >= prevWidth ? null : null;
-			else {
-				prevX = prevWidth - kernelWidth;
-				thisX = prevX/strideWidth;
-			}
-		}
 		int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
 		int prevY = yBlock*strideHeight;
 		if (prevY + kernelHeight > prevHeight) {
@@ -149,6 +138,16 @@ public class PoolFilterMax extends PoolFilter {
 			else {
 				prevY = prevHeight - kernelHeight;
 				thisY = prevY/strideHeight;
+			}
+		}
+		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
+		int prevX = xBlock*strideWidth;
+		if (prevX + kernelWidth > prevWidth) {
+			if (isPadZero())
+				return prevX >= prevWidth ? null : null;
+			else {
+				prevX = prevWidth - kernelWidth;
+				thisX = prevX/strideWidth;
 			}
 		}
 
@@ -168,84 +167,6 @@ public class PoolFilterMax extends PoolFilter {
 		}
 		return dPrevValue;
 	}
-
-	
-//	/**
-//	 * Calculating derivative of previous layers given current layers as bias layers.
-//	 * @param time time.
-//	 * @param nextX next X coordinator.
-//	 * @param nextY next Y coordinator.
-//	 * @param prevInputLayers previous input layers.
-//	 * @param prevIndexOutputLayers previous index output layers.
-//	 * @param thisErrorLayers current layers as bias layers.
-//	 * @param thisActivateRef activation function of current layer.
-//	 * @return derivative of previous layers given current layers as bias layers.
-//	 */
-//	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevIndexOutputLayers, MatrixStack thisErrorLayers) {
-//		if (prevInputLayers.depth() != depth() || prevIndexOutputLayers.depth() != depth() || thisErrorLayers.depth() != depth()) throw new IllegalArgumentException();
-//		if (prevIndexOutputLayers.rows() != thisErrorLayers.rows() || prevIndexOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
-//
-//		NeuronValue zero = prevInputLayers.get().get(0, 0).zero();
-//		Matrix[] dPrevValues = new Matrix[this.depth()];
-//		int[][][] dPrevValuesCount = new int[this.depth()][][];
-//		for (int i = 0; i < dPrevValues.length; i++) {
-//			int rows = prevInputLayers.rows(), columns = prevInputLayers.columns();
-//			dPrevValues[i] = prevInputLayers.get().create(new Size(columns, rows));
-//			MatrixUtil.fill(dPrevValues[i], zero);
-//			dPrevValuesCount[i] = new int[rows][columns];
-//			for (int j = 0; j < rows; j++) {
-//				for (int k = 0; k < columns; k++) dPrevValuesCount[i][j][k] = 0;
-//			}
-//		}
-//
-//		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
-//		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
-//		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-//		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-//		int thisWidth = thisErrorLayers.columns(), thisHeight = thisErrorLayers.rows();
-//		for (int thisY = 0; thisY < thisHeight; thisY++) {
-//			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-//			int prevY = yBlock*strideHeight;
-//			if (prevY >= prevHeight) continue;
-//			
-//			for (int thisX = 0; thisX < thisWidth; thisX++) {
-//				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-//				int prevX = xBlock*strideWidth;
-//				if (prevX >= prevWidth) continue;
-//				
-//				//Calculating gradient.
-//				for (int i = 0; i < this.depth(); i++) {
-//					Matrix dPrevValue = this.dValue(thisX, thisY, prevInputLayers.get(i), prevIndexOutputLayers.get(i), thisErrorLayers.get(i));
-//					if (dPrevValue == null) continue;
-//					for (int j = 0; j < dPrevValue.rows(); j++) {
-//						int prevRow = prevY + j;
-//						for (int k = 0; k < dPrevValue.columns(); k++) {
-//							int prevColumn = prevX + k;
-//							NeuronValue dv = dPrevValues[i].get(prevRow, prevColumn).add(dPrevValue.get(j, k));
-//							dPrevValues[i].set(prevRow, prevColumn, dv);
-//							dPrevValuesCount[i][prevRow][prevColumn] = dPrevValuesCount[i][prevRow][prevColumn] + 1; 
-//						}
-//					}
-//				} //End dValues.
-//			}
-//		}
-//		
-//		//Calculating mean of values.
-//		if (CALC_ERROR_MEAN) {
-//			for (int i = 0; i < dPrevValues.length; i++) {
-//				int rows = dPrevValues[i].rows(), columns = dPrevValues[i].columns();
-//				for (int row = 0; row < rows; row++) {
-//					for (int column = 0; column < columns; column++) {
-//						int count = dPrevValuesCount[i][row][column];
-//						if (count <= 0) continue;
-//						NeuronValue mean = dPrevValues[i].get(row, column).divide(count);
-//						dPrevValues[i].set(row, column, mean);
-//					}
-//				}
-//			}
-//		}
-//		return new MatrixStack(dPrevValues);
-//	}
 
 	
 	/**

@@ -92,21 +92,15 @@ abstract class WeightNetwork extends MatrixNetworkImpl implements NetworkWeight 
 
 
 	@Override
-	public void initParams(double v) {
-		new MatrixNetworkAssoc(this).initParams(v);
-	}
+	public void initParams(double v) {new MatrixNetworkAssoc(this).initParams(v);}
 
 
 	@Override
-	public void initParams(Random rnd) {
-		new MatrixNetworkAssoc(this).initParams(rnd);
-	}
+	public void initParams(Random rnd) {new MatrixNetworkAssoc(this).initParams(rnd);}
 
 
 	@Override
-	public int sizeOfParams() {
-		return new MatrixNetworkAssoc(this).sizeOfParams();
-	}
+	public int sizeOfParams() {return new MatrixNetworkAssoc(this).sizeOfParams();}
 
 
 }

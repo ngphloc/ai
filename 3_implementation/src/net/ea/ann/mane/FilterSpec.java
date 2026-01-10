@@ -75,7 +75,7 @@ public class FilterSpec implements Cloneable, Serializable {
 		/**
 		 * Max filter type.
 		 */
-		max,
+		product_max,
 	}
 
 	
@@ -292,7 +292,7 @@ public class FilterSpec implements Cloneable, Serializable {
 			kernelType = KernelType.product;
 			break;
 		case 1:
-			kernelType = KernelType.max;
+			kernelType = KernelType.product_max;
 			break;
 		default:
 			kernelType = KernelType.product;
@@ -370,7 +370,7 @@ public class FilterSpec implements Cloneable, Serializable {
 				case product:
 					filter = KernelFilterProduct.create(factor, filterSize, hint);
 					break;
-				case max:
+				case product_max:
 					filter = KernelFilterMax.create(factor, filterSize, hint);
 					break;
 				default:

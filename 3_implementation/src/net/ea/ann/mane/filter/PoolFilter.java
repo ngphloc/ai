@@ -57,15 +57,11 @@ public abstract class PoolFilter extends FilterAbstract {
 
 	
 	@Override
-	public int width() {
-		return width;
-	}
+	public int width() {return width;}
 
 
 	@Override
-	public int height() {
-		return height;
-	}
+	public int height() {return height;}
 	
 	
 	/**
@@ -80,9 +76,7 @@ public abstract class PoolFilter extends FilterAbstract {
 
 	
 	@Override
-	public Filter accumKernel(Kernel dKernel, double factor) {
-		return this;
-	}
+	public Filter accumKernel(Kernel dKernel, double factor) {return this;}
 
 
 	/**

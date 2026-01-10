@@ -71,35 +71,37 @@ public abstract class KernelFilter extends FilterAbstract {
 		 * Getting width.
 		 * @return kernel width.
 		 */
-		public int width() {
-			return W[0].columns();
-		}
+		public int width() {return W[0].columns();}
 
 		/**
 		 * Getting kernel height.
 		 * @return kernel height.
 		 */
-		public int height() {
-			return W[0].rows();
-		}
+		public int height() {return W[0].rows();}
 
-
+		/**
+		 * Getting kernel rows.
+		 * @return kernel rows.
+		 */
+		public int rows() {return height();}
+		
+		/**
+		 * Getting kernel columns.
+		 * @return kernel columns.
+		 */
+		public int columns() {return width();}
+		
 		/**
 		 * Getting kernel depth.
 		 * @return kernel depth.
 		 */
-		public int depth() {
-			return W[0].depth();
-		}
-
+		public int depth() {return W[0].depth();}
 
 		/**
 		 * Getting kernel time.
 		 * @return kernel time.
 		 */
-		public int time() {
-			return W.length;
-		}
+		public int time() {return W.length;}
 
 		@Override
 		public FKernel add(Kernel kernel) {
@@ -258,15 +260,15 @@ public abstract class KernelFilter extends FilterAbstract {
 	/**
 	 * Calculating derivative of previous layers given current layers as bias layers at specified coordinator.
 	 * @param time time.
-	 * @param thisX current X coordinator.
 	 * @param thisY current Y coordinator.
+	 * @param thisX current X coordinator.
 	 * @param prevInputLayers previous input layers.
 	 * @param prevOutputLayer previous output layer.
 	 * @param thisErrorLayer current layer as bias layer.
 	 * @param thisActivateRef activation function of current layer.
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
-	abstract MatrixStack dValue(int time, int thisX, int thisY, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
+	abstract MatrixStack dValue(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 
 		
 	/**
@@ -310,7 +312,7 @@ public abstract class KernelFilter extends FilterAbstract {
 				if (prevX >= prevWidth) continue;
 				
 				//Calculating gradient.
-				MatrixStack dPrevValue = this.dValue(time, thisX, thisY, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
+				MatrixStack dPrevValue = this.dValue(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
 				if (dPrevValue == null) continue;
 				
 				for (int i = 0; i < dPrevValue.depth(); i++) {
@@ -380,15 +382,15 @@ public abstract class KernelFilter extends FilterAbstract {
 	/**
 	 * Calculating derivative of kernel of previous layers given current layers as bias layer at specified coordinator.
 	 * @param time time.
-	 * @param thisX current X coordinator.
 	 * @param thisY current Y coordinator.
+	 * @param thisX current X coordinator.
 	 * @param prevInputLayers previous input layers.
 	 * @param prevOutputLayer previous output layer.
 	 * @param thisErrorLayer current layer as bias layer.
 	 * @param thisActivateRef activation function of current layers.
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
-	abstract MatrixStack dKernel(int time, int thisX, int thisY, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
+	abstract MatrixStack dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 
 		
 	/**
@@ -427,7 +429,7 @@ public abstract class KernelFilter extends FilterAbstract {
 				if (prevX >= prevWidth) continue;
 				
 				//Calculating gradient.
-				MatrixStack dKernel = this.dKernel(time, thisX, thisY, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
+				MatrixStack dKernel = this.dKernel(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
 				if (dKernel == null) continue;
 				dKernels = (MatrixStack)dKernels.add(dKernel);
 				dKernelCount++;
