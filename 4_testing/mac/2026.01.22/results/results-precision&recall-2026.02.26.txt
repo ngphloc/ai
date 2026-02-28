@@ -1,0 +1,96 @@
+Please make the ANOVA analysis for the attached CSV file in which groups (independent variables) are "vec" and "feature" whereas treatments (dependent variables) are "precision" and "recall".
+
+Gemini said
+I have completed the Two-Way ANOVA analysis for the dependent variables Precision (labeled as precise in the data) and Recall using the independent variables vec and feature.
+
+1. ANOVA Results for Precision (precise)
+This test evaluates how the vectorization setting and feature type influence the model's precision.
+
+Source of Variation	Sum of Squares	df	F-statistic	p-value
+vec	4.8×10 
+−5
+ 	1	0.1180	0.7318
+feature	0.01908	2	23.3842	< 0.0001*
+vec : feature	0.00024	2	0.2909	0.7481
+Residual	0.04650	114	—	—
+Interpretation: Only the feature type has a statistically significant effect on precision. The vec setting and its interaction with the feature do not significantly impact the precision scores.
+
+2. ANOVA Results for Recall
+This test evaluates the impact of the independent variables on the model's recall.
+
+Source of Variation	Sum of Squares	df	F-statistic	p-value
+vec	0.00809	1	1.5663	0.2133
+feature	3.25747	2	315.5278	< 0.0001*
+vec : feature	0.01207	2	1.1690	0.3144
+Residual	0.58846	114	—	—
+Interpretation: Similarly, the feature type is a highly significant factor for recall. Neither the vec parameter nor the interaction between vec and feature show statistical significance.
+
+3. Summary of Group Means
+The table below shows the average performance for each group combination:
+
+vec	feature	Precision (Mean)	Recall (Mean)
+False	conv	0.0614	0.4154
+False	trans	0.0881	0.7751
+False	weight	0.0887	0.7963
+True	conv	0.0631	0.4601
+True	trans	0.0926	0.7790
+True	weight	0.0863	0.7970
+Key Takeaways
+Feature Dominance: Consistent with your previous metrics (Accuracy and F1), the choice of feature type is the critical factor. trans and weight features result in significantly higher Precision and Recall compared to the conv feature.
+
+Vectorization (vec): The vectorization setting continues to show no significant influence on performance across all metrics analyzed so far.
+
+Please let me know if you would like to perform post-hoc tests to see which specific features differ in precision and recall, or if you need any further analysis!
+
+You said
+Please perform post-hoc tests to see which specific features differ in precision and recall.
+
+Gemini said
+I have performed the Post-Hoc Tukey HSD test for the feature groups to determine which specific methods differ in Precision and Recall.
+
+1. Post-Hoc Results for Precision (precise)
+This test compares the mean precision across the three feature types.
+
+Group 1	Group 2	Mean Diff	p-adj	Significant?
+conv	trans	+0.0280	< 0.001*	Yes (trans > conv)
+conv	weight	+0.0252	< 0.001*	Yes (weight > conv)
+trans	weight	-0.0028	0.8060	No
+Insight: Both trans and weight achieve significantly higher precision than the conv method. There is no statistically significant difference in precision between trans and weight.
+
+2. Post-Hoc Results for Recall
+This test compares the mean recall across the three feature types.
+
+Group 1	Group 2	Mean Diff	p-adj	Significant?
+conv	trans	+0.3393	< 0.001*	Yes (trans > conv)
+conv	weight	+0.3589	< 0.001*	Yes (weight > conv)
+trans	weight	+0.0196	0.4481	No
+Insight: Similar to precision, the conv method has significantly lower recall. The trans and weight methods are both much more effective at retrieving correct instances (with mean recall ~0.34–0.36 higher than conv), and they perform statistically the same as each other.
+
+Final Research Summary for Precision & Recall
+The "conv" Disadvantage: The convolutional feature set consistently underperforms in both Precision and Recall compared to the other two methods. This explains the lower F1 scores observed in previous tests.
+
+Interchangeability of trans and weight: For these specific performance metrics, using transformation-based features or weight-based initialization yields nearly identical statistical results. You can choose either based on other factors like computation time or architectural simplicity.
+
+No "vec" Influence: As confirmed by the ANOVA, the vectorization setting does not change these relationships; the performance gap between features remains constant regardless of whether vec is enabled.
+
+You said
+Please make visualization in diff.
+
+Gemini said
+https://lh3.googleusercontent.com/gg-dl/AOI_d__FSxfE938Jv3R0yHoVipU1OswpN9sRxkWmjvB7csFiATB6YmNpp1sMIo6RB6_YuXrQuP1BzDcf8FfltR311Atn5wUVvNn0EmZC4J28Br1_8ykMRH_E2EtSUmwFQKyBDzY7_-Dja7TpfsC0gYcyEmV1yFDlRTocwRfoQ5wz1HUd73JSAQ=s1600
+
+I have created a visualization to illustrate the differences in Precision and Recall across the experimental groups.
+
+Summary of the Visual Comparison
+1. Precision (Left Plot)
+Feature Influence: Both trans and weight demonstrate significantly higher precision compared to conv. This indicates that when these models predict a label, they are more likely to be correct than the convolutional feature set.
+
+Vectorization (vec): The performance remains consistent across the TRUE and FALSE settings for vectorization, as shown by the similar heights of the side-by-side bars within each feature group.
+
+2. Recall (Right Plot)
+Large Performance Gap: The difference in Recall is even more pronounced. trans and weight achieve recall scores near 0.75–0.80, while conv sits significantly lower (around 0.40–0.45).
+
+Interpretation: This confirms that the conv model is missing about half of the relevant instances, whereas trans and weight are far more robust at capturing the majority of the correct labels.
+
+Conclusion
+The visual evidence reinforces the post-hoc results: trans and weight are virtually identical in their high performance for these metrics, while conv is statistically the underperformer in both retrieving relevant samples (Recall) and ensuring predicted samples are correct (Precision).

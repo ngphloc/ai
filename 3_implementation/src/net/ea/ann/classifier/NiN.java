@@ -26,12 +26,12 @@ import net.ea.ann.raster.RasterProperty.Label;
 import net.ea.ann.raster.Size;
 
 /**
- * This class is an implementation of classifier within VGG model developed by Simonyan and Zisserman.
- * @author Simonyan and Zisserman, implemented by Loc Nguyen
+ * This class is an implementation of network-in-network (NiN) developed by Min Lin, Qiang Chen, Shuicheng Yan.
+ * @author Min Lin, Qiang Chen, Shuicheng Yan, implemented by Loc Nguyen
  * @version 1.0
  *
  */
-public class VGG extends VGGAbstract {
+public class NiN extends NiNAbstract {
 
 	
 	/**
@@ -53,7 +53,7 @@ public class VGG extends VGGAbstract {
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
 	 */
-	public VGG(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+	public NiN(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 	}
 
@@ -64,7 +64,7 @@ public class VGG extends VGGAbstract {
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 */
-	public VGG(int neuronChannel, Function activateRef, Function convActivateRef) {
+	public NiN(int neuronChannel, Function activateRef, Function convActivateRef) {
 		this(neuronChannel, activateRef, convActivateRef, null);
 	}
 
@@ -74,7 +74,7 @@ public class VGG extends VGGAbstract {
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public VGG(int neuronChannel, Function activateRef) {
+	public NiN(int neuronChannel, Function activateRef) {
 		this(neuronChannel, activateRef, null, null);
 	}
 
@@ -83,7 +83,7 @@ public class VGG extends VGGAbstract {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public VGG(int neuronChannel) {
+	public NiN(int neuronChannel) {
 		this(neuronChannel, null, null, null);
 	}
 
@@ -131,13 +131,13 @@ public class VGG extends VGGAbstract {
 	 * @param isNorm norm flag.
 	 * @return classifier.
 	 */
-	public static VGG create(int neuronChannel, int rasterChannel, boolean isNorm) {
+	public static NiN create(int neuronChannel, int rasterChannel, boolean isNorm) {
 		Function activateRef = Raster.toActivationRef(neuronChannel, isNorm);
 		Function contentActivateRef = Raster.toConvActivationRef(neuronChannel, isNorm);
-		VGG vgg = new VGG(neuronChannel, activateRef, contentActivateRef, null);
-		vgg.paramSetRasterChannel(rasterChannel);
-		vgg.paramSetNorm(isNorm);
-		return vgg;
+		NiN nin = new NiN(neuronChannel, activateRef, contentActivateRef, null);
+		nin.paramSetRasterChannel(rasterChannel);
+		nin.paramSetNorm(isNorm);
+		return nin;
 	}
 
 
@@ -146,12 +146,12 @@ public class VGG extends VGGAbstract {
 
 
 /**
- * This class is an abstract implementation of classifier within VGG model developed by Simonyan and Zisserman.
- * @author Simonyan and Zisserman, implemented by Loc Nguyen
+ * This class is an abstract implementation of network-in-network (NiN) developed by Min Lin, Qiang Chen, Shuicheng Yan.
+ * @author Min Lin, Qiang Chen, Shuicheng Yan, implemented by Loc Nguyen
  * @version 1.0
  *
  */
-class VGGAbstract extends ClassifierAbstract {
+class NiNAbstract extends ClassifierAbstract {
 
 	
 	/**
@@ -163,7 +163,7 @@ class VGGAbstract extends ClassifierAbstract {
 	/**
 	 * Classifier nut.
 	 */
-	protected net.ea.ann.mane.beans.VGG nut = null;
+	protected net.ea.ann.mane.beans.NiN nut = null;
 
 
 	/**
@@ -173,10 +173,10 @@ class VGGAbstract extends ClassifierAbstract {
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
 	 */
-	public VGGAbstract(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+	public NiNAbstract(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, idRef);
 		
-		this.nut = new net.ea.ann.mane.beans.VGG(this.neuronChannel, activateRef, convActivateRef, idRef);
+		this.nut = new net.ea.ann.mane.beans.NiN(this.neuronChannel, activateRef, convActivateRef, idRef);
 		try {
 			this.config.putAll(this.nut.getConfig());
 			this.nut.getConfig().putAll(this.config);
@@ -190,7 +190,7 @@ class VGGAbstract extends ClassifierAbstract {
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 */
-	public VGGAbstract(int neuronChannel, Function activateRef, Function convActivateRef) {
+	public NiNAbstract(int neuronChannel, Function activateRef, Function convActivateRef) {
 		this(neuronChannel, activateRef, convActivateRef, null);
 	}
 
@@ -200,7 +200,7 @@ class VGGAbstract extends ClassifierAbstract {
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public VGGAbstract(int neuronChannel, Function activateRef) {
+	public NiNAbstract(int neuronChannel, Function activateRef) {
 		this(neuronChannel, activateRef, null, null);
 	}
 
@@ -209,7 +209,7 @@ class VGGAbstract extends ClassifierAbstract {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public VGGAbstract(int neuronChannel) {
+	public NiNAbstract(int neuronChannel) {
 		this(neuronChannel, null, null, null);
 	}
 
@@ -365,7 +365,7 @@ class VGGAbstract extends ClassifierAbstract {
 	 * @param blockNumber the number of blocks.
 	 * @return this classifier.
 	 */
-	VGGAbstract paramSetBlocksNumber(int blockNumber) {
+	NiNAbstract paramSetBlocksNumber(int blockNumber) {
 		blockNumber = blockNumber < 1 ? net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_DEFAULT : blockNumber;
 		config.put(net.ea.ann.mane.beans.VGG.BLOCKS_NUMBER_FIELD, blockNumber);
 		return this;
@@ -387,9 +387,9 @@ class VGGAbstract extends ClassifierAbstract {
 	/**
 	 * Setting number of layers per block.
 	 * @param layersNumber number of layers per block.
-	 * @return this VGG.
+	 * @return this classifier.
 	 */
-	VGGAbstract paramSetLayersNumber(int layersNumber) {
+	NiNAbstract paramSetLayersNumber(int layersNumber) {
 		layersNumber = layersNumber < 1 ? net.ea.ann.mane.beans.VGG.LAYERS_NUMBER_DEFAULT : layersNumber;
 		config.put(net.ea.ann.mane.beans.VGG.LAYERS_NUMBER_FIELD, layersNumber);
 		return this;
@@ -411,9 +411,9 @@ class VGGAbstract extends ClassifierAbstract {
 	/**
 	 * Setting number of filters per layer.
 	 * @param filtersNumber number of filters per layer.
-	 * @return this VGG.
+	 * @return this classifier.
 	 */
-	VGGAbstract paramSetFiltersNumber(int filtersNumber) {
+	NiNAbstract paramSetFiltersNumber(int filtersNumber) {
 		filtersNumber = filtersNumber < 1 ? net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT : filtersNumber;
 		config.put(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD, filtersNumber);
 		return this;
@@ -433,9 +433,9 @@ class VGGAbstract extends ClassifierAbstract {
 	/**
 	 * Setting VGG middle size.
 	 * @param middleSize VGG middle size.
-	 * @return this VGG.
+	 * @return this classifier.
 	 */
-	VGGAbstract paramSetVGGMiddleSize(Size middleSize) {
+	NiNAbstract paramSetVGGMiddleSize(Size middleSize) {
 		int width = middleSize.width < 1 ? MatrixNetworkImpl.MINSIZE : middleSize.width;
 		int height = middleSize.height < 1 ? MatrixNetworkImpl.MINSIZE : middleSize.height;
 		config.put(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_FIELD, width + ", " + height);
@@ -458,9 +458,9 @@ class VGGAbstract extends ClassifierAbstract {
 	/**
 	 * Setting length of feed-forward network.
 	 * @param ffnLength length of feed-forward network.
-	 * @return this VGG.
+	 * @return this classifier.
 	 */
-	VGGAbstract paramSetFFNLength(int ffnLength) {
+	NiNAbstract paramSetFFNLength(int ffnLength) {
 		ffnLength = ffnLength < 1 ? net.ea.ann.mane.beans.VGG.FFN_LENGTH_DEFAULT : ffnLength;
 		config.put(net.ea.ann.mane.beans.VGG.FFN_LENGTH_FIELD, ffnLength);
 		return this;

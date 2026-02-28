@@ -13,7 +13,6 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.MatrixUtil;
-import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.FilterSpec.Type;
@@ -109,12 +108,11 @@ public class NiNFilter extends FilterNetwork {
 	 * Creating NiN (network-in-network) filter.
 	 * @param inputSize input size.
 	 * @param kernelSize kernel size.
-	 * @param hint hinting value.
+	 * @param neuronChannel neuronChannel.
 	 * @return NiN (network-in-network) filter.
 	 */
-	public NiNFilter create(Size inputSize, Size kernelSize, NeuronValue hint) {
+	public static NiNFilter create(Size inputSize, Size kernelSize, int neuronChannel) {
 		int length = kernelSize.time < 1 ? 1 : kernelSize.time;
-		int neuronChannel = hint.dim();
 		NiNFilter filter = new NiNFilter(neuronChannel);
 		if (!filter.initialize(inputSize, kernelSize, length)) return null;
 		return filter;

@@ -10,13 +10,13 @@ package net.ea.ann.classifier;
 import java.io.Serializable;
 
 /**
- * This class provides utility methods for VGG.
+ * This class provides utility methods for NiN.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class VGGAssoc implements Cloneable, Serializable {
+public class NiNAssoc implements Cloneable, Serializable {
 
 	
 	/**
@@ -26,17 +26,17 @@ public class VGGAssoc implements Cloneable, Serializable {
 
 	
 	/**
-	 * VGG classifier.
+	 * NiN classifier.
 	 */
-	protected VGG vgg = null;
+	protected NiN nin = null;
 	
 	
 	/**
-	 * Constructor with VGG.
-	 * @param vgg VGG model.
+	 * Constructor with NiN.
+	 * @param nin NiN model.
 	 */
-	public VGGAssoc(VGG vgg) {
-		this.vgg = vgg;
+	public NiNAssoc(NiN nin) {
+		this.nin = nin;
 	}
 
 

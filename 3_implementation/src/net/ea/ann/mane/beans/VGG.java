@@ -14,6 +14,7 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.FilterSpec;
+import net.ea.ann.mane.FilterSpec.NetworkType;
 import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.FilterSpec.Type;
 import net.ea.ann.mane.MatrixLayerAbstract;
@@ -44,7 +45,7 @@ public class VGG extends MatrixNetworkImpl {
 	/**
 	 * Default base.
 	 */
-	private final static int BASE = ZOOMOUT_DEFAULT;
+	final static int BASE = ZOOMOUT_DEFAULT;
 	
 	
 	/**
@@ -174,6 +175,18 @@ public class VGG extends MatrixNetworkImpl {
 
 	
 	/**
+	 * Field for network type.
+	 */
+	public final static String NETWORK_TYPE_FIELD = "mane_network_type";
+
+	
+	/**
+	 * Default value for network type.
+	 */
+	public final static NetworkType NETWORK_TYPE_DEFAULT = NetworkType.nin;
+
+	
+	/**
 	 * Field for weight type.
 	 */
 	public final static String WEIGHT_TYPE_FIELD = "mane_weight_type";
@@ -201,6 +214,7 @@ public class VGG extends MatrixNetworkImpl {
 		config.put(FILTERS_NUMBER_FIELD, FILTERS_NUMBER_DEFAULT);
 		config.put(FILTER_SIZE_FIELD, FILTER_SIZE_DEFAULT);
 		config.put(FFN_LENGTH_FIELD, FFN_LENGTH_DEFAULT);
+		config.put(FFN_FLATTEN_FIELD, FFN_FLATTEN_DEFAULT);
 		config.put(COWEIGHT_FIELD, COWEIGHT_DEFAULT);
 		config.put(POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(POOL_TYPE_DEFAULT));
 		config.put(WEIGHT_TYPE_FIELD, WeightSpec.typeToInt(WEIGHT_TYPE_DEFAULT));
@@ -238,28 +252,24 @@ public class VGG extends MatrixNetworkImpl {
 
 	
 	/**
-	 * Initializing VGG model.
+	 * Calculating block size.
 	 * @param inputSize input size.
 	 * @param middleSize middle size.
-	 * @param outputSize output size which can be null.
+	 * @param blocksNumber number of blocks.
+	 * @param filtersNumberPerLayer number of filters per layer.
 	 * @return true if initialization is successful.
 	 */
-	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
-		if (inputSize == null) return false;
+	static List<Size> calcBlockSizes(Size inputSize, Size middleSize, int blocksNumber, int filtersNumberPerLayer) {
+		if (inputSize == null) return Util.newList(0);
 		int base = BASE;
-		int blocksNumber = paramGetBlocksNumber();
-		int layersNumberPerBlock = paramGetLayersNumber();
-		int filtersNumberPerLayer = paramGetFiltersNumber();
-		int filterSize = paramGetFilterSize();
-		int ffnLength = paramGetFFNLength();
-		
 		int r = Math.min(inputSize.width/middleSize.width, inputSize.height/middleSize.height);
 		if (r < 1)
 			middleSize = new Size(inputSize.width, inputSize.height);
 		else
 			middleSize = new Size(inputSize.width/r, inputSize.height/r);
 		int[][] numbers = MatrixNetworkInitializer.constructHiddenOutputNeuronNumbers(inputSize, middleSize, base, base, blocksNumber);
-		if (numbers == null) return false;
+		if (numbers == null) return Util.newList(0);
+		
 		int[] heights = numbers[0];
 		int[] widths = numbers[1];
 		int[] tempHeights = new int[heights.length+1], tempWidths = new int[widths.length+1];
@@ -288,8 +298,26 @@ public class VGG extends MatrixNetworkImpl {
 				power++;
 			}
 		}
+		return blockSizes;
+	}
+	
+	
+	/**
+	 * Initializing VGG model.
+	 * @param inputSize input size.
+	 * @param middleSize middle size.
+	 * @param outputSize output size which can be null.
+	 * @return true if initialization is successful.
+	 */
+	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
+		List<Size> blockSizes = calcBlockSizes(inputSize, middleSize, paramGetBlocksNumber(), paramGetFiltersNumber());
 		if (blockSizes.size() == 0) return false;
 		
+		int base = BASE;
+		int layersNumberPerBlock = paramGetLayersNumber();
+		int filterSize = paramGetFilterSize();
+		int ffnLength = paramGetFFNLength();
+
 		int rasterChannel = paramGetRasterChannel();
 		boolean flatten = MatrixUtil.isFlatten(inputSize.depth, this.neuronChannel, rasterChannel); //inputSize.depth is actually raster depth.
 		LayerSpec layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height, flatten?rasterChannel:1));
@@ -616,6 +644,29 @@ public class VGG extends MatrixNetworkImpl {
 	 */
 	VGG paramSetPoolType(PoolType poolType) {
 		config.put(POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(poolType));
+		return this;
+	}
+
+	
+	/**
+	 * Checking network filter type.
+	 * @return network filter type.
+	 */
+	NetworkType paramGetNetworkType() {
+		if (config.containsKey(NETWORK_TYPE_FIELD))
+			return FilterSpec.intToNetworkType(config.getAsInt(NETWORK_TYPE_FIELD));
+		else
+			return NETWORK_TYPE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting network filter type.
+	 * @param networkType network filter type.
+	 * @return this classifier.
+	 */
+	VGG paramSetNetworkType(NetworkType networkType) {
+		config.put(NETWORK_TYPE_FIELD, FilterSpec.networkTypeToInt(networkType));
 		return this;
 	}
 

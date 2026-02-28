@@ -59,6 +59,11 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		vgg,
 
 		/**
+		 * NiN (network-in-network) classifier.
+		 */
+		nin,
+		
+		/**
 		 * Matrix neural network classifier.
 		 */
 		mac,
@@ -283,15 +288,18 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			model = ClassifierModel.vgg;
 			break;
 		case 1:
-			model = ClassifierModel.mac;
+			model = ClassifierModel.nin;
 			break;
 		case 2:
-			model = ClassifierModel.tramac;
+			model = ClassifierModel.mac;
 			break;
 		case 3:
-			model = ClassifierModel.forest;
+			model = ClassifierModel.tramac;
 			break;
 		case 4:
+			model = ClassifierModel.forest;
+			break;
+		case 5:
 			model = ClassifierModel.stack;
 			break;
 		default:
@@ -312,6 +320,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		switch (modelText.toLowerCase()) {
 		case "vgg":
 			model = ClassifierModel.vgg;
+			break;
+		case "nin":
+			model = ClassifierModel.nin;
 			break;
 		case "mac":
 			model = ClassifierModel.mac;
@@ -344,17 +355,20 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		case vgg:
 			modelIndex = 0; 
 			break;
-		case mac:
+		case nin:
 			modelIndex = 1; 
 			break;
-		case tramac:
+		case mac:
 			modelIndex = 2; 
 			break;
-		case forest:
+		case tramac:
 			modelIndex = 3; 
 			break;
-		case stack:
+		case forest:
 			modelIndex = 4; 
+			break;
+		case stack:
+			modelIndex = 5; 
 			break;
 		default:
 			break;
@@ -373,6 +387,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		switch (model) {
 		case vgg:
 			modelText = "vgg";
+			break;
+		case nin:
+			modelText = "nin";
 			break;
 		case mac:
 			modelText = "mac";
@@ -785,6 +802,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		case vgg:
 			classifier = VGG.create(neuronChannel, rasterChannel, true); 
 			break;
+		case nin:
+			classifier = NiN.create(neuronChannel, rasterChannel, true); 
+			break;
 		case mac:
 			classifier = MatrixClassifier.create(neuronChannel, rasterChannel, true); 
 			break;
@@ -824,6 +844,14 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			vgg.paramSetFiltersNumber(filtersNumber);
 			vgg.paramSetVGGMiddleSize(middleSize);
 			vgg.paramSetFFNLength(ffnLength);
+		}
+		else if (classifier instanceof NiN) {
+			NiN nin = (NiN)classifier;
+			nin.paramSetBlocksNumber(blocks);
+			nin.paramSetLayersNumber(depth);
+			nin.paramSetFiltersNumber(filtersNumber);
+			nin.paramSetVGGMiddleSize(middleSize);
+			nin.paramSetFFNLength(ffnLength);
 		}
 		else if (classifier instanceof MatrixClassifier) {
 
@@ -869,7 +897,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		
 		int defaultModelIndex = toModelIndex(ClassifierModel.vgg);
 		int modelIndex = defaultModelIndex;
-		printer.print("Model (0-vgg, 1-mac, 2-tramac, 3-forest, 4-stack) (default " + defaultModelIndex + " is " + toModel(defaultModelIndex) + "):");
+		printer.print("Model (0-vgg, 1-nin, 2-mac, 3-tramac, 4-forest, 5-stack) (default " + defaultModelIndex + " is " + toModel(defaultModelIndex) + "):");
 		try {
 			String line = scanner.nextLine().trim();
 			if (!line.isBlank() && !line.isEmpty()) modelIndex = Integer.parseInt(line);
@@ -1032,7 +1060,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setDepth(depth);
 		builder.setEntropyTrainer(entropyTrainer);
 
-		if (builder.getModel() == ClassifierModel.vgg) {
+		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.nin) {
 			int defaultMiddleSize = net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT.width;
 			int middleSize = defaultMiddleSize;
 			printer.print("Middle size (default (" + defaultMiddleSize + ", " + defaultMiddleSize + ") ):");
@@ -1070,7 +1098,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			builder.setFFNLength(ffnLength);
 		}
 		
-		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.tramac) {
+		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.nin || builder.getModel() == ClassifierModel.tramac) {
 			int defaultBlocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 			int blocks = defaultBlocks;
 			printer.print("Blocks (default " + defaultBlocks + "):");

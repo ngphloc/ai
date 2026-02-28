@@ -19,6 +19,7 @@ import net.ea.ann.adapter.gen.ClassifierModelAbstract;
 import net.ea.ann.adapter.gen.GenModelRemote;
 import net.ea.ann.adapter.gen.beans.ForestClassifier;
 import net.ea.ann.adapter.gen.beans.MatrixClassifier;
+import net.ea.ann.adapter.gen.beans.NiN;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
 import net.ea.ann.adapter.gen.beans.TransformerClassifier;
 import net.ea.ann.adapter.gen.beans.VGG;
@@ -249,7 +250,7 @@ public class GenUIClassifier extends GenUI {
 	 * @return local generative model.
 	 */
 	static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
-		return queryLocalGenModel(initialGM, initialUI, new GenModelRemote[] {new VGG(), new MatrixClassifier(), new TransformerClassifier(), new ForestClassifier(), new StackClassifier()}, new GenUICreator() {
+		return queryLocalGenModel(initialGM, initialUI, new GenModelRemote[] {new VGG(), new NiN(), new MatrixClassifier(), new TransformerClassifier(), new ForestClassifier(), new StackClassifier()}, new GenUICreator() {
 			@Override
 			public GenUI create(GenModelRemote gm) {
 				return new GenUIClassifier(gm, false);

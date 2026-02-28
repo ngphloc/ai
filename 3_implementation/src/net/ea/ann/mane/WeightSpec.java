@@ -138,15 +138,4 @@ public class WeightSpec implements Cloneable, Serializable {
 	}
 
 
-	/**
-	 * Creating weight.
-	 * @param sizeW1 the first weight size.
-	 * @param sizeW2 the second weight size.
-	 * @param hint hinting value.
-	 */
-	public static Weight newWeight(Size sizeW1, Size sizeW2, NeuronValue hint) {
-		return WeightImpl.create(sizeW1, sizeW2, hint);
-	}
-
-
 }

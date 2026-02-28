@@ -1,0 +1,88 @@
+Please make the ANOVA analysis for the attached CSV file in which groups (independent variables) are "vec" and "feature" whereas treatments (dependent variables) are "accuracy" and "f1".
+
+Gemini said
+I have performed the Two-Way ANOVA analysis for your dataset cifar10-lr0.1-max-anova.csv focusing on the independent variables vec and feature against the dependent variables accuracy and f1.
+
+1. ANOVA Results for Accuracy
+This analysis tests how "vec" (TRUE/FALSE) and "feature" (conv, trans, weight) affect the model's accuracy.
+
+Source	Sum of Squares	df	F-statistic	p-value
+vec	6.31e-07	1	0.0121	0.9125
+feature	0.00677	2	65.0845	< 0.0001*
+vec : feature	6.87e-05	2	0.6604	0.5186
+Residual	0.00593	114	—	—
+Interpretation: The choice of feature is highly significant. However, vec and the interaction between vec and feature do not have a statistically significant effect on accuracy.
+
+2. ANOVA Results for F1 Score
+This analysis tests the impact on the F1 score.
+
+Source	Sum of Squares	df	F-statistic	p-value
+vec	0.00074	1	1.7781	0.1850
+feature	0.09846	2	118.3605	< 0.0001*
+vec : feature	0.00139	2	1.6758	0.1917
+Residual	0.04741	114	—	—
+Interpretation: Similar to accuracy, the feature is the only significant factor influencing the F1 score. The vec setting and its interaction with the feature type are not significant.
+
+3. Summary of Means
+To understand the direction of these differences, here are the mean scores for each combination:
+
+vec	feature	Accuracy (Mean)	F1 Score (Mean)
+False	conv	0.0991	0.0845
+False	trans	0.0834	0.1508
+False	weight	0.0816	0.1530
+True	conv	0.0980	0.0983
+True	trans	0.0857	0.1547
+True	weight	0.0809	0.1502
+Research Insight
+Feature Impact: The conv feature leads to the highest accuracy (~0.098-0.099) but the lowest F1 scores (~0.084-0.098). Conversely, trans and weight result in slightly lower accuracy but much higher and more balanced F1 scores (~0.15).
+
+Vectorization (vec): The data suggests that switching vec from False to True does not significantly change the outcome for either metric.
+
+Would you like me to generate a visualization of these differences or perform a Post-Hoc comparison for the "feature" groups?
+
+You said
+Yes, please generate a visualization of these differences.
+
+Gemini said
+https://lh3.googleusercontent.com/gg-dl/AOI_d_8Ioatlw-X4uTVT9OqlOBxd8XigVhLkSwEOmxdXbShx9wSaKVcyPaJJ2ASkUUBLekZPnCHp-728Vzxie94HbuWONuC4wloRi2Yj63NY8Mc5IGqfZPWR-edh21HCaXWfHjqAxp1bOD4PwVNf-TSa8xgN8ceCt2svHkoE2bwvmv0XEqRjgQ=s1600
+
+I have generated a visualization to help compare the performance across your different experimental groups.
+
+The bar charts below illustrate the mean values for Accuracy and F1 Score, categorized by Feature type and Vectorization (vec) setting. The "whisker" lines (error bars) represent the 95% confidence interval, showing the variability within each group.
+
+Interpretation of the Visuals
+1. Accuracy (Left Chart)
+Feature Performance: You can clearly see that the conv bars are taller than the others. This confirms the ANOVA result: conv is the superior feature for maximizing raw accuracy.
+
+Vectorization (vec): The "True" (blue/orange) and "False" bars within each feature group are almost identical in height, visually demonstrating why the vec factor was not statistically significant.
+
+2. F1 Score (Right Chart)
+Feature Performance: The trend reverses here. The trans and weight bars are significantly taller than the conv bar. This highlights a trade-off in your model: while conv is more accurate at picking a specific label, trans and weight provide a much better balance between precision and recall.
+
+Consistency: The error bars for trans and weight are relatively small and similar, while conv shows slightly more variability (especially in the "True" group), indicating that the conv results might be less stable for this metric.
+
+Summary for your Report
+The visualization makes it clear that the Feature type is the primary driver of performance. If your research objective is a balanced model, the trans or weight features are the optimal choice regardless of the vec setting. If your objective is strictly peak accuracy, conv is the way to go.
+
+You said
+Please perform a Post-Hoc comparison for the "feature" group.
+
+Gemini said
+I have performed the Post-Hoc Tukey HSD (Honestly Significant Difference) test for the feature groups on both the Accuracy and F1 Score outcomes. This test identifies exactly which pairs of features are significantly different from each other.
+
+1. Post-Hoc Comparison for Accuracy
+Group 1	Group 2	Mean Diff	p-adj	Result
+conv	trans	-0.0140	< 0.001*	Significant (conv > trans)
+conv	weight	-0.0173	< 0.001*	Significant (conv > weight)
+trans	weight	-0.0034	0.0932	No Significant Difference
+Insight: The conv feature is significantly more accurate than both trans and weight. There is no statistically significant difference in accuracy between the trans and weight initializations.
+
+2. Post-Hoc Comparison for F1 Score
+Group 1	Group 2	Mean Diff	p-adj	Result
+conv	trans	+0.0613	< 0.001*	Significant (trans > conv)
+conv	weight	+0.0602	< 0.001*	Significant (weight > conv)
+trans	weight	-0.0011	0.9687	No Significant Difference
+Insight: For the F1 score, the trend is reversed. Both trans and weight features achieve significantly higher F1 scores compared to conv. Again, there is no significant difference between the trans and weight groups themselves.
+
+Final Conclusion
+The post-hoc analysis confirms that conv stands alone as a distinct group in terms of performance: it optimizes for raw accuracy but performs significantly worse on the balanced F1 metric. Meanwhile, trans and weight are statistically interchangeable—they both provide a significant boost to the F1 score at the cost of a small, but significant, decrease in accuracy compared to the convolutional approach.

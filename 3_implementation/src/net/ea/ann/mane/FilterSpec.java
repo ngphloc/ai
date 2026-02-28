@@ -11,8 +11,10 @@ import java.awt.Dimension;
 import java.io.Serializable;
 
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.mane.filter.KernelFilterMax;
 import net.ea.ann.mane.filter.KernelFilterProduct;
+import net.ea.ann.mane.filter.NiNFilter;
 import net.ea.ann.mane.filter.PoolFilterAverage;
 import net.ea.ann.mane.filter.PoolFilterMax;
 import net.ea.ann.raster.Size;
@@ -56,6 +58,10 @@ public class FilterSpec implements Cloneable, Serializable {
 		 */
 		pool,
 
+		/**
+		 * Network-based filter.
+		 */
+		network,
 	}
 	
 	
@@ -101,6 +107,22 @@ public class FilterSpec implements Cloneable, Serializable {
 	
 	
 	/**
+	 * This enum represents pooling filter type.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 *
+	 */
+	public static enum NetworkType {
+		
+		/**
+		 * NiN filter type.
+		 */
+		nin,
+		
+	}
+
+	
+	/**
 	 * Filter type.
 	 */
 	public Type type = Type.kernel;
@@ -117,6 +139,12 @@ public class FilterSpec implements Cloneable, Serializable {
 	 */
 	public PoolType poolType = PoolType.max;
 	
+	
+	/**
+	 * Network-based type.
+	 */
+	public NetworkType networkType = NetworkType.nin;
+
 	
 	/**
 	 * Size of filter.
@@ -214,18 +242,14 @@ public class FilterSpec implements Cloneable, Serializable {
 	 * Getting rows.
 	 * @return rows.
 	 */
-	public int rows() {
-		return height();
-	}
+	public int rows() {return height();}
 	
 	
 	/**
 	 * Getting columns.
 	 * @return columns.
 	 */
-	public int columns() {
-		return width();
-	}
+	public int columns() {return width();}
 
 
 	/**
@@ -251,6 +275,9 @@ public class FilterSpec implements Cloneable, Serializable {
 			break;
 		case 1:
 			type = Type.pool;
+			break;
+		case 2:
+			type = Type.network;
 			break;
 		default:
 			type = Type.kernel;
@@ -355,15 +382,57 @@ public class FilterSpec implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Converting network type to integer number.
+	 * @param networkType network type.
+	 * @return integer number.
+	 */
+	public static int networkTypeToInt(NetworkType networkType) {
+		return networkType.ordinal();
+	}
+	
+
+	/**
+	 * Converting integer number to network type.
+	 * @param networkTypeOrdinal integer number.
+	 * @return type.
+	 */
+	public static NetworkType intToNetworkType(int networkTypeOrdinal) {
+		NetworkType networkType = NetworkType.nin;
+		switch (networkTypeOrdinal) {
+		case 0:
+			networkType = NetworkType.nin;
+			break;
+		default:
+			networkType = NetworkType.nin;
+			break;
+		}
+		return networkType;
+	}
+	
+	
+	/**
+	 * Converting string to network type.
+	 * @param networkTypeText string.
+	 * @return network type.
+	 */
+	public static NetworkType stringToNetworkType(String networkTypeText) {
+		return NetworkType.valueOf(networkTypeText);
+	}
+	
+	
+	/**
 	 * Creating default filter.
 	 * @param filterSize filter size.
-	 * @param hint matrix hint.
+	 * @param hint value hint.
+	 * @param layerSpec layer specification.
+	 * @param neuronChannel neuron channel.
 	 * @return default filter.
 	 */
-	public static Filter newFilter(Size filterSize, FilterSpec filterSpec, NeuronValue hint) {
+	public static Filter newFilter(Size filterSize, NeuronValue hint, LayerSpec layerSpec, int neuronChannel) {
 		if (filterSize == null || filterSize.width <= 0 || filterSize.height <= 0) return null;
 		double factor = 1.0 / (filterSize.width*filterSize.height);
 		Filter filter = null;
+		FilterSpec filterSpec = layerSpec != null ? layerSpec.filterSpec : new FilterSpec(filterSize);
 		switch (filterSpec.type) {
 			case kernel:
 				switch (filterSpec.kernelType) {
@@ -389,6 +458,16 @@ public class FilterSpec implements Cloneable, Serializable {
 					break;
 				default:
 					filter = PoolFilterMax.create(adjustedSize);
+					break;
+				}
+				break;
+			case network:
+				switch (filterSpec.networkType) {
+				case nin:
+					filter = NiNFilter.create(layerSpec.prevSize, filterSize, neuronChannel);
+					break;
+				default:
+					filter = NiNFilter.create(layerSpec.prevSize, filterSize, neuronChannel);
 					break;
 				}
 				break;

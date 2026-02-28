@@ -86,6 +86,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			size = new MatrixNetworkAssoc(vgg.nut).sizeOfParams();
 			if (vgg.adjuster != null) size += new MatrixNetworkAssoc(vgg.adjuster).sizeOfParams();
 		}
+		else if (classifier instanceof NiN) {
+			NiN nin = (NiN)classifier;
+			size = new MatrixNetworkAssoc(nin.nut).sizeOfParams();
+			if (nin.adjuster != null) size += new MatrixNetworkAssoc(nin.adjuster).sizeOfParams();
+		}
 		else if (classifier instanceof MatrixClassifier) {
 			MatrixClassifier mac = (MatrixClassifier)classifier;
 			size = new MatrixNetworkAssoc(mac.nut).sizeOfParams();
@@ -117,6 +122,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			VGG vgg = (VGG)classifier;
 			depth = vgg.nut.size() - 1;
 			if (vgg.adjuster != null) depth += vgg.adjuster.size() - 1;
+		}
+		else if (classifier instanceof NiN) {
+			NiN nin = (NiN)classifier;
+			depth = nin.nut.size() - 1;
+			if (nin.adjuster != null) depth += nin.adjuster.size() - 1;
 		}
 		else if (classifier instanceof MatrixClassifier) {
 			MatrixClassifier mac = (MatrixClassifier)classifier;
@@ -151,7 +161,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		/**
 		 * Classifier model.
 		 */
-		public ClassifierModel model = ClassifierModel.mac;
+		public ClassifierModel model = ClassifierModel.vgg;
 		
 		/**
 		 * Learning rate.

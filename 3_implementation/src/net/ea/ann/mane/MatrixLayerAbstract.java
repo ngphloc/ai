@@ -288,7 +288,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @return filter.
 	 */
 	protected Filter newFilter(Size filterSize, LayerSpec layerSpec) {
-		return FilterSpec.newFilter(filterSize, layerSpec.filterSpec, newNeuronValue());
+		return FilterSpec.newFilter(filterSize, newNeuronValue(), layerSpec, this.neuronChannel);
 	}
 	
 	
