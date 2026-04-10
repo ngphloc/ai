@@ -575,6 +575,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	}
 
 	
+	/*
+	 * Please pay attention that filter is before weight in the same layer.
+	 */
 	@Override
 	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		if (outputErrors == null || outputErrors.length == 0) return null;
@@ -586,7 +589,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		NeuronValue[] dFBiases = new NeuronValue[outputErrors.length];
 		Kernel[] dFKernels = new Kernel[outputErrors.length];
 
-		//Browsing errors.
+		//Browsing errors. Please pay attention that filter is before weight in the same layer.
 		for (int i = 0; i < outputErrors.length; i++) {
 			//Calculating value errors from next layer.
 			if (this.nextLayer == null) {
@@ -595,6 +598,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			else if (this.nextLayer.getFilter() == null && this.nextLayer.getWeight().backwardErrorMode()) {
 				Matrix input = queryInput(), output = queryOutput(); //X^k-1 = input, Xk = output.
 				Function thisActivateRef = input == getInput() ? this.activateRef : (input == getPrevInput() && this.filter.doesApplyActivate() ? this.convActivateRef : null ); //Getting right-most activation function.
+				
+				//Working-around solution for pooling-max filters.
+				if (this.weight == null && this.filter != null && this.filter.isIndexMode()) thisActivateRef = null;
+				
 				errors[i] = this.nextLayer.getWeight().dValue(input, output, outputErrors[i].error(), thisActivateRef);
 			}
 			else {

@@ -49,6 +49,10 @@ public class PoolFilterMax extends PoolFilter {
 	int depth() {return depth;}
 
 
+	@Override
+	public boolean isIndexMode() {return true;}
+
+
 	/**
 	 * Applying this filter to specific layer. Please attention to this important method.
 	 * @param y y coordinator.

@@ -17,6 +17,8 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
 
@@ -65,6 +67,77 @@ abstract class FilterNetwork extends MatrixNetworkImpl implements NetworkFilter 
 
 	
 	/**
+	 * This class implements layer in filter network.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 *
+	 */
+	class FilterLayer extends MatrixLayerImpl {
+		
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
+		 * @param neuronChannel neuron channel.
+		 * @param activateRef activation function.
+		 * @param convActivateRef convolutional activation function.
+		 * @param idRef identifier reference.
+		 */
+		public FilterLayer(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+			super(neuronChannel, activateRef, convActivateRef, idRef);
+		}
+		
+		/**
+		 * Constructor with neuron channel, activation function, and convolutional activation function.
+		 * @param neuronChannel neuron channel.
+		 * @param activateRef activation function.
+		 * @param convActivateRef convolutional activation function.
+		 */
+		public FilterLayer(int neuronChannel, Function activateRef, Function convActivateRef) {
+			this(neuronChannel, activateRef, convActivateRef, null);
+		}
+
+		/**
+		 * Constructor with neuron channel and activation function.
+		 * @param neuronChannel neuron channel.
+		 * @param activateRef activation function.
+		 */
+		public FilterLayer(int neuronChannel, Function activateRef) {
+			this(neuronChannel, activateRef, null, null);
+		}
+
+		/**
+		 * Constructor with neuron channel.
+		 * @param neuronChannel neuron channel.
+		 */
+		public FilterLayer(int neuronChannel) {
+			this(neuronChannel, null, null, null);
+		}
+
+		@Override
+		protected void setInput(Matrix input) {super.setInput(input);}
+
+		@Override
+		protected Matrix queryOutput() {return super.queryOutput();}
+
+		@Override
+		protected void setOutput(Matrix output) {super.setOutput(output);}
+		
+	}
+	
+	
+	@Override
+	protected MatrixLayerAbstract newLayer() {
+		FilterLayer layer = new FilterLayer(neuronChannel, activateRef, convActivateRef, idRef);
+		layer.setNetwork(this);
+		return layer;
+	}
+
+
+	/**
 	 * Constructor with neuron channel and activation function.
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
@@ -95,6 +168,24 @@ abstract class FilterNetwork extends MatrixNetworkImpl implements NetworkFilter 
 	public Filter accumKernel(Kernel dKernel, double factor) {return this;}
 
 
+	@Override
+	public Matrix evaluate0(Matrix input, Object...params) {
+//		return super.evaluate0(input, params);
+		FilterLayer inputLayer = (FilterLayer)getInputLayer();
+		if (input != null) MatrixUtil.copy(input, inputLayer.getInput());
+		if (inputLayer.getOutput() != inputLayer.getInput()) inputLayer.setOutput(inputLayer.getInput());
+		
+		for (int i = 1; i < layers.length; i++) layers[i].evaluate();
+		Matrix output = ((FilterLayer)getOutputLayer()).queryOutput();
+		
+		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
+			((Error)params[0]).addLayerOInput(this);
+		}
+		
+		return output;
+	}
+
+	
 	@Override
 	public void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
 		Matrix output = evaluate0(prevLayer, new Object[] {});

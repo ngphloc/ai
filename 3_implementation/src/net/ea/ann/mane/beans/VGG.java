@@ -14,6 +14,7 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.FilterSpec;
+import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.FilterSpec.NetworkType;
 import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.FilterSpec.Type;
@@ -163,6 +164,18 @@ public class VGG extends MatrixNetworkImpl {
 
 	
 	/**
+	 * Field for kernel type.
+	 */
+	public final static String KERNEL_TYPE_FIELD = "mane_kernel_type";
+	
+	
+	/**
+	 * Default value for kernel type.
+	 */
+	public final static KernelType KERNEL_TYPE_DEFAULT = KernelType.product;
+
+	
+	/**
 	 * Field for pool type.
 	 */
 	public final static String POOL_TYPE_FIELD = "mane_pool_type";
@@ -183,7 +196,7 @@ public class VGG extends MatrixNetworkImpl {
 	/**
 	 * Default value for network type.
 	 */
-	public final static NetworkType NETWORK_TYPE_DEFAULT = NetworkType.nin;
+	public final static NetworkType NETWORK_TYPE_DEFAULT = NetworkType.basic;
 
 	
 	/**
@@ -216,7 +229,9 @@ public class VGG extends MatrixNetworkImpl {
 		config.put(FFN_LENGTH_FIELD, FFN_LENGTH_DEFAULT);
 		config.put(FFN_FLATTEN_FIELD, FFN_FLATTEN_DEFAULT);
 		config.put(COWEIGHT_FIELD, COWEIGHT_DEFAULT);
+		config.put(KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(KERNEL_TYPE_DEFAULT));
 		config.put(POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(POOL_TYPE_DEFAULT));
+		config.put(NETWORK_TYPE_FIELD, FilterSpec.networkTypeToInt(NETWORK_TYPE_DEFAULT));
 		config.put(WEIGHT_TYPE_FIELD, WeightSpec.typeToInt(WEIGHT_TYPE_DEFAULT));
 	}
 	
@@ -331,6 +346,7 @@ public class VGG extends MatrixNetworkImpl {
 				layerSpec.weightSpec = new WeightSpec(paramGetWeightType());
 				if (paramIsConv()) {
 					layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, Type.kernel);
+					layerSpec.filterSpec.kernelType = paramGetKernelType();
 					layerSpec.filterSpec.coweight = paramIsCoweight();
 					layerSpec.filterSpec.moveStride = false;
 				}
@@ -625,6 +641,29 @@ public class VGG extends MatrixNetworkImpl {
 	}
 
 
+	/**
+	 * Checking kernel filter type.
+	 * @return kernel filter type.
+	 */
+	KernelType paramGetKernelType() {
+		if (config.containsKey(KERNEL_TYPE_FIELD))
+			return FilterSpec.intToKernelType(config.getAsInt(KERNEL_TYPE_FIELD));
+		else
+			return KERNEL_TYPE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting kernel filter type.
+	 * @param kernelType kernel filter type.
+	 * @return this classifier.
+	 */
+	VGG paramSetKernelType(KernelType kernelType) {
+		config.put(KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(kernelType));
+		return this;
+	}
+
+	
 	/**
 	 * Checking pooling filter type.
 	 * @return pooling filter type.

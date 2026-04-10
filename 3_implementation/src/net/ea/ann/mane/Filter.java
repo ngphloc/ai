@@ -98,6 +98,13 @@ public interface Filter extends Serializable, Cloneable {
 	
 	
 	/**
+	 * Getting index mode. If index mode is true, the filter is index filter like max-pooling filter.
+	 * @return index mode.
+	 */
+	default boolean isIndexMode() {return false;}
+	
+	
+	/**
 	 * Initializing parameters by specified value.
 	 * @param v value.
 	 */

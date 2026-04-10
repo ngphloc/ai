@@ -12,7 +12,6 @@ import java.util.List;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
-import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.FilterSpec.Type;
@@ -21,12 +20,12 @@ import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.raster.Size;
 
 /**
- * This class implements network-in-network (NiN) filter developed by Min Lin, Qiang Chen, Shuicheng Yan.
- * @author Min Lin, Qiang Chen, Shuicheng Yan, implemented by Loc Nguyen
+ * This class implements default filter network.
+ * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class NiNFilter extends FilterNetwork {
+public class FilterNetworkImpl extends FilterNetwork {
 
 
 	/**
@@ -42,7 +41,7 @@ public class NiNFilter extends FilterNetwork {
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
 	 */
-	public NiNFilter(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+	public FilterNetworkImpl(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 	}
 
@@ -53,7 +52,7 @@ public class NiNFilter extends FilterNetwork {
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 */
-	public NiNFilter(int neuronChannel, Function activateRef, Function convActivateRef) {
+	public FilterNetworkImpl(int neuronChannel, Function activateRef, Function convActivateRef) {
 		this(neuronChannel, activateRef, convActivateRef, null);
 	}
 
@@ -63,7 +62,7 @@ public class NiNFilter extends FilterNetwork {
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public NiNFilter(int neuronChannel, Function activateRef) {
+	public FilterNetworkImpl(int neuronChannel, Function activateRef) {
 		this(neuronChannel, activateRef, null, null);
 	}
 
@@ -72,7 +71,7 @@ public class NiNFilter extends FilterNetwork {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public NiNFilter(int neuronChannel) {
+	public FilterNetworkImpl(int neuronChannel) {
 		this(neuronChannel, null, null, null);
 	}
 
@@ -87,9 +86,7 @@ public class NiNFilter extends FilterNetwork {
 	public boolean initialize(Size inputSize, Size kernelSize, int length) {
 		if (inputSize == null) return false;
 		
-		int rasterChannel = paramGetRasterChannel();
-		boolean flatten = MatrixUtil.isFlatten(inputSize.depth, this.neuronChannel, rasterChannel); //inputSize.depth is actually raster depth.
-		LayerSpec layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height, flatten?rasterChannel:1));
+		LayerSpec layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height, kernelSize.depth));
 		List<LayerSpec> layerSpecs = Util.newList(0);
 		layerSpecs.add(layerSpec0);
 		for (int i = 0; i < length; i++) {
@@ -111,9 +108,9 @@ public class NiNFilter extends FilterNetwork {
 	 * @param neuronChannel neuronChannel.
 	 * @return NiN (network-in-network) filter.
 	 */
-	public static NiNFilter create(Size inputSize, Size kernelSize, int neuronChannel) {
+	public static FilterNetworkImpl create(Size inputSize, Size kernelSize, int neuronChannel) {
 		int length = kernelSize.time < 1 ? 1 : kernelSize.time;
-		NiNFilter filter = new NiNFilter(neuronChannel);
+		FilterNetworkImpl filter = new FilterNetworkImpl(neuronChannel);
 		if (!filter.initialize(inputSize, kernelSize, length)) return null;
 		return filter;
 	}

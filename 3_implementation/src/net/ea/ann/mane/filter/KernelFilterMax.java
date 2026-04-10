@@ -42,6 +42,10 @@ public class KernelFilterMax extends KernelFilterProduct {
 	}
 
 
+	@Override
+	public boolean isIndexMode() {return true;}
+
+	
 	/**
 	 * Creating pair of index and value.
 	 * @param index index.
@@ -177,9 +181,12 @@ public class KernelFilterMax extends KernelFilterProduct {
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		MatrixStack[] kernel = this.kernel.W;
 		NeuronValue zero = thisError.zero();
+		//
+		NeuronValueVector prevOutputV = (NeuronValueVector)prevOutputLayer.get(thisY, thisX);
+		int maxIndex = index(prevOutputV);
+		NeuronValue derivative = thisActivateRef != null ? thisActivateRef.derivative(value(prevOutputV)) : null;
 		for (int i = 0; i < kernelDepth; i++) {
-			dValues[i] = prevOutputLayer/*prevInputLayers.get()*/.create(new Size(kernelWidth, kernelHeight));
-			int maxIndex = index((NeuronValueVector)prevInputLayers.get(i).get(thisY, thisX));
+			dValues[i] = prevInputLayers.get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
 					if (maxIndex != i) {
@@ -188,10 +195,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 					}
 					NeuronValue kernelValue = kernel[time].get(i).get(j, k);
 					NeuronValue prevError = kernelValue.multiply(thisError);
-					if (thisActivateRef != null) {
-						NeuronValue prevOutput = prevOutputLayer.get(thisY, thisX);
-						prevError = prevError.multiply(thisActivateRef.derivative(prevOutput));
-					}
+					if (derivative != null) prevError = prevError.multiply(derivative);
 					dValues[i].set(j, k, prevError.multiply(this.weight));
 				}
 			}
@@ -232,22 +236,21 @@ public class KernelFilterMax extends KernelFilterProduct {
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		MatrixStack[] kernel = this.kernel.W;
 		NeuronValue zero = thisError.zero();
+		//
+		NeuronValueVector prevOutputV = (NeuronValueVector)prevOutputLayer.get(thisY, thisX);
+		int maxIndex = index(prevOutputV);
+		NeuronValue derivative = thisActivateRef != null ? thisActivateRef.derivative(value(prevOutputV)) : null;
 		for (int i = 0; i < kernelDepth; i++) {
 			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValueVector prevInputV = (NeuronValueVector)prevInputLayers.get(i).get(thisY+j, thisX+k);
-					int maxIndex = index(prevInputV);
 					if (maxIndex != i) {
 						dKernels[i].set(j, k, zero);
 						continue;
 					}
-					NeuronValue prevInput = value(prevInputV);
+					NeuronValue prevInput = prevInputLayers.get(i).get(thisY+j, thisX+k);
 					NeuronValue dKernel = prevInput.multiply(thisError);
-					if (thisActivateRef != null) {
-						NeuronValue prevOutput = prevOutputLayer.get(thisY, thisX);
-						dKernel = dKernel.multiply(thisActivateRef.derivative(prevOutput));
-					}
+					if (derivative != null) dKernel = dKernel.multiply(derivative);
 					dKernels[i].set(j, k, dKernel.multiply(this.weight));
 				}
 			}

@@ -12,9 +12,9 @@ import java.io.Serializable;
 
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
+import net.ea.ann.mane.filter.FilterNetworkImpl;
 import net.ea.ann.mane.filter.KernelFilterMax;
 import net.ea.ann.mane.filter.KernelFilterProduct;
-import net.ea.ann.mane.filter.NiNFilter;
 import net.ea.ann.mane.filter.PoolFilterAverage;
 import net.ea.ann.mane.filter.PoolFilterMax;
 import net.ea.ann.raster.Size;
@@ -115,9 +115,9 @@ public class FilterSpec implements Cloneable, Serializable {
 	public static enum NetworkType {
 		
 		/**
-		 * NiN filter type.
+		 * Basic type.
 		 */
-		nin,
+		basic,
 		
 	}
 
@@ -143,7 +143,7 @@ public class FilterSpec implements Cloneable, Serializable {
 	/**
 	 * Network-based type.
 	 */
-	public NetworkType networkType = NetworkType.nin;
+	public NetworkType networkType = NetworkType.basic;
 
 	
 	/**
@@ -397,13 +397,13 @@ public class FilterSpec implements Cloneable, Serializable {
 	 * @return type.
 	 */
 	public static NetworkType intToNetworkType(int networkTypeOrdinal) {
-		NetworkType networkType = NetworkType.nin;
+		NetworkType networkType = NetworkType.basic;
 		switch (networkTypeOrdinal) {
 		case 0:
-			networkType = NetworkType.nin;
+			networkType = NetworkType.basic;
 			break;
 		default:
-			networkType = NetworkType.nin;
+			networkType = NetworkType.basic;
 			break;
 		}
 		return networkType;
@@ -463,11 +463,11 @@ public class FilterSpec implements Cloneable, Serializable {
 				break;
 			case network:
 				switch (filterSpec.networkType) {
-				case nin:
-					filter = NiNFilter.create(layerSpec.prevSize, filterSize, neuronChannel);
+				case basic:
+					filter = FilterNetworkImpl.create(layerSpec.prevSize, filterSize, neuronChannel);
 					break;
 				default:
-					filter = NiNFilter.create(layerSpec.prevSize, filterSize, neuronChannel);
+					filter = FilterNetworkImpl.create(layerSpec.prevSize, filterSize, neuronChannel);
 					break;
 				}
 				break;
