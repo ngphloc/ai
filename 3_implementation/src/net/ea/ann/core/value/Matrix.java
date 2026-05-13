@@ -68,7 +68,8 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param row row.
 	 * @return vector.
 	 */
-	public static NeuronValue[] getRowVector(Matrix matrix, int row) {
+	@Deprecated
+	static NeuronValue[] getRowVector(Matrix matrix, int row) {
 		int n = matrix.columns();
 		NeuronValue[] newdata = new NeuronValue[n];
 		for (int j = 0; j < n; j++) newdata[j] = matrix.get(row, j);

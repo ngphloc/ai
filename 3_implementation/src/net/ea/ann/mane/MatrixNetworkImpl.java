@@ -527,8 +527,8 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	public Matrix evaluate0(Matrix input, Object...params) {
 //		if (!paramIsHistoryMode()) history.clear();
 		
+		enterInputs(input);
 		MatrixLayerAbstract inputLayer = getInputLayer();
-		if (input != null) MatrixUtil.copy(input, inputLayer.getInput());
 		if (inputLayer.getOutput() != inputLayer.getInput()) inputLayer.setOutput(inputLayer.getInput());
 		
 		for (int i = 1; i < layers.length; i++) layers[i].evaluate();

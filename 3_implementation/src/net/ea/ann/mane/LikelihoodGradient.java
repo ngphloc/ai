@@ -54,7 +54,7 @@ public interface LikelihoodGradient {
 	 */
 	static Matrix lossEntropyGradientByRow(Matrix output, Matrix realOutputProb, Object...params) {
 		//Normalizing real probabilities.
-		for (int row = 0; row < realOutputProb.rows(); row++) {
+		for (int row = 0; realOutputProb != null && row < realOutputProb.rows(); row++) {
 			NeuronValue sum = realOutputProb.get(0, 0).zero();
 			for (int column = 0; column < realOutputProb.columns(); column++) {
 				sum = sum.add(realOutputProb.get(row, column));
@@ -72,7 +72,7 @@ public interface LikelihoodGradient {
 		Matrix sampleWeight = null;
 		if (params != null && params.length > 0 && params[0] != null && (params[0] instanceof Matrix)) {
 			sampleWeight = (Matrix)params[0];
-			if (sampleWeight.rows() != realOutputProb.rows() || sampleWeight.columns() != realOutputProb.columns())
+			if (realOutputProb == null || sampleWeight.rows() != realOutputProb.rows() || sampleWeight.columns() != realOutputProb.columns())
 				sampleWeight = null;
 		}
 		
@@ -87,7 +87,7 @@ public interface LikelihoodGradient {
 				NeuronValue sum = zero;
 				NeuronValue p = softmax.get(row, column);
 				for (int i = 0; i < columns; i++) {
-					NeuronValue realp = realOutputProb.get(row, i);
+					NeuronValue realp = realOutputProb != null ? realOutputProb.get(row, i) : unit;
 					NeuronValue value = i==column ? realp.multiply(unit.subtract(p)) : realp.multiply(p.negative());
 					//Optional coding line for class balancing by weighted sample.
 					if (sampleWeight != null) value = value.multiply(sampleWeight.get(row, column));
@@ -104,13 +104,21 @@ public interface LikelihoodGradient {
 	/**
 	 * Calculating gradient of loss entropy by column.
 	 * @param output computed or predicted output.
+	 * @return the last bias.
+	 */
+	static Matrix lossEntropyGradientByRow(Matrix output) {return lossEntropyGradientByRow(output, null);}
+	
+	
+	/**
+	 * Calculating gradient of loss entropy by column.
+	 * @param output computed or predicted output.
 	 * @param realOutputProb real probabilistic distribution from environment.
 	 * @param params additional parameters.
 	 * @return the last bias.
 	 */
 	static Matrix lossEntropyGradientByColumn(Matrix output, Matrix realOutputProb, Object...params) {
 		//Normalizing real probabilities.
-		for (int column = 0; column < realOutputProb.columns(); column++) {
+		for (int column = 0; realOutputProb != null && column < realOutputProb.columns(); column++) {
 			NeuronValue sum = realOutputProb.get(0, 0).zero();
 			for (int row = 0; row < realOutputProb.rows(); row++) {
 				sum = sum.add(realOutputProb.get(row, column));
@@ -127,7 +135,7 @@ public interface LikelihoodGradient {
 		Matrix sampleWeight = null;
 		if (params != null && params.length > 0 && params[0] != null && (params[0] instanceof Matrix)) {
 			sampleWeight = (Matrix)params[0];
-			if (sampleWeight.rows() != realOutputProb.rows() || sampleWeight.columns() != realOutputProb.columns())
+			if (realOutputProb == null || sampleWeight.rows() != realOutputProb.rows() || sampleWeight.columns() != realOutputProb.columns())
 				sampleWeight = null;
 		}
 
@@ -142,7 +150,7 @@ public interface LikelihoodGradient {
 				NeuronValue sum = zero;
 				NeuronValue p = softmax.get(row, column);
 				for (int i = 0; i < rows; i++) {
-					NeuronValue realp = realOutputProb.get(i, column);
+					NeuronValue realp = realOutputProb != null ? realOutputProb.get(i, column) : unit;
 					NeuronValue value = i==row ? realp.multiply(unit.subtract(p)) : realp.multiply(p.negative());
 					//Optional coding line for class balancing by weighted sample.
 					if (sampleWeight != null) value = value.multiply(sampleWeight.get(row, column));
@@ -154,6 +162,14 @@ public interface LikelihoodGradient {
 		
 		return grad;
 	}
+	
+	
+	/**
+	 * Calculating gradient of loss entropy by column.
+	 * @param output computed or predicted output.
+	 * @return the last bias.
+	 */
+	static Matrix lossEntropyGradientByColumn(Matrix output) {return lossEntropyGradientByColumn(output, null);}
 	
 	
 }

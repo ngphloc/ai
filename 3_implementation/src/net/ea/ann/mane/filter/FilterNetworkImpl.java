@@ -7,6 +7,7 @@
  */
 package net.ea.ann.mane.filter;
 
+import java.awt.Dimension;
 import java.util.List;
 
 import net.ea.ann.core.Id;
@@ -80,7 +81,7 @@ public class FilterNetworkImpl extends FilterNetwork {
 	 * Initializing NiN filter.
 	 * @param inputSize input size.
 	 * @param kernelSize kernel size.
-	 * @param length length of filter layers.
+	 * @param length length (number) of filter layers.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(Size inputSize, Size kernelSize, int length) {
@@ -113,6 +114,23 @@ public class FilterNetworkImpl extends FilterNetwork {
 		FilterNetworkImpl filter = new FilterNetworkImpl(neuronChannel);
 		if (!filter.initialize(inputSize, kernelSize, length)) return null;
 		return filter;
+	}
+	
+	
+	/**
+	 * Creating NiN (network-in-network) filter.
+	 * @param inputSize input size.
+	 * @param kernelSize kernel size.
+	 * @param kernelDepth kernel depth.
+	 * @param length length (number) of filter layers.
+	 * @param neuronChannel neuronChannel.
+	 * @return NiN (network-in-network) filter.
+	 */
+	public static FilterNetworkImpl create(Dimension inputSize, Dimension kernelSize, int kernelDepth, int length, int neuronChannel) {
+		return create(
+			new Size(inputSize.width, inputSize.height, kernelDepth),
+			new Size(kernelSize.width, kernelSize.height, kernelDepth, length), 
+			neuronChannel);
 	}
 	
 	

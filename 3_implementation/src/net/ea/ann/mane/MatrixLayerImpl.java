@@ -639,7 +639,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 					Function thisActivateRef = this.filter.doesApplyActivate() ? this.convActivateRef : null;
 					errors[i] = this.weight.dValue(prevInput, prevOutput, errors[i], thisActivateRef);
 				}
-				dFBiases[i] = Filter.CALC_ERROR_MEAN ? MatrixUtil.valueMean1(errors[i]) : MatrixUtil.valueSum1(errors[i]); //Filter errors.
+				dFBiases[i] = Filter.CALC_ERROR_MEAN ? MatrixUtil.valueMean(errors[i]) : MatrixUtil.valueSum(errors[i]); //Filter errors.
 				dFKernels[i] = dFilterKernel(errors[i]);
 				outputErrors[i].errorSet(dFilterValue(errors[i], learning, learningRate)); //Please pay attention to this code line to back-warding value errors.
 			}

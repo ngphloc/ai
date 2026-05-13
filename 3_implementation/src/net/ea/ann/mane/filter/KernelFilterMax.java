@@ -7,6 +7,8 @@
  */
 package net.ea.ann.mane.filter;
 
+import java.awt.Dimension;
+
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
@@ -268,6 +270,31 @@ public class KernelFilterMax extends KernelFilterProduct {
 	 */
 	public static KernelFilterMax create(double kernelValue, Size size, NeuronValue hint) {
 		return new KernelFilterMax(createKernel(kernelValue, size, hint), hint.unit());
+	}
+
+
+	/**
+	 * Creating product filter with kernel value.
+	 * @param kernelValue kernel value.
+	 * @param size size of kernel.
+	 * @param depth depth of kernel.
+	 * @param hint hint value.
+	 * @return product filter created from kernel value.
+	 */
+	public static KernelFilterMax create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
+		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint);
+	}
+
+	
+	/**
+	 * Creating product filter with kernel value.
+	 * @param kernelValue kernel value.
+	 * @param size size of kernel.
+	 * @param hint hint value.
+	 * @return product filter created from kernel value.
+	 */
+	public static KernelFilterMax create(double kernelValue, Dimension size, NeuronValue hint) {
+		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint);
 	}
 
 

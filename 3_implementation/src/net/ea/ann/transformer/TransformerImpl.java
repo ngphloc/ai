@@ -56,6 +56,7 @@ public class TransformerImpl extends TransformerAbstract {
 	
 	/**
 	 * Default value for containing QK Y input data (QK-Y mode).
+	 * In other words, in QK-Y mode (true), attention 0 of decoder will have particular input Y, instead of being dependent on encoder output as input.
 	 */
 	public final static boolean YQK_DEFAULT = false;
 
@@ -68,6 +69,7 @@ public class TransformerImpl extends TransformerAbstract {
 	public TransformerImpl(int neuronChannel, Id idRef) {
 		super(neuronChannel, idRef);
 		config.put(YQK_FIELD, YQK_DEFAULT);
+		config.put(MatrixNetworkAbstract.POS_ENCODE_FIELD, MatrixNetworkAbstract.POS_ENCODE_DEFAULT);
 	}
 
 	
@@ -127,15 +129,6 @@ public class TransformerImpl extends TransformerAbstract {
 	}
 
 
-//	/*
-//	 * This method will be corrected by updating parameters later by just only removing it.
-//	 */
-//	@Override
-//	protected Error[][] backward(Error[] errors, boolean learning, double learningRate) {
-//		return super.backward(errors, true, learningRate);
-//	}
-
-	
 	/**
 	 * Checking QK-Y mode.
 	 * @return QK-Y mode.
@@ -155,6 +148,29 @@ public class TransformerImpl extends TransformerAbstract {
 	 */
 	TransformerImpl paramSetQKY(boolean Yqk) {
 		config.put(YQK_FIELD, Yqk);
+		return this;
+	}
+
+
+	/**
+	 * Checking position encoding mode.
+	 * @return position encoding mode.
+	 */
+	boolean paramIsPosEncode() {
+		if (config.containsKey(MatrixNetworkAbstract.POS_ENCODE_FIELD))
+			return config.getAsBoolean(MatrixNetworkAbstract.POS_ENCODE_FIELD);
+		else
+			return MatrixNetworkAbstract.POS_ENCODE_DEFAULT;
+	}
+
+	
+	/**
+	 * Setting position encoding mode.
+	 * @param posEncode position encoding mode.
+	 * @return this transformer.
+	 */
+	TransformerImpl paramSetPosEncode(boolean posEncode) {
+		config.put(MatrixNetworkAbstract.POS_ENCODE_FIELD, posEncode);
 		return this;
 	}
 
@@ -278,6 +294,16 @@ public class TransformerImpl extends TransformerAbstract {
 			block.updateConfig(this.config);
 			return block;
 		}
+
+		@Override
+		public void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
+			if (paramIsPosEncode()) {
+				inputY = inputY != null ? MatrixUtil.posEncode(inputY) : inputY;
+				inputX = inputX != null ? MatrixUtil.posEncode(inputX) : inputX;
+			}
+			super.enterInputs(inputY, inputX, inputMask);
+		}
+
 		
 		/**
 		 * Adding QK Y input data.
@@ -398,6 +424,8 @@ public class TransformerImpl extends TransformerAbstract {
 
 		/**
 		 * Y input data with regard to query weight matrix Q and key weight matrix K.
+		 * This Yqk replace X when X is null, which means that it is not compulsory that X must be not null.
+		 * In other words, in QK-Y mode (true), attention 0 of decoder will have particular input Y, instead of being dependent on encoder output as input.
 		 */
 		protected Matrix Yqk = null;
 		
@@ -776,18 +804,14 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * Setting input data.
 	 * @param input input data.
 	 */
-	public void enterInputs(Matrix input) {
-		enterInputs(input, null);
-	}
+	public void enterInputs(Matrix input) {enterInputs(input, null);}
 
 	
 	/**
 	 * Setting input mask.
 	 * @param inputMask input mask.
 	 */
-	public void enterInputs(boolean[][] inputMask) {
-		enterInputs(null, inputMask);
-	}
+	public void enterInputs(boolean[][] inputMask) {enterInputs(null, inputMask);}
 
 	
 	@Override

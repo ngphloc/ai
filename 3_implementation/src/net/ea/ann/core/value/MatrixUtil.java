@@ -95,17 +95,17 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	 * @param matrix matrix.
 	 * @return value sum.
 	 */
-	public static NeuronValue valueSum1(Matrix matrix) {
+	public static NeuronValue valueSum(Matrix matrix) {
 		return matrix instanceof MatrixStack ? MatrixStack.valueSum((MatrixStack)matrix): Matrix.valueSum(matrix);
 	}
 	
 	
 	/**
-	 * Calculating value sum.
+	 * Calculating value mean.
 	 * @param matrix matrix.
-	 * @return value sum.
+	 * @return value mean.
 	 */
-	public static NeuronValue valueMean1(Matrix matrix) {
+	public static NeuronValue valueMean(Matrix matrix) {
 		return matrix instanceof MatrixStack ? MatrixStack.valueMean((MatrixStack)matrix): Matrix.valueMean(matrix);
 	}
 	
@@ -356,4 +356,56 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	}
 	
 
+	/**
+	 * Calculating position encoding matrix.
+	 * @param rows rows.
+	 * @param columns columns.
+	 * @return position encoding matrix.
+	 */
+	private static double[][] posEncode(int rows, int columns) {
+		if (rows <= 0 || columns <= 0) return null;
+		double[][] POS = new double[rows][columns];
+		double base = 10000;
+		for (int row = 0; row < rows; row++) {
+			for (int column = 0; column < columns; column++) {
+				POS[row][column] = column % 2 == 0 ?
+					Math.sin((double)row / (Math.pow(base, (double)column/columns))) :
+					Math.cos((double)row / (Math.pow(base, (double)(column-1)/columns)));
+			}
+		}
+		return POS;
+	}
+
+	
+	/**
+	 * Calculating matrix plus position encoding.
+	 * @param matrix specified matrix.
+	 * @return matrix plus position encoding.
+	 */
+	public static Matrix posEncode(Matrix matrix) {
+		int rows = matrix.rows(), columns = matrix.columns();
+		double[][] POS = posEncode(rows, columns);
+		Matrix posMatrix = matrix instanceof MatrixStack ?
+			((MatrixStack)matrix).get().create(new Size(columns, rows)) :
+			matrix.create(new Size(columns, rows));
+		for (int row = 0; row < rows; row++) {
+			for (int column = 0; column < columns; column++) {
+				NeuronValue value = posMatrix.get(row, column).valueOf(POS[row][column]);
+				posMatrix.set(row, column, value);
+			}
+		}
+		
+		if (matrix instanceof MatrixStack) {
+			MatrixStack stack = (MatrixStack)matrix;
+			Matrix[] result = new Matrix[stack.matrices.length];
+			for (int i = 0; i < stack.matrices.length; i++) {
+				result[i] = stack.matrices[i].add(posMatrix);
+			}
+			return new MatrixStack(result);
+		}
+		else
+			return matrix.add(posMatrix);
+	}
+	
+	
 }

@@ -75,6 +75,18 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 	
 	/**
+	 * Field for position encoding field.
+	 */
+	public final static String POS_ENCODE_FIELD = "mane_pos_encode";
+	
+	
+	/**
+	 * Default value for position encoding field. In position encoding mode (true), position encoding is added to inputs.
+	 */
+	public final static boolean POS_ENCODE_DEFAULT = false;
+
+	
+	/**
 	 * Neuron channel.
 	 */
 	protected int neuronChannel = 1;
@@ -121,6 +133,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 		this.config.put(VECTORIZED_FIELD, VECTORIZED_DEFAULT);
 		this.config.put(MatrixLayerAbstract.LEARN_FILTER_FIELD, MatrixLayerAbstract.LEARN_FILTER_DEFAULT);
 		this.config.put(MIDDLE_SIZE_DEFAULT_FIELD, MIDDLE_SIZE_DEFAULT_DEFAULT);
+		this.config.put(POS_ENCODE_FIELD, POS_ENCODE_DEFAULT);
 
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
 		this.activateRef = activateRef == null ? (activateRef = Raster.toActivationRef(this.neuronChannel, paramIsNorm())) : activateRef;
@@ -222,13 +235,19 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 
 	@Override
-	public void enterInputs(Record record) {
-		MatrixLayerAbstract inputLayer = getInputLayer();
-		Matrix input = record.input();
-		if (input != null) MatrixUtil.copy(input, inputLayer.getInput());
+	public void enterInputs(Record record) {enterInputs(record.input());}
+
+
+	/**
+	 * Entering inputs.
+	 * @param input matrix input.
+	 */
+	void enterInputs(Matrix input) {
+		if (paramIsPosEncode()) input = input != null ? MatrixUtil.posEncode(input) : input;
+		if (input != null) MatrixUtil.copy(input, getInputLayer().getInput());
 	}
-
-
+	
+	
 	/**
 	 * Resetting matrix neural network.
 	 */
@@ -283,6 +302,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @param learningRate learning rate.
 	 * @return training error.
 	 */
+	@Deprecated
 	public Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
 		resetBackwardInfo();
 		if (outputErrors == null || outputErrors.length == 0) return null;
@@ -526,4 +546,27 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	}
 
 	
+	/**
+	 * Checking position encoding mode.
+	 * @return position encoding mode.
+	 */
+	boolean paramIsPosEncode() {
+		if (config.containsKey(POS_ENCODE_FIELD))
+			return config.getAsBoolean(POS_ENCODE_FIELD);
+		else
+			return POS_ENCODE_DEFAULT;
+	}
+
+	
+	/**
+	 * Setting position encoding mode.
+	 * @param posEncode position encoding mode.
+	 * @return this network.
+	 */
+	MatrixNetworkAbstract paramSetPosEncode(boolean posEncode) {
+		config.put(POS_ENCODE_FIELD, posEncode);
+		return this;
+	}
+
+
 }
