@@ -82,14 +82,15 @@ public interface LikelihoodGradient {
 		Matrix softmax = Softmax.softmaxByRow(output);
 		NeuronValue zero = output.get(0, 0).zero();
 		NeuronValue unit = zero.unit();
+		NeuronValue uniform = unit.divide(columns); //Uniform probability replaces null real output probability.
 		for (int row = 0; row < rows; row++) {
 			for (int column = 0; column < columns; column++) {
 				NeuronValue sum = zero;
 				NeuronValue p = softmax.get(row, column);
 				for (int i = 0; i < columns; i++) {
-					NeuronValue realp = realOutputProb != null ? realOutputProb.get(row, i) : unit;
+					NeuronValue realp = realOutputProb != null ? realOutputProb.get(row, i) : uniform;
 					NeuronValue value = i==column ? realp.multiply(unit.subtract(p)) : realp.multiply(p.negative());
-					//Optional coding line for class balancing by weighted sample.
+					//Optional coding line for class balancing by weighted sample. It can be removed.
 					if (sampleWeight != null) value = value.multiply(sampleWeight.get(row, column));
 					sum = sum.add(value);
 				}
@@ -145,14 +146,15 @@ public interface LikelihoodGradient {
 		Matrix softmax = Softmax.softmaxByColumn(output);
 		NeuronValue zero = output.get(0, 0).zero();
 		NeuronValue unit = zero.unit();
+		NeuronValue uniform = unit.divide(rows); //Uniform probability replaces null real output probability.
 		for (int column = 0; column < columns; column++) {
 			for (int row = 0; row < rows; row++) {
 				NeuronValue sum = zero;
 				NeuronValue p = softmax.get(row, column);
 				for (int i = 0; i < rows; i++) {
-					NeuronValue realp = realOutputProb != null ? realOutputProb.get(i, column) : unit;
+					NeuronValue realp = realOutputProb != null ? realOutputProb.get(i, column) : uniform;
 					NeuronValue value = i==row ? realp.multiply(unit.subtract(p)) : realp.multiply(p.negative());
-					//Optional coding line for class balancing by weighted sample.
+					//Optional coding line for class balancing by weighted sample. It can be removed.
 					if (sampleWeight != null) value = value.multiply(sampleWeight.get(row, column));
 					sum = sum.add(value);
 				}

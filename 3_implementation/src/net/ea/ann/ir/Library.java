@@ -18,3 +18,4 @@ import java.io.Serializable;
 public interface Library extends Serializable, Cloneable {
 
 }
+

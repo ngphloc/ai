@@ -148,7 +148,7 @@ public interface Softmax extends Probability, FunctionDelay {
 	 * @param matrix matrix stack.
 	 * @return soft-max function of matrix by row.
 	 */
-	static MatrixStack softmaxByRow(MatrixStack matrix) {
+	private static MatrixStack softmaxByRow(MatrixStack matrix) {
 		int depth = matrix.depth();
 		Matrix[] result = new Matrix[depth];
 		for (int d = 0; d < depth; d++) result[d] = softmaxByRow(matrix.get(d));
@@ -223,7 +223,7 @@ public interface Softmax extends Probability, FunctionDelay {
 	 * @param matrix matrix stack.
 	 * @return soft-max function of matrix by column.
 	 */
-	static MatrixStack softmaxByColumn(MatrixStack matrix) {
+	private static MatrixStack softmaxByColumn(MatrixStack matrix) {
 		int depth = matrix.depth();
 		Matrix[] result = new Matrix[depth];
 		for (int d = 0; d < depth; d++) result[d] = softmaxByColumn(matrix.get(d));

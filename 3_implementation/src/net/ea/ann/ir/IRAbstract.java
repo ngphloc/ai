@@ -8,12 +8,12 @@
 package net.ea.ann.ir;
 
 /**
- * This class is abstract class for (deep) metric learning component.
+ * This class implements basically information retrieval system.
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public abstract class MLAbstract implements ML {
+public abstract class IRAbstract implements IR, Searcher {
 
 
 	/**
@@ -25,7 +25,7 @@ public abstract class MLAbstract implements ML {
 	/**
 	 * Default constructor.
 	 */
-	public MLAbstract() {
+	public IRAbstract() {
 
 	}
 

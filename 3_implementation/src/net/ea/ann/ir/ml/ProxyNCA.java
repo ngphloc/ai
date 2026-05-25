@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.ir.dml;
+package net.ea.ann.ir.ml;
 
 import java.util.Random;
 
@@ -15,6 +15,7 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.ir.MLAbstract;
+import net.ea.ann.ir.Extractor;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.LikelihoodGradient;
 import net.ea.ann.mane.MatrixLayer;
@@ -28,7 +29,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class ProxyNCA extends MLAbstract {
+public class ProxyNCA extends MLAbstract implements Extractor {
 
 
 	/**
@@ -164,33 +165,60 @@ class ProxyNCACore extends VGG {
 		for (int row = 0; row < losses.length; row++) {
 			losses[row] = lossesMatrix.get(row, 0);
 			for (int column = 1; column < lossesMatrix.columns(); column++) losses[row] = losses[row].add(lossesMatrix.get(row, column));
-			losses[row] = losses[row].divide(lossesMatrix.columns());
+			if (lossesMatrix.columns() > 1) losses[row] = losses[row].divide(lossesMatrix.columns());
 		}
 		
 		Matrix vecOutput = output.vec();
 		if (this.proxies.columns() != vecOutput.rows()) throw new IllegalArgumentException();
 		Matrix proxiesError = this.proxies.create(new Size(this.proxies.columns(), this.proxies.rows()));
 		if (losses.length != proxiesError.rows()) throw new IllegalArgumentException();
-		Matrix lastError = null;
+		Matrix lastErrorSum = null;
 		for (int row = 0; row < this.proxies.rows(); row++) {
-			Matrix proxy = this.proxies.getRow(row).transpose();
-			if (proxy.rows() != vecOutput.rows()) throw new IllegalArgumentException();
-			Matrix error = proxy.subtract(vecOutput).multiply0(losses[row]);
+			Matrix vecProxy = this.proxies.getRow(row).transpose();
+			if (vecProxy.rows() != vecOutput.rows()) throw new IllegalArgumentException();
+
 			//Calculating proxy error.
-			for (int column = 0; column < proxiesError.columns(); column++) proxiesError.set(row, column, error.get(column, 0));
+			Matrix proxyError = calcProxyError(vecOutput, vecProxy).multiply0(losses[row]);
+			for (int column = 0; column < proxiesError.columns(); column++)
+				proxiesError.set(row, column, proxyError.get(column, 0));
+			
 			//Calculating lass error.
-			lastError = lastError != null ? lastError.add(error.negative0()) : error.negative0();
+			Matrix lastError = calcLastError(vecOutput, vecProxy).vecInverse(output.rows());
+			lastErrorSum = lastErrorSum != null ? lastErrorSum.add(lastError) : lastError;
 		}
-		lastError = lastError.vecInverse(output.rows());
 		this.dProxiesAccum = this.dProxiesAccum != null ? this.dProxiesAccum.add(proxiesError) : proxiesError;
 		
-		if (outputLayer == null) return lastError;
+		if (outputLayer == null) return lastErrorSum;
 		Matrix input = outputLayer.getInput();
 		Matrix derivative = input != null ? input.derivativeWise(outputLayer.getActivateRef()) : null;
-		return derivative != null ? derivative.multiplyWise(lastError) : lastError;
+		return derivative != null ? derivative.multiplyWise(lastErrorSum) : lastErrorSum;
 	}
 
 
+	/**
+	 * Calculating proxy error.
+	 * @param vecOutput vectorized output.
+	 * @param vecProxy vectorized proxy.
+	 * @return proxy error.
+	 */
+	Matrix calcProxyError(Matrix vecOutput, Matrix vecProxy) {
+		return vecOutput.subtract(vecProxy); //Distance-based similarity.
+//		return vecOutput; //Product-based similarity.
+	}
+	
+	
+	/**
+	 * Calculating last error.
+	 * @param vecOutput vectorized output.
+	 * @param vecProxy vectorized proxy.
+	 * @return last error.
+	 */
+	Matrix calcLastError(Matrix vecOutput, Matrix vecProxy) {
+		return vecProxy.subtract(vecOutput);
+//		return vecProxy; //Product-based similarity.
+	}
+	
+	
 	@Override
 	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		outputErrors = super.backward(outputErrors, focus, learning, learningRate);

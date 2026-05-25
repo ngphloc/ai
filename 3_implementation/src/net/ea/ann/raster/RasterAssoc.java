@@ -144,7 +144,7 @@ public class RasterAssoc implements Serializable, Cloneable {
 
 	
 //	/**
-//	 * Load rasters from directory. This method cause some Reflections (old version) trace because of the new Lambda expression (like for each) in new Java newer as 8.0.
+//	 * Load rasters from directory. This method cause some finding classes (old version) trace because of the new Lambda expression (like for each) in new Java newer as 8.0.
 //	 * However this trace is not serious. It is possible to use the other version of this method.
 //	 * @param directory specified directory.
 //	 * @return list of rasters loaded from directory.

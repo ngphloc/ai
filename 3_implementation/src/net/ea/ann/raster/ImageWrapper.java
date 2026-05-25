@@ -64,7 +64,7 @@ public class ImageWrapper implements Image {
 	 * Method {@link #getImage()} will create the buffered image from such data if the the buffered image is null by non-serializing.
 	 * The value imageData[0] is image width and the value imageData[1] is image height. Image pixels are stored from imageData[2]. 
 	 */
-	protected int[] imageData = null;
+	private int[] imageData = null;
 	
 	
 	/**

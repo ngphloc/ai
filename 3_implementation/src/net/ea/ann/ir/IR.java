@@ -8,6 +8,8 @@
 package net.ea.ann.ir;
 
 import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.util.List;
 
 /**
  * This interface represents information retrieval system.
@@ -15,6 +17,16 @@ import java.rmi.Remote;
  * @version 1.0
  *
  */
-public interface IR extends Searcher, Remote {
+public interface IR extends Remote {
 
+	
+	/**
+	 * Searching for given query feature.
+	 * @param query query feature.
+	 * @return list of found features.
+	 * @throws RemoteException if any error raises.
+	 */
+	List<Feature> search(Feature query) throws RemoteException;
+
+	
 }
