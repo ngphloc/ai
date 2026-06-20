@@ -242,7 +242,7 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 		mane.getConfig().put(NetworkAbstract.LEARN_MAX_ITERATION_FIELD, maxIteration);
 		mane.getConfig().put(NetworkAbstract.LEARN_RATE_FIELD, lr);
 		mane.paramSetVectorized(vectorized);
-		FilterSpec filter = filtering ? new FilterSpec(MatrixNetworkImpl.BASE_DEFAULT, MatrixNetworkImpl.BASE_DEFAULT) : null;
+		FilterSpec filter = filtering ? new FilterSpec(MatrixNetworkImpl.FILTER_SIZE_DEFAULT, MatrixNetworkImpl.FILTER_SIZE_DEFAULT) : null;
 		//
 		Size sourceSize = RasterAssoc.getAverageSize(sourceRasters).divide(zoomOut);
 		Size targetSize = RasterAssoc.getAverageSize(targetRasters).divide(zoomOut);

@@ -33,13 +33,14 @@ public class NiN extends VGG {
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
+	 * @author Min Lin, Qiang Chen, Shuicheng Yan
 	 */
 	public NiN(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
-		config.put(CONV_FIELD, true);
+		config.put(FILTER_MODE_FIELD, true);
 		config.put(COWEIGHT_FIELD, false);
 		config.put(FILTER_SIZE_FIELD, 1);
-		config.put(KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(KernelType.product_max));
+		config.put(FILTER_KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(KernelType.product_max));
 	}
 
 
@@ -68,9 +69,7 @@ public class NiN extends VGG {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public NiN(int neuronChannel) {
-		this(neuronChannel, null, null, null);
-	}
+	public NiN(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 
 }

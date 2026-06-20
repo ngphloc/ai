@@ -19,6 +19,8 @@ import java.awt.image.RescaleOp;
 import java.io.Serializable;
 import java.util.Random;
 
+import net.ea.ann.core.Util;
+
 /**
  * This class implements augmentation operators.
  * @author Loc Nguyen
@@ -95,14 +97,14 @@ public class Augmentor implements Cloneable, Serializable {
 	 */
 	protected static Op[] operators = {
 		Op.flip,
-		Op.rotate,
+//		Op.rotate,
 		Op.crop,
 		Op.jitter,
 		Op.grayscale,
 		Op.blur,
 		Op.sharpen,
 		Op.solarize,
-		Op.erase
+//		Op.erase
 	};
 	
 	
@@ -122,13 +124,37 @@ public class Augmentor implements Cloneable, Serializable {
 
 	
 	/**
+	 * Creating random augmented raster.
+	 * @return random augmented raster.
+	 */
+	public Raster augmentRandom() {
+		if (!(this.raster instanceof Raster2D)) throw new IllegalArgumentException();
+		Raster2D raster2D = (Raster2D)this.raster;
+		Image image = raster2D.getImage();
+		if (!(image instanceof ImageWrapper)) throw new IllegalArgumentException();
+		
+		//Cloning image.
+		ImageWrapper imageWrapper = null;
+		try {
+			imageWrapper = (ImageWrapper) ((ImageWrapper)image).clone();
+		} catch (Throwable e) {Util.trace(e);}
+		
+		//Creating random augmented image.
+		BufferedImage augmented = augmentRandom(imageWrapper.getImage());
+		Raster2DImpl augmentedRaster = new Raster2DImpl(new ImageWrapper(augmented));
+		augmentedRaster.setProperty(this.raster.getProperty());
+		return augmentedRaster;
+	}
+	
+	
+	/**
 	 * Taking random augmentation operator.
 	 * @param src source image.
 	 * @return augmented version.
 	 */
-	BufferedImage augment(BufferedImage src) {
+	private static BufferedImage augmentRandom(BufferedImage src) {
 		int op = new Random().nextInt(operators.length);
-		return augment(src, operators[op]);
+		return augmentRandom(src, operators[op]);
 	}
 	
 	
@@ -138,20 +164,20 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param op augmentation operator.
 	 * @return augmented version.
 	 */
-	private BufferedImage augment(BufferedImage src, Op op) {
+	private static BufferedImage augmentRandom(BufferedImage src, Op op) {
 		BufferedImage augmented = null;
 		switch (op) {
 		case flip:
 			augmented = horizontalFlip(src);
 			break;
 		case rotate:
-			augmented = rotate(src);
+			augmented = rotateRandom(src);
 			break;
 		case crop:
-			augmented = resizedCrop(src);
+			augmented = resizedCropRandom(src);
 			break;
 		case jitter:
-			augmented = colorJitter(src);
+			augmented = colorJitterRandom(src);
 			break;
 		case grayscale:
 			augmented = grayScale(src);
@@ -160,13 +186,13 @@ public class Augmentor implements Cloneable, Serializable {
 			augmented = blur(src);
 			break;
 		case sharpen:
-			augmented = sharpen(src);
+			augmented = sharpenRandom(src);
 			break;
 		case solarize:
 			augmented = solarize(src);
 			break;
 		case erase:
-			augmented = erase(src);
+			augmented = eraseRandom(src);
 			break;
 		default:
 			augmented = src;
@@ -182,7 +208,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @return horizontal flip image.
 	 * @author Gemini 2026.
 	 */
-	static BufferedImage horizontalFlip(BufferedImage src) {
+	private static BufferedImage horizontalFlip(BufferedImage src) {
 		int w = src.getWidth();
 		int h = src.getHeight();
 		BufferedImage dst = new BufferedImage(w, h, src.getType());
@@ -197,14 +223,11 @@ public class Augmentor implements Cloneable, Serializable {
 	/**
 	 * Rotation.
 	 * @param src source image.
-	 * @param maxDegrees
+	 * @param angle angle in degree.
 	 * @return rotated image.
 	 * @author Gemini 2026.
 	 */
-	private static BufferedImage rotate(BufferedImage src, double maxDegrees) {
-		Random rand = new Random();
-		
-		double angle = (rand.nextDouble() * 2 * maxDegrees) - maxDegrees;
+	private static BufferedImage rotate(BufferedImage src, double angle) {
 		double radians = Math.toRadians(angle);
 		
 		int w = src.getWidth();
@@ -220,6 +243,19 @@ public class Augmentor implements Cloneable, Serializable {
 		
 		return dst;
 	}
+
+	
+	/**
+	 * Rotation.
+	 * @param src source image.
+	 * @param maxDegrees maximum angle in degree.
+	 * @return rotated image.
+	 * @author Gemini 2026.
+	 */
+	private static BufferedImage rotateRandom(BufferedImage src, double maxDegrees) {
+		double angle = (new Random().nextDouble() * 2 * maxDegrees) - maxDegrees;
+		return rotate(src, angle);
+	}
     
     
 	/**
@@ -227,7 +263,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @return rotated image.
 	 */
-	static BufferedImage rotate(BufferedImage src) {return rotate(src, 15.0);}
+	private static BufferedImage rotateRandom(BufferedImage src) {return rotateRandom(src, 15.0);}
     
     
 	/**
@@ -235,22 +271,17 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @param targetW target width.
 	 * @param targetH target height.
-	 * @param minScale minimum scale.
+	 * @param scale minimum scale.
+	 * @param x X coordinate.
+	 * @param y Y coordinate
 	 * @return resized cropped image.
 	 * @author Gemini 2026.
 	 */
-	private static BufferedImage resizedCrop(BufferedImage src, int targetW, int targetH, double minScale) {
-		Random rand = new Random();
-		
+	private static BufferedImage resizedCrop(BufferedImage src, int targetW, int targetH, double scale, int x, int y) {
 		int srcW = src.getWidth();
 		int srcH = src.getHeight();
-		
-		double scale = minScale + (rand.nextDouble() * (1.0 - minScale));
 		int cropW = (int) (srcW * Math.sqrt(scale));
 		int cropH = (int) (srcH * Math.sqrt(scale));
-		
-		int x = rand.nextInt(Math.max(1, srcW - cropW));
-		int y = rand.nextInt(Math.max(1, srcH - cropH));
 		
 		BufferedImage cropped = src.getSubimage(x, y, cropW, cropH);
 		
@@ -264,15 +295,58 @@ public class Augmentor implements Cloneable, Serializable {
 		return resized;
 	}
 
+	
+	/**
+	 * Resized crop.
+	 * @param src source image.
+	 * @param targetW target width.
+	 * @param targetH target height.
+	 * @param minScale minimum scale.
+	 * @return resized cropped image.
+	 * @author Gemini 2026.
+	 */
+	private static BufferedImage resizedCropRandom(BufferedImage src, int targetW, int targetH, double minScale) {
+		Random rand = new Random();
+		
+		int srcW = src.getWidth();
+		int srcH = src.getHeight();
+		
+		double scale = minScale + (rand.nextDouble() * (1.0 - minScale));
+		int cropW = (int) (srcW * Math.sqrt(scale));
+		int cropH = (int) (srcH * Math.sqrt(scale));
+		
+		int x = rand.nextInt(Math.max(1, srcW - cropW));
+		int y = rand.nextInt(Math.max(1, srcH - cropH));
+		
+		return resizedCrop(src, targetW, targetH, scale, x, y);
+	}
+
 
 	/**
 	 * Resized crop with minimum scale 10%.
 	 * @param src source image.
 	 * @return resized cropped image.
 	 */
-	static BufferedImage resizedCrop(BufferedImage src) {return resizedCrop(src, src.getWidth(), src.getHeight(), 0.1);}
+	private static BufferedImage resizedCropRandom(BufferedImage src) {return resizedCropRandom(src, src.getWidth(), src.getHeight(), 0.1);}
     
     
+	/**
+	 * Color jitter (brightness and contrast).
+	 * @param src source image.
+	 * @param brightnessFactor brightness factor.
+	 * @param contrastFactor contrast factor.
+	 * @return image after color jitter operator.
+	 * @author Gemini 2026.
+	 */
+	private static BufferedImage colorJitter(BufferedImage src, float brightnessFactor, float contrastFactor) {
+		//RescaleOp applies: newPixel = (oldPixel * contrast) + (brightness_offset)
+		//We use contrast factor as the scale and brightness factor (normalized) as the offset.
+		//Factor = 1: neutral.
+		RescaleOp op = new RescaleOp(contrastFactor, (brightnessFactor - 1.0f) * 128f, null);
+		return op.filter(src, null);
+	}
+	
+	
 	/**
 	 * Color jitter (brightness and contrast).
 	 * @param src source image.
@@ -283,17 +357,12 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @return image after color jitter operator.
 	 * @author Gemini 2026.
 	 */
-	private static BufferedImage colorJitter(BufferedImage src, float brightness, float contrast) {
+	private static BufferedImage colorJitterRandom(BufferedImage src, float brightness, float contrast) {
 		Random rand = new Random();
-		
 		//Random factors: factor = 1.0 is neutral
 		float bFactor = (1.0f - brightness) + (rand.nextFloat() * 2 * brightness);
 		float cFactor = (1.0f - contrast) + (rand.nextFloat() * 2 * contrast);
-		
-		//RescaleOp applies: newPixel = (oldPixel * contrast) + (brightness_offset)
-		//We use cFactor as the scale and bFactor (normalized) as the offset
-		RescaleOp op = new RescaleOp(cFactor, (bFactor - 1.0f) * 128f, null);
-		return op.filter(src, null);
+		return colorJitter(src, bFactor, cFactor);
 	}
 
     
@@ -302,7 +371,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @return image after color jitter operator.
 	 */
-	static BufferedImage colorJitter(BufferedImage src) {return colorJitter(src, 0.5f, 0.5f);}
+	private static BufferedImage colorJitterRandom(BufferedImage src) {return colorJitterRandom(src, 0.5f, 0.5f);}
 	
 	
 	/**
@@ -311,7 +380,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @return gray-scaled image.
 	 * @author Gemini 2026.
 	 */
-	static BufferedImage grayScale(BufferedImage src) {
+	private static BufferedImage grayScale(BufferedImage src) {
 		ColorConvertOp op = new ColorConvertOp(ColorSpace.getInstance(ColorSpace.CS_GRAY), null);
 		BufferedImage gray = op.filter(src, null);
 		
@@ -348,7 +417,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @return blurred image.
 	 */
-	static BufferedImage blur(BufferedImage src) {return blur(src, 1);}
+	private static BufferedImage blur(BufferedImage src) {return blur(src, 1);}
 	
 	
 	/**
@@ -385,7 +454,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src
 	 * @return sharpened image.
 	 */
-	static BufferedImage sharpen(BufferedImage src) {
+	private static BufferedImage sharpenRandom(BufferedImage src) {
 		float minSharpness = 1.0f;
 		float maxSharpness = 2.0f;
 		float randomFactor = minSharpness + new Random().nextFloat() * (maxSharpness - minSharpness);
@@ -428,7 +497,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param srcsource image.
 	 * @return solarized image.
 	 */
-	static BufferedImage solarize(BufferedImage src) {
+	private static BufferedImage solarize(BufferedImage src) {
 		return solarize(src, 128);
 	}
 	
@@ -441,7 +510,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @return image whose some area is erased.
 	 * @author Gemini 2026.
 	 */
-	private static BufferedImage erase(BufferedImage src, double minArea, double maxArea) {
+	private static BufferedImage eraseRandom(BufferedImage src, double minArea, double maxArea) {
 		Random rand = new Random();
 		
 		int w = src.getWidth();
@@ -473,7 +542,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @return image whose some area is erased.
 	 */
-	static BufferedImage erase(BufferedImage src) {return erase(src, 0.01, 0.08);}
+	private static BufferedImage eraseRandom(BufferedImage src) {return eraseRandom(src, 0.01, 0.08);}
 	
 	
 }

@@ -40,10 +40,16 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 
 	
 	/**
-	 * Default filter stride.
+	 * Field for filter size.
 	 */
-	public final static int BASE_DEFAULT = 3;
+	public static final String FILTER_SIZE_FIELD = "mane_filter_size";
 	
+	
+	/**
+	 * Default value for filter size.
+	 */
+	public static final int FILTER_SIZE_DEFAULT = 3;
+
 	
 	/**
 	 * Default depth.
@@ -54,7 +60,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	/**
 	 * Default value of minimum width field.
 	 */
-	public final static int MINSIZE = 16; //ImageListItem.ICON_MINSIZE/BASE_DEFAULT;
+	public final static int MINSIZE = 16; //= ImageListItem.ICON_MINSIZE/BASE_DEFAULT but it should be 32;
 
 	
 //	/**
@@ -140,9 +146,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public MatrixNetworkImpl(int neuronChannel) {
-		this(neuronChannel, null, null, null);
-	}
+	public MatrixNetworkImpl(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 
 	@Override
@@ -159,7 +163,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 
 	@Override
 	protected MatrixLayerAbstract newLayer() {
-		MatrixLayerImpl layer = new MatrixLayerImpl(neuronChannel, activateRef, convActivateRef, idRef);
+		MatrixLayerImpl layer = new MatrixLayerImpl(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 		layer.setNetwork(this);
 		return layer;
 	}
@@ -173,9 +177,12 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 
 
 	/**
-	 * Initializing matrix neural network with sizes and filters.
+	 * Initializing matrix neural network with sizes and filters. This is the most important initialization method for matrix neural network.<br/>
+	 * Please pay attention that filter is before weight in the every layer if such layer has both filter and weight.<br/>
+	 * Similarly, in dual model, for each pair of two successive layers, the previous one has only one filter and the later one has only one weight.
+	 * The dual mode is the alternative of the case that a layer has both filter and weight.
 	 * @param layerSpecs array of layer specification.
-	 * @param dual dual mode.
+	 * @param dual dual mode. If true, for each layer specification, two layers (filter layer and weight layer) are created.
 	 * @return true if initialization is successful.
 	 */
 	protected boolean initialize(LayerSpec[] layerSpecs, boolean dual) {
@@ -202,12 +209,12 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			thisSize = layerSpecs[i].size;
 			if (!new MatrixLayerInitializer(layer).initialize(thisSize, prevSize, prevLayer, layerSpecs[i])) return false;
 			Size currentSize = layer.getSize();
-			if (currentSize.width != thisSize.width || currentSize.height != thisSize.height) return false;
+			if (currentSize.width != thisSize.width || currentSize.height != thisSize.height || currentSize.depth != thisSize.depth) throw new IllegalArgumentException();
 			
 			layers.add(layer);
 			prevLayer = layer;
 			prevSize = currentSize;
-			if (layerSpecs[i].filterSpec == null || !dual) continue;
+			if (layerSpecs[i].filterSpec == null || !dual) continue; //In dual model, for each pair of two successive layers, the previous one has only one filter and the later one has only one weight.
 			
 			thisSize = prevSize;
 			MatrixLayerImpl dualLayer = (MatrixLayerImpl)newLayer();
@@ -215,7 +222,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			dualLayer.setLearnFilter(paramIsLearnFilter());
 			if (!new MatrixLayerInitializer(dualLayer).initialize(thisSize, prevSize, prevLayer, null)) return false;
 			Size dualSize = dualLayer.getSize();
-			if (dualSize.width != thisSize.width || dualSize.height != thisSize.height) return false;
+			if (dualSize.width != thisSize.width || dualSize.height != thisSize.height || dualSize.depth != thisSize.depth) throw new IllegalArgumentException();
 			
 			layers.add(dualLayer);
 			prevLayer = dualLayer;
@@ -230,7 +237,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	
 	
 	/**
-	 * Initializing matrix neural network.
+	 * Initializing matrix neural network with two parts.
 	 * @param inputSize1 input size 1.
 	 * @param outputSize1 output size 1, which can be null.
 	 * @param filterSpec1 filter specification 1, which can be null.
@@ -242,7 +249,6 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 */
 	public boolean initialize(Size inputSize1, Size outputSize1, FilterSpec filterSpec1, int depth1, boolean dual1, Size outputSize2, int depth2) {
 		if (inputSize1 == null || inputSize1.height <= 0 || inputSize1.width <= 0) return false;
-//		if ((filter1 != null) && (filter1 instanceof DeconvConvFilter)) filter1 = null;
 		if ((filterSpec1 != null) && (filterSpec1.width() < 1 || filterSpec1.height() < 1)) filterSpec1 = null;
 		depth1 = depth1 < 0 ? 0 : depth1;
 		depth2 = depth2 < 0 ? 0 : depth2;
@@ -307,7 +313,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	
 	
 	/**
-	 * Initializing matrix neural network.
+	 * Initializing matrix neural network by depth with two parts.
 	 * @param inputSize1 input size 1.
 	 * @param outputSize1 output size 1, which can be null.
 	 * @param filterSpec1 filter specification 1, which can be null.
@@ -411,24 +417,18 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	
 	
 	@Override
-	public Matrix getInput() {
-		return getInputLayer().getInput();
-	}
+	public Matrix getInput() {return getInputLayer().getInput();}
 
 
 	@Override
-	public Matrix getOutput() {
-		return getOutputLayer().queryOutput();
-	}
+	public Matrix getOutput() {return getOutputLayer().queryOutput();}
 
 
 	/**
 	 * Getting size of trainers.
 	 * @return size of trainers.
 	 */
-	int getTrainerSize() {
-		return trainers.size();
-	}
+	int getTrainerSize() {return trainers.size();}
 	
 	
 	/**
@@ -436,9 +436,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * @param index specified index.
 	 * @return trainer at specified index.
 	 */
-	TaskTrainer getTrainer(int index) {
-		return trainers.get(index);
-	}
+	TaskTrainer getTrainer(int index) {return trainers.get(index);}
 	
 	
 	/**
@@ -593,6 +591,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
+		resetBackwardInfo(); //Fixing date: 2026.06.19.
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
@@ -623,8 +622,8 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			}
 			else {
 				for (TaskTrainer trainer : trainers) {
-					outputErrors = params != null && params.length > 0 ? trainer.train(this, subsample, false, learningRate, params) :
-						trainer.train(this, subsample, false, learningRate);
+					outputErrors = params != null && params.length > 0 ? trainer.train(this, subsample, false, lr, params) :
+						trainer.train(this, subsample, false, lr);
 				}
 			}
 			
@@ -672,17 +671,17 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		
 //		outputErrors = Arrays.copyOf(outputErrors, outputErrors.length);
 		for (int i = layers.length-1; i >= 0; i--) {
+			assert (layers[i] instanceof MatrixLayerImpl); //Improving later.
+			
 			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) {
 				outputErrors = layers[i].backward(outputErrors, layers[i], learning, learningRate);
 				continue;
 			}
-			MatrixLayerImpl layer = (MatrixLayerImpl)layers[i];
-			outputErrors = layer.backwardWithoutLearning(outputErrors, learningRate);
+			outputErrors = ((MatrixLayerImpl)layers[i]).backwardWithoutLearning(outputErrors, learningRate);
 		}
 		for (int i = layers.length-1; i >= 0; i--) {
 			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) continue;
-			MatrixLayerImpl layer = (MatrixLayerImpl)layers[i];
-			layer.updateParametersFromBackwardInfo(outputErrors.length, learningRate);
+			((MatrixLayerImpl)layers[i]).updateParametersFromBackwardInfo(outputErrors.length, learningRate);
 		}
 		
 		if (outputErrors == null || this.prevLayer == null || this == focus) return outputErrors;

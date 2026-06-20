@@ -230,19 +230,15 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	public MatrixLayerAbstract getOutputLayer() {return layers[layers.length-1];}
 
 	
-//	@Override
-//	public Function getOutputActivateRef() {return layers[layers.length-1].activateRef;}
-
-
 	@Override
 	public void enterInputs(Record record) {enterInputs(record.input());}
 
 
 	/**
-	 * Entering inputs.
+	 * Entering inputs. Adding or changing position encoding by overriding this method.
 	 * @param input matrix input.
 	 */
-	void enterInputs(Matrix input) {
+	protected void enterInputs(Matrix input) {
 		if (paramIsPosEncode()) input = input != null ? MatrixUtil.posEncode(input) : input;
 		if (input != null) MatrixUtil.copy(input, getInputLayer().getInput());
 	}
@@ -302,7 +298,6 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @param learningRate learning rate.
 	 * @return training error.
 	 */
-	@Deprecated
 	public Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
 		resetBackwardInfo();
 		if (outputErrors == null || outputErrors.length == 0) return null;
@@ -355,10 +350,12 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 		LikelihoodGradient grad = this.likelihoodGradient;
 		if (grad == null) grad = LikelihoodGradient::error;
 		Matrix error = grad.gradient(output, realOutput, params);
+		if (error == null) return error;
 		
 		if (outputLayer == null) return error;
 		Matrix input = outputLayer.getInput();
-		Matrix derivative = input != null ? input.derivativeWise(outputLayer.getActivateRef()) : null;
+		Function activateRef = outputLayer.getOutputActivateRef();
+		Matrix derivative = input != null && activateRef != null ? input.derivativeWise(activateRef) : null;
 		return derivative != null ? derivative.multiplyWise(error) : error;
 	}
 
@@ -471,7 +468,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @param rasterChannel raster channel.
 	 * @return this network.
 	 */
-	MatrixNetworkAbstract paramSetRasterChannel(int rasterChannel) {
+	public MatrixNetworkAbstract paramSetRasterChannel(int rasterChannel) {
 		rasterChannel = rasterChannel < 1 ? RasterAbstract.RASTER_CHANNEL_DEFAULT : rasterChannel;
 		config.put(RasterAbstract.RASTER_CHANNEL_FIELD, rasterChannel);
 		return this;
@@ -505,7 +502,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Checking whether filter is learned.
 	 * @return whether filter is learned.
 	 */
-	public boolean paramIsLearnFilter() {
+	boolean paramIsLearnFilter() {
 		if (config.containsKey(MatrixLayerAbstract.LEARN_FILTER_FIELD))
 			return config.getAsBoolean(MatrixLayerAbstract.LEARN_FILTER_FIELD);
 		else
@@ -517,7 +514,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Setting whether filter is learned.
 	 * @param learnFilter whether filter is learned.
 	 */
-	public MatrixNetworkAbstract paramSetLearnFilter(boolean learnFilter) {
+	MatrixNetworkAbstract paramSetLearnFilter(boolean learnFilter) {
 		config.put(MatrixLayerAbstract.LEARN_FILTER_FIELD, learnFilter);
 		return this;
 	}
@@ -525,7 +522,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 	/**
 	 * Checking middle size.
-	 * @return middle size.
+	 * @return middle size which is applied into depth initialization by depth (if it is <= 0).
 	 */
 	public int paramGetMiddleSize() {
 		if (config.containsKey(MIDDLE_SIZE_DEFAULT_FIELD))
@@ -537,7 +534,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 	/**
 	 * Setting middle size.
-	 * @param middleSize middle size.
+	 * @param middleSize middle size which is applied into depth initialization by depth (if it is <= 0).
 	 * @return this network.
 	 */
 	MatrixNetworkAbstract paramSetMiddleSize(int middleSize) {
@@ -550,7 +547,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Checking position encoding mode.
 	 * @return position encoding mode.
 	 */
-	boolean paramIsPosEncode() {
+	public boolean paramIsPosEncode() {
 		if (config.containsKey(POS_ENCODE_FIELD))
 			return config.getAsBoolean(POS_ENCODE_FIELD);
 		else
@@ -563,7 +560,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @param posEncode position encoding mode.
 	 * @return this network.
 	 */
-	MatrixNetworkAbstract paramSetPosEncode(boolean posEncode) {
+	public MatrixNetworkAbstract paramSetPosEncode(boolean posEncode) {
 		config.put(POS_ENCODE_FIELD, posEncode);
 		return this;
 	}

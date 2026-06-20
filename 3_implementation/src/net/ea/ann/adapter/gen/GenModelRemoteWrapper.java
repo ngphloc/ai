@@ -11,6 +11,8 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 import net.ea.ann.adapter.gen.ui.GenUI;
+import net.ea.ann.adapter.gen.ui.GenUIClassifier;
+import net.ea.ann.adapter.gen.ui.GenUIIR;
 import net.ea.ann.gen.GenModel.G;
 import net.ea.ann.raster.Raster;
 import net.hudup.core.Util;
@@ -70,6 +72,13 @@ public class GenModelRemoteWrapper extends ExecuteAsLearnAlgRemoteWrapper implem
 
 
 	@Override
+	public Object createDelegate() {
+		GenModelRemote remoteGM = (GenModelRemote)getRemoteAlg();
+		return remoteGM instanceof GenModel ? ((GenModel)remoteGM).createDelegate() : null;
+	}
+
+
+	@Override
 	public List<Raster> genRasters(Iterable<Raster> sample, int nGens) throws RemoteException {
 		GenModelRemote remoteGM = (GenModelRemote)getRemoteAlg();
 		return remoteGM != null ? remoteGM.genRasters(sample, nGens) : Util.newList();
@@ -92,7 +101,15 @@ public class GenModelRemoteWrapper extends ExecuteAsLearnAlgRemoteWrapper implem
 
 	@Override
 	public Inspector getInspector() {
-		return new GenUI(this, true);
+		GenModelRemote remoteGM = (GenModelRemote)getRemoteAlg();
+		if (remoteGM == null)
+			return new GenUI(this, true);
+		else if (remoteGM instanceof ClassifierModelRemote)
+			return new GenUIClassifier((ClassifierModelRemote)remoteGM, true);
+		else if (remoteGM instanceof IRRemote)
+			return new GenUIIR((IRRemote)remoteGM, true);
+		else
+			return new GenUI(remoteGM, true);
 	}
 
 

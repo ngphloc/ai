@@ -1,3 +1,10 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
 package net.ea.ann.core.value;
 
 import java.io.Serializable;
@@ -11,13 +18,16 @@ import net.ea.ann.raster.Raster2DImpl;
 import net.ea.ann.raster.Raster3DImpl;
 import net.ea.ann.raster.Raster4DImpl;
 import net.ea.ann.raster.Size;
+import net.hudup.core.logistic.NextUpdate;
 
 /**
  * This class provides utility methods to manipulate matrix.
+ * This class will be replaced by the class {@link MatrixUtilExt} for recursion of matrix stack.
  * @author Loc Nguyen
  * @version 1.0
  *
  */
+@NextUpdate
 public final class MatrixUtil implements Cloneable, Serializable {
 
 	
@@ -30,9 +40,7 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	/**
 	 * Default constructor.
 	 */
-	public MatrixUtil() {
-
-	}
+	public MatrixUtil() {}
 
 	
 	/**
@@ -89,6 +97,32 @@ public final class MatrixUtil implements Cloneable, Serializable {
 		return new MatrixStack(matrices);
 	}
 
+	
+	/**
+	 * Splitting matrix.
+	 * @param matrix matrix.
+	 * @return array of matrices.
+	 */
+	public static Matrix[] split(Matrix matrix) {
+		if (matrix == null)
+			return null;
+		else
+			return matrix instanceof MatrixStack ? ((MatrixStack)matrix).matrices() : new Matrix[] {matrix};
+	}
+	
+	
+	/**
+	 * Joining matrices.
+	 * @param matrices matrices.
+	 * @return joined matrix.
+	 */
+	public static Matrix join(Matrix...matrices) {
+		if (matrices == null || matrices.length == 0)
+			return null;
+		else
+			return matrices.length > 1 ? new MatrixStack(matrices) : matrices[0];
+	}
+	
 	
 	/**
 	 * Calculating value sum.
@@ -243,7 +277,7 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Extracting raster into matrix.
+	 * Extracting raster into matrix. This method supports until three-dimension raster and so it can be improved to support 4-dimension raster.
 	 * @param size size.
 	 * @param rows rows.
 	 * @param columns columns.
@@ -259,17 +293,18 @@ public final class MatrixUtil implements Cloneable, Serializable {
 		NeuronValue[] values = null;
 		boolean flatten = isFlatten(depth, neuronChannel, rasterChannel);
 		if (flatten)
-			values = raster.toNeuronValues(rasterChannel, size, isNorm);
+			values = raster.toNeuronValues(rasterChannel, size.width, size.height, isNorm);
 		else
-			values = raster.toNeuronValues(neuronChannel, size, isNorm);
+			values = raster.toNeuronValues(neuronChannel, size.width, size.height, isNorm);
 
 		if (ref != null && depth(ref) != depth) ref = null;
 		Matrix stack = (ref == null) ? MatrixUtil.create(size, values[0]) : ref.create(size);
 		
 		for (int i = 0; i < depth; i++) {
 			Matrix matrix = stack instanceof MatrixStack ? ((MatrixStack)stack).get(i) : stack;
+			int depthLength = i*matrix.rows()*matrix.columns(); 
 			for (int j = 0; j < matrix.rows(); j++) {
-				int rowLength = j*matrix.columns();
+				int rowLength = depthLength + j*matrix.columns();
 				for (int k = 0; k < matrix.columns(); k++) {
 					int index = rowLength + k;
 					matrix.set(j, k, values[index]);

@@ -15,7 +15,7 @@ import net.ea.ann.raster.Raster;
 import net.hudup.core.alg.ExecuteAsLearnAlgRemote;
 
 /**
- * This interface represents remote convolutional Variational Autoencoders.
+ * This interface represents remote generative model.
  * 
  * @author Loc Nguyen
  * @version 1.0

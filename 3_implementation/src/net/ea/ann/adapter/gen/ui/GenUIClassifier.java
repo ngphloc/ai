@@ -16,6 +16,8 @@ import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 
 import net.ea.ann.adapter.gen.ClassifierModelAbstract;
+import net.ea.ann.adapter.gen.ClassifierModelRemote;
+import net.ea.ann.adapter.gen.GenModel;
 import net.ea.ann.adapter.gen.GenModelRemote;
 import net.ea.ann.adapter.gen.beans.ForestClassifier;
 import net.ea.ann.adapter.gen.beans.MatrixClassifier;
@@ -35,7 +37,9 @@ import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.WeightSpec;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
+import net.hudup.core.alg.AlgDesc2;
 import net.hudup.core.data.DataConfig;
+import net.hudup.core.logistic.NetUtil;
 
 /**
  * This class implements classifier user interface based on generative AI user interface.
@@ -62,7 +66,7 @@ public class GenUIClassifier extends GenUI {
 	/**
 	 * Classified view label text.
 	 */
-	protected static final String CLASSIFIED_LABEL_TEXT = "Classified view";
+	protected static final String CLASSIFIED_LABEL_TEXT = "Classifying view";
 
 	
 	/**
@@ -75,10 +79,10 @@ public class GenUIClassifier extends GenUI {
 	
 	/**
 	 * Constructor with generative model and exclusive mode.
-	 * @param gm generative model.
+	 * @param gm classifier model.
 	 * @param exclusive exclusive mode.
 	 */
-	public GenUIClassifier(GenModelRemote gm, boolean exclusive) {
+	public GenUIClassifier(ClassifierModelRemote gm, boolean exclusive) {
 		this();
 		this.gm = gm;
 		this.exclusive = exclusive;
@@ -88,16 +92,21 @@ public class GenUIClassifier extends GenUI {
 	    initGUI();
 	    
 	    try {
-	    	if (gm != null && isLocalGenModel()) gm.addSetupListener(this);
+	    	if (isRemoteGenModel()) {
+	    		this.exportedStub = NetUtil.RegistryRemote.export(this); //Exporting at random port.
+	    		if (this.exportedStub != null) this.gm.addSetupListener(this);
+	    	}
+	    	else
+	    		this.gm.addSetupListener(this);
 	    } catch (Throwable e) {Util.trace(e);}
 	}
 
 	
 	/**
-	 * Constructor with generative model.
-	 * @param gm generative model.
+	 * Constructor with classifier model.
+	 * @param gm classifier model.
 	 */
-	public GenUIClassifier(GenModelRemote gm) {
+	public GenUIClassifier(ClassifierModelRemote gm) {
 		this(gm, false);
 	}
 
@@ -110,15 +119,17 @@ public class GenUIClassifier extends GenUI {
 
 
 	@Override
-	void reset() {
-		super.reset();
+	void updateControls() {
+		super.updateControls();
 		
+		this.chkLoad3D.setEnabled(false);
 		this.chkRecover.setSelected(true);
-		this.chkAllowAdd.setSelected(true);
-		this.chkRecoverToTest.setSelected(true);
-		
 		this.chkRecover.setEnabled(false);
+		this.chkAllowAdd.setSelected(true);
 		this.chkAllowAdd.setEnabled(false);
+		this.txtGenNum.setEnabled(false);
+		this.chkGenAutoSave.setEnabled(false);
+		this.chkRecoverToTest.setSelected(true);
 		this.chkRecoverToTest.setEnabled(false);
 		
 		this.txtGenNum.setValue(1);
@@ -128,31 +139,8 @@ public class GenUIClassifier extends GenUI {
 
 
 	@Override
-	void updateControls() {
-		super.updateControls();
-		
-		this.chkLoad3D.setEnabled(false);
-		this.chkRecover.setEnabled(false);
-		this.chkAllowAdd.setEnabled(false);
-		this.txtGenNum.setEnabled(false);
-		this.chkGenAutoSave.setEnabled(false);
-		this.chkRecoverToTest.setEnabled(false);
-	}
-
-
-	@Override
-	void changeModel() {
-		if (isRunning()) {
-			JOptionPane.showMessageDialog(this, "Some task running", "Some task running", JOptionPane.ERROR_MESSAGE);
-			return;
-		}
-		
-		if (!exclusive) queryLocalGenModel(gm, this, new GenModelRemote[] {new MatrixClassifier(), new StackClassifier()}, new GenUICreator() {
-			@Override
-			public GenUI create(GenModelRemote gm) {
-				return new GenUIClassifier(gm, false);
-			}
-		});
+	void classify() {
+		JOptionPane.showMessageDialog(this, "Not show classifier GUI.\nBecause this GUI is classifier GUI", "This GUI is classifier GUI", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 
@@ -174,6 +162,7 @@ public class GenUIClassifier extends GenUI {
 			if (config.containsKey(net.ea.ann.classifier.MatrixClassifier.EPOCHS_PSEUDO_FILED))
 				params.maxIteration = config.getAsInt(net.ea.ann.classifier.MatrixClassifier.EPOCHS_PSEUDO_FILED);
 
+			if (!Files.exists(resultDir)) Files.createDirectory(resultDir);
 			String classifiedName = RasterAssoc.genDefaultName(gm.queryName() + "-" + Util.format(params.learningRate), null);
 			BufferedWriter listWriter = Files.newBufferedWriter(resultDir.resolve(classifiedName + "-" + "list" + ".csv"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 			ClassifierAssoc.saveClassifyInfo(listWriter, sources, results);
@@ -203,8 +192,8 @@ public class GenUIClassifier extends GenUI {
 				params.learningRate = config.getAsReal(NetworkAbstract.LEARN_RATE_FIELD);
 			if (config.containsKey(NetworkAbstract.LEARN_MAX_ITERATION_FIELD))
 				params.batches = config.getAsInt(NetworkAbstract.LEARN_MAX_ITERATION_FIELD);
-			if (config.containsKey(ClassifierAbstract.CONV_FIELD))
-				params.conv = config.getAsBoolean(ClassifierAbstract.CONV_FIELD);
+			if (config.containsKey(ClassifierAbstract.FILTER_MODE_FIELD))
+				params.filterMode = config.getAsBoolean(ClassifierAbstract.FILTER_MODE_FIELD);
 			if (config.containsKey(ClassifierAbstract.FILTER_SIZE_FIELD))
 				params.filterSize = config.getAsInt(ClassifierAbstract.FILTER_SIZE_FIELD);
 			if (config.containsKey(MatrixNetworkAbstract.VECTORIZED_FIELD))
@@ -219,12 +208,12 @@ public class GenUIClassifier extends GenUI {
 				params.entropyTrainer = config.getAsBoolean(ClassifierAbstract.ENTROPY_TRAINER_FIELD);
 			if (config.containsKey(net.ea.ann.classifier.TransformerClassifier.BLOCKS_NUMBER_FIELD))
 				params.blocks = config.getAsInt(net.ea.ann.classifier.TransformerClassifier.BLOCKS_NUMBER_FIELD);
-			if (config.containsKey(net.ea.ann.mane.beans.VGG.POOL_TYPE_FIELD))
-				params.poolType = FilterSpec.intToPoolType(config.getAsInt(net.ea.ann.mane.beans.VGG.POOL_TYPE_FIELD));
+			if (config.containsKey(net.ea.ann.mane.beans.VGG.FILTER_POOL_TYPE_FIELD))
+				params.poolType = FilterSpec.intToPoolType(config.getAsInt(net.ea.ann.mane.beans.VGG.FILTER_POOL_TYPE_FIELD));
 			if (config.containsKey(net.ea.ann.mane.beans.VGG.WEIGHT_TYPE_FIELD))
-				params.weightType = WeightSpec.intToType(config.getAsInt(net.ea.ann.mane.beans.VGG.WEIGHT_TYPE_FIELD));
-			if (config.containsKey(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD))
-				params.filtersNumber = config.getAsInt(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD);
+				params.weightType = WeightSpec.intToKernelType(config.getAsInt(net.ea.ann.mane.beans.VGG.WEIGHT_TYPE_FIELD));
+			if (config.containsKey(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_FIELD))
+				params.filtersNumber = config.getAsInt(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_FIELD);
 			if (config.containsKey(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_FIELD))
 				params.middleSize = net.ea.ann.mane.beans.VGG.paramGetVGGMiddleSize(config.getAsString(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_FIELD));
 			if (config.containsKey(net.ea.ann.mane.beans.VGG.FFN_LENGTH_FIELD))
@@ -233,7 +222,9 @@ public class GenUIClassifier extends GenUI {
 				params.treeModel = net.ea.ann.classifier.ForestClassifier.toTreeModel(config.getAsInt(net.ea.ann.classifier.ForestClassifier.TREE_MODEL_FIELD));
 			if (config.containsKey(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED))
 				params.maxIteration = config.getAsInt(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED);
-			Classifier classifier = gm.getParameter() != null && gm.getParameter() instanceof Classifier ? (Classifier)gm.getParameter() : null;
+			
+			boolean remote = gm instanceof GenModel ? AlgDesc2.isRemote((GenModel)gm) : true;
+			Classifier classifier = !remote && gm.getParameter() != null && gm.getParameter() instanceof Classifier ? (Classifier)gm.getParameter() : null;
 			if (classifier != null) {
 				params.depth = new ClassifierAssoc(classifier).depth();
 				params.paramSize = new ClassifierAssoc(classifier).sizeOfParams();
@@ -243,19 +234,57 @@ public class GenUIClassifier extends GenUI {
 	}
 	
 	
+	@Override
+	protected GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
+		return queryLocalGenModel((ClassifierModelRemote)initialGM, (GenUIClassifier)initialUI);
+	}
+
+
 	/**
 	 * Querying local generative model.
-	 * @param initialGM initial generative model.
-	 * @param initialUI generative model UI.
-	 * @return local generative model.
+	 * @param initialGM initial classifier model.
+	 * @param initialUI classifier UI.
+	 * @return local classifier model.
 	 */
-	static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
-		return queryLocalGenModel(initialGM, initialUI, new GenModelRemote[] {new VGG(), new NiN(), new MatrixClassifier(), new TransformerClassifier(), new ForestClassifier(), new StackClassifier()}, new GenUICreator() {
+	private static GenUIClassifier queryLocalGenModel(ClassifierModelRemote initialGM, GenUIClassifier initialUI) {
+		return queryLocalGenModel(ClassifierModelRemote.class, initialGM, initialUI);
+	}
+
+	
+	/**
+	 * Querying local classifier model.
+	 * @param gmClass classifier model class.
+	 * @param initialGM initial classifier model.
+	 * @param initialUI classifier UI.
+	 * @param <T> classifier type.
+	 * @return local classifier model.
+	 */
+	private static <T extends ClassifierModelRemote> GenUIClassifier queryLocalGenModel(Class<T> gmClass, T initialGM, GenUIClassifier initialUI) {
+		return (GenUIClassifier) GenUI.queryLocalGenModel(gmClass, initialGM, initialUI, new GenUI.GenUICreator<T>() {
+			
+			/**
+			 * Serial version UID for serializable class. 
+			 */
+			private static final long serialVersionUID = 1L;
+
 			@Override
-			public GenUI create(GenModelRemote gm) {
-				return new GenUIClassifier(gm, false);
+			public GenUI create(T gm) {return new GenUIClassifier(gm, false);}
+
+			@SuppressWarnings("unchecked")
+			@Override
+			public T[] getDefaultGMs() {
+				T[] defaultGMs = Util.newArray(gmClass, 6);
+				defaultGMs[0] = (T)new VGG();
+				defaultGMs[1] = (T)new NiN();
+				defaultGMs[2] = (T)new MatrixClassifier();
+				defaultGMs[3] = (T)new TransformerClassifier();
+				defaultGMs[4] = (T)new ForestClassifier();
+				defaultGMs[5] = (T)new StackClassifier();
+				return defaultGMs;
 			}
+			
 		});
+		
 	}
 	
 	
@@ -272,7 +301,7 @@ public class GenUIClassifier extends GenUI {
 		}
 
 		if (arg == null) {
-			GenUIClassifier classifierUI = (GenUIClassifier)queryLocalGenModel(new VGG(), null);
+			GenUIClassifier classifierUI = queryLocalGenModel(new VGG(), null);
 			if (classifierUI != null) classifierUI.setVisible(true);
 		}
 		else if (arg.equalsIgnoreCase("mane") || arg.equalsIgnoreCase("gen") || arg.equalsIgnoreCase("general"))

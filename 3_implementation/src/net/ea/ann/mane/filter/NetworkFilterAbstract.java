@@ -135,17 +135,17 @@ abstract class NetworkFilterAbstract extends KernelFilter implements NetworkFilt
 			}
 		}
 		
-		//Calculating mean of values.
-		if (CALC_ERROR_MEAN) {
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					int count = dPrevValuesCount[row][column];
-					if (count <= 0) continue;
-					NeuronValue mean = dPrevValues.get(row, column).divide(count);
-					dPrevValues.set(row, column, mean);
-				}
-			}
-		}
+//		//Calculating mean of values.
+//		if (CALC_ERROR_MEAN) {
+//			for (int row = 0; row < rows; row++) {
+//				for (int column = 0; column < columns; column++) {
+//					int count = dPrevValuesCount[row][column];
+//					if (count <= 0) continue;
+//					NeuronValue mean = dPrevValues.get(row, column).divide(count);
+//					dPrevValues.set(row, column, mean);
+//				}
+//			}
+//		}
 		return dPrevValues;
 	}
 	

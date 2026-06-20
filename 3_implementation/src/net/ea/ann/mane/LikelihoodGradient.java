@@ -9,6 +9,8 @@ package net.ea.ann.mane;
 
 import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixStack;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.Size;
 
@@ -46,13 +48,13 @@ public interface LikelihoodGradient {
 	
 	
 	/**
-	 * Calculating gradient of loss entropy by column.
+	 * Calculating gradient of entropy by column.
 	 * @param output computed or predicted output.
 	 * @param realOutputProb real probabilistic distribution from environment.
 	 * @param params additional parameters.
 	 * @return the last bias.
 	 */
-	static Matrix lossEntropyGradientByRow(Matrix output, Matrix realOutputProb, Object...params) {
+	private static Matrix entropyGradientByRow0(Matrix output, Matrix realOutputProb, Object...params) {
 		//Normalizing real probabilities.
 		for (int row = 0; realOutputProb != null && row < realOutputProb.rows(); row++) {
 			NeuronValue sum = realOutputProb.get(0, 0).zero();
@@ -67,8 +69,7 @@ public interface LikelihoodGradient {
 			}
 		}
 
-		//Weight matrix.
-		//Sample weight.
+		//Sample weight. These optional code lines are not important, which can be removed.
 		Matrix sampleWeight = null;
 		if (params != null && params.length > 0 && params[0] != null && (params[0] instanceof Matrix)) {
 			sampleWeight = (Matrix)params[0];
@@ -103,21 +104,44 @@ public interface LikelihoodGradient {
 
 	
 	/**
-	 * Calculating gradient of loss entropy by column.
-	 * @param output computed or predicted output.
-	 * @return the last bias.
-	 */
-	static Matrix lossEntropyGradientByRow(Matrix output) {return lossEntropyGradientByRow(output, null);}
-	
-	
-	/**
-	 * Calculating gradient of loss entropy by column.
+	 * Calculating gradient of entropy by column.
 	 * @param output computed or predicted output.
 	 * @param realOutputProb real probabilistic distribution from environment.
 	 * @param params additional parameters.
 	 * @return the last bias.
 	 */
-	static Matrix lossEntropyGradientByColumn(Matrix output, Matrix realOutputProb, Object...params) {
+	static Matrix entropyGradientByRow(Matrix output, Matrix realOutputProb, Object...params) {
+		if (!(output instanceof MatrixStack)) {
+			if ((realOutputProb != null) && (realOutputProb instanceof MatrixStack)) throw new IllegalArgumentException();
+			return entropyGradientByRow0(output, realOutputProb, params);
+		}
+		
+		Matrix[] outputs = MatrixUtil.split(output);
+		Matrix[] realOutputProbs = realOutputProb != null ? MatrixUtil.split(realOutputProb) : null;
+		Matrix[] grads = new Matrix[outputs.length];
+		for (int d = 0; d < outputs.length; d++) {
+			grads[d] = entropyGradientByRow(outputs[d], realOutputProbs != null ? realOutputProbs[d] : null, params);
+		}
+		return MatrixUtil.join(grads);
+	}
+	
+	
+	/**
+	 * Calculating gradient of entropy by column.
+	 * @param output computed or predicted output.
+	 * @return the last bias.
+	 */
+	static Matrix entropyGradientByRow(Matrix output) {return entropyGradientByRow(output, null);}
+	
+	
+	/**
+	 * Calculating gradient of entropy by column.
+	 * @param output computed or predicted output.
+	 * @param realOutputProb real probabilistic distribution from environment.
+	 * @param params additional parameters.
+	 * @return the last bias.
+	 */
+	private static Matrix entropyGradientByColumn0(Matrix output, Matrix realOutputProb, Object...params) {
 		//Normalizing real probabilities.
 		for (int column = 0; realOutputProb != null && column < realOutputProb.columns(); column++) {
 			NeuronValue sum = realOutputProb.get(0, 0).zero();
@@ -132,7 +156,7 @@ public interface LikelihoodGradient {
 			}
 		}
 		
-		//Sample weight.
+		//Sample weight. These optional code lines are not important, which can be removed.
 		Matrix sampleWeight = null;
 		if (params != null && params.length > 0 && params[0] != null && (params[0] instanceof Matrix)) {
 			sampleWeight = (Matrix)params[0];
@@ -167,11 +191,34 @@ public interface LikelihoodGradient {
 	
 	
 	/**
+	 * Calculating gradient of entropy by column.
+	 * @param output computed or predicted output.
+	 * @param realOutputProb real probabilistic distribution from environment.
+	 * @param params additional parameters.
+	 * @return the last bias.
+	 */
+	static Matrix entropyGradientByColumn(Matrix output, Matrix realOutputProb, Object...params) {
+		if (!(output instanceof MatrixStack)) {
+			if ((realOutputProb != null) && (realOutputProb instanceof MatrixStack)) throw new IllegalArgumentException();
+			return entropyGradientByColumn0(output, realOutputProb, params);
+		}
+
+		Matrix[] outputs = MatrixUtil.split(output);
+		Matrix[] realOutputProbs = realOutputProb != null ? MatrixUtil.split(realOutputProb) : null;
+		Matrix[] grads = new Matrix[outputs.length];
+		for (int d = 0; d < outputs.length; d++) {
+			grads[d] = entropyGradientByColumn(outputs[d], realOutputProbs != null ? realOutputProbs[d] : null, params);
+		}
+		return MatrixUtil.join(grads);
+	}
+
+	
+	/**
 	 * Calculating gradient of loss entropy by column.
 	 * @param output computed or predicted output.
 	 * @return the last bias.
 	 */
-	static Matrix lossEntropyGradientByColumn(Matrix output) {return lossEntropyGradientByColumn(output, null);}
+	static Matrix entropyGradientByColumn(Matrix output) {return entropyGradientByColumn(output, null);}
 	
 	
 }

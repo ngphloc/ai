@@ -24,10 +24,10 @@ import net.ea.ann.core.value.NeuronValue;
 public interface Filter extends Serializable, Cloneable {
 
 	
-	/**
-	 * Flag to calculate error mean.
-	 */
-	static boolean CALC_ERROR_MEAN = net.ea.ann.conv.filter.Filter.CALC_ERROR_MEAN;
+//	/**
+//	 * Flag to calculate error mean.
+//	 */
+//	static boolean CALC_ERROR_MEAN = net.ea.ann.conv.filter.Filter.CALC_ERROR_MEAN;
 	
 	
 	/**
@@ -152,7 +152,7 @@ public interface Filter extends Serializable, Cloneable {
 	 * @param prevOutputLayer previous output layer.
 	 * @param thisErrorLayer current layer as bias layer.
 	 * @param thisActivateRef activation function of current layer.
-	 * @return derivative of previous layers given current layers as bias layers.
+	 * @return derivative of previous layers (at previous output layer) given current layers as bias layers.
 	 */
 	Matrix dValue(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 
@@ -164,7 +164,7 @@ public interface Filter extends Serializable, Cloneable {
 	 * @param prevOutputLayer previous output layer.
 	 * @param thisErrorLayer current layer as bias layer.
 	 * @param thisActivateRef activation function of current layer.
-	 * @return derivative of kernel of previous layers given current layers as bias layers.
+	 * @return derivative of kernel of previous layers (at previous output layer) given current layers as bias layers.
 	 */
 	Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 

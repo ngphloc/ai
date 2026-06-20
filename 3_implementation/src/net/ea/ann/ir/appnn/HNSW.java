@@ -17,7 +17,7 @@ import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
 
-import net.ea.ann.ir.AppNNAbstract;
+import net.ea.ann.ir.AppNNAbstract.MatrixFeatureAppNNAbstract;
 
 /**
  * This class is a default and simple implementation of Hierarchical Navigable Small World (HNSW) algorithm.
@@ -25,7 +25,7 @@ import net.ea.ann.ir.AppNNAbstract;
  * @version 1.0
  *
  */
-public abstract class HNSW extends AppNNAbstract {
+public abstract class HNSW extends MatrixFeatureAppNNAbstract {
 
 
 	/**

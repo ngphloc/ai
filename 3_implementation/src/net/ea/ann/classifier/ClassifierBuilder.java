@@ -16,11 +16,11 @@ import java.util.Scanner;
 import net.ea.ann.classifier.ForestClassifier.TreeModel;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
-import net.ea.ann.mane.MatrixNetworkAbstract;
-import net.ea.ann.mane.WeightSpec;
 import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.FilterSpec.PoolType;
-import net.ea.ann.mane.WeightSpec.Type;
+import net.ea.ann.mane.MatrixNetworkAbstract;
+import net.ea.ann.mane.WeightSpec;
+import net.ea.ann.mane.WeightSpec.KernelType;
 import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.Size;
 
@@ -123,9 +123,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Including convolutional neural network.
+	 * Including filtering.
 	 */
-	protected boolean conv = ClassifierAbstract.CONV_DEFAULT;
+	protected boolean filterMode = ClassifierAbstract.FILTER_MODE_DEFAULT;
 	
 	
 	/**
@@ -179,19 +179,19 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	/**
 	 * Pooling type.
 	 */
-	protected PoolType poolType = ClassifierAbstract.POOL_TYPE_DEFAULT;
+	protected PoolType poolType = ClassifierAbstract.FILTER_POOL_TYPE_DEFAULT;
 
 	
 	/**
 	 * Weight type.
 	 */
-	protected Type weightType = ClassifierAbstract.WEIGHT_TYPE_DEFAULT;
+	protected KernelType weightType = ClassifierAbstract.WEIGHT_KERNEL_TYPE_DEFAULT;
 	
 	
 	/**
 	 * Number of filters,
 	 */
-	protected int filtersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT;
+	protected int filtersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_DEFAULT;
 	
 	
 	/**
@@ -216,17 +216,13 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public ClassifierBuilder(int neuronChannel) {
-		this.neuronChannel = neuronChannel;
-	}
+	public ClassifierBuilder(int neuronChannel) {this.neuronChannel = neuronChannel;}
 
 	
 	/**
 	 * Default constructor.
 	 */
-	public ClassifierBuilder() {
-		
-	}
+	public ClassifierBuilder() {}
 	
 	
 	/**
@@ -414,9 +410,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting classifier model.
 	 * @return classifier model.
 	 */
-	public ClassifierModel getModel() {
-		return model;
-	}
+	public ClassifierModel getModel() {return model;}
 	
 	
 	/**
@@ -445,9 +439,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting learning rate.
 	 * @return learning rate.
 	 */
-	public double getLearningRate() {
-		return learningRate;
-	}
+	public double getLearningRate() {return learningRate;}
 	
 	
 	/**
@@ -465,9 +457,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting batches.
 	 * @return batches.
 	 */
-	public int getBatches() {
-		return batches;
-	}
+	public int getBatches() {return batches;}
 	
 	
 	/**
@@ -482,21 +472,19 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Getting convolutional mode.
-	 * @return convolutional mode.
+	 * Getting filter mode.
+	 * @return filter mode.
 	 */
-	public boolean isConv() {
-		return conv;
-	}
+	public boolean isFilterMode() {return filterMode;}
 	
 	
 	/**
-	 * Setting flag to include convolutional neural network.
-	 * @param conv flag to include convolutional neural network.
+	 * Setting flag to include filter.
+	 * @param filterMode flag to include filter.
 	 * @return this builder.
 	 */
-	public ClassifierBuilder setConv(boolean conv) {
-		this.conv = conv;
+	public ClassifierBuilder setFilterMode(boolean filterMode) {
+		this.filterMode = filterMode;
 		return this;
 	}
 	
@@ -505,9 +493,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting filter size.
 	 * @return filter size.
 	 */
-	public int getFilterSize() {
-		return filterSize;
-	}
+	public int getFilterSize() {return filterSize;}
 	
 	
 	/**
@@ -525,9 +511,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting vectorization mode.
 	 * @return vectorization mode.
 	 */
-	public boolean isVectorized() {
-		return vectorized;
-	}
+	public boolean isVectorized() {return vectorized;}
 	
 	
 	/**
@@ -556,18 +540,14 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting dual mode.
 	 * @return dual mode.
 	 */
-	public boolean isBaseline() {
-		return baseline;
-	}
+	public boolean isBaseline() {return baseline;}
 	
 	
 	/**
 	 * Getting adjustment mode.
 	 * @return adjustment mode.
 	 */
-	public boolean isAdjust() {
-		return adjust;
-	}
+	public boolean isAdjust() {return adjust;}
 	
 	
 	/**
@@ -585,9 +565,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting dual mode.
 	 * @return dual mode.
 	 */
-	public boolean isDual() {
-		return dual;
-	}
+	public boolean isDual() {return dual;}
 	
 	
 	/**
@@ -605,9 +583,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting depth.
 	 * @return depth.
 	 */
-	public int getDepth() {
-		return depth;
-	}
+	public int getDepth() {return depth;}
 	
 	
 	/**
@@ -625,9 +601,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting cross-entropy mode.
 	 * @return cross-entropy mode.
 	 */
-	public boolean isEntropyTrainer() {
-		return entropyTrainer;
-	}
+	public boolean isEntropyTrainer() {return entropyTrainer;}
 	
 	
 	/**
@@ -645,9 +619,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting blocks.
 	 * @return blocks.
 	 */
-	public int getBlocks() {
-		return blocks;
-	}
+	public int getBlocks() {return blocks;}
 	
 	
 	/**
@@ -665,9 +637,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting pooling type.
 	 * @return pooling type.
 	 */
-	public PoolType getPoolType() {
-		return poolType;
-	}
+	public PoolType getPoolType() {return poolType;}
 	
 	
 	/**
@@ -682,20 +652,18 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 
 	
 	/**
-	 * Getting weight type.
-	 * @return weight type.
+	 * Getting weight kernel type.
+	 * @return weight kernel type.
 	 */
-	public Type getWeightType() {
-		return weightType;
-	}
+	public KernelType getWeightType() {return weightType;}
 	
 	
 	/**
-	 * Setting weight type.
-	 * @param weightType weight type.
+	 * Setting weight kernel type.
+	 * @param weightType weight kernel type.
 	 * @return this builder.
 	 */
-	public ClassifierBuilder setWeightType(Type weightType) {
+	public ClassifierBuilder setWeightType(KernelType weightType) {
 		this.weightType = weightType;
 		return this;
 	}
@@ -705,9 +673,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting number of filters.
 	 * @return number of filters.
 	 */
-	public int getFiltersNumber() {
-		return filtersNumber;
-	}
+	public int getFiltersNumber() {return filtersNumber;}
 	
 	
 	/**
@@ -725,9 +691,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting middle size.
 	 * @return middle size.
 	 */
-	public Size getMiddleSize() {
-		return middleSize;
-	}
+	public Size getMiddleSize() {return middleSize;}
 	
 	
 	/**
@@ -745,9 +709,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting length of feed-forward network.
 	 * @return length of feed-forward network.
 	 */
-	public int getFFNLength() {
-		return ffnLength;
-	}
+	public int getFFNLength() {return ffnLength;}
 	
 	
 	/**
@@ -765,9 +727,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 * Getting tree model.
 	 * @return tree model.
 	 */
-	public TreeModel getTreeModel() {
-		return treeModel;
-	}
+	public TreeModel getTreeModel() {return treeModel;}
 	
 	
 	/**
@@ -825,10 +785,10 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			ClassifierAbstract ca = (ClassifierAbstract)classifier;
 			ca.paramSetLearningRate(learningRate);
 			ca.paramSetBatches(batches);
-			ca.paramSetConv(conv);
+			ca.paramSetFilterMode(filterMode);
 			ca.paramSetFilterSize(filterSize);
-			ca.paramSetPoolType(poolType);
-			ca.paramSetWeightType(weightType);
+			ca.paramSetFilterPoolType(poolType);
+			ca.paramSetWeightKernelType(weightType);
 			ca.paramSetVectorized(vectorized);
 			ca.paramSetBaseline(baseline);
 			ca.paramSetAdjust(adjust);
@@ -939,17 +899,17 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		if (batches <= 0) batches = defaultBatches;
 		printer.println("Batches are " + batches + "\n");
 	
-		boolean conv = ClassifierAbstract.CONV_DEFAULT;
-		printer.print("Including convolutional neural network (" + conv + " is default):");
+		boolean filterMode = ClassifierAbstract.FILTER_MODE_DEFAULT;
+		printer.print("Including convolutional neural network (" + filterMode + " is default):");
 		try {
 			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) conv = Boolean.parseBoolean(line);
+			if (!line.isBlank() && !line.isEmpty()) filterMode = Boolean.parseBoolean(line);
 		} catch (Throwable e) {}
-		printer.println("Including convolutional neural network is " + conv + "\n");
+		printer.println("Including convolutional neural network is " + filterMode + "\n");
 	
 		int defaultFilterSize = ClassifierAbstract.FILTER_SIZE_DEFAULT;
 		int filterSize = defaultFilterSize;
-		if (conv) {
+		if (filterMode) {
 			printer.print("Filter size (default " + filterSize + "):");
 			try {
 				String line = scanner.nextLine().trim();
@@ -961,7 +921,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		}
 		
 		PoolType poolType = PoolType.max;
-		if (conv) {
+		if (filterMode) {
 			printer.print("Pooling type (0-max, 1-average) (default pooling type" + " is " + poolType + "):");
 			int poolTypeIndex = FilterSpec.poolTypeToInt(poolType);
 			try {
@@ -972,15 +932,15 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			printer.println("Pooling type is " + poolType + "\n");
 		}
 
-		Type weightType = Type.normal;
-		if (!conv) {
+		KernelType weightType = KernelType.normal;
+		if (!filterMode) {
 			printer.print("Weight type (0-normal, 1-transformer) (default weight type" + " is " + weightType + "):");
-			int weightTypeIndex = WeightSpec.typeToInt(weightType);
+			int weightTypeIndex = WeightSpec.kernelTypeToInt(weightType);
 			try {
 				String line = scanner.nextLine().trim();
 				if (!line.isBlank() && !line.isEmpty()) weightTypeIndex = Integer.parseInt(line);
 			} catch (Throwable e) {}
-			if (!Double.isNaN(weightTypeIndex) && weightTypeIndex >= 0) weightType = WeightSpec.intToType(weightTypeIndex);
+			if (!Double.isNaN(weightTypeIndex) && weightTypeIndex >= 0) weightType = WeightSpec.intToKernelType(weightTypeIndex);
 			printer.println("Weight type is " + weightType + "\n");
 		}
 
@@ -1012,8 +972,8 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			printer.println("Adjustment is " + adjust + "\n");
 		}
 	
-		boolean dual = conv ? ClassifierAbstract.DUAL_DEFAULT : false;
-		if (conv && dual) {
+		boolean dual = filterMode ? ClassifierAbstract.DUAL_DEFAULT : false;
+		if (filterMode && dual) {
 			printer.print("Dual mode (" + dual + " is default):");
 			try {
 				String line = scanner.nextLine().trim();
@@ -1049,7 +1009,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setModel(modelIndex);
 		builder.setLearningRate(lr);
 		builder.setBatches(batches);
-		builder.setConv(conv);
+		builder.setFilterMode(filterMode);
 		builder.setFilterSize(filterSize);
 		builder.setPoolType(poolType);
 		builder.setWeightType(weightType);
@@ -1073,16 +1033,16 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			printer.println("Middle size is (" + middleSize + ", " + middleSize + ") )\n");
 			builder.setMiddleSize(new Size(middleSize, middleSize));
 
-			int defaultFiltersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT;
+			int defaultFiltersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_DEFAULT;
 			int filtersNumber = defaultFiltersNumber;
-			printer.print("Number of " + (conv ? "filters" : "weights") + " is (default " + defaultFiltersNumber + "):");
+			printer.print("Number of " + (filterMode ? "filters" : "weights") + " is (default " + defaultFiltersNumber + "):");
 			try {
 				String line = scanner.nextLine().trim();
 				if (!line.isBlank() && !line.isEmpty()) filtersNumber = Integer.parseInt(line);
 			} catch (Throwable e) {}
 			if (Double.isNaN(filtersNumber)) filtersNumber = defaultFiltersNumber;
 			if (filtersNumber <= 0) filtersNumber = defaultFiltersNumber;
-			printer.println("Number of " + (conv ? "filters" : "weights") + " is " + filtersNumber + "\n");
+			printer.println("Number of " + (filterMode ? "filters" : "weights") + " is " + filtersNumber + "\n");
 			builder.setFiltersNumber(filtersNumber);
 
 			int defaultFFNLength = net.ea.ann.mane.beans.VGG.FFN_LENGTH_DEFAULT;

@@ -10,11 +10,22 @@ package net.ea.ann.ir;
 import java.io.Serializable;
 
 /**
- * THis interface represents feature extraction component.
+ * This interface represents feature extraction component.
  * @author Loc Nguyen
  * @version 1.0
  *
+ * @param <U> record type.
+ * @param <V> feature type.
  */
-public interface Extractor extends Serializable, Cloneable {
+public interface Extractor<U extends Record, V extends Feature> extends Serializable, Cloneable {
 
+	
+	/**
+	 * Feature of record.
+	 * @param record record.
+	 * @return feature of record.
+	 */
+	V featureOf(U record);
+	
+	
 }

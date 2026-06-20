@@ -21,10 +21,12 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -59,18 +61,20 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.text.NumberFormatter;
 
+import net.ea.ann.adapter.gen.ClassifierModelRemote;
 import net.ea.ann.adapter.gen.GenModel;
 import net.ea.ann.adapter.gen.GenModelAbstract;
 import net.ea.ann.adapter.gen.GenModelRemote;
 import net.ea.ann.adapter.gen.GenModelRemoteAssoc;
 import net.ea.ann.adapter.gen.GenModelRemoteWrapper;
+import net.ea.ann.adapter.gen.IRRemote;
 import net.ea.ann.adapter.gen.beans.AVA;
 import net.ea.ann.adapter.gen.beans.AVAExt;
 import net.ea.ann.adapter.gen.beans.GAN;
+import net.ea.ann.adapter.gen.beans.IRProxyNCA;
 import net.ea.ann.adapter.gen.beans.VAE;
+import net.ea.ann.adapter.gen.beans.VGG;
 import net.ea.ann.adapter.ui.ImagePathListExt;
-import net.ea.ann.classifier.Classifier;
-import net.ea.ann.classifier.StackClassifier;
 import net.ea.ann.conv.Content;
 import net.ea.ann.conv.ContentAssoc;
 import net.ea.ann.core.NetworkAbstract;
@@ -83,7 +87,9 @@ import net.ea.ann.raster.ImageWrapper;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterWrapper;
+import net.hudup.core.Configuration;
 import net.hudup.core.Constants;
+import net.hudup.core.alg.AlgDesc2;
 import net.hudup.core.alg.SetupAlgEvent;
 import net.hudup.core.alg.SetupAlgListener;
 import net.hudup.core.alg.ui.AlgConfigDlg;
@@ -92,6 +98,7 @@ import net.hudup.core.data.PropList;
 import net.hudup.core.data.Wrapper;
 import net.hudup.core.logistic.AbstractRunner;
 import net.hudup.core.logistic.Inspector;
+import net.hudup.core.logistic.NetUtil;
 import net.hudup.core.logistic.ui.JImageList.ImageListItem;
 import net.hudup.core.logistic.ui.JImageList.ImagePathList;
 import net.hudup.core.logistic.ui.StartDlg;
@@ -131,7 +138,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Flag to indicate whether task is running in background.
 	 */
-	protected static final boolean TASK_BACKGROUND = false;
+	protected static final boolean TASK_BACKGROUND = true;
 	
 	
 	/**
@@ -389,7 +396,8 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 			
 			Object parameter = null;
 			try {
-				parameter = gm.getParameter();
+				boolean remote = gm instanceof GenModel ? AlgDesc2.isRemote((GenModel)gm) : true;
+				if (!remote) parameter = gm.getParameter();
 			} catch (Throwable e) {Util.trace(e);}
 			if ((parameter == null) || !(parameter instanceof FeatureGetter)) {
 				JOptionPane.showMessageDialog(this, "Cannot retrieve feature", "Cannot retrieve feature", JOptionPane.ERROR_MESSAGE);
@@ -720,6 +728,12 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	
 	
 	/**
+	 * Exported stub of this GUI.
+	 */
+	protected Remote exportedStub = null;
+	
+	
+	/**
 	 * Default constructor.
 	 */
 	GenUI() {
@@ -751,7 +765,14 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	    initGUI();
 	    
 	    try {
-	    	if (gm != null && isLocalGenModel()) gm.addSetupListener(this);
+	    	if (isRemoteGenModel()) {
+	    		Configuration.RMI_MODE = true;
+	    		
+	    		this.exportedStub = NetUtil.RegistryRemote.export(this); //Exporting at random port.
+	    		if (this.exportedStub != null) this.gm.addSetupListener(this);
+	    	}
+	    	else
+	    		this.gm.addSetupListener(this);
 	    } catch (Throwable e) {Util.trace(e);}
 	}
 
@@ -775,11 +796,13 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	
 	
 	/**
-	 * Checking whether the internal generative model is local.
-	 * @return whether the internal generative model is local.
+	 * Checking whether the internal generative model is remote.
+	 * @return whether the internal generative model is remote.
 	 */
-	boolean isLocalGenModel() {
-		return gm != null && gm instanceof GenModel;
+	boolean isRemoteGenModel() {
+		boolean remote = false;
+		if (gm != null) remote = gm instanceof GenModel ? AlgDesc2.isRemote((GenModel)gm) : true;
+		return remote;
 	}
 	
 	
@@ -881,7 +904,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		btnRecoverClearRasters.setEnabled(chkRecover.isSelected() && !isRunning());
 		chkRecoverToTest.setEnabled(chkRecover.isSelected() && !isRunning());
 		
-		prgRunning.setEnabled(taskBackground && isRunning() && isLocalGenModel());
+		prgRunning.setEnabled(taskBackground && isRunning());
 	}
 	
 	
@@ -1653,6 +1676,24 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		mniClassify.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
 		mnTools.add(mniClassify);
 
+		JMenuItem mniRetrieve = new JMenuItem(
+			new AbstractAction("Retrieve") {
+				
+				/**
+				 * Serial version UID for serializable class. 
+				 */
+				private static final long serialVersionUID = 1L;
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					retrieve();
+				}
+				
+			});
+		mniRetrieve.setMnemonic('r');
+		mniRetrieve.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+		mnTools.add(mniRetrieve);
+
 		if (mnTools.getMenuComponentCount() > 0) mnBar.add(mnTools);
 
 		return mnBar.getMenuCount() > 0 ? mnBar : null;
@@ -1667,7 +1708,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 			JOptionPane.showMessageDialog(this, "Some task running", "Some task running", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		if (!exclusive) queryLocalGenModel(gm, this, null, null);
+		if (!exclusive) queryLocalGenModel(gm, this);
 	}
 	
 	
@@ -2700,6 +2741,8 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 				@Override
 				protected void clear() {
 					updateControls();
+					//if (getGenUI().isDisplayable())
+					JOptionPane.showMessageDialog(getGenUI(), "Done", "Done", JOptionPane.INFORMATION_MESSAGE);
 				}
 				
 			};
@@ -2714,6 +2757,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 					doTask0();
 					updateControls();
 					
+					JOptionPane.showMessageDialog(getGenUI(), "Done", "Done", JOptionPane.INFORMATION_MESSAGE);
 					return null;
 				}
 				
@@ -2757,7 +2801,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		txtGenNum.setValue(nGens);
 		try {
 			prgRunning.setValue(0);
-			prgRunning.setVisible(taskBackground && isLocalGenModel());
+			prgRunning.setVisible(taskBackground);
 			
 			newGenRasters = gm.genRasters(bRasters, nGens);
 			
@@ -2832,7 +2876,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		txtGenNum.setValue(nGens);
 		try {
 			prgRunning.setValue(0);
-			prgRunning.setVisible(taskBackground && isLocalGenModel());
+			prgRunning.setVisible(taskBackground);
 			
 			glist = gm.recoverRasters(bRasters, rRasters, nGens);
 			
@@ -2913,6 +2957,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 			} catch (Throwable e) {Util.trace(e);}
 			
 			try {
+				if (!Files.exists(resultDir)) Files.createDirectory(resultDir);
 				BufferedWriter writer = Files.newBufferedWriter(resultDir.resolve(TEST_FILE_NAME), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 				String name = gmName + "-" + Util.format(lr);
 				writer.write(name + ", error=" + Util.format(this.error) + "\n");
@@ -2926,286 +2971,63 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Classifying rasters.
 	 */
-	private void classify() {
-		List<String> classifyRasters = Util.newList(0);
-		classifyRasters.addAll(Arrays.asList(VIEWS));
-		Collections.sort(classifyRasters);
-		final StartDlg dlgStarter = new StartDlg(this, "Classify rasters") {
-			
-			/**
-			 * Serial version UID for serializable class.
-			 */
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			protected void start() {
-				String flag = (String)getItemControl().getSelectedItem();
-				dispose();
-				
-				switch (flag) {
-				case BASE_VIEW:
-					new RasterClassfier(baseRasters.queryItemRasters(), flag).setVisible(true);;
-					break;
-				case GEN_VIEW:
-					new RasterClassfier(genRasters.queryItemRasters(), flag).setVisible(true);;
-					break;
-				case RECOVER_VIEW:
-					new RasterClassfier(recoverRasters.queryItemRasters(), flag).setVisible(true);;
-					break;
-				default:
-					new RasterClassfier(baseRasters.queryItemRasters(), flag).setVisible(true);;
-					break;
-				}
-			}
-			
-			@Override
-			protected JComboBox<?> createItemControl() {
-				return new JComboBox<String>(classifyRasters.toArray(new String[] {}));
-			}
-			
-		};
-		dlgStarter.getItemControl().setSelectedItem(BASE_VIEW);
-		dlgStarter.setSize(DIALOG_INFO_SIZE);
-		dlgStarter.setLocationRelativeTo(this);
-        dlgStarter.setVisible(true);
-
+	void classify() {
+		GenUIClassifier classifierGUI = null;
+		if (this.gm instanceof ClassifierModelRemote) {
+			ClassifierModelRemote cm = (ClassifierModelRemote)gm;
+			classifierGUI = new GenUIClassifier(cm, this.exclusive);
+		}
+		else {
+			VGG vgg = new VGG();
+			classifierGUI = new GenUIClassifier(vgg, this.exclusive);
+		}
+		
+		classifierGUI.setData(this);
+		classifierGUI.setVisible(true);
 	}
 	
 	
 	/**
-	 * This class represents raster classifier.
-	 * @author Loc Nguyen
-	 * @version 1.0
-	 *
+	 * Classifying rasters.
 	 */
-	protected class RasterClassfier extends ClassifierUI {
-		
-		/**
-		 * Serial version UID for serializable class. 
-		 */
-		private static final long serialVersionUID = 1L;
-
-		/**
-		 * Constructor with parent component and title.
-		 * @param trainingRasters training rasters.
-		 * @param view specified view.
-		 */
-		public RasterClassfier(List<Raster> trainingRasters, String view) {
-			super(trainingRasters, view);
+	void retrieve() {
+		GenUIIR irGUI = null;
+		if (this.gm instanceof IRRemote) {
+			IRRemote ir = (IRRemote)gm;
+			irGUI = new GenUIIR(ir, this.exclusive);
+		}
+		else {
+			IRProxyNCA ir = new IRProxyNCA();
+			irGUI = new GenUIIR(ir, this.exclusive);
 		}
 		
-		@Override
-		protected Classifier getClassifier() {
-			if (gm == null) return (classifier = null);
-			try {
-				boolean isNorm = gm.queryConfig().getAsBoolean(Raster.NORM_FIELD);
-				return classifier != null ? classifier : StackClassifier.create(gm.getNeuronChannel(), gm.getRasterChannel(), isNorm);
-			} catch (Throwable e) {Util.trace(e);}
-			return (classifier = null);
-		}
-
-		/**
-		 * Getting training directory.
-		 * @return training directory.
-		 */
-		private Path getTrainDir() {
-			Path dir = null;
-			switch (view) {
-			case BASE_VIEW:
-				dir = getBaseDir();
-				break;
-			case GEN_VIEW:
-				dir = getGenDir();
-				break;
-			case RECOVER_VIEW:
-				dir = getRecoverDir();
-				break;
-			default:
-				dir = getBaseDir();
-				break;
-			}
-			return dir;
-		}
-		
-		@Override
-		protected void loadTrainDir() {
-			Path trainDir = getTrainDir();
-			if (trainDir == null) {
-				JOptionPane.showMessageDialog(this, "Wrong training directory", "Wrong training directory", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			if (chkAllowAdd.isSelected() || LOAD_RASTER_ALWAYS)
-				addRasters(trainDir, trainRasters);
-			else
-				trainRasters.setListData(trainDir, imageListIconSize, imageListStoreImage);
-		}
-
-		/**
-		 * Adding training rasters.
-		 */
-		private void addTrainRasters() {
-			addRasters(trainRasters, getTrainDir());
-		}
-
-		/**
-		 * Adding training CIFAR rasters.
-		 */
-		private void addTrainRastersCIFAR() {
-			if (chkLoad3D.isSelected()) {
-				JOptionPane.showMessageDialog(this, "Loading 3D not allowed", "Loading 3D not allowed", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			addRastersCIFAR(trainRasters, getTrainDir());
-		}
-
-		/**
-		 * Adding training rasters by folders.
-		 */
-		private void addTrainRastersFolders() {
-			addRastersFolders(trainRasters, getTrainDir());
-		}
-
-		@Override
-		protected void addTrainRastersStarter() {
-			List<String> addRasters = Util.newList(0);
-			addRasters.addAll(Arrays.asList(ADD_RASTERS));
-			Collections.sort(addRasters);
-			final StartDlg dlgStarter = new StartDlg(this, "Add tested rasters") {
-				
-				/**
-				 * Serial version UID for serializable class.
-				 */
-				private static final long serialVersionUID = 1L;
-
-				@Override
-				protected void start() {
-					String flag = (String)getItemControl().getSelectedItem();
-					switch (flag) {
-					case ADD_RASTERS_NORMAL:
-						addTrainRasters();
-						break;
-					case ADD_RASTERS_CIFAR:
-						addTrainRastersCIFAR();
-						break;
-					case ADD_RASTERS_FOLDERS:
-						addTrainRastersFolders();
-						break;
-					default:
-						addTrainRasters();
-						break;
-					}
-					dispose();
-				}
-				
-				@Override
-				protected JComboBox<?> createItemControl() {
-					return new JComboBox<String>(addRasters.toArray(new String[] {}));
-				}
-				
-			};
-			dlgStarter.getItemControl().setSelectedItem(ADD_RASTERS_FOLDERS);
-			dlgStarter.setSize(DIALOG_INFO_SIZE);
-			dlgStarter.setLocationRelativeTo(this);
-	        dlgStarter.setVisible(true);
-		}
-
-		/**
-		 * Getting tested directory.
-		 * @return tested directory.
-		 */
-		private Path getTestDir() {
-			return getRecoverDir();
-		}
-		
-		@Override
-		protected void loadTestDir() {
-			Path testDir = getTestDir();
-			if (testDir == null) {
-				JOptionPane.showMessageDialog(this, "Wrong tested directory", "Wrong tested directory", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			if (chkAllowAdd.isSelected() || LOAD_RASTER_ALWAYS)
-				addRasters(testDir, testRasters);
-			else
-				testRasters.setListData(testDir, imageListIconSize, imageListStoreImage);
-		}
-
-		/**
-		 * Adding tested rasters.
-		 */
-		private void addTestRasters() {
-			addRasters(testRasters, getTestDir());
-		}
-
-		/**
-		 * Adding tested CIFAR rasters.
-		 */
-		private void addTestRastersCIFAR() {
-			if (chkLoad3D.isSelected()) {
-				JOptionPane.showMessageDialog(this, "Loading 3D not allowed", "Loading 3D not allowed", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			addRastersCIFAR(testRasters, getTestDir());
-		}
-
-		/**
-		 * Adding tested rasters by folders.
-		 */
-		private void addTestRastersFolders() {
-			addRastersFolders(testRasters, getTestDir());
-		}
-
-		@Override
-		protected void addTestRastersStarter() {
-			List<String> addRasters = Util.newList(0);
-			addRasters.addAll(Arrays.asList(ADD_RASTERS));
-			Collections.sort(addRasters);
-			final StartDlg dlgStarter = new StartDlg(this, "Add tested rasters") {
-				
-				/**
-				 * Serial version UID for serializable class.
-				 */
-				private static final long serialVersionUID = 1L;
-
-				@Override
-				protected void start() {
-					String flag = (String)getItemControl().getSelectedItem();
-					switch (flag) {
-					case ADD_RASTERS_NORMAL:
-						addTestRasters();
-						break;
-					case ADD_RASTERS_CIFAR:
-						addTestRastersCIFAR();
-						break;
-					case ADD_RASTERS_FOLDERS:
-						addTestRastersFolders();
-						break;
-					default:
-						addTestRasters();
-						break;
-					}
-					dispose();
-				}
-				
-				@Override
-				protected JComboBox<?> createItemControl() {
-					return new JComboBox<String>(addRasters.toArray(new String[] {}));
-				}
-				
-			};
-			dlgStarter.getItemControl().setSelectedItem(ADD_RASTERS_NORMAL);
-			dlgStarter.setSize(DIALOG_INFO_SIZE);
-			dlgStarter.setLocationRelativeTo(this);
-	        dlgStarter.setVisible(true);
-		}
-		
+		irGUI.setData(this);
+		irGUI.setVisible(true);
 	}
+
 	
+	/**
+	 * Setting data from source.
+	 * @param source source.
+	 */
+	void setData(GenUI source) {
+		if (this.baseRasters != null && source.baseRasters != null) {
+			this.baseRasters.setListData(source.baseRasters);
+			this.txtBaseDir.setText(source.txtBaseDir.getText());
+		}
+		if (this.genRasters != null && source.genRasters != null) {
+			this.genRasters.setListData(source.genRasters);
+			this.txtGenDir.setText(source.txtGenDir.getText());
+		}
+		if (this.recoverRasters != null && source.recoverRasters != null) {
+			this.recoverRasters.setListData(source.recoverRasters);
+			this.txtRecoverDir.setText(source.txtRecoverDir.getText());
+		}
+	}
+
 	
 	@Override
-	public void inspect() {
-		setVisible(true);
-	}
+	public void inspect() {setVisible(true);}
 
 
 	@Override
@@ -3245,10 +3067,14 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 			runner = null;
 		}
 
-	    try {
+		try {
 	    	if (gm != null) gm.removeSetupListener(this);
 	    } catch (Throwable e) {Util.trace(e);}
 	    
+		if (exportedStub != null) {
+			NetUtil.RegistryRemote.unexport(this);
+			exportedStub = null;
+		}
 	}
 
 	
@@ -3256,16 +3082,23 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	 * This functional interface provides method to create generative model user interface.
 	 * @author Loc Nguyen
 	 * @version 1.0
+	 * 
+	 * @param <T> remote generative model type.
 	 */
-	@FunctionalInterface
-	protected static interface GenUICreator {
+	protected static interface GenUICreator<T extends GenModelRemote> extends Cloneable, Serializable {
 		
 		/**
 		 * Create generative model user interface with generative model and exclusive mode.
 		 * @param gm generative model.
 		 * @return generative model user interface.
 		 */
-		GenUI create(GenModelRemote gm);
+		GenUI create(T gm);
+		
+		/**
+		 * Getting default remote generative models.
+		 * @return default remote generative models.
+		 */
+		T[] getDefaultGMs();
 		
 	}
 	
@@ -3273,46 +3106,69 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Querying local generative model.
 	 * @param initialGM initial generative model.
-	 * @param initialUI generative model UI.
+	 * @param initialUI generative UI.
 	 * @return local generative model.
 	 */
-	static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
-		return queryLocalGenModel(initialGM, initialUI, null, null);
+	protected GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI) {
+		return queryLocalGenModel(GenModelRemote.class, initialGM, initialUI, null);
 	}
 	
 	
 	/**
 	 * Querying local generative model.
+	 * @param gmClass generative class.
 	 * @param initialGM initial generative model.
-	 * @param initialUI generative model UI.
-	 * @param defaultGMs default generative models.
-	 * @param genUICreator creator to create generative model UI. It can be null.
+	 * @param initialUI generative UI.
+	 * @param genUICreator creator to create generative UI which can be null.
 	 * @return local generative model.
 	 */
-	protected static GenUI queryLocalGenModel(GenModelRemote initialGM, GenUI initialUI, GenModelRemote[] defaultGMs, GenUICreator genUICreator) {
+	protected static <T extends GenModelRemote> GenUI queryLocalGenModel(Class<T> gmClass, GenModelRemote initialGM, GenUI initialUI, GenUICreator<T> genUICreator) {
 		initialGM = (initialGM == null && initialUI != null) ? initialUI.gm : initialGM;
-		if (defaultGMs == null || defaultGMs.length == 0) defaultGMs = new GenModelRemote[] {new VAE(), new GAN(), new AVA(), new AVAExt()};
+		if (genUICreator == null) {
+			genUICreator = new GenUICreator<T>() {
+				
+				/**
+				 * Serial version UID for serializable class. 
+				 */
+				private static final long serialVersionUID = 1L;
+
+				@Override
+				public GenUI create(T gm) {return new GenUI(gm, false);}
+
+				@SuppressWarnings("unchecked")
+				@Override
+				public T[] getDefaultGMs() {
+					T[] defaultGMs = Util.newArray(gmClass, 4);
+					defaultGMs[0] = (T)new VAE();
+					defaultGMs[1] = (T)new GAN();
+					defaultGMs[2] = (T)new AVA();
+					defaultGMs[3] = (T)new AVAExt();
+					return defaultGMs;
+				}
+				
+			};
+		}
 		
 		int ret = JOptionPane.showConfirmDialog(initialUI, "Would you like to query automatically?", "Automatical query", JOptionPane.OK_CANCEL_OPTION);
-		List<GenModelRemote> gmList = Util.newList(0);
+		List<T> gmList = Util.newList(0);
 		if (ret == JOptionPane.OK_OPTION) {
 			try {
-				gmList = net.hudup.core.Util.getPluginManager().loadInstances(GenModelRemote.class);
+				gmList = net.hudup.core.Util.getPluginManager().loadInstances(gmClass);
 			}
 			catch (Throwable e) {
 				Util.trace(e);
-				return genUICreator != null ? genUICreator.create(defaultGMs[0]) : new GenUI(defaultGMs[0], false);
 			}
 		}
 		else {
-			gmList.addAll(Arrays.asList(defaultGMs));
+			T[] defaultGMs = genUICreator != null ? genUICreator.getDefaultGMs() : null;
+			if (defaultGMs != null && defaultGMs.length > 0) gmList.addAll(Arrays.asList(defaultGMs));
 		}
 		if (gmList.size() == 0) return initialUI;
 		
-		Collections.sort(gmList, new Comparator<GenModelRemote>() {
+		Collections.sort(gmList, new Comparator<T>() {
 
 			@Override
-			public int compare(GenModelRemote gm1, GenModelRemote gm2) {
+			public int compare(T gm1, T gm2) {
 				String name1 = null, name2 = null;
 				try {
 					name1 = gm1.queryName();
@@ -3324,7 +3180,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 			
 		});
 		
-		List<GenModelRemote> finalGMList = gmList;
+		List<T> finalGMList = gmList;
 		Wrapper selectedObject = new Wrapper(null);
 		final StartDlg dlgStarter = new StartDlg(initialUI, "Generative models") {
 			
@@ -3361,7 +3217,8 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
         dlgStarter.setVisible(true);
 		
         if (selectedObject.getObject() == null) return null;
-        GenModelRemote gm = (GenModelRemote)selectedObject.getObject();
+        @SuppressWarnings("unchecked")
+		T gm = (T)selectedObject.getObject();
         if (initialUI != null) {
         	try {
 	        	if (!initialGM.queryName().equals(gm.queryName())) {
@@ -3375,7 +3232,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
         	return initialUI;
         }
         else
-        	return genUICreator != null ? genUICreator.create(gm) : new GenUI(gm, false);
+        	return genUICreator.create(gm);
 	}
 	
 	
@@ -3384,7 +3241,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	 * @param args arguments.
 	 */
 	public static void main(String[] args) {
-		GenUI genUI = queryLocalGenModel(new VAE(), null);
+		GenUI genUI = queryLocalGenModel(GenModelRemote.class, new VAE(), null, null);
 		if (genUI != null) genUI.setVisible(true);
 	}
 	

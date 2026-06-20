@@ -10,6 +10,7 @@ package net.ea.ann.mane.beans;
 import java.util.List;
 
 import net.ea.ann.core.Id;
+import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.MatrixUtil;
@@ -29,6 +30,7 @@ import net.hudup.core.parser.TextParserUtil;
 
 /**
  * This class is an implementation of VGG blocks developed by Simonyan and Zisserman with support of matrix.
+ * VGG should not be residual network because it is implemented here as a network bean.
  * 
  * @author Simonyan and Zisserman, implemented by Loc Nguyen
  * @version 1.0
@@ -46,7 +48,7 @@ public class VGG extends MatrixNetworkImpl {
 	/**
 	 * Default base.
 	 */
-	final static int BASE = ZOOMOUT_DEFAULT;
+	private final static int BASE = ZOOMOUT_DEFAULT;
 	
 	
 	/**
@@ -68,15 +70,27 @@ public class VGG extends MatrixNetworkImpl {
 	
 	
 	/**
-	 * Field for convolutional filter.
+	 * Field for filter mode. If false, filtering is not applied.
 	 */
-	public final static String CONV_FIELD = "mane_conv";
+	public final static String FILTER_MODE_FIELD = "mane_filter_mode";
 	
 	
 	/**
-	 * Default value for convolutional filter.
+	 * Default value for filter mode. If false, filtering is not applied.
 	 */
-	public final static boolean CONV_DEFAULT = true;
+	public final static boolean FILTER_MODE_DEFAULT = true;
+
+	
+	/**
+	 * Field for ending pooling filter mode. If false, pooling filtering is not applied into the last layer of each block.
+	 */
+	public final static String FILTER_MODE_ENDPOOL_FIELD = "mane_filter_mode_endpool";
+	
+	
+	/**
+	 * Default value for ending pooling filter mode. If false, pooling filtering is not applied into the last layer of each block.
+	 */
+	public final static boolean FILTER_MODE_ENDPOOL_DEFAULT = true;
 
 	
 	/**
@@ -104,27 +118,39 @@ public class VGG extends MatrixNetworkImpl {
 
 	
 	/**
-	 * Field for number of filters.
+	 * Field for initial number of filters.
 	 */
-	public final static String FILTERS_NUMBER_FIELD = "vgg_filters";
+	public final static String FILTERS_NUMBER_INIT_FIELD = "vgg_filter_number_init";
 	
 	
 	/**
-	 * Default value for number of filters.
+	 * Default value for initial number of filters. It is also the initial depth of layer.
 	 */
-	public final static int FILTERS_NUMBER_DEFAULT = DEPTH_DEFAULT;
+	public final static int FILTERS_NUMBER_INIT_DEFAULT = BASE*BASE;
 
 	
 	/**
-	 * Field for filter size.
+	 * Field for maximum number of filters.
 	 */
-	public static final String FILTER_SIZE_FIELD = "mane_filter_size";
+	public final static String FILTERS_NUMBER_MAX_FIELD = "vgg_filter_number_max";
 	
 	
 	/**
-	 * Default value for filter size.
+	 * Default value for maximum number of filters. Zero value indicates unlimited number.
 	 */
-	public static final int FILTER_SIZE_DEFAULT = BASE_DEFAULT;
+	public final static int FILTERS_NUMBER_MAX_DEFAULT = 0;
+
+	
+	/**
+	 * Field for field to increase filter number. If false, filter number is not increase.
+	 */
+	public final static String FILTERS_NUMBER_INCREASE_FIELD = "vgg_filter_number_increase";
+	
+	
+	/**
+	 * Default value for field to increase filter number. If false, filter number is not increase.
+	 */
+	public final static boolean FILTERS_NUMBER_INCREASE_DEFAULT = true;
 
 	
 	/**
@@ -152,51 +178,63 @@ public class VGG extends MatrixNetworkImpl {
 
 	
 	/**
-	 * Field for co-weight mode.
+	 * Field for co-weight mode. If true, weight matrix and filter kernel co-exist in the same layer.
 	 */
 	public final static String COWEIGHT_FIELD = "vgg_coweight";
 	
 	
 	/**
-	 * Default value for co-weight mode.
+	 * Default value for co-weight mode. If true, weight matrix and filter kernel co-exist in the same layer.
 	 */
 	public final static boolean COWEIGHT_DEFAULT = FilterSpec.COWEIGHT;
 
 	
 	/**
-	 * Field for kernel type.
+	 * Field for weight type.
 	 */
-	public final static String KERNEL_TYPE_FIELD = "mane_kernel_type";
+	public final static String FILTER_TYPE_FIELD = "mane_filter_type";
 	
 	
 	/**
-	 * Default value for kernel type.
+	 * Default value for weight type.
 	 */
-	public final static KernelType KERNEL_TYPE_DEFAULT = KernelType.product;
+	public final static Type FILTER_TYPE_DEFAULT = Type.kernel;
 
 	
 	/**
-	 * Field for pool type.
+	 * Field for filter kernel type.
 	 */
-	public final static String POOL_TYPE_FIELD = "mane_pool_type";
+	public final static String FILTER_KERNEL_TYPE_FIELD = "mane_filter_type_kernel";
 	
 	
 	/**
-	 * Default value for pool type.
+	 * Default value for filter kernel type.
 	 */
-	public final static PoolType POOL_TYPE_DEFAULT = PoolType.max;
+	public final static KernelType FILTER_KERNEL_TYPE_DEFAULT = KernelType.product;
 
 	
 	/**
-	 * Field for network type.
+	 * Field for filter pool type.
 	 */
-	public final static String NETWORK_TYPE_FIELD = "mane_network_type";
+	public final static String FILTER_POOL_TYPE_FIELD = "mane_filter_type_pool";
+	
+	
+	/**
+	 * Default value for filter pool type.
+	 */
+	public final static PoolType FILTER_POOL_TYPE_DEFAULT = PoolType.max;
 
 	
 	/**
-	 * Default value for network type.
+	 * Field for filter network type.
 	 */
-	public final static NetworkType NETWORK_TYPE_DEFAULT = NetworkType.basic;
+	public final static String FILTER_NETWORK_TYPE_FIELD = "mane_filter_type_network";
+
+	
+	/**
+	 * Default value for filter network type.
+	 */
+	public final static NetworkType FILTER_NETWORK_TYPE_DEFAULT = NetworkType.basic;
 
 	
 	/**
@@ -208,8 +246,72 @@ public class VGG extends MatrixNetworkImpl {
 	/**
 	 * Default value for weight type.
 	 */
-	public final static net.ea.ann.mane.WeightSpec.Type WEIGHT_TYPE_DEFAULT = net.ea.ann.mane.WeightSpec.Type.normal;
+	public final static net.ea.ann.mane.WeightSpec.Type WEIGHT_TYPE_DEFAULT = net.ea.ann.mane.WeightSpec.Type.kernel;
 
+	
+	/**
+	 * Field for weight kernel type.
+	 */
+	public final static String WEIGHT_KERNEL_TYPE_FIELD = "mane_weight_type_kernel";
+	
+	
+	/**
+	 * Default value for weight kernel type.
+	 */
+	public final static net.ea.ann.mane.WeightSpec.KernelType WEIGHT_KERNEL_TYPE_DEFAULT = net.ea.ann.mane.WeightSpec.KernelType.normal;
+
+	
+	/**
+	 * Field for weight network type.
+	 */
+	public final static String WEIGHT_NETWORK_TYPE_FIELD = "mane_weight_type_network";
+	
+	
+	/**
+	 * Default value for weight network type.
+	 */
+	public final static net.ea.ann.mane.WeightSpec.NetworkType WEIGHT_NETWORK_TYPE_DEFAULT = net.ea.ann.mane.WeightSpec.NetworkType.basic;
+
+	
+	/**
+	 * Field for length of filter network.
+	 */
+	public final static String SUB_NETWORK_LENGTH_FIELD = "mane_subnetwork_length";
+	
+	
+	/**
+	 * Default value for length of filter network.
+	 */
+	public final static int SUB_NETWORK_LENGTH_DEFAULT = 1;
+
+	
+	/**
+	 * Setting configuration.
+	 * @param config configuration.
+	 */
+	private static void config(NetworkConfig config) {
+		config.put(MIDDLE_SIZE_FIELD, MIDDLE_SIZE_DEFAULT_TEXT);
+		config.put(FILTER_MODE_FIELD, FILTER_MODE_DEFAULT);
+		config.put(FILTER_MODE_ENDPOOL_FIELD, FILTER_MODE_ENDPOOL_DEFAULT);
+		config.put(BLOCKS_NUMBER_FIELD, BLOCKS_NUMBER_DEFAULT);
+		config.put(LAYERS_NUMBER_FIELD, LAYERS_NUMBER_DEFAULT);
+		config.put(FILTERS_NUMBER_INIT_FIELD, FILTERS_NUMBER_INIT_DEFAULT);
+		config.put(FILTERS_NUMBER_MAX_FIELD, FILTERS_NUMBER_MAX_DEFAULT);
+		config.put(FILTERS_NUMBER_INCREASE_FIELD, FILTERS_NUMBER_INCREASE_DEFAULT);
+		config.put(FILTER_SIZE_FIELD, FILTER_SIZE_DEFAULT);
+		config.put(FFN_LENGTH_FIELD, FFN_LENGTH_DEFAULT);
+		config.put(FFN_FLATTEN_FIELD, FFN_FLATTEN_DEFAULT);
+		config.put(COWEIGHT_FIELD, COWEIGHT_DEFAULT);
+		config.put(FILTER_TYPE_FIELD, FilterSpec.typeToInt(FILTER_TYPE_DEFAULT));
+		config.put(FILTER_KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(FILTER_KERNEL_TYPE_DEFAULT));
+		config.put(FILTER_POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(FILTER_POOL_TYPE_DEFAULT));
+		config.put(FILTER_NETWORK_TYPE_FIELD, FilterSpec.networkTypeToInt(FILTER_NETWORK_TYPE_DEFAULT));
+		config.put(WEIGHT_TYPE_FIELD, WeightSpec.typeToInt(WEIGHT_TYPE_DEFAULT));
+		config.put(WEIGHT_KERNEL_TYPE_FIELD, WeightSpec.kernelTypeToInt(WEIGHT_KERNEL_TYPE_DEFAULT));
+		config.put(WEIGHT_NETWORK_TYPE_FIELD, WeightSpec.networkTypeToInt(WEIGHT_NETWORK_TYPE_DEFAULT));
+		config.put(SUB_NETWORK_LENGTH_FIELD, SUB_NETWORK_LENGTH_DEFAULT);
+	}
+	
 	
 	/**
 	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
@@ -220,22 +322,15 @@ public class VGG extends MatrixNetworkImpl {
 	 */
 	public VGG(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
-		config.put(MIDDLE_SIZE_FIELD, MIDDLE_SIZE_DEFAULT_TEXT);
-		config.put(CONV_FIELD, CONV_DEFAULT);
-		config.put(BLOCKS_NUMBER_FIELD, BLOCKS_NUMBER_DEFAULT);
-		config.put(LAYERS_NUMBER_FIELD, LAYERS_NUMBER_DEFAULT);
-		config.put(FILTERS_NUMBER_FIELD, FILTERS_NUMBER_DEFAULT);
-		config.put(FILTER_SIZE_FIELD, FILTER_SIZE_DEFAULT);
-		config.put(FFN_LENGTH_FIELD, FFN_LENGTH_DEFAULT);
-		config.put(FFN_FLATTEN_FIELD, FFN_FLATTEN_DEFAULT);
-		config.put(COWEIGHT_FIELD, COWEIGHT_DEFAULT);
-		config.put(KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(KERNEL_TYPE_DEFAULT));
-		config.put(POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(POOL_TYPE_DEFAULT));
-		config.put(NETWORK_TYPE_FIELD, FilterSpec.networkTypeToInt(NETWORK_TYPE_DEFAULT));
-		config.put(WEIGHT_TYPE_FIELD, WeightSpec.typeToInt(WEIGHT_TYPE_DEFAULT));
+		config(this.config);
+		
+//		//Removing following lines after debugging.
+//		paramSetVGGMiddleSize(new Size(32, 32));
+//		paramSetFiltersNumberMax(1);
+//		System.out.println("VGG: Removing following lines after debugging.");
 	}
 	
-
+	
 	/**
 	 * Constructor with neuron channel, activation function, and convolutional activation function.
 	 * @param neuronChannel neuron channel.
@@ -252,18 +347,17 @@ public class VGG extends MatrixNetworkImpl {
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public VGG(int neuronChannel, Function activateRef) {
-		this(neuronChannel, activateRef, null, null);
-	}
+	public VGG(int neuronChannel, Function activateRef) {this(neuronChannel, activateRef, null, null);}
 
 	
 	/**
 	 * Constructor with neuron channel.
+	 * As usual neuron channel is set to be 1 and raster channel is set to be 3 so that the first layer is split as stack of matrices.
+	 * However please pay attention that if neuron channel is set as same as raster channel then the first layer is the singular matrix whose each element is a vector.
+	 * Please see {@link MatrixUtil#toMatrix(Size, net.ea.ann.raster.Raster, int, int, boolean, net.ea.ann.core.value.Matrix)}. 
 	 * @param neuronChannel neuron channel.
 	 */
-	public VGG(int neuronChannel) {
-		this(neuronChannel, null, null, null);
-	}
+	public VGG(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 	
 	/**
@@ -271,12 +365,16 @@ public class VGG extends MatrixNetworkImpl {
 	 * @param inputSize input size.
 	 * @param middleSize middle size.
 	 * @param blocksNumber number of blocks.
-	 * @param filtersNumberPerLayer number of filters per layer.
+	 * @param filtersNumberInitPerLayer initial number of filters per layer (initial) which can be zero for automatic calculation.
+	 * It is also the initial depth of layer.
+	 * @param filterNumberMax maximum number of filters.
+	 * @param increaseFiltersNumber flag to increase filter number.
 	 * @return true if initialization is successful.
 	 */
-	static List<Size> calcBlockSizes(Size inputSize, Size middleSize, int blocksNumber, int filtersNumberPerLayer) {
+	static List<Size> calcBlockSizes(Size inputSize, Size middleSize, int blocksNumber, int filtersNumberInitPerLayer, int filterNumberMax, boolean increaseFiltersNumber) {
 		if (inputSize == null) return Util.newList(0);
-		int base = BASE;
+		int base = Math.max(BASE, 1);
+		
 		int r = Math.min(inputSize.width/middleSize.width, inputSize.height/middleSize.height);
 		if (r < 1)
 			middleSize = new Size(inputSize.width, inputSize.height);
@@ -284,6 +382,9 @@ public class VGG extends MatrixNetworkImpl {
 			middleSize = new Size(inputSize.width/r, inputSize.height/r);
 		int[][] numbers = MatrixNetworkInitializer.constructHiddenOutputNeuronNumbers(inputSize, middleSize, base, base, blocksNumber);
 		if (numbers == null) return Util.newList(0);
+		
+		int factor = 2; //The factor 2 implies the basic 2-dimension matrix is decreased base*base each time.
+		filtersNumberInitPerLayer = filtersNumberInitPerLayer < 1 ? (int)Math.pow(base, factor) : filtersNumberInitPerLayer;
 		
 		int[] heights = numbers[0];
 		int[] widths = numbers[1];
@@ -298,10 +399,12 @@ public class VGG extends MatrixNetworkImpl {
 		widths = tempWidths;
 
 		List<Size> blockSizes = Util.newList(0);
-		int power = 1;
+		int power = 0;
 		for (int i = 0; i < heights.length; i++) {
+			int filterNumber = increaseFiltersNumber ? (int)(filtersNumberInitPerLayer*Math.pow(base, factor*power)) : filtersNumberInitPerLayer;
+			if (filterNumberMax > 0) filterNumber = Math.min(filterNumber, filterNumberMax);
 			if (blockSizes.size() == 0) {
-				blockSizes.add(new Size(widths[i], heights[i], (int)Math.pow(filtersNumberPerLayer, power)));
+				blockSizes.add(new Size(widths[i], heights[i], filterNumber));
 				power++;
 				continue;
 			}
@@ -309,7 +412,7 @@ public class VGG extends MatrixNetworkImpl {
 			int prevWidth = blockSizes.get(blockSizes.size()-1).width;
 			int prevHeight = blockSizes.get(blockSizes.size()-1).height;
 			if (widths[i] != prevWidth || heights[i] != prevHeight) {
-				blockSizes.add(new Size(widths[i], heights[i], (int)Math.pow(filtersNumberPerLayer, power)));
+				blockSizes.add(new Size(widths[i], heights[i], filterNumber));
 				power++;
 			}
 		}
@@ -325,42 +428,92 @@ public class VGG extends MatrixNetworkImpl {
 	 * @return true if initialization is successful.
 	 */
 	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
-		List<Size> blockSizes = calcBlockSizes(inputSize, middleSize, paramGetBlocksNumber(), paramGetFiltersNumber());
+		List<Size> blockSizes = calcBlockSizes(inputSize, middleSize, paramGetBlocksNumber(), paramGetFiltersNumberInit(), paramGetFiltersNumberMax(), paramIsFiltersNumberIncrease());
 		if (blockSizes.size() == 0) return false;
 		
-		int base = BASE;
+		int base = Math.max(BASE, 1);
 		int layersNumberPerBlock = paramGetLayersNumber();
 		int filterSize = paramGetFilterSize();
 		int ffnLength = paramGetFFNLength();
 
 		int rasterChannel = paramGetRasterChannel();
 		boolean flatten = MatrixUtil.isFlatten(inputSize.depth, this.neuronChannel, rasterChannel); //inputSize.depth is actually raster depth.
-		LayerSpec layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height, flatten?rasterChannel:1));
+		LayerSpec layerSpec0 = null;
+		if (flatten)
+			layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height, rasterChannel, 1));
+		else
+			layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height,
+				inputSize.depth < 1 ? 1 : inputSize.depth,
+				1/*inputSize.time < 1 ? 1 : inputSize.time*/)); //In current version, time is 1, which means that the model supports until 3-dimension layers.
 		List<LayerSpec> layerSpecs = Util.newList(0);
 		layerSpecs.add(layerSpec0);
 		for (int i = 0; i < blockSizes.size(); i++) {
 			Size blockSize = blockSizes.get(i);
 			for (int j = 0; j < layersNumberPerBlock; j++) {
-				LayerSpec layerSpec = new LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth));
+				LayerSpec layerSpec = new LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth, 1));
 				if (layerSpecs.size() > 0) layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
-				layerSpec.weightSpec = new WeightSpec(paramGetWeightType());
-				if (paramIsConv()) {
-					layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, Type.kernel);
-					layerSpec.filterSpec.kernelType = paramGetKernelType();
-					layerSpec.filterSpec.coweight = paramIsCoweight();
-					layerSpec.filterSpec.moveStride = false;
+				
+				if (paramIsFilterMode()) {
+					Type filterType = paramGetFilterType();
+					layerSpec.filterSpec = null;
+					if (filterType == Type.kernel) {
+						layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, filterType);
+						layerSpec.filterSpec.kernelType = paramGetFilterKernelType();
+					}
+					else if (filterType == Type.pool) {
+						if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
+							layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, filterType);
+							layerSpec.filterSpec.poolType = paramGetFilterPoolType();
+						}
+					}
+					else if (filterType == Type.network) {
+						layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, filterType);
+						layerSpec.filterSpec.networkType = paramGetFilterNetworkType();
+						layerSpec.filterSpec.kernelType = paramGetFilterKernelType(); //This is kernel type of network filter.
+						layerSpec.fifthLength = Math.max(paramGetSubNetworkLength(), 1); //The fifth length of layer specification is now the depth (length) of network filter.
+					}
+					
+					if (layerSpec.filterSpec != null) {
+						layerSpec.filterSpec.moveStride = false;
+						layerSpec.filterSpec.coweight = paramIsCoweight();
+					}
+				} //End setting filter specification.
+				
+				net.ea.ann.mane.WeightSpec.Type weightType = paramGetWeightType();
+				layerSpec.weightSpec = null;
+				if (weightType == net.ea.ann.mane.WeightSpec.Type.kernel) {
+					layerSpec.weightSpec = new WeightSpec(weightType);
+					layerSpec.weightSpec.kernelType = paramGetWeightKernelType();
 				}
+				else if (weightType == net.ea.ann.mane.WeightSpec.Type.network) {
+					if (layerSpec.filterSpec != null && layerSpec.filterSpec.coweight)
+						layerSpec.weightSpec = new WeightSpec(weightType);
+					else if (layerSpec.filterSpec == null && layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth)
+						layerSpec.weightSpec = new WeightSpec(weightType);
+					
+					if (layerSpec.weightSpec != null) {
+						layerSpec.weightSpec.networkType = paramGetWeightNetworkType();
+						layerSpec.weightSpec.kernelType = paramGetWeightKernelType();
+						layerSpec.fifthLength = paramGetSubNetworkLength(); //The fifth length of layer specification is now the depth (length) of network weight.
+					}
+				} //End setting weight specification.
+				
+				assert (layerSpec.filterSpec != null || layerSpec.weightSpec != null);
 				layerSpecs.add(layerSpec);
 			}
-			if (i < blockSizes.size()-1) {
-				Size poolSize = new Size(blockSizes.get(i+1).width, blockSizes.get(i+1).height, blockSize.depth);
+			
+			if (i < blockSizes.size()-1 && paramIsFilterEndPoolMode()) {
+				Size poolSize = new Size(blockSizes.get(i+1).width, blockSizes.get(i+1).height, blockSize.depth, 1);
 				LayerSpec layerSpec = new LayerSpec(poolSize);
 				if (layerSpecs.size() > 0) layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
-				layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
-				layerSpec.filterSpec.poolType = paramGetPoolType();
-				layerSpec.filterSpec.coweight = paramIsCoweight();
-				layerSpec.filterSpec.moveStride = true;
-				layerSpecs.add(layerSpec);
+				
+				if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
+					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
+					layerSpec.filterSpec.poolType = paramGetFilterPoolType();
+					layerSpec.filterSpec.moveStride = true; //It means zooming out to be smaller.
+					layerSpec.filterSpec.coweight = false; //This code line is not necessary because weight specification is not specified but confirming that by default pooling filter is not associated with weight matrix because of reduced layer size (width and height).
+					layerSpecs.add(layerSpec);
+				}
 			}
 		}
 		if (outputSize == null || ffnLength < 1) return initialize(layerSpecs.toArray(new LayerSpec[] {}), false);
@@ -455,24 +608,47 @@ public class VGG extends MatrixNetworkImpl {
 	
 	
 	/**
-	 * Checking convolutional network mode.
-	 * @return convolutional network mode.
+	 * Checking filter mode. If false, filtering is not applied.
+	 * @return filter mode.
 	 */
-	public boolean paramIsConv() {
-		if (config.containsKey(CONV_FIELD))
-			return config.getAsBoolean(CONV_FIELD);
+	boolean paramIsFilterMode() {
+		if (config.containsKey(FILTER_MODE_FIELD))
+			return config.getAsBoolean(FILTER_MODE_FIELD);
 		else
-			return CONV_DEFAULT;
+			return FILTER_MODE_DEFAULT;
 	}
 	
 	
 	/**
-	 * Setting convolutional network mode.
-	 * @param conv convolutional network mode.
-	 * @return this classifier.
+	 * Setting filter mode.
+	 * @param filterMode filter mode. If false, filtering is not applied.
+	 * @return this VGG.
 	 */
-	public VGG paramSetConv(boolean conv) {
-		config.put(CONV_FIELD, conv);
+	VGG paramSetFilterMode(boolean filterMode) {
+		config.put(FILTER_MODE_FIELD, filterMode);
+		return this;
+	}
+
+	
+	/**
+	 * Checking ending pooling filter mode. If false, pooling filtering is not applied into the last layer of each block.
+	 * @return ending pooling filter mode.
+	 */
+	boolean paramIsFilterEndPoolMode() {
+		if (config.containsKey(FILTER_MODE_ENDPOOL_FIELD))
+			return config.getAsBoolean(FILTER_MODE_ENDPOOL_FIELD);
+		else
+			return FILTER_MODE_ENDPOOL_DEFAULT;
+	}
+
+	
+	/**
+	 * Setting ending pooling filter mode.
+	 * @param filterEndPoolMode ending pooling filter mode. If false, pooling filtering is not applied into the last layer of each block.
+	 * @return this VGG.
+	 */
+	VGG paramSetFilterEndPoolMode(boolean filterEndPoolMode) {
+		config.put(FILTER_MODE_ENDPOOL_FIELD, filterEndPoolMode);
 		return this;
 	}
 
@@ -526,28 +702,75 @@ public class VGG extends MatrixNetworkImpl {
 
 	
 	/**
-	 * Getting number of filters per layer.
-	 * @return number of filters per layer.
+	 * Getting initial number of filters per layer which is also the initial depth of layer.
+	 * @return initial number of filters per layer.
 	 */
-	public int paramGetFiltersNumber() {
-		if (config.containsKey(FILTERS_NUMBER_FIELD))
-			return config.getAsInt(FILTERS_NUMBER_FIELD);
+	public int paramGetFiltersNumberInit() {
+		if (config.containsKey(FILTERS_NUMBER_INIT_FIELD))
+			return config.getAsInt(FILTERS_NUMBER_INIT_FIELD);
 		else
-			return FILTERS_NUMBER_DEFAULT;
+			return FILTERS_NUMBER_INIT_DEFAULT;
 	}
 	
 	
 	/**
-	 * Setting number of filters per layer.
-	 * @param filtersNumber number of filters per layer.
+	 * Setting initial number of filters per layer.
+	 * @param filtersNumberInit initial number of filters per layer which is also the initial depth of layer.
 	 * @return this VGG.
 	 */
-	public VGG paramSetFiltersNumber(int filtersNumber) {
-		filtersNumber = filtersNumber < 1 ? FILTERS_NUMBER_DEFAULT : filtersNumber;
-		config.put(FILTERS_NUMBER_FIELD, filtersNumber);
+	public VGG paramSetFiltersNumberInit(int filtersNumberInit) {
+		filtersNumberInit = filtersNumberInit < 0 ? FILTERS_NUMBER_INIT_DEFAULT : filtersNumberInit;
+		config.put(FILTERS_NUMBER_INIT_FIELD, filtersNumberInit);
 		return this;
 	}
 	
+	
+	/**
+	 * Getting maximum number of filters per layer (also layer depth).
+	 * @return maximum number of filters per layer.
+	 */
+	int paramGetFiltersNumberMax() {
+		if (config.containsKey(FILTERS_NUMBER_MAX_FIELD))
+			return config.getAsInt(FILTERS_NUMBER_MAX_FIELD);
+		else
+			return FILTERS_NUMBER_MAX_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting maximum number of filters per layer (also layer depth).
+	 * @param maxFiltersNumber maximum number of filters per layer.
+	 * @return this VGG.
+	 */
+	VGG paramSetFiltersNumberMax(int maxFiltersNumber) {
+		maxFiltersNumber = maxFiltersNumber < 0 ? FILTERS_NUMBER_MAX_DEFAULT : maxFiltersNumber;
+		config.put(FILTERS_NUMBER_MAX_FIELD, maxFiltersNumber);
+		return this;
+	}
+	
+	
+	/**
+	 * Checking flag to increase filter number. If false, filter number is not increase.
+	 * @return flag to increase filter number.
+	 */
+	boolean paramIsFiltersNumberIncrease() {
+		if (config.containsKey(FILTERS_NUMBER_INCREASE_FIELD))
+			return config.getAsBoolean(FILTERS_NUMBER_INCREASE_FIELD);
+		else
+			return FILTERS_NUMBER_INCREASE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting flag to increase filter number.
+	 * @param increase flag to increase filter number. If false, filter number is not increase.
+	 * @return this VGG.
+	 */
+	VGG paramSetFiltersNumberIncrease(boolean increase) {
+		config.put(FILTERS_NUMBER_INCREASE_FIELD, increase);
+		return this;
+	}
+
 	
 	/**
 	 * Getting filter size.
@@ -619,7 +842,7 @@ public class VGG extends MatrixNetworkImpl {
 
 	
 	/**
-	 * Checking co-weight mode.
+	 * Checking co-weight mode. If true, weight matrix and filter kernel co-exist in the same layer.
 	 * @return co-weight mode.
 	 */
 	boolean paramIsCoweight() {
@@ -632,7 +855,7 @@ public class VGG extends MatrixNetworkImpl {
 	
 	/**
 	 * Setting co-weight mode.
-	 * @param coweight co-weight mode.
+	 * @param coweight co-weight mode. If true, weight matrix and filter kernel co-exist in the same layer.
 	 * @return this VGG.
 	 */
 	VGG paramSetCoweight(boolean coweight) {
@@ -642,70 +865,93 @@ public class VGG extends MatrixNetworkImpl {
 
 
 	/**
-	 * Checking kernel filter type.
-	 * @return kernel filter type.
+	 * Getting filter type.
+	 * @return filter type.
 	 */
-	KernelType paramGetKernelType() {
-		if (config.containsKey(KERNEL_TYPE_FIELD))
-			return FilterSpec.intToKernelType(config.getAsInt(KERNEL_TYPE_FIELD));
+	Type paramGetFilterType() {
+		if (config.containsKey(FILTER_TYPE_FIELD))
+			return FilterSpec.intToType(config.getAsInt(FILTER_TYPE_FIELD));
 		else
-			return KERNEL_TYPE_DEFAULT;
+			return FILTER_TYPE_DEFAULT;
 	}
 	
 	
 	/**
-	 * Setting kernel filter type.
-	 * @param kernelType kernel filter type.
-	 * @return this classifier.
+	 * Setting filter type.
+	 * @param filterType filter type.
+	 * @return this model.
 	 */
-	VGG paramSetKernelType(KernelType kernelType) {
-		config.put(KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(kernelType));
+	VGG paramSetFilterType(Type filterType) {
+		config.put(FILTER_TYPE_FIELD, FilterSpec.typeToInt(filterType));
 		return this;
 	}
 
 	
 	/**
-	 * Checking pooling filter type.
-	 * @return pooling filter type.
+	 * Checking filter kernel type.
+	 * @return filter kernel type.
 	 */
-	PoolType paramGetPoolType() {
-		if (config.containsKey(POOL_TYPE_FIELD))
-			return FilterSpec.intToPoolType(config.getAsInt(POOL_TYPE_FIELD));
+	KernelType paramGetFilterKernelType() {
+		if (config.containsKey(FILTER_KERNEL_TYPE_FIELD))
+			return FilterSpec.intToKernelType(config.getAsInt(FILTER_KERNEL_TYPE_FIELD));
 		else
-			return POOL_TYPE_DEFAULT;
+			return FILTER_KERNEL_TYPE_DEFAULT;
 	}
 	
 	
 	/**
-	 * Setting pooling filter type.
-	 * @param poolType pooling filter type.
+	 * Setting filter kernel type.
+	 * @param kernelType filter kernel type.
 	 * @return this classifier.
 	 */
-	VGG paramSetPoolType(PoolType poolType) {
-		config.put(POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(poolType));
+	VGG paramSetFilterKernelType(KernelType kernelType) {
+		config.put(FILTER_KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(kernelType));
 		return this;
 	}
 
 	
 	/**
-	 * Checking network filter type.
-	 * @return network filter type.
+	 * Checking filter pooling type.
+	 * @return filter pooling type.
 	 */
-	NetworkType paramGetNetworkType() {
-		if (config.containsKey(NETWORK_TYPE_FIELD))
-			return FilterSpec.intToNetworkType(config.getAsInt(NETWORK_TYPE_FIELD));
+	PoolType paramGetFilterPoolType() {
+		if (config.containsKey(FILTER_POOL_TYPE_FIELD))
+			return FilterSpec.intToPoolType(config.getAsInt(FILTER_POOL_TYPE_FIELD));
 		else
-			return NETWORK_TYPE_DEFAULT;
+			return FILTER_POOL_TYPE_DEFAULT;
 	}
 	
 	
 	/**
-	 * Setting network filter type.
-	 * @param networkType network filter type.
+	 * Setting filter pooling type.
+	 * @param poolType filter pooling type.
 	 * @return this classifier.
 	 */
-	VGG paramSetNetworkType(NetworkType networkType) {
-		config.put(NETWORK_TYPE_FIELD, FilterSpec.networkTypeToInt(networkType));
+	VGG paramSetFilterPoolType(PoolType poolType) {
+		config.put(FILTER_POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(poolType));
+		return this;
+	}
+
+	
+	/**
+	 * Checking filter network type.
+	 * @return filter network type.
+	 */
+	NetworkType paramGetFilterNetworkType() {
+		if (config.containsKey(FILTER_NETWORK_TYPE_FIELD))
+			return FilterSpec.intToNetworkType(config.getAsInt(FILTER_NETWORK_TYPE_FIELD));
+		else
+			return FILTER_NETWORK_TYPE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting filter network type.
+	 * @param networkType filter network type.
+	 * @return this classifier.
+	 */
+	VGG paramSetFilterNetworkType(NetworkType networkType) {
+		config.put(FILTER_NETWORK_TYPE_FIELD, FilterSpec.networkTypeToInt(networkType));
 		return this;
 	}
 
@@ -725,10 +971,80 @@ public class VGG extends MatrixNetworkImpl {
 	/**
 	 * Setting weight type.
 	 * @param weightType weight type.
-	 * @return this classifier.
+	 * @return this model.
 	 */
 	VGG paramSetWeightType(net.ea.ann.mane.WeightSpec.Type weightType) {
 		config.put(WEIGHT_TYPE_FIELD, net.ea.ann.mane.WeightSpec.typeToInt(weightType));
+		return this;
+	}
+
+
+	/**
+	 * Getting length of sub-network.
+	 * @return length of sub-network.
+	 */
+	int paramGetSubNetworkLength() {
+		if (config.containsKey(SUB_NETWORK_LENGTH_FIELD))
+			return config.getAsInt(SUB_NETWORK_LENGTH_FIELD);
+		else
+			return SUB_NETWORK_LENGTH_DEFAULT;
+	}
+	
+	
+	/**
+	 * Checking weight kernel type.
+	 * @return weight kernel type.
+	 */
+	net.ea.ann.mane.WeightSpec.KernelType paramGetWeightKernelType() {
+		if (config.containsKey(WEIGHT_KERNEL_TYPE_FIELD))
+			return WeightSpec.intToKernelType(config.getAsInt(WEIGHT_KERNEL_TYPE_FIELD));
+		else
+			return WEIGHT_KERNEL_TYPE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting weight kernel type.
+	 * @param kernelType weight kernel type.
+	 * @return this model.
+	 */
+	VGG paramSetWeightKernelType(net.ea.ann.mane.WeightSpec.KernelType kernelType) {
+		config.put(WEIGHT_KERNEL_TYPE_FIELD, WeightSpec.kernelTypeToInt(kernelType));
+		return this;
+	}
+
+	
+	/**
+	 * Checking weight network type.
+	 * @return weight network type.
+	 */
+	net.ea.ann.mane.WeightSpec.NetworkType paramGetWeightNetworkType() {
+		if (config.containsKey(WEIGHT_NETWORK_TYPE_FIELD))
+			return WeightSpec.intToNetworkType(config.getAsInt(WEIGHT_NETWORK_TYPE_FIELD));
+		else
+			return WEIGHT_NETWORK_TYPE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting weight network type.
+	 * @param networkType weight network type.
+	 * @return this model.
+	 */
+	VGG paramSetWeightNetworkType(net.ea.ann.mane.WeightSpec.NetworkType networkType) {
+		config.put(WEIGHT_NETWORK_TYPE_FIELD, WeightSpec.networkTypeToInt(networkType));
+		return this;
+	}
+
+	
+	/**
+	 * Setting length of sub-network.
+	 * @param length length of sub-network.
+	 * @return this VGG.
+	 */
+	VGG paramSetSubNetworkLength(int length) {
+		length = length < 1 ? SUB_NETWORK_LENGTH_DEFAULT : length;
+		config.put(SUB_NETWORK_LENGTH_FIELD, length);
 		return this;
 	}
 

@@ -179,9 +179,7 @@ public class ForestClassifier extends ClassifierAbstract {
 
 
 	@Override
-	protected Matrix getOutput() {
-		return output;
-	}
+	protected Matrix getOutput() {return output;}
 	
 	
 	@Override

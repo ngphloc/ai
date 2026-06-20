@@ -31,11 +31,4 @@ public interface MatrixLayerExt extends MatrixLayer {
 	MatrixLayer getOutputLayer();
 
 
-//	/**
-//	 * Getting output activation function.
-//	 * @return output activation function.
-//	 */
-//	Function getOutputActivateRef();
-
-	
 }

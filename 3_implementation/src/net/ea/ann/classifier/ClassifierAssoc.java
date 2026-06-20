@@ -32,11 +32,11 @@ import net.ea.ann.core.Network;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.NeuronValueV;
+import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
-import net.ea.ann.mane.FilterSpec.PoolType;
-import net.ea.ann.mane.WeightSpec.Type;
+import net.ea.ann.mane.WeightSpec.KernelType;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.RasterAssoc;
@@ -174,9 +174,9 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		public int batches = Network.LEARN_MAX_ITERATION_DEFAULT;
 		
 		/**
-		 * Including convolutional neural network.
+		 * Including filter.
 		 */
-		public boolean conv = ClassifierAbstract.CONV_DEFAULT;
+		public boolean filterMode = ClassifierAbstract.FILTER_MODE_DEFAULT;
 		
 		/**
 		 * Filtering size.
@@ -216,17 +216,17 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		/**
 		 * Pooling type.
 		 */
-		public PoolType poolType = ClassifierAbstract.POOL_TYPE_DEFAULT;
+		public PoolType poolType = ClassifierAbstract.FILTER_POOL_TYPE_DEFAULT;
 		
 		/**
 		 * Weight type.
 		 */
-		public Type weightType = ClassifierAbstract.WEIGHT_TYPE_DEFAULT;
+		public KernelType weightType = ClassifierAbstract.WEIGHT_KERNEL_TYPE_DEFAULT;
 		
 		/**
 		 * Number of filters.
 		 */
-		public int filtersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT;
+		public int filtersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_DEFAULT;
 		
 		/**
 		 * Middle size.
@@ -271,9 +271,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		/**
 		 * Default constructor.
 		 */
-		public ClassifyParams() {
-			
-		}
+		public ClassifyParams() {}
 		
 		/**
 		 * Importing parameters from builder.
@@ -283,7 +281,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			this.model = builder.model;
 			this.learningRate = builder.learningRate;
 			this.batches = builder.batches;
-			this.conv = builder.conv;
+			this.filterMode = builder.filterMode;
 			this.filterSize = builder.filterSize;
 			this.poolType = builder.poolType;
 			this.weightType = builder.weightType;
@@ -538,7 +536,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			result.append(params.paramSize + ", ");
 			result.append("model=" + params.model + "~dataset=" + params.dataset +
 				//"~entropy=" + params.entropyTrainer +
-				"~conv=" + params.conv +
+				"~conv=" + params.filterMode +
 				//"~pool=" + params.poolType +
 				"~weight=" + params.weightType +
 				"~vec=" + params.vectorized +
@@ -848,7 +846,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 //		boolean[] entropyTrainers = new boolean[] {true};
 //		boolean[] adjusts = new boolean[] {false, true};
 //		ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.vgg, ClassifierModel.mac, ClassifierModel.tramac};
-//		boolean[] convs = new boolean[] {false, true};
+//		boolean[] filterModes = new boolean[] {false, true};
 //		for (boolean vectorized : vectorizeds) {
 //			builder.setVectorized(vectorized);
 //			for (int depth : depths) {
@@ -859,15 +857,15 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 //						builder.setAdjust(adjust);
 //						for (ClassifierModel model : models) {
 //							builder.setModel(model);
-//							for (boolean conv : convs) {
+//							for (boolean filterMode : filterModes) {
 //								System.out.println("Training " +
 //									("vectorized=" + vectorized) +
 //									(", depth=" + depth) +
 //									(", entropy=" + entropyTrainer) +
 //									(", adjust=" + adjust) +
 //									(", model=" + model) +
-//									(", conv=" + conv));
-//								builder.setConv(conv);
+//									(", conv=" + filterMode));
+//								builder.setFilterMode(filterMode);
 //								classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
 //								System.out.println("\n");
 //							} //End for CNN.
@@ -896,7 +894,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		builder.setDual(ClassifierAbstract.DUAL_DEFAULT);
 		builder.setAdjust(ClassifierAbstract.ADJUST_DEFAULT);
 		builder.setMiddleSize(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT);
-		builder.setPoolType(ClassifierAbstract.POOL_TYPE_DEFAULT /*net.ea.ann.mane.FilterSpec.PoolType.average*/);
+		builder.setPoolType(ClassifierAbstract.FILTER_POOL_TYPE_DEFAULT /*net.ea.ann.mane.FilterSpec.PoolType.average*/);
 
 		int minBaseSize = baseRastersList.get(0).size();
 		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());
@@ -910,8 +908,8 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			boolean[] vectorizeds = new boolean[] {false, true};
 			int[] depths = new int[] {2};
 			int[] filters = new int[] {2};
-			boolean[] convs = new boolean[] {false, true};
-			Type[] weightTypes = new Type[] {Type.normal, Type.transformer};
+			boolean[] filterModes = new boolean[] {false, true};
+			KernelType[] weightTypes = new KernelType[] {KernelType.normal, KernelType.transformer};
 			ClassifierModel[] models = new ClassifierModel[] {ClassifierModel.vgg};
 			for (boolean vectorized : vectorizeds) {
 				builder.setVectorized(vectorized);
@@ -919,10 +917,10 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 					builder.setFiltersNumber(filter);
 					for (int depth : depths) {
 						builder.setDepth(depth);
-						for (boolean conv : convs) {
-							builder.setConv(conv);
-							for (Type weightType : weightTypes) {
-								if (conv && weightType == Type.transformer) continue;
+						for (boolean filterMode : filterModes) {
+							builder.setFilterMode(filterMode);
+							for (KernelType weightType : weightTypes) {
+								if (filterMode && weightType == KernelType.transformer) continue;
 								builder.setWeightType(weightType);
 								for (ClassifierModel model : models) {
 									builder.setModel(model);
@@ -930,7 +928,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 											("vectorized=" + vectorized) +
 											(", depth=" + depth) +
 											(", filters=" + filter) +
-											(", conv=" + conv) +
+											(", conv=" + filterMode) +
 											//(", pool=" + pool) +
 											(", weight=" + weightType) +
 											(", model=" + model));

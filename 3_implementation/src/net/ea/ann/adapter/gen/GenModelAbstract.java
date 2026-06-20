@@ -9,7 +9,6 @@ package net.ea.ann.adapter.gen;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -154,21 +153,15 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	
 	
 	/**
-	 * Name of filters field.
-	 */
-	public final static String FILTERS_FIELD = "gma_filters";
-	
-	
-	/**
 	 * Default number of generated generated rasters.
 	 */
 	public final static int GENS_DEFAULT = 10;
 
 	
 	/**
-	 * Internal generative model.
+	 * Reference to current generative model.
 	 */
-	protected ConvGenModel gm = null;
+	private ConvGenModel gm = null;
 	
 	
 	/**
@@ -176,15 +169,12 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	 */
 	public GenModelAbstract() {
 		super();
-		gm = createGenModel();
 		
 		try {
-			config.putAll(Util.toConfig(gm.getConfig()));
+			ConvGenModel gm = createGenModel();
+			this.config.putAll(Util.toConfig(gm.getConfig()));
 		} catch (Throwable e) {Util.trace(e);}
 		
-		try {
-			gm.addListener(this);
-		} catch (Throwable e) {Util.trace(e);}
 	}
 
 	
@@ -194,54 +184,10 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	}
 
 
-	@Override
-	public void setup(Dataset dataset, Object... info) throws RemoteException {
-		super.setup(dataset, info);
-	}
-
-
-	@Override
-	public synchronized void unsetup() throws RemoteException {
-		super.unsetup();
-		try {
-			if (gm != null) gm.reset();
-		} catch (Exception e) {Util.trace(e);}
-	}
-
-
-	@Override
-	public synchronized Remote export(int serverPort) throws RemoteException {
-		Remote remote = super.export(serverPort);
-		try {
-			if (gm != null) gm.export(serverPort);
-		} catch (Throwable e) {Util.trace(e);}
-		return remote;
-	}
-
-
-	@Override
-	public synchronized void unexport() throws RemoteException {
-		super.unexport();
-		try {
-			if (gm != null) gm.unexport();
-		} catch (Throwable e) {Util.trace(e);}
-	}
-
-
-	@Override
-	public synchronized void forceUnexport() throws RemoteException {
-		super.forceUnexport();
-		try {
-			if (gm != null) gm.unexport();
-		} catch (Throwable e) {Util.trace(e);}
-	}
-
-	
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object executeAsLearn(Object input) throws RemoteException {
-		gm.getConfig().putAll(Util.transferToANNConfig(config));
-		
+		ConvGenModel gm = createDelegate();
 		ConvGenModelAssoc assoc = new ConvGenModelAssoc(gm, config.getAsBoolean(NetworkAbstract.LEARN_ONE_FIELD));
 		
 		if (input == null) { //Running in setup method.
@@ -330,34 +276,19 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	protected abstract ConvGenModel createGenModel();
 	
 	
-	/**
-	 * Creating and updating generative model.
-	 * @return generative model.
-	 */
-	ConvGenModel createUpdateGenModel() {
+	@Override
+	public ConvGenModel createDelegate() {
+		ConvGenModel gm = createGenModel();
 		try {
-			ConvGenModelAssoc assoc = new ConvGenModelAssoc(gm);
-			if (gm == null || gm.getNeuronChannel() != getNeuronChannel() || gm.getRasterChannel() != getRasterChannel() || assoc.isNorm() != isNorm())
-				gm = createGenModel();
 			gm.getConfig().putAll(Util.transferToANNConfig(config));
 		} catch (Throwable e) {Util.trace(e);}
-		return gm;
+		return this.gm = gm;
 	}
-	
-	
-	/**
-	 * Getting generative model instance.
-	 * @return generative model instance.
-	 */
-	public ConvGenModel getGenModel() {
-		return gm;
-	}
-	
-	
+
+
 	@Override
 	public List<Raster> genRasters(Iterable<Raster> sample, int nGens) throws RemoteException {
-		createUpdateGenModel();
-		
+		ConvGenModel gm = createDelegate();
 		ConvGenModelAssoc assoc = new ConvGenModelAssoc(gm, config.getAsBoolean(NetworkAbstract.LEARN_ONE_FIELD));
 		SizeZoom zoomOut = getSizeZoomOut(sample);
 		Size minSize = new Size(getMinWidth(), getMinHeight(), 1, 1);
@@ -370,6 +301,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 	
 	@Override
 	public List<Raster> genRasters(int nGens) throws RemoteException {
+		ConvGenModel gm = createDelegate();
 		List<Raster> result = Util.newList(0);
 		for (int i = 0; i < nGens; i++) {
 			try {
@@ -384,8 +316,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 
 	@Override
 	public List<G> recoverRasters(Iterable<Raster> sample, Iterable<Raster> rasters, int nGens) throws RemoteException {
-		createUpdateGenModel();
-
+		ConvGenModel gm = createDelegate();
 		ConvGenModelAssoc assoc = new ConvGenModelAssoc(gm, config.getAsBoolean(NetworkAbstract.LEARN_ONE_FIELD));
 		SizeZoom zoomOut = getSizeZoomOut(sample);
 		Size minSize = new Size(getMinWidth(), getMinHeight(), 1, 1);
@@ -495,9 +426,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 
 	
 	@Override
-	public Object getParameter() throws RemoteException {
-		return gm;
-	}
+	public Object getParameter() throws RemoteException {return this.gm;}
 
 	
 	@Override
@@ -518,9 +447,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 
 	
 	@Override
-	public Inspector getInspector() {
-		return new GenUI(this, true);
-	}
+	public Inspector getInspector() {return new GenUI(this, true);}
 
 	
 	@Override
@@ -530,9 +457,7 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 
 	
 	@Override
-	public void receivedInfo(NetworkInfoEvent evt) throws RemoteException {
-
-	}
+	public void receivedInfo(NetworkInfoEvent evt) throws RemoteException {}
 
 	
 	@Override
@@ -569,10 +494,6 @@ public abstract class GenModelAbstract extends ExecuteAsLearnAlgAbstract impleme
 		config.put(RASTER_CHANNEL_FIELD, RASTER_CHANNEL_DEFAULT);
 		config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		
-		try {
-			if (gm != null) config.putAll(Util.toConfig(gm.getConfig()));
-		} catch (Throwable e) {Util.trace(e);}
-
 		return config;
 	}
 

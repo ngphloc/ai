@@ -20,20 +20,19 @@ import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Softmax;
-import net.ea.ann.core.generator.GeneratorWeighted;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.FilterSpec;
+import net.ea.ann.mane.FilterSpec.KernelType;
+import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.Record;
-import net.ea.ann.mane.TaskTrainerLossEntropy;
 import net.ea.ann.mane.WeightSpec;
-import net.ea.ann.mane.FilterSpec.PoolType;
-import net.ea.ann.mane.WeightSpec.Type;
 import net.ea.ann.mane.beans.VGG;
+import net.ea.ann.mane.beans.VGGClassifier;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.RasterAssoc;
@@ -60,39 +59,39 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Default value for by-column flag.
 	 */
-	public final static String BYCOLUMN_FIELD = "classifier_bycolumn";
+	public final static String BYCOLUMN_FIELD = VGGClassifier.BYCOLUMN_FIELD;
 
 	
 	/**
 	 * Default value for by-column flag.
 	 */
-	public final static boolean BYCOLUMN_DEFAULT = TaskTrainerLossEntropy.BYCOLUMN;
+	public final static boolean BYCOLUMN_DEFAULT = VGGClassifier.BYCOLUMN_DEFAULT;
 
 	
 	/**
 	 * Field of the number elements of a combination.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
-	public static final String COMB_NUMBER_FIELD = "classifier_comb_number";
+	public static final String COMB_NUMBER_FIELD = VGGClassifier.COMB_NUMBER_FIELD;
 	
 	
 	/**
 	 * Default value for the field of the number elements of a combination.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
-	public static final int COMB_NUMBER_DEFAULT = GeneratorWeighted.COMB_NUMBER_DEFAULT;
+	public static final int COMB_NUMBER_DEFAULT = VGGClassifier.COMB_NUMBER_DEFAULT;
 	
 	
 	/**
-	 * Field for convolutional network.
+	 * Field for filter mode. If false, filtering is not applied.
 	 */
-	public static final String CONV_FIELD = VGG.CONV_FIELD;
+	public static final String FILTER_MODE_FIELD = VGG.FILTER_MODE_FIELD;
 	
 	
 	/**
-	 * Default value for convolutional network.
+	 * Default value for filter mode. If false, filtering is not applied.
 	 */
-	public static final boolean CONV_DEFAULT = VGG.CONV_DEFAULT;
+	public static final boolean FILTER_MODE_DEFAULT = VGG.FILTER_MODE_DEFAULT;
 
 	
 	/**
@@ -134,13 +133,13 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Field for base line field.
 	 */
-	public static final String BASELINE_FIELD = "classifier_baseline";
+	public static final String BASELINE_FIELD = VGGClassifier.BASELINE_FIELD;
 	
 	
 	/**
 	 * Default value for base line field.
 	 */
-	public static final boolean BASELINE_DEFAULT = true;
+	public static final boolean BASELINE_DEFAULT = VGGClassifier.BASELINE_DEFAULT;
 
 	
 	/**
@@ -204,27 +203,39 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 
 	
 	/**
-	 * Field for pool type.
+	 * Field for filter kernel type.
 	 */
-	public final static String POOL_TYPE_FIELD = VGG.POOL_TYPE_FIELD;
+	public final static String FILTER_KERNEL_TYPE_FIELD = VGG.FILTER_KERNEL_TYPE_FIELD;
 	
 	
 	/**
-	 * Default value for pool type.
+	 * Default value for filter kernel type.
 	 */
-	public final static PoolType POOL_TYPE_DEFAULT = VGG.POOL_TYPE_DEFAULT;
+	public final static KernelType FILTER_KERNEL_TYPE_DEFAULT = VGG.FILTER_KERNEL_TYPE_DEFAULT;
 
 	
 	/**
-	 * Field for weight type.
+	 * Field for filter pool type.
 	 */
-	public final static String WEIGHT_TYPE_FIELD = VGG.WEIGHT_TYPE_FIELD;
+	public final static String FILTER_POOL_TYPE_FIELD = VGG.FILTER_POOL_TYPE_FIELD;
 	
 	
 	/**
-	 * Default value for weight type.
+	 * Default value for filter pool type.
 	 */
-	public final static Type WEIGHT_TYPE_DEFAULT = VGG.WEIGHT_TYPE_DEFAULT;
+	public final static PoolType FILTER_POOL_TYPE_DEFAULT = VGG.FILTER_POOL_TYPE_DEFAULT;
+
+	
+	/**
+	 * Field for weight kernel type.
+	 */
+	public final static String WEIGHT_KERNEL_TYPE_FIELD = VGG.WEIGHT_KERNEL_TYPE_FIELD;
+	
+	
+	/**
+	 * Default value for weight kernel type.
+	 */
+	public final static net.ea.ann.mane.WeightSpec.KernelType WEIGHT_KERNEL_TYPE_DEFAULT = VGG.WEIGHT_KERNEL_TYPE_DEFAULT;
 
 	
 	/**
@@ -280,7 +291,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		config.put(MatrixNetworkAbstract.VECTORIZED_FIELD, MatrixNetworkAbstract.VECTORIZED_DEFAULT);
 		config.put(BYCOLUMN_FIELD, BYCOLUMN_DEFAULT);
 		config.put(COMB_NUMBER_FIELD, COMB_NUMBER_DEFAULT);
-		config.put(CONV_FIELD, CONV_DEFAULT);
+		config.put(FILTER_MODE_FIELD, FILTER_MODE_DEFAULT);
 		config.put(FILTER_SIZE_FIELD, FILTER_SIZE_DEFAULT);
 		config.put(DEPTH_FIELD, DEPTH_DEFAULT);
 		config.put(DUAL_FIELD, DUAL_DEFAULT);
@@ -291,6 +302,9 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
 		config.put(CREATE_ADJUSTER_FIELD, CREATE_ADJUSTER_DEFAULT);
 		config.put(STACK_SIZE_FIELD, STACK_SIZE_DEFAULT);
+		config.put(FILTER_KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(FILTER_KERNEL_TYPE_DEFAULT));
+		config.put(FILTER_POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(FILTER_POOL_TYPE_DEFAULT));
+		config.put(WEIGHT_KERNEL_TYPE_FIELD, WeightSpec.kernelTypeToInt(WEIGHT_KERNEL_TYPE_DEFAULT));
 	}
 
 	
@@ -395,7 +409,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		int depth = paramGetDepth();
 		depth = depth > 0 ? depth : 0;
 		Size nCoreClasses = paramIsByColumn() ? new Size(groupCount, minClassCount, 1) : new Size(minClassCount, groupCount, 1);
-		if (paramIsConv()) {
+		if (paramIsFilterMode()) {
 			int halfDepth = depth > 1 ? depth/2 : depth;
 			if (paramIsDual()) {
 				if (!initialize(inputSize, nCoreClasses, filter, halfDepth, true, null, 0))
@@ -425,7 +439,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		}
 		else {
 			if (!initialize(inputSize, nCoreClasses, (FilterSpec)null, depth, false, null, 0)) return false;
-		} //paramIsConv()
+		} //paramIsFilterMode()
 
 		//Main task: setting up class maps.
 		this.classMaps.clear();
@@ -475,8 +489,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 		
 		//Initializing labels.
 		for (Raster raster : train) {
-			if (raster == null) continue;
-			RasterProperty rp = raster.getProperty();
+			RasterProperty rp = raster != null ? raster.getProperty() : null;
 			if (rp == null) continue;
 			for (int i = 0; i < rp.getLabelCount(); i++) {
 				Label label = rp.getLabel(i);
@@ -911,8 +924,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 					valid = valid || true;
 				}
 			}
-			if (!valid)
-				continue;
+			if (!valid) continue;
 
 			Matrix input = toMatrix(raster);
 			Matrix output = createOutputByClass(classIndices);
@@ -1239,7 +1251,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 			int groupCount = getNumberOfGroups();
 			if (groupCount <= 0) continue;
 			Label[] labels = new Label[groupCount];
-			int[] classIndices = extractClass(getOutput());
+			int[] classIndices = extractClass(getOutput()); //Please pay attention to the calling getOutput() after evaluation.
 			for (int group = 0; group < groupCount; group++) {
 				Label label = labelOf(group, classIndices[group]);
 				labels[group] = label != null ? label : new Label();
@@ -1256,9 +1268,7 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 
 	
 	@Override
-	public int getNeuronChannel() throws RemoteException {
-		return neuronChannel;
-	}
+	public int getNeuronChannel() throws RemoteException {return neuronChannel;}
 
 	
 	/**
@@ -1384,24 +1394,24 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 
 
 	/**
-	 * Checking convolutional network mode.
-	 * @return convolutional network mode.
+	 * Checking filter mode. If false, filtering is not applied..
+	 * @return filter mode.
 	 */
-	boolean paramIsConv() {
-		if (config.containsKey(CONV_FIELD))
-			return config.getAsBoolean(CONV_FIELD);
+	boolean paramIsFilterMode() {
+		if (config.containsKey(FILTER_MODE_FIELD))
+			return config.getAsBoolean(FILTER_MODE_FIELD);
 		else
-			return CONV_DEFAULT;
+			return FILTER_MODE_DEFAULT;
 	}
 	
 	
 	/**
-	 * Setting convolutional network mode.
-	 * @param conv convolutional network mode.
+	 * Setting filter mode.
+	 * @param filterMode filter mode.
 	 * @return this classifier.
 	 */
-	ClassifierAbstract paramSetConv(boolean conv) {
-		config.put(CONV_FIELD, conv);
+	ClassifierAbstract paramSetFilterMode(boolean filterMode) {
+		config.put(FILTER_MODE_FIELD, filterMode);
 		return this;
 	}
 
@@ -1634,24 +1644,47 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 
 
 	/**
-	 * Checking pooling filter type.
-	 * @return pooling filter type.
+	 * Checking filter kernel type.
+	 * @return filter kernel type.
 	 */
-	PoolType paramGetPoolType() {
-		if (config.containsKey(POOL_TYPE_FIELD))
-			return FilterSpec.intToPoolType(config.getAsInt(POOL_TYPE_FIELD));
+	KernelType paramGetFilterKernelType() {
+		if (config.containsKey(FILTER_KERNEL_TYPE_FIELD))
+			return FilterSpec.intToKernelType(config.getAsInt(FILTER_KERNEL_TYPE_FIELD));
 		else
-			return POOL_TYPE_DEFAULT;
+			return FILTER_KERNEL_TYPE_DEFAULT;
 	}
 	
 	
 	/**
-	 * Setting pooling filter type.
-	 * @param poolType pooling filter type.
+	 * Setting filter kernel type.
+	 * @param kernelType filter kernel type.
 	 * @return this classifier.
 	 */
-	ClassifierAbstract paramSetPoolType(PoolType poolType) {
-		config.put(POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(poolType));
+	ClassifierAbstract paramSetFilterKernelType(KernelType kernelType) {
+		config.put(FILTER_KERNEL_TYPE_FIELD, FilterSpec.kernelTypeToInt(kernelType));
+		return this;
+	}
+
+	
+	/**
+	 * Checking filter pooling type.
+	 * @return filter pooling type.
+	 */
+	PoolType paramGetFilterPoolType() {
+		if (config.containsKey(FILTER_POOL_TYPE_FIELD))
+			return FilterSpec.intToPoolType(config.getAsInt(FILTER_POOL_TYPE_FIELD));
+		else
+			return FILTER_POOL_TYPE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting filter pooling type.
+	 * @param poolType filter pooling type.
+	 * @return this classifier.
+	 */
+	ClassifierAbstract paramSetFilterPoolType(PoolType poolType) {
+		config.put(FILTER_POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(poolType));
 		return this;
 	}
 
@@ -1660,21 +1693,21 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	 * Getting weight type.
 	 * @return weight type.
 	 */
-	Type paramGetWeightType() {
-		if (config.containsKey(WEIGHT_TYPE_FIELD))
-			return WeightSpec.intToType(config.getAsInt(WEIGHT_TYPE_FIELD));
+	net.ea.ann.mane.WeightSpec.KernelType paramGetWeightKernelType() {
+		if (config.containsKey(WEIGHT_KERNEL_TYPE_FIELD))
+			return WeightSpec.intToKernelType(config.getAsInt(WEIGHT_KERNEL_TYPE_FIELD));
 		else
-			return WEIGHT_TYPE_DEFAULT;
+			return WEIGHT_KERNEL_TYPE_DEFAULT;
 	}
 	
 	
 	/**
-	 * Setting weight type.
-	 * @param weightType weight type.
+	 * Setting weight kernel type.
+	 * @param kernelType weight kernel type.
 	 * @return this classifier.
 	 */
-	ClassifierAbstract paramSetWeightType(Type weightType) {
-		config.put(WEIGHT_TYPE_FIELD, WeightSpec.typeToInt(weightType));
+	ClassifierAbstract paramSetWeightKernelType(net.ea.ann.mane.WeightSpec.KernelType kernelType) {
+		config.put(WEIGHT_KERNEL_TYPE_FIELD, WeightSpec.kernelTypeToInt(kernelType));
 		return this;
 	}
 

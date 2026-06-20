@@ -54,10 +54,10 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 	 * @param v value.
 	 */
 	public void initParams(double v) {
-		if (layer.weight != null) layer.weight.initialize(v);
+		if (layer.weight != null) layer.weight.initParams(v);
 		if (layer.bias != null) MatrixUtil.fill(layer.bias, v);
 		
-		if (layer.filter != null) layer.filter.initialize(v);
+		if (layer.filter != null) layer.filter.initParams(v);
 		if (layer.filterBias != null) layer.filterBias = layer.filterBias.valueOf(v);
 	}
 
@@ -67,10 +67,10 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 	 * @param rnd randomizer.
 	 */
 	public void initParams(Random rnd) {
-		if (layer.weight != null) layer.weight.initialize(rnd);
+		if (layer.weight != null) layer.weight.initParams(rnd);
 		if (layer.bias != null) MatrixUtil.fill(layer.bias, rnd);
 		
-		if (layer.filter != null) layer.filter.initialize(rnd);
+		if (layer.filter != null) layer.filter.initParams(rnd);
 		if (layer.filterBias != null) layer.filterBias = layer.filterBias.valueOf(NeuronValue.r(rnd));
 	}
 
@@ -146,7 +146,7 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 	 * @return convolutional layer.
 	 */
 	ConvLayerSingle2D newConvLayer(int width, int height) {
-		return ConvLayer2DImpl.create(layer.neuronChannel, layer.convActivateRef, width, height, null, layer.getIdRef());
+		return ConvLayer2DImpl.create(layer.neuronChannel, layer.getFilterActivateRef(), width, height, null, layer.getIdRef());
 	}
 
 	

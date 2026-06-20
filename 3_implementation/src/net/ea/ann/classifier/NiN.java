@@ -322,9 +322,7 @@ class NiNAbstract extends ClassifierAbstract {
 
 	
 	@Override
-	protected Matrix getOutput() {
-		return nut.getOutput();
-	}
+	protected Matrix getOutput() {return nut.getOutput();}
 
 	
 	@Override
@@ -397,25 +395,25 @@ class NiNAbstract extends ClassifierAbstract {
 
 	
 	/**
-	 * Getting number of filters per layer.
-	 * @return number of filters per layer.
+	 * Getting initial number of filters per layer which is also the initial depth of layer.
+	 * @return initial number of filters per layer.
 	 */
-	int paramGetFiltersNumber() {
-		if (config.containsKey(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD))
-			return config.getAsInt(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD);
+	int paramGetFiltersNumberInit() {
+		if (config.containsKey(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_FIELD))
+			return config.getAsInt(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_FIELD);
 		else
-			return net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT;
+			return net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_DEFAULT;
 	}
 
 
 	/**
-	 * Setting number of filters per layer.
-	 * @param filtersNumber number of filters per layer.
-	 * @return this classifier.
+	 * Setting initial number of filters per layer.
+	 * @param filtersNumberInit initial number of filters per layer which is also the initial depth of layer.
+	 * @return this VGG.
 	 */
-	NiNAbstract paramSetFiltersNumber(int filtersNumber) {
-		filtersNumber = filtersNumber < 1 ? net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_DEFAULT : filtersNumber;
-		config.put(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_FIELD, filtersNumber);
+	NiNAbstract paramSetFiltersNumber(int filtersNumberInit) {
+		filtersNumberInit = filtersNumberInit < 1 ? net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_DEFAULT : filtersNumberInit;
+		config.put(net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_FIELD, filtersNumberInit);
 		return this;
 	}
 

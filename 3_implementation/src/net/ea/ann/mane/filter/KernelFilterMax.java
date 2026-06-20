@@ -115,9 +115,8 @@ public class KernelFilterMax extends KernelFilterProduct {
 
 	@Override
 	void forward(int time, MatrixStack prevLayers, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
-		NeuronValue zero = thisInputLayer != null ? thisInputLayer.get(0, 0).zero() : (thisOutputLayer != null ? thisOutputLayer.get(0, 0).zero() : prevLayers.get().get(0, 0).zero());
-		MatrixUtil.fill(thisInputLayer, zero);
-		MatrixUtil.fill(thisOutputLayer, zero);
+		if (thisInputLayer != null) MatrixUtil.fill(thisInputLayer, thisInputLayer.get(0, 0).zero());
+		if (thisOutputLayer != null) MatrixUtil.fill(thisOutputLayer, thisOutputLayer.get(0, 0).zero());
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevLayers.columns(), prevHeight = prevLayers.rows();
@@ -146,6 +145,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 				if (bias != null) filteredValueMax = filteredValueMax.add(bias);
 				if (thisActivateRef != null) filteredValueMax = filteredValueMax.evaluate(thisActivateRef);
 				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValueMax);
+				
 			}
 		}
 	}

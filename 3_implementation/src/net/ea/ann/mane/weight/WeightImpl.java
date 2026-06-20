@@ -451,13 +451,40 @@ public class WeightImpl implements Weight {
 	 * @param hint hint.
 	 * @return weight.
 	 */
-	public static WeightImpl create(Size sizeW1, Size sizeW2, NeuronValue hint) {
+	private static WeightImpl create0(Size sizeW1, Size sizeW2, NeuronValue hint) {
 		MatrixStack[] W1 = sizeW1 != null ? createW(sizeW1, hint) : null;
 		MatrixStack[] W2 = sizeW2 != null ? createW(sizeW2, hint) : null;
 		return new WeightImpl(new WKernel(W1, W2));
 	}
 
+	
+	/**
+	 * Creating weight.
+	 * @param prevSize previous size.
+	 * @param size current size.
+	 * @param hint hint value.
+	 * @return weight.
+	 */
+	public static WeightImpl create(Size prevSize, Size size, NeuronValue hint) {
+		Size sizeW1 = null, sizeW2 = null;
+		if (prevSize.height == size.height && prevSize.width == size.width) {
+			sizeW1 = new Size(size.height, size.height, prevSize.depth, size.depth);
+		}
+		else if (prevSize.height != size.height && prevSize.width == size.width) {
+			sizeW1 = new Size(prevSize.height, size.height, prevSize.depth, size.depth);
+		}
+		else if (prevSize.height == size.height && prevSize.width != size.width) {
+			sizeW2 = new Size(size.width, prevSize.width, prevSize.depth, size.depth);
+		}
+		else {
+			sizeW1 = new Size(prevSize.height, size.height, prevSize.depth, size.depth);
+			sizeW2 = new Size(size.width, prevSize.width, prevSize.depth, size.depth);
+		}
 
+		return create0(sizeW1, sizeW2, hint);
+	}
+	
+	
 }
 
 

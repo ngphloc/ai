@@ -172,7 +172,20 @@ public interface Raster extends Serializable, Cloneable {
 	 */
 	NeuronValue[] toNeuronValues(int neuronChannel, Size size, boolean isNorm);
 	
-	
+
+	/**
+	 * Extracting raster into neuron value array with all depths and times.
+	 * @param neuronChannel neuron channel.
+	 * @param width raster width.
+	 * @param height raster height.
+	 * @param isNorm flag to indicate whether pixel is normalized in range [0, 1].
+	 * @return neuron value array.
+	 */
+	default NeuronValue[] toNeuronValues(int neuronChannel, int width, int height, boolean isNorm) {
+		return toNeuronValues(neuronChannel, new Size(width, height, getDepth(), getTime()), isNorm);
+	}
+
+
 //	/**
 //	 * Converting raster type to neuron channel.
 //	 * @param rasterType raster type.

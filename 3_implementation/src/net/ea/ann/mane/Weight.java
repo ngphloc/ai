@@ -56,7 +56,7 @@ public interface Weight extends Cloneable, Serializable {
 	 * @param prevOutput previous outputs.
 	 * @param thisError current errors.
 	 * @param prevActivateRef previous activation function.
-	 * @return gradient of previous layers.
+	 * @return gradient of previous layers (at previous outputs).
 	 */
 	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef);
 
@@ -66,7 +66,7 @@ public interface Weight extends Cloneable, Serializable {
 	 * @param time time.
 	 * @param prevOutputs previous outputs.
 	 * @param thisErrors current errors.
-	 * @return gradient of the current weight.
+	 * @return gradient of the current weight (at this errors).
 	 */
 	Kernel dKernel(Matrix prevOutput, Matrix thisError);
 

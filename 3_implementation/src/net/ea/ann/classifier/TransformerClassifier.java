@@ -257,9 +257,7 @@ class TransformerClassifierAbstract extends ClassifierAbstract {
 
 	
 	@Override
-	protected Matrix getOutput() {
-		return transformer.getOutput();
-	}
+	protected Matrix getOutput() {return transformer.getOutput();}
 
 	
 	@Override

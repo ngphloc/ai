@@ -107,6 +107,13 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 	
 	/**
+	 * Temporal account for validating accumulation. It should be removed in improved version.
+	 * Please pay attention that the accumulation only occurs in method {@link #backward(Error[], MatrixLayer, boolean, double)}.
+	 */
+	private int tempAccum = 0;
+	
+	
+	/**
 	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
@@ -143,9 +150,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public MatrixLayerImpl(int neuronChannel) {
-		this(neuronChannel, null, null, null);
-	}
+	public MatrixLayerImpl(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 	
 	/**
@@ -174,6 +179,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		this.dFKernelAccum = null;
 		this.dFBiasAccum = null;
 		
+		this.tempAccum = 0;
+		
 		if (this.weight != null && this.weight instanceof NetworkWeight) ((NetworkWeight)this.weight).resetBackwardInfo();
 		if (this.filter != null && this.filter instanceof NetworkFilter) ((NetworkFilter)this.filter).resetBackwardInfo();
 	}
@@ -181,6 +188,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 	/**
 	 * Initializing layer with size, previous layer size, and filter.
+	 * Please pay attention that filter is before weight in the same layer.
 	 * @param size this size.
 	 * @param prevSize previous layer size. It can be null.
 	 * @param layerSpec layer specification.
@@ -200,46 +208,19 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		//Initialize filter and weights.
 		if (prevSize != null) {
 			if (prevSize.height <= 0 || prevSize.width <= 0) return false;
-			Filter filter = null;
-			int prevDepth = prevSize.depth;
+			
 			FilterSpec filterSpec = layerSpec != null ? layerSpec.filterSpec : null;
 			if (filterSpec != null) {
-				filter = newFilter(new Size(filterSpec.width(), filterSpec.height(), prevSize.depth, size.depth), layerSpec);
-				prevDepth = size.depth;
+				this.filter = newFilter(new Size(filterSpec.width(), filterSpec.height(), prevSize.depth, size.depth), layerSpec);
+				if (filterSpec.coweight && layerSpec.weightSpec != null)
+					this.weight = newWeight(size, size, layerSpec);
 			}
-			
-			Weight weight = null;
-			if (prevSize.height == size.height && prevSize.width == size.width) {
-				weight = newWeight(
-					new Size(size.height, size.height, prevDepth, size.depth),
-					null,
-					layerSpec);
-			}
-			else if (prevSize.height != size.height && prevSize.width == size.width) {
-				weight = newWeight(
-					new Size(prevSize.height, size.height, prevDepth, size.depth),
-					null,
-					layerSpec);
-			}
-			else if (prevSize.height == size.height && prevSize.width != size.width) {
-				weight = newWeight(
-					null,
-					new Size(size.width, prevSize.width, prevDepth, size.depth),
-					layerSpec);
-			}
-			else {
-				weight = newWeight(
-					new Size(prevSize.height, size.height, prevDepth, size.depth),
-					new Size(size.width, prevSize.width, prevDepth, size.depth),
-					layerSpec);
-			}
-			
-			this.filter = filter;
-			this.weight = weight;
-			if (filterSpec != null && !filterSpec.coweight && this.filter != null) this.weight = null;
+			else
+				this.weight = newWeight(prevSize, size, layerSpec);
 		}
 		else {
 			//Do nothing because the input layer has no parameters.
+
 		}
 		
 		//Initialize ones related to filter.
@@ -259,6 +240,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			this.output = this.input = newMatrix(new Size(size.width, size.height, size.depth)); //Only for input layer where both filter and weights are null and so, its input and output must be initialized.
 		}
 		
+		resetBackwardInfo(); //Fixing date: 2026.06.05
 		return true;
 	}
 	
@@ -288,87 +270,59 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 	
 	@Override
-	protected Matrix getPrevInput() {
-		return this.prevInput;
-	}
+	protected Matrix getPrevInput() {return this.prevInput;}
 
 
 	@Override
-	protected void setPrevInput(Matrix prevInput) {
-		this.prevInput = prevInput;
-	}
+	protected void setPrevInput(Matrix prevInput) {this.prevInput = prevInput;}
 
 
 	@Override
-	protected Matrix getPrevOutput() {
-		return this.prevOutput;
-	}
+	protected Matrix getPrevOutput() {return this.prevOutput;}
 
 
 	@Override
-	protected void setPrevOutput(Matrix prevOutput) {
-		this.prevOutput = prevOutput;
-	}
+	protected void setPrevOutput(Matrix prevOutput) {this.prevOutput = prevOutput;}
 
 
 	@Override
-	public Matrix getInput() {
-		return input;
-	}
+	public Matrix getInput() {return input;}
 
 	
 	@Override
-	protected void setInput(Matrix input) {
-		this.input = input;
-	}
+	protected void setInput(Matrix input) {this.input = input;}
 
 	
 	@Override
-	public Matrix getOutput() {
-		return output;
-	}
+	public Matrix getOutput() {return output;}
 
 	
 	@Override
-	protected void setOutput(Matrix output) {
-		this.output = output;
-	}
+	protected void setOutput(Matrix output) {this.output = output;}
 
 	
 	@Override
-	protected Matrix getBias() {
-		return bias;
-	}
+	protected Matrix getBias() {return bias;}
 
 
 	@Override
-	protected void setBias(Matrix bias) {
-		this.bias = bias;
-	}
+	protected void setBias(Matrix bias) {this.bias = bias;}
 
 
 	@Override
-	protected Weight getWeight() {
-		return weight;
-	}
+	protected Weight getWeight() {return weight;}
 
 	
 	@Override
-	protected void setWeight(Weight weight) {
-		this.weight = weight;
-	}
+	protected void setWeight(Weight weight) {this.weight = weight;}
 
 
 	@Override
-	protected NeuronValue getFilterBias() {
-		return filterBias;
-	}
+	protected NeuronValue getFilterBias() {return filterBias;}
 
 
 	@Override
-	protected void setFilterBias(NeuronValue filterBias) {
-		this.filterBias = filterBias;
-	}
+	protected void setFilterBias(NeuronValue filterBias) {this.filterBias = filterBias;}
 
 
 	@Override
@@ -404,15 +358,11 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 	
 	@Override
-	protected Filter getFilter() {
-		return filter;
-	}
+	protected Filter getFilter() {return filter;}
 
 
 	@Override
-	protected void setFilter(Filter filter) {
-		this.filter = filter;
-	}
+	protected void setFilter(Filter filter) {this.filter = filter;}
 
 
 	@Override
@@ -428,31 +378,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (size.height <= 0 || size.width <= 0) return false;
 		if (prevSize.height <= 0 || prevSize.width <= 0) return false;
 		
-		if (prevSize.height == size.height && prevSize.width == size.width) {
-			this.weight = newWeight(
-				new Size(size.height, size.height, prevSize.depth, size.depth),
-				null,
-				null);
-		}
-		else if (prevSize.height != size.height && prevSize.width == size.width) {
-			this.weight = newWeight(
-				new Size(prevSize.height, size.height, prevSize.depth, size.depth),
-				null,
-				null);
-		}
-		else if (prevSize.height == size.height && prevSize.width != size.width) {
-			this.weight = newWeight(
-				null,
-				new Size(size.width, prevSize.width, prevSize.depth, size.depth),
-				null);
-		}
-		else {
-			this.weight = newWeight(
-				new Size(prevSize.height, size.height, prevSize.depth, size.depth),
-				new Size(size.width, prevSize.width, prevSize.depth, size.depth),
-				null);
-		}
-		
+		this.weight = newWeight(prevSize, size, null);
 		this.filter = null;
 		this.filterBias = null;
 		this.prevInput = this.prevOutput = null;
@@ -481,9 +407,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		
 		Matrix dValue = null;
 		if (this.filter instanceof NetworkFilter)
-			dValue = ((NetworkFilter)this.filter).dValue(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef, learning, learningRate);
+			dValue = ((NetworkFilter)this.filter).dValue(prevLayerOutputConv, thisPrevInputConv, errorConv, this.getFilterActivateRef(), learning, learningRate);
 		else
-			dValue = this.filter.dValue(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef);
+			dValue = this.filter.dValue(prevLayerOutputConv, thisPrevInputConv, errorConv, this.getFilterActivateRef());
 		return dValue != null ? this.prevLayer.convLayerToMatrix(dValue) : null;
 	}
 	
@@ -502,7 +428,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (this.filter instanceof NetworkFilter)
 			return null;
 		else
-			return this.filter.dKernel(prevLayerOutputConv, thisPrevInputConv, errorConv, this.convActivateRef);
+			return this.filter.dKernel(prevLayerOutputConv, thisPrevInputConv, errorConv, this.getFilterActivateRef());
 	}
 
 	
@@ -510,15 +436,16 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Accumulating filter kernel.
 	 * @param dFKernel filter kernel gradient.
 	 * @param learningRate learning rate.
+	 * @return return accumulated filter. 
 	 */
-	private void accumFilterKernel(Kernel dFKernel, double learningRate) {
-		if (this.filter == null) return;
-		this.filter.accumKernel(dFKernel, learningRate);
+	private Filter accumFilterKernel(Kernel dFKernel, double learningRate) {
+		if (this.filter == null) return this.filter;
+		return this.filter.accumKernel(dFKernel, learningRate);
 	}
 	
 	
 	/**
-	 * Evaluating by filtering.
+	 * Evaluating by filtering. This method should be private.
 	 * @return filtered matrix.
 	 */
 	private Matrix evaluateByFilter() {
@@ -527,10 +454,17 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		Matrix thisPrevInputConv = matrixToConvLayer(this.prevInput);
 		Matrix thisPrevOutputConv = matrixToConvLayer(this.prevOutput);
 		
-		this.filter.forward(prevLayerOutputConv, thisPrevInputConv, thisPrevOutputConv, this.filterBias, this.convActivateRef);
+		this.filter.forward(prevLayerOutputConv, thisPrevInputConv, thisPrevOutputConv, this.filterBias, this.getFilterActivateRef());
 		this.prevInput = convLayerToMatrix(thisPrevInputConv);
 		return this.prevOutput = convLayerToMatrix(thisPrevOutputConv);
 	}
+	
+	
+	/**
+	 * Evaluating by filtering. This method provides outside calling to the complicated and important private method {@link #evaluateByFilter()}. 
+	 * @return filtered matrix.
+	 */
+	Matrix evaluateByFilterCall() {return evaluateByFilter();}
 	
 	
 	@Override
@@ -541,7 +475,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		
 		this.input = prevOutput != null ? prevOutput : this.prevLayer.queryOutput();
 		this.input = this.weight.evaluate(this.input, this.bias);
-		this.output = (this.activateRef != null) && !(this.weight instanceof NullWeight) ? this.input.evaluate0(this.activateRef) : this.input;
+		this.output = (this.getWeightActivateRef() != null) && !(this.weight instanceof NullWeight) ?
+			this.input.evaluate0(this.getWeightActivateRef()) : this.input;
 		return this.output;
 	}
 
@@ -577,6 +512,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 	/*
 	 * Please pay attention that filter is before weight in the same layer.
+	 * This method is the core of matrix neural network.
 	 */
 	@Override
 	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
@@ -597,9 +533,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			}
 			else if (this.nextLayer.getFilter() == null && this.nextLayer.getWeight().backwardErrorMode()) {
 				Matrix input = queryInput(), output = queryOutput(); //X^k-1 = input, Xk = output.
-				Function thisActivateRef = input == getInput() ? this.activateRef : (input == getPrevInput() && this.filter.doesApplyActivate() ? this.convActivateRef : null ); //Getting right-most activation function.
+				Function thisActivateRef = input == getInput() ? this.getWeightActivateRef() :
+					(input == getPrevInput() && this.filter.doesApplyActivate() ? this.getFilterActivateRef() : null ); //Getting right-most activation function.
 				
-				//Working-around solution for pooling-max filters.
+				//Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
 				if (this.weight == null && this.filter != null && this.filter.isIndexMode()) thisActivateRef = null;
 				
 				errors[i] = this.nextLayer.getWeight().dValue(input, output, outputErrors[i].error(), thisActivateRef);
@@ -621,11 +558,11 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 					prevInput = prevInput != null ? prevInput : this.prevLayer.queryOutput(); //Xk-1
 					Matrix prevOutput = getInput();
 					if (this.weight instanceof NetworkWeight) {
-						errors[i] = ((NetworkWeight)this.weight).dValue(prevInput, prevOutput, errors[i], this.activateRef, learning, learningRate);
+						errors[i] = ((NetworkWeight)this.weight).dValue(prevInput, prevOutput, errors[i], this.getWeightActivateRef(), learning, learningRate);
 						dWKernels[i] = null;
 					}
 					else {
-						errors[i] = this.weight.dValue(prevInput, prevOutput, errors[i], this.activateRef);
+						errors[i] = this.weight.dValue(prevInput, prevOutput, errors[i], this.getWeightActivateRef());
 						dWKernels[i] = this.weight.dKernel(prevOutput, errors[i]);
 					}
 				}
@@ -636,10 +573,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				if (this.weight != null && this.weight.backwardErrorMode()) {
 					//Calculating value errors at this layer.
 					Matrix prevInput = getPrevInput(), prevOutput = getPrevOutput(); //X^k-1 = input, Xk = output.
-					Function thisActivateRef = this.filter.doesApplyActivate() ? this.convActivateRef : null;
+					Function thisActivateRef = this.filter.doesApplyActivate() && !this.filter.isIndexMode() ? this.getFilterActivateRef() : null; //Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
 					errors[i] = this.weight.dValue(prevInput, prevOutput, errors[i], thisActivateRef);
 				}
-				dFBiases[i] = Filter.CALC_ERROR_MEAN ? MatrixUtil.valueMean(errors[i]) : MatrixUtil.valueSum(errors[i]); //Filter errors.
+				dFBiases[i] = MatrixUtil.valueSum(errors[i]); //Filter errors.
 				dFKernels[i] = dFilterKernel(errors[i]);
 				outputErrors[i].errorSet(dFilterValue(errors[i], learning, learningRate)); //Please pay attention to this code line to back-warding value errors.
 			}
@@ -660,8 +597,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		if (this.weight != null && dWKernels[0] != null) {
 			Kernel dWKernelMean = Kernel.mean(dWKernels);
-			if (learning)
-				this.weight.accumKernel(dWKernelMean, learningRate);
+			if (learning) {
+//				this.weight = this.weight.accumKernel(dWKernelMean, learningRate);
+				if (this.weight != this.weight.accumKernel(dWKernelMean, learningRate)) throw new IllegalArgumentException();
+			}
 			else 
 				this.dWKernelAccum = this.dWKernelAccum != null ? this.dWKernelAccum.add(dWKernelMean) : dWKernelMean;
 		}
@@ -678,12 +617,16 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			
 			if (dFKernels[0] != null) {
 				Kernel dFilterKernelMean = Kernel.mean(dFKernels);
-				if (learning)
-					accumFilterKernel(dFilterKernelMean, learningRate);
+				if (learning) {
+//					this.filter = accumFilterKernel(dFilterKernelMean, learningRate);
+					if (this.filter != accumFilterKernel(dFilterKernelMean, learningRate)) throw new IllegalArgumentException();
+				}
 				else
 					this.dFKernelAccum = this.dFKernelAccum != null ? this.dFKernelAccum.add(dFilterKernelMean) : dFilterKernelMean;
 			}
 		}
+		
+		this.tempAccum += outputErrors.length;
 		
 		//Returning output errors if there is no previous layers or this layer is focused layer.
 		if (this.prevLayer == null || this == focus) return outputErrors;
@@ -720,6 +663,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @param learningRate learning rate.
 	 */
 	protected void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		assert(tempAccum == recordCount);
+		
 		//Update weight bias, first weight, and second weight.
 		if (this.bias != null && this.dWBiasAccum != null) {
 			Matrix dBiasMean = this.dWBiasAccum.divide0(recordCount);
@@ -729,7 +674,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		if (this.weight != null && this.dWKernelAccum != null) {
 			Kernel dWMean = this.dWKernelAccum.divide(recordCount);
-			this.weight.accumKernel(dWMean, learningRate);
+//			this.weight = this.weight.accumKernel(dWMean, learningRate);
+			if (this.weight != this.weight.accumKernel(dWMean, learningRate)) throw new IllegalArgumentException();
 			this.dWKernelAccum = null;
 		}
 		if (this.weight != null && this.weight instanceof NetworkWeight) {
@@ -747,7 +693,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			
 			if (this.dFKernelAccum != null) {
 				Kernel dFilterKernelMean = this.dFKernelAccum.divide(recordCount);
-				accumFilterKernel(dFilterKernelMean, learningRate);
+//				this.filter = accumFilterKernel(dFilterKernelMean, learningRate);
+				if (this.filter != accumFilterKernel(dFilterKernelMean, learningRate)) throw new IllegalArgumentException();
 				this.dFKernelAccum = null;
 			}
 		}
@@ -760,6 +707,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		this.dWBiasAccum = null;
 		this.dFKernelAccum = null;
 		this.dFBiasAccum = null;
+		
+		this.tempAccum = 0;
 	}
 	
 	

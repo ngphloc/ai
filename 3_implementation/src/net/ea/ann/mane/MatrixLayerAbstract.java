@@ -18,6 +18,7 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
+import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
@@ -61,6 +62,11 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		 * Size.
 		 */
 		public Size size = null;
+		
+		/**
+		 * The fifth dimension.
+		 */
+		public int fifthLength = 0;
 		
 		/**
 		 * Weight specification.
@@ -112,16 +118,12 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		 * Constructor with size.
 		 * @param size size.
 		 */
-		public LayerSpec(Size size) {
-			this.size = size;
-		}
+		public LayerSpec(Size size) {this.size = size;}
 	
 		/**
 		 * Default constructor.
 		 */
-		public LayerSpec() {
-			
-		}
+		public LayerSpec() {}
 		
 		/**
 		 * Getting whether to be vectorization.
@@ -136,6 +138,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		public Size sizeByVecRows() {
 			return vecRows > 0 ? new Size(size.height/vecRows, vecRows, size.depth, size.time) : size;
 		}
+		
 	}
 
 
@@ -271,13 +274,13 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 
 	/**
-	 * Constructor with the first weight size and the second weight size.
-	 * @param sizeW1 the first weight size.
-	 * @param sizeW2 the second weight size.
+	 * Constructor with the previous size and current size.
+	 * @param prevSize previous size.
+	 * @param size current size.
 	 * @param layerSpec layer specification, which can be null.
 	 */
-	protected Weight newWeight(Size sizeW1, Size sizeW2, LayerSpec layerSpec) {
-		return WeightSpec.newWeight(sizeW1, sizeW2, newNeuronValue(), layerSpec, this.neuronChannel);
+	protected Weight newWeight(Size prevSize, Size size, LayerSpec layerSpec) {
+		return WeightSpec.newWeight(prevSize, size, newNeuronValue(), layerSpec, this.neuronChannel);
 	}
 
 	
@@ -351,40 +354,60 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 
 	/**
-	 * Getting reference to activation function.
-	 * @return reference to activation function.
+	 * Getting reference to weight activation function.
+	 * @return reference to weight activation function.
 	 */
-	public Function getActivateRef() {
-		return activateRef;
-	}
+	public Function getWeightActivateRef() {return activateRef;}
 
 	
 	/**
 	 * Setting reference to activation function.
-	 * @param activateRef reference to activation function.
-	 * @return previous function reference.
+	 * @param weightActivateRef reference to activation function.
+	 * @return this function reference.
 	 */
-	protected Function setActivateRef(Function activateRef) {
-		return this.activateRef = activateRef;
-	}
+	protected Function setWeightActivateRef(Function weightActivateRef) {return this.activateRef = weightActivateRef;}
 
 	
 	/**
-	 * Getting reference to convolutional activation function.
-	 * @return reference to convolutional activation function.
+	 * Getting reference to filter activation function.
+	 * @return reference to filter activation function.
 	 */
-	public Function getConvActivateRef() {
-		return convActivateRef;
-	}
+	public Function getFilterActivateRef() {return convActivateRef;}
 	
 	
 	/**
-	 * Setting reference to convolutional activation function.
-	 * @param activateRef reference to convolutional activation function.
-	 * @return previous function reference.
+	 * Setting reference to filter activation function.
+	 * @param filterActivateRef reference to filter activation function.
+	 * @return this function reference.
 	 */
-	protected Function setConvActivateRef(Function convActivateRef) {
-		return this.convActivateRef = convActivateRef;
+	protected Function setFilterActivateRef(Function filterActivateRef) {return this.convActivateRef = filterActivateRef;}
+
+	
+	/**
+	 * Getting most output activation function.
+	 * @return most output activation function.
+	 */
+	public Function getOutputActivateRef() {
+		if (getWeight() != null) {
+			Weight weight = getWeight();
+			if (weight instanceof NullWeight) {
+				assert (true);
+				return null; //It should return null.
+			}
+			else
+				return getWeightActivateRef();
+		}
+		else if (getFilter() != null) {
+			Filter filter = getFilter();
+			if (filter.isIndexMode() || !filter.doesApplyActivate()) {
+				assert (true);
+				return null; //It should return null.
+			}
+			else
+				return getFilterActivateRef();
+		}
+		else
+			throw new IllegalArgumentException();
 	}
 
 	
@@ -604,7 +627,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param matrix matrix.
 	 * @return raster.
 	 */
-	Raster toRaster(Matrix matrix) {
+	public Raster toRaster(Matrix matrix) {
 		matrix = isVectorized() ? matrix.vecInverse(vecRows) : matrix;
 		return MatrixUtil.toRaster(matrix, neuronChannel, paramIsNorm(), paramGetDefaultAlpha());
 	}
@@ -652,7 +675,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 	
 	/**
-	 * Converting convolutional layer to matrix.
+	 * Converting convolutional layer to this matrix.
 	 * @param convLayer convolutional layer.
 	 * @return matrix.
 	 */
@@ -662,7 +685,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	
 	
 	/**
-	 * Converting matrix to convolutional layer.
+	 * Converting this matrix to convolutional layer.
 	 * @param matrix matrix.
 	 * @return convolutional layer.
 	 */

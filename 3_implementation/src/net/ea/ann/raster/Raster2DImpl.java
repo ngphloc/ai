@@ -45,15 +45,11 @@ public class Raster2DImpl extends RasterAbstract implements Raster2D {
 
 
 	@Override
-	public int getWidth() {
-		return image.getWidth();
-	}
+	public int getWidth() {return image.getWidth();}
 	
 	
 	@Override
-	public int getHeight() {
-		return image.getHeight();
-	}
+	public int getHeight() {return image.getHeight();}
 	
 
 	@Override
@@ -65,7 +61,7 @@ public class Raster2DImpl extends RasterAbstract implements Raster2D {
 		if (image == null)
 			return null;
 		else if (image instanceof ImageWrapper)
-			return ((ImageWrapper)image).image;
+			return ((ImageWrapper)image).getImage();
 		else
 			return null;
 	}
@@ -92,8 +88,7 @@ public class Raster2DImpl extends RasterAbstract implements Raster2D {
 
 
 	@Override
-	public NeuronValue[] toNeuronValues(int neuronChannel, Size size,
-			boolean isNorm) {
+	public NeuronValue[] toNeuronValues(int neuronChannel, Size size, boolean isNorm) {
 		return image.convertFromImageToNeuronValues(neuronChannel, size.width, size.height,
 			isNorm);
 	}

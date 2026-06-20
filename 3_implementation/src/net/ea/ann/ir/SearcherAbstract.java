@@ -7,75 +7,27 @@
  */
 package net.ea.ann.ir;
 
+import java.util.Collection;
 import java.util.List;
 
 import net.ea.ann.core.Util;
-import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.ir.Feature.MatrixFeature;
+import net.ea.ann.ir.ScoredFeature.ScoredFeatureImpl;
 
 /**
- * This class implements partially searching component (matching component)
+ * This class implements partially searching component (matching component).
  * @author Loc Nguyen
  * @version 1.0
  *
+ * @param <T> feature type.
  */
-public abstract class SearcherAbstract implements Searcher {
+public abstract class SearcherAbstract<T extends Feature> implements Searcher<T> {
 
 
 	/**
 	 * Serial version UID for serializable class. 
 	 */
 	private static final long serialVersionUID = 1L;
-
-	
-	/**
-	 * This class represents feature associated with score.
-	 * @author Loc Nguyen
-	 * @version 1.0
-	 *
-	 */
-	public class ScoredFeatureWrapper implements ScoredFeature {
-		
-		/**
-		 * Serial version UID for serializable class. 
-		 */
-		private static final long serialVersionUID = 1L;
-
-		/**
-		 * Internal feature.
-		 */
-		protected Feature feature = null;
-		
-		/**
-		 * Score.
-		 */
-		protected double score = 0;
-
-		/**
-		 * Constructor with feature and score.
-		 * @param feature feature.
-		 * @param score score.
-		 */
-		public ScoredFeatureWrapper(Feature feature, double score) {
-			this.feature = feature;
-			this.score = score;
-		}
-
-		@Override
-		public NeuronValue sim(Feature other) {
-			return feature.sim(other);
-		}
-
-		@Override
-		public NeuronValue distance(Feature other) {
-			return feature.distance(other);
-		}
-
-		@Override
-		public double getScore() {
-			return score;
-		}
-		
-	}
 
 	
 	/**
@@ -87,32 +39,89 @@ public abstract class SearcherAbstract implements Searcher {
 	
 	
 	/**
-	 * Obtaining searching space.
-	 * @return searching space.
+	 * Creating scored feature.
+	 * @param feature feature.
+	 * @param score score.
+	 * @return scored feature.
 	 */
-	protected abstract List<Feature> obtainSearchSpace();
-
-
+	protected ScoredFeature<T> newScoredFeature(T feature, double score) {
+		return new ScoredFeatureImpl<T>(feature, score);
+	}
+	
+	
+	/**
+	 * Getting library.
+	 * @return library.
+	 */
+	protected abstract Library<T> getLibrary();
+	
+	
 	@Override
-	public List<ScoredFeature> search(Feature query, int maxFound, Object... params) {
-		List<ScoredFeature> result = Util.newList(0);
-		List<Feature> space = obtainSearchSpace();
-		for (Feature feature : space) {
+	public List<ScoredFeature<T>> search(T query, int maxFound) {
+		return search(getLibrary(), query, maxFound);
+	}
+
+
+	/**
+	 * Searching for given query feature.
+	 * @param library library.
+	 * @param query query feature.
+	 * @param maxFound the maximum number of found features.
+	 * @return list of found features.
+	 */
+	public List<ScoredFeature<T>> search(Library<T> library, T query, int maxFound) {
+		return search(library.obtainCandidates(query), query, maxFound);
+	}
+
+	
+	/**
+	 * Searching for given query feature.
+	 * @param searchSpace searching space.
+	 * @param query query feature.
+	 * @param maxFound the maximum number of found features.
+	 * @return list of found features.
+	 */
+	protected List<ScoredFeature<T>> search(Collection<T> searchSpace, T query, int maxFound) {
+		List<ScoredFeature<T>> result = Util.newList(0);
+		for (T feature : searchSpace) {
 			if (maxFound > 0 && result.size() >= maxFound) break;
 
 			double score = feature.sim(query).mean();
 			boolean found = false;
 			for (int i = result.size() - 1; i >= 0; i++) {
-				if (result.get(i).getScore() >= score) {
-					result.add(i + 1, new ScoredFeatureWrapper(feature, score));
+				if (result.get(i).score() >= score) {
+					result.add(i + 1, newScoredFeature(feature, score));
 					found = true;
 					break;
 				}
 			}
-			if (!found) result.add(0, new ScoredFeatureWrapper(feature, score));
+			if (!found) result.add(0, newScoredFeature(feature, score));
 		}
 		return result;
 	}
 	
+	
+	/**
+	 * This class implements partially searching component (matching component) with respect matrix feature.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 *
+	 */
+	public static abstract class MatrixFeatureSearcherAbstract extends SearcherAbstract<MatrixFeature> {
+		
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
 
+		/**
+		 * Default constructor.
+		 */
+		public MatrixFeatureSearcherAbstract() {
+			super();
+		}
+		
+	}
+
+	
 }

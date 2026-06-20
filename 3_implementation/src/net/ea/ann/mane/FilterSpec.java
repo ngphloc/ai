@@ -11,6 +11,7 @@ import java.awt.Dimension;
 import java.io.Serializable;
 
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.mane.filter.FilterNetworkImpl;
 import net.ea.ann.mane.filter.KernelFilterMax;
@@ -421,15 +422,23 @@ public class FilterSpec implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Creating default filter.
-	 * @param filterSize filter size.
+	 * Creating filter.
+	 * @param filterSize filter size in which width and height are size of filter itself
+	 * whereas depth is the number of previous matrices (length of matrix stack in previous layer) and
+	 * time is the number of current matrices (length of matrix stack in current layer).<br/>
+	 * For pooling filter, depth is the number of current matrices (length of matrix stack in current layer) and time is 1 because
+	 * all previous matrices needs only one pooling filter.<br/>
+	 * For network filter, the specification is slight different, in which width and height are size of filter itself.
 	 * @param hint value hint.
 	 * @param layerSpec layer specification.
-	 * @param neuronChannel neuron channel.
-	 * @return default filter.
+	 * @param neuronChannel neuron channel which is only applied to network filter.
+	 * @return filter.
 	 */
 	public static Filter newFilter(Size filterSize, NeuronValue hint, LayerSpec layerSpec, int neuronChannel) {
 		if (filterSize == null || filterSize.width <= 0 || filterSize.height <= 0) return null;
+		neuronChannel = neuronChannel < 1 ? 1 : neuronChannel;
+		hint = hint != null ? hint : NeuronValueCreator.newNeuronValue(neuronChannel);
+
 		double factor = 1.0 / (filterSize.width*filterSize.height);
 		Filter filter = null;
 		FilterSpec filterSpec = layerSpec != null ? layerSpec.filterSpec : new FilterSpec(filterSize);
@@ -448,6 +457,7 @@ public class FilterSpec implements Cloneable, Serializable {
 				}
 				break;
 			case pool:
+				if (filterSize.depth != filterSize.time || filterSize.time <= 0) throw new IllegalArgumentException();
 				Size adjustedSize = new Size(filterSize.width, filterSize.height, filterSize.time, 1);
 				switch (filterSpec.poolType) {
 				case max:
@@ -462,21 +472,34 @@ public class FilterSpec implements Cloneable, Serializable {
 				}
 				break;
 			case network:
+				if (layerSpec == null) return null;
+				KernelType kernelType = layerSpec.filterSpec != null ? layerSpec.filterSpec.kernelType : KernelType.product;
 				switch (filterSpec.networkType) {
 				case basic:
-					filter = FilterNetworkImpl.create(layerSpec.prevSize, filterSize, neuronChannel);
+					filter = FilterNetworkImpl.create(layerSpec.prevSize, layerSpec.size, Math.max(layerSpec.fifthLength, 1), filterSize, kernelType, neuronChannel);
 					break;
 				default:
-					filter = FilterNetworkImpl.create(layerSpec.prevSize, filterSize, neuronChannel);
+					filter = FilterNetworkImpl.create(layerSpec.prevSize, layerSpec.size, Math.max(layerSpec.fifthLength, 1), filterSize, kernelType, neuronChannel);
 					break;
 				}
 				break;
 			default:
+				filter = KernelFilterProduct.create(factor, filterSize, hint);
 				break;
 		}
+		
 		filter.setMoveStride(filterSpec.moveStride);
 		return filter;
 	}
 
+	
+	/**
+	 * Creating default filter which is product filter as usual.
+	 * @param filterSize filter size.
+	 * @param hint value hint.
+	 * @return default filter which is product filter as usual.
+	 */
+	static Filter newFilter(Size filterSize, NeuronValue hint) {return newFilter(filterSize, hint, null, 0);}
+	
 	
 }

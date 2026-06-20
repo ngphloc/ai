@@ -51,7 +51,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 
 	
 	/**
-	 * Number of blocks.
+	 * Number of blocks. In literature, it is 6.
 	 */
 	public static final int BLOCKS_NUMBER_DEFAULT = 1; //MatrixNetworkImpl.DEPTH_DEFAULT;
 
@@ -264,6 +264,12 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 	/**
 	 * Getting input attached transformers.
+	 * The complex transformer (default transformer) {@link TransformerImpl} has one atomic transformer called encoder and one atomic transformer called decoder.
+	 * Each atomic transformer {@link TransformerBasic} (basic transformer) has a list of transformer blocks.
+	 * Each transformer block {@link TransformerBlock} has a list of attentions {@link Attention} and its first attention has one main input (Y input) and possibly another input (X input).
+	 * Instead having the auxiliary input (X input), transformer block (its first attention) can have another attached transformer (called as attached input) playing the role of its input.
+	 * For instance, if a complex transformer (default) includes both encoder (atomic transformer) and decoder (atomic transformer), its encoder is attached transformer of its decoder.
+	 * Exactly, the attached input of the first attention of the first transformer block of the atomic decoder of the complex transformer is the atomic encoder. 
 	 * @return input attached transformers.
 	 */
 	Transformer[] getInputAttaches() {
@@ -279,6 +285,12 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 	/**
 	 * Setting input attached transformer.
+	 * The complex transformer (default transformer) {@link TransformerImpl} has one atomic transformer called encoder and one atomic transformer called decoder.
+	 * Each atomic transformer {@link TransformerBasic} (basic transformer) has a list of transformer blocks.
+	 * Each transformer block {@link TransformerBlock} has a list of attentions {@link Attention} and its first attention has one main input (Y input) and possibly another input (X input).
+	 * Instead having the auxiliary input (X input), transformer block (its first attention) can have another attached transformer (called as attached input) playing the role of its input.
+	 * For instance, if a complex transformer (default) includes both encoder (atomic transformer) and decoder (atomic transformer), its encoder is attached transformer of its decoder.
+	 * Exactly, the attached input of the first attention of the first transformer block of the atomic decoder of the complex transformer is the atomic encoder. 
 	 * @param inputAttach input attached transformer.
 	 */
 	boolean setInputAttach(int blockIndex, Transformer inputAttach) {
@@ -305,8 +317,8 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 
 
 	/**
-	 * Setting Y input data, X input data, and input mask.
-	 * @param inputY Y input data.
+	 * Setting Y input data, X input data, and input mask. Adding position encoding into input data (X and Y) by overriding this method.
+	 * @param inputY Y input data which is main input.
 	 * @param inputX X input data.
 	 * @param inputMask input mask.
 	 */
@@ -347,15 +359,9 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	}
 
 	
-//	@Override
-//	public Function getOutputActivateRef() {
-//		MatrixLayerAbstract outputLayer = getOutputLayer();
-//		return outputLayer != null ? outputLayer.getActivateRef() : null;
-//	}
-
-
 	/**
 	 * Getting output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return output adapter.
 	 */
 	public MatrixNetworkImpl getOutputAdapter() {
@@ -366,6 +372,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	/**
 	 * Setting output adapter.
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if setting is successful.
 	 */
 	public boolean setOutputAdapter(MatrixNetworkImpl outputAdapter) {
@@ -375,6 +382,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 	/**
 	 * Setting output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @param outputSize output size.
 	 * @param outputDepth output depth.
 	 * @return true if setting is successful.
@@ -386,6 +394,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 	/**
 	 * Setting output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @param middleSize middle size.
 	 * @param middleFilter middle filter.
 	 * @param middleDepth middle depth.
@@ -401,6 +410,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 
 	/**
 	 * Removing output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 */
 	public TransformerBasic removeOutputAdapter() {
 		if (validate()) get(size()-1).removeOutputAdapter();
@@ -551,9 +561,19 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		Matrix output = blocks[0].evaluate(inputY, null, inputMask, params);
 		int vecRows = blocks[0].getVecRows();
 		for (int i = 1; i < blocks.length; i++) {
+			assert (blocks[i].inputAttach == null || blocks[i].inputAttach instanceof TransformerBasic); //Improving later.
+
 			Matrix Y = vecRows > 0 ? output.vecInverse(vecRows) : output;
-			if (blocks[i].containsX())
-				output = blocks[i].evaluate(Y, inputX, null, params);
+			if (blocks[i].containsX()) {
+				if (inputX != null)
+					output = blocks[i].evaluate(Y, inputX, null, params);
+				else if (blocks[i].inputAttach != null && blocks[i].inputAttach instanceof TransformerBasic) { //Fixing date: 2026.06.18.
+					TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
+					output = blocks[i].evaluate(Y, attach.getOutput(), null, params);
+				}
+				else
+					output = blocks[i].evaluate(Y, inputX, null, params);
+			}
 			else
 				output = blocks[i].evaluate(Y, null, null, params);
 		}
@@ -596,13 +616,15 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param learningRate learning rate.
 	 * @return learning errors. The first element is main error and the second element is attached error\\.
 	 */
-	private Error[][] backward0(Error[] errors, boolean learning, double learningRate) {
+	protected Error[][] backward(Error[] errors, boolean learning, double learningRate) {
 		if (!validate()) return null;
 		updateConfig();
 
 		Error[] outputErrors = null;
 		List<Error[]> attachOutputErrorsList = Util.newList(0);
 		for (int i = blocks.length-1; i >= 0; i--) {
+			assert (blocks[i].inputAttach == null || blocks[i].inputAttach instanceof TransformerBasic); //Improving later.
+			
 			outputErrors = blocks[i].backward(outputErrors == null ? errors : outputErrors, learning, learningRate);
 			if (i > 0) Error.adjustErrors(blocks[i-1], outputErrors);
 			
@@ -637,21 +659,6 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 
 	
 	/**
-	 * Back-warding transformer block by errors. This method will be improved by {@link #backwardWithoutLearning(Error[], double)} and {@link #updateParametersFromBackwardInfo(int, double)}.
-	 * @param errors specified errors.
-	 * @param learning learning mode.
-	 * @param learningRate learning rate.
-	 * @return learning errors. The first element is main error and the second element is attached error\\.
-	 */
-	protected Error[][] backward(Error[] errors, boolean learning, double learningRate) {
-		if (!learning) return backward0(errors, learning, learningRate);
-		Error[][] outputErrors = backwardWithoutLearning(errors, learningRate);
-		updateParametersFromBackwardInfo(errors.length, learningRate);
-		return outputErrors;
-	}
-	
-	
-	/**
 	 * Learning attention by errors.
 	 * @param errors specified errors.
 	 * @param learningRate learning rate.
@@ -662,7 +669,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		if (outputErrors == null || outputErrors.length == 0) return null;
 		Error[][] errors = new Error[outputErrors.length][];
 		for (int i = 0; i < outputErrors.length; i++) {
-			errors[i] = backward0(new Error[] {outputErrors[i]}, false, learningRate)[0];
+			errors[i] = backward(new Error[] {outputErrors[i]}, false, learningRate)[0];
 		}
 		return errors;
 	}
@@ -937,12 +944,19 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	/**
 	 * Output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 */
 	protected MatrixNetworkImpl outputAdapter = null;
 	
 	
 	/**
 	 * Input attached transformer.
+	 * The complex transformer (default transformer) {@link TransformerImpl} has one atomic transformer called encoder and one atomic transformer called decoder.
+	 * Each atomic transformer {@link TransformerBasic} (basic transformer) has a list of transformer blocks.
+	 * Each transformer block {@link TransformerBlock} has a list of attentions {@link Attention} and its first attention has one main input (Y input) and possibly another input (X input).
+	 * Instead having the auxiliary input (X input), transformer block (its first attention) can have another attached transformer (called as attached input) playing the role of its input.
+	 * For instance, if a complex transformer (default) includes both encoder (atomic transformer) and decoder (atomic transformer), its encoder is attached transformer of its decoder.
+	 * Exactly, the attached input of the first attention of the first transformer block of the atomic decoder of the complex transformer is the atomic encoder. 
 	 */
 	protected Transformer inputAttach = null;
 	
@@ -991,7 +1005,7 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Creating feed-forward network.
+	 * Creating feed-forward network. Creating Add & Norm FFN by overriding this method.
 	 * @return feed-forward network.
 	 */
 	protected MatrixNetworkImpl createFFN() {
@@ -1005,15 +1019,10 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	/**
 	 * Creating output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return output adapter.
 	 */
-	MatrixNetworkImpl createOutputAdapter() {
-		MatrixNetworkImpl outputAdapter = new MatrixNetworkImpl(this.neuronChannel, null, null, idRef);
-		try {
-			outputAdapter.getConfig().putAll(this.config);
-		} catch (Throwable e) {Util.trace(e);}
-		return outputAdapter;
-	}
+	private MatrixNetworkImpl createOutputAdapter() {return createFFN();}
 
 	
 	/**
@@ -1114,8 +1123,8 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Checking whether this block has X input.
-	 * @return whether this block has X input.
+	 * Checking whether this block has X input (encoder/auxiliary input).
+	 * @return whether this block has X input (encoder/auxiliary input).
 	 */
 	boolean containsX() {
 		return validate() ? attention.X() != null : false;
@@ -1203,6 +1212,7 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	/**
 	 * Getting output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return output adapter.
 	 */
 	MatrixNetworkImpl getOutputAdapter() {return outputAdapter;}
@@ -1210,6 +1220,7 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	/**
 	 * Setting output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @param outputAdapter output adapter.
 	 * @return true if setting is successful.
 	 */
@@ -1226,6 +1237,7 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	/**
 	 * Setting output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @param outputSize output size.
 	 * @param outputDepth output depth.
 	 * @return true if setting is successful.
@@ -1237,6 +1249,7 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	/**
 	 * Setting output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @param middleSize middle size.
 	 * @param middleFilter middle filter.
 	 * @param middleDepth middle depth.
@@ -1255,12 +1268,19 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	/**
 	 * Removing output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 */
 	void removeOutputAdapter() {outputAdapter = null;}
 	
 
 	/**
 	 * Getting input attached transformer.
+	 * The complex transformer (default transformer) {@link TransformerImpl} has one atomic transformer called encoder and one atomic transformer called decoder.
+	 * Each atomic transformer {@link TransformerBasic} (basic transformer) has a list of transformer blocks.
+	 * Each transformer block {@link TransformerBlock} has a list of attentions {@link Attention} and its first attention has one main input (Y input) and possibly another input (X input).
+	 * Instead having the auxiliary input (X input), transformer block (its first attention) can have another attached transformer (called as attached input) playing the role of its input.
+	 * For instance, if a complex transformer (default) includes both encoder (atomic transformer) and decoder (atomic transformer), its encoder is attached transformer of its decoder.
+	 * Exactly, the attached input of the first attention of the first transformer block of the atomic decoder of the complex transformer is the atomic encoder. 
 	 * @return input attached transformer.
 	 */
 	public Transformer getInputAttach() {return inputAttach;}
@@ -1268,6 +1288,12 @@ class TransformerBlock implements Cloneable, Serializable {
 	
 	/**
 	 * Setting input attached transformer.
+	 * The complex transformer (default transformer) {@link TransformerImpl} has one atomic transformer called encoder and one atomic transformer called decoder.
+	 * Each atomic transformer {@link TransformerBasic} (basic transformer) has a list of transformer blocks.
+	 * Each transformer block {@link TransformerBlock} has a list of attentions {@link Attention} and its first attention has one main input (Y input) and possibly another input (X input).
+	 * Instead having the auxiliary input (X input), transformer block (its first attention) can have another attached transformer (called as attached input) playing the role of its input.
+	 * For instance, if a complex transformer (default) includes both encoder (atomic transformer) and decoder (atomic transformer), its encoder is attached transformer of its decoder.
+	 * Exactly, the attached input of the first attention of the first transformer block of the atomic decoder of the complex transformer is the atomic encoder. 
 	 * @param inputAttach attached transformer.
 	 * @return true if setting is successful.
 	 */

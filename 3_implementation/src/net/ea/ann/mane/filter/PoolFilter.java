@@ -192,20 +192,20 @@ public abstract class PoolFilter extends FilterAbstract {
 			}
 		}
 		
-		//Calculating mean of values.
-		if (CALC_ERROR_MEAN) {
-			for (int i = 0; i < dPrevValues.length; i++) {
-				int rows = dPrevValues[i].rows(), columns = dPrevValues[i].columns();
-				for (int row = 0; row < rows; row++) {
-					for (int column = 0; column < columns; column++) {
-						int count = dPrevValuesCount[i][row][column];
-						if (count <= 0) continue;
-						NeuronValue mean = dPrevValues[i].get(row, column).divide(count);
-						dPrevValues[i].set(row, column, mean);
-					}
-				}
-			}
-		}
+//		//Calculating mean of values.
+//		if (CALC_ERROR_MEAN) {
+//			for (int i = 0; i < dPrevValues.length; i++) {
+//				int rows = dPrevValues[i].rows(), columns = dPrevValues[i].columns();
+//				for (int row = 0; row < rows; row++) {
+//					for (int column = 0; column < columns; column++) {
+//						int count = dPrevValuesCount[i][row][column];
+//						if (count <= 0) continue;
+//						NeuronValue mean = dPrevValues[i].get(row, column).divide(count);
+//						dPrevValues[i].set(row, column, mean);
+//					}
+//				}
+//			}
+//		}
 		return new MatrixStack(dPrevValues);
 	}
 

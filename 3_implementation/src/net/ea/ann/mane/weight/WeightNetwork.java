@@ -17,6 +17,8 @@ import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.Weight;
+import net.ea.ann.mane.WeightSpec.KernelType;
+import net.ea.ann.raster.Size;
 
 /**
  * This class is an abstract implementation of network weight based on matrix neural network.
@@ -79,6 +81,17 @@ abstract class WeightNetwork extends MatrixNetworkImpl implements NetworkWeight 
 	public Weight accumKernel(Kernel dKernel, double factor) {return this;}
 
 
+	/**
+	 * Initializing network as filter.
+	 * @param inputSize input size.
+	 * @param outputSize output size.
+	 * @param length length (number) of weight layers (network depth).
+	 * @param kernelType weight kernel type.
+	 * @return true if initialization is successful.
+	 */
+	public abstract boolean initialize(Size inputSize, Size outputSize, int length, KernelType kernelType);
+
+	
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
 		return super.evaluate0(input, new Object[] {});

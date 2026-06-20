@@ -583,9 +583,7 @@ public class StackClassifier extends StackNetworkImpl implements Classifier {
 
 	
 	@Override
-	public int getNeuronChannel() throws RemoteException {
-		return neuronChannel;
-	}
+	public int getNeuronChannel() throws RemoteException {return neuronChannel;}
 
 	
 	/**

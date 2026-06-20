@@ -8,7 +8,7 @@
 package net.ea.ann.raster;
 
 /**
- * This class represents a raster in 4D space.
+ * This class represents a raster in 4D space. It will be improved later.
  * 
  * @author Loc Nguyen
  * @version 1.0

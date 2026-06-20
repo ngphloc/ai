@@ -290,9 +290,7 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 
 
 	@Override
-	protected Matrix getOutput() {
-		return nut.getOutput();
-	}
+	protected Matrix getOutput() {return nut.getOutput();}
 
 	
 	@Override

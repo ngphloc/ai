@@ -49,6 +49,20 @@ public class MatrixStack implements Matrix {
 
 	
 	/**
+	 * Constructor by repeating specified matrix.
+	 * @param matrix specified matrix.
+	 * @param depth repeating time.
+	 */
+	public MatrixStack(Matrix matrix, int depth) {
+		if (matrix == null || depth <= 0) throw new IllegalArgumentException();
+		Matrix[] matrices = new Matrix[depth];
+		for (int d = 0; d < depth; d++) matrices[d] = matrix;
+		if (!checkValid(matrices)) throw new IllegalArgumentException();
+		this.matrices = matrices;
+	}
+	
+	
+	/**
 	 * Checking matrices.
 	 * @param matrices specific matrices.
 	 * @return true if matrices are valid.
@@ -89,6 +103,27 @@ public class MatrixStack implements Matrix {
 	 * @return first matrix.
 	 */
 	public Matrix get() {return get(0);}
+	
+	
+	/**
+	 * Setting matrix at specified index.
+	 * @param index specified index.
+	 * @param matrix matrix.
+	 * @return previous matrix.
+	 */
+	public Matrix set(int index, Matrix matrix) {
+		if (matrix.rows() != this.rows() || matrix.columns() != this.columns()) throw new IllegalArgumentException();
+		Matrix old = this.matrices[index];
+		this.matrices[index] = matrix;
+		return old;
+	}
+	
+	
+	/**
+	 * Getting matrices.
+	 * @return matrices.
+	 */
+	public Matrix[] matrices() {return this.matrices;}
 	
 	
 	@Override

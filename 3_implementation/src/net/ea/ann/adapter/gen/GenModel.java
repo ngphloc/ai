@@ -7,16 +7,17 @@
  */
 package net.ea.ann.adapter.gen;
 
+import net.ea.ann.adapter.Delegator;
 import net.hudup.core.alg.ExecuteAsLearnAlg;
 
 /**
- * <code>W</code> is the most abstract interface for convolutional Variational Autoencoders.
+ * This interface is the most abstract interface for generative model.
  * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public interface GenModel extends GenModelRemoteTask, ExecuteAsLearnAlg {
+public interface GenModel extends GenModelRemoteTask, ExecuteAsLearnAlg, Delegator {
 
 	
 }

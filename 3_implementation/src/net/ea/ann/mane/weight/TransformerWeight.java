@@ -79,7 +79,7 @@ public class TransformerWeight extends NetworkWeightAbstract {
 	
 	@Override
 	public Weight accumKernel(Kernel dKernel, double factor) {
-		this.kernel = (TKernel)this.kernel.add(dKernel);
+		this.kernel = (TKernel)this.kernel.add(dKernel).multiply(factor);
 		return this;
 	}
 

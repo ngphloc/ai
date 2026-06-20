@@ -100,14 +100,7 @@ public class Error implements Cloneable, Serializable {
 		 */
 		public static Function getOutputActivateRef(Object layer) {
 			MatrixLayerAbstract outputLayer = getOutputLayer(layer);
-			if (outputLayer == null)
-				return null;
-			else if (outputLayer.getWeight() != null)
-				return outputLayer.getActivateRef();
-			else if (outputLayer.getFilter() != null)
-				return outputLayer.getConvActivateRef();
-			else
-				return null;
+			return outputLayer != null ? outputLayer.getOutputActivateRef() : null;
 		}
 
 		/**

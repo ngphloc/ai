@@ -68,27 +68,19 @@ public abstract class RasterAbstract implements Raster {
 
 
 	@Override
-	public int id() {
-		return id;
-	}
+	public int id() {return id;}
 
 
 	@Override
-	public int getHeight() {
-		return 1;
-	}
+	public int getHeight() {return 1;}
 
 
 	@Override
-	public int getDepth() {
-		return 1;
-	}
+	public int getDepth() {return 1;}
 
 
 	@Override
-	public int getTime() {
-		return 1;
-	}
+	public int getTime() {return 1;}
 	
 	
 	@Override
@@ -98,9 +90,14 @@ public abstract class RasterAbstract implements Raster {
 
 
 	@Override
-	public RasterProperty getProperty() {
-		return property;
-	}
+	public RasterProperty getProperty() {return property;}
 
+	
+	/**
+	 * Setting property.
+	 * @param property property.
+	 */
+	public void setProperty(RasterProperty property) {this.property = property;}
+	
 	
 }

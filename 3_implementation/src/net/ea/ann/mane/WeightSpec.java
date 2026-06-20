@@ -10,9 +10,12 @@ package net.ea.ann.mane;
 import java.io.Serializable;
 
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
+import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.mane.weight.TransformerWeight;
 import net.ea.ann.mane.weight.WeightImpl;
+import net.ea.ann.mane.weight.WeightNetworkImpl;
 import net.ea.ann.raster.Size;
 
 /**
@@ -39,19 +42,54 @@ public class WeightSpec implements Cloneable, Serializable {
 	public static enum Type {
 		
 		/**
-		 * Normal weight.
+		 * Kernel weight.
+		 */
+		kernel,
+		
+		/**
+		 * Network-based weight.
+		 */
+		network,
+	}
+	
+	
+	/**
+	 * This enum represents kernel type.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 *
+	 */
+	public static enum KernelType {
+		
+		/**
+		 * Normal kernel.
 		 */
 		normal,
 		
 		/**
-		 * Transformed-based weight.
+		 * Transformer-based kernel.
 		 */
 		transformer,
 		
 		/**
-		 * Null weight.
+		 * Null type.
 		 */
 		nil,
+	}
+
+	
+	/**
+	 * This enum represents network-based weight type.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 *
+	 */
+	public static enum NetworkType {
+		
+		/**
+		 * Basic type.
+		 */
+		basic,
 		
 	}
 
@@ -59,8 +97,20 @@ public class WeightSpec implements Cloneable, Serializable {
 	/**
 	 * Weight type.
 	 */
-	public Type type = Type.normal;
+	public Type type = Type.kernel;
 
+	
+	/**
+	 * Kernel type.
+	 */
+	public KernelType kernelType = KernelType.normal;
+	
+	
+	/**
+	 * Network type.
+	 */
+	public NetworkType networkType = NetworkType.basic;
+	
 	
 	/**
 	 * Default constructor.
@@ -86,19 +136,16 @@ public class WeightSpec implements Cloneable, Serializable {
 	 * @return type.
 	 */
 	public static Type intToType(int typeOrdinal) {
-		Type type = Type.normal;
+		Type type = Type.kernel;
 		switch (typeOrdinal) {
 		case 0:
-			type = Type.normal;
+			type = Type.kernel;
 			break;
 		case 1:
-			type = Type.transformer;
-			break;
-		case 2:
-			type = Type.nil;
+			type = Type.network;
 			break;
 		default:
-			type = Type.normal;
+			type = Type.kernel;
 			break;
 		}
 		return type;
@@ -116,26 +163,148 @@ public class WeightSpec implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Converting kernel type to integer number.
+	 * @param kernelType kernel type.
+	 * @return integer number.
+	 */
+	public static int kernelTypeToInt(KernelType kernelType) {
+		return kernelType.ordinal();
+	}
+
+	
+	/**
+	 * Converting integer number to kernel type.
+	 * @param kernelTypeOrdinal integer number.
+	 * @return kernel type.
+	 */
+	public static KernelType intToKernelType(int kernelTypeOrdinal) {
+		KernelType kernelType = KernelType.normal;
+		switch (kernelTypeOrdinal) {
+		case 0:
+			kernelType = KernelType.normal;
+			break;
+		case 1:
+			kernelType = KernelType.transformer;
+			break;
+		default:
+			kernelType = KernelType.normal;
+			break;
+		}
+		return kernelType;
+	}
+	
+	
+	/**
+	 * Converting string to kernel type.
+	 * @param kernelTypeText string.
+	 * @return kernel type.
+	 */
+	public static KernelType stringToKernelType(String kernelTypeText) {
+		return KernelType.valueOf(kernelTypeText);
+	}
+
+	
+	/**
+	 * Converting network type to integer number.
+	 * @param networkType network type.
+	 * @return integer number.
+	 */
+	public static int networkTypeToInt(NetworkType networkType) {
+		return networkType.ordinal();
+	}
+	
+
+	/**
+	 * Converting integer number to network type.
+	 * @param networkTypeOrdinal integer number.
+	 * @return type.
+	 */
+	public static NetworkType intToNetworkType(int networkTypeOrdinal) {
+		NetworkType networkType = NetworkType.basic;
+		switch (networkTypeOrdinal) {
+		case 0:
+			networkType = NetworkType.basic;
+			break;
+		default:
+			networkType = NetworkType.basic;
+			break;
+		}
+		return networkType;
+	}
+	
+	
+	/**
+	 * Converting string to network type.
+	 * @param networkTypeText string.
+	 * @return network type.
+	 */
+	public static NetworkType stringToNetworkType(String networkTypeText) {
+		return NetworkType.valueOf(networkTypeText);
+	}
+
+	
+	/**
 	 * Creating weight.
-	 * @param sizeW1 the first weight size.
-	 * @param sizeW2 the second weight size.
+	 * @param prevSize previous size.
+	 * @param size current size.
 	 * @param hint hinting value.
 	 * @param layerSpec layer specification, which can be null.
-	 * @param neuronChannel neuron channel.
+	 * @param neuronChannel neuron channel which is only applied to network weight.
+	 * @return weight.
 	 */
-	public static Weight newWeight(Size sizeW1, Size sizeW2, NeuronValue hint, LayerSpec layerSpec, int neuronChannel) {
-		if (sizeW2 != null || layerSpec == null)
-			return WeightImpl.create(sizeW1, sizeW2, hint);
-		Size prevSize = layerSpec.prevSize, thisSize = layerSpec.size;
-		if (prevSize == null || thisSize == null)
-			return WeightImpl.create(sizeW1, sizeW2, hint);
-		if (prevSize.width != thisSize.width || prevSize.height != thisSize.height)
-			return WeightImpl.create(sizeW1, sizeW2, hint);
-		if (layerSpec.weightSpec == null || layerSpec.weightSpec.type != Type.transformer)
-			return WeightImpl.create(sizeW1, sizeW2, hint);
+	public static Weight newWeight(Size prevSize, Size size, NeuronValue hint, LayerSpec layerSpec, int neuronChannel) {
+		if (prevSize == null && size == null && layerSpec == null) return new NullWeight();
+		neuronChannel = neuronChannel < 1 ? 1 : neuronChannel;
+		hint = hint != null ? hint : NeuronValueCreator.newNeuronValue(neuronChannel);
+		if (prevSize != null && size != null && (layerSpec == null || layerSpec.weightSpec == null))
+			return WeightImpl.create(prevSize, size, hint);
 		
-		return TransformerWeight.create(neuronChannel, prevSize, thisSize);
+		if (prevSize == null || size == null || layerSpec == null || layerSpec.weightSpec == null) throw new IllegalArgumentException();
+		
+		Weight weight = null;
+		switch (layerSpec.weightSpec.type) {
+		case kernel:
+			switch (layerSpec.weightSpec.kernelType) {
+			case normal:
+				weight = WeightImpl.create(prevSize, size, hint);
+				break;
+			case transformer:
+				weight = TransformerWeight.create(neuronChannel, prevSize, size);
+				break;
+			case nil:
+				weight = new NullWeight();
+				break;
+			default:
+				weight = WeightImpl.create(prevSize, size, hint);
+				break;
+			}
+			break;
+		case network:
+			weight = WeightNetworkImpl.create(prevSize, size, Math.max(layerSpec.fifthLength, 1), layerSpec.weightSpec.kernelType, neuronChannel);
+			break;
+		default:
+			weight = WeightImpl.create(prevSize, size, hint);
+			break;
+		}
+		return weight;
 	}
+
+
+	/**
+	 * Creating normal weight.
+	 * @param prevSize previous size.
+	 * @param size current size.
+	 * @param hint hinting value.
+	 * @return normal weight.
+	 */
+	static Weight newWeight(Size prevSize, Size size, NeuronValue hint) {return newWeight(prevSize, size, hint, null, 0);}
+	
+	
+	/**
+	 * Creating null weight.
+	 * @return null weight.
+	 */
+	static Weight newWeight() {return new NullWeight();}
 
 
 }

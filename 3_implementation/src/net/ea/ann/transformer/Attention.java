@@ -59,6 +59,12 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	
 	
 	/**
+	 * Temporal account for validating accumulation. It should be removed in improved version.
+	 */
+	private int tempAccum = 0; //This code line should be removed in improved version.
+
+	
+	/**
 	 * Default constructor.
 	 */
 	protected Attention() {
@@ -76,14 +82,6 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		resetBackwardInfo();
 	}
 	
-	
-	/**
-	 * Resetting backward information.
-	 */
-	void resetBackwardInfo() {
-		this.dWO = null;
-	}
-
 	
 	/**
 	 * Getting depth.
@@ -378,7 +376,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	
 	
 	/**
-	 * Setting Y input data and X input data.
+	 * Setting Y input data, X input data, and input mask.
 	 * @param inputY Y input data.
 	 * @param inputX X input data.
 	 * @param inputMask input mask.
@@ -460,6 +458,8 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		}
 		if (count == 0) return null;
 		
+		this.tempAccum += count;
+
 		//Training every attention head.
 		List<Error[]> headOutputErrorsList = Util.newList(0);
 		for (int i = 0; i < this.heads.length; i++) {
@@ -469,16 +469,10 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 			headOutputErrorsList.add(headErrors);
 		}
 		
-		if (learning) {
-			//Training entire weight matrix WO.
-			if (this.WO != null) {
-				dWO = dWO.divide0(count);
-				this.WO = this.WO.add(dWO.multiply0(learningRate));
-			}
-		}
-		else {
+		if (learning)
+			updateParametersFromBackwardInfo(dWO, count, learningRate);
+		else
 			this.dWO = this.dWO != null ? this.dWO.add(dWO) : dWO;
-		}
 		
 		//Accumulating errors.
 		Error[] outputErrors = headOutputErrorsList.get(0);
@@ -514,16 +508,52 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	 * @param learningRate learning rate.
 	 */
 	void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		assert (this.tempAccum == recordCount);
+		
 		if (this.heads != null) {
 			for (int i = 0; i < this.heads.length; i++) {
 				this.heads[i].updateParametersFromBackwardInfo(recordCount, learningRate);
 			}
 		}
-		if (this.WO != null && this.dWO != null) {
-			Matrix dWO = this.dWO.divide0(recordCount);
+		
+		updateParametersFromBackwardInfo(this.dWO, recordCount, learningRate);
+		
+		this.tempAccum = 0;
+	}
+
+	
+	/**
+	 * Updating parameters from backward information.
+	 * @param dWO Gradient of output weight matrix.
+	 * @param recordCount count of records in sample.
+	 * @param learningRate learning rate.
+	 */
+	private void updateParametersFromBackwardInfo(Matrix dWO, int recordCount, double learningRate) {
+		assert (this.tempAccum == recordCount);
+		
+		if (this.WO != null && dWO != null) {
+			dWO = dWO.divide0(recordCount);
 			this.WO = this.WO.add(dWO.multiply0(learningRate));
 		}
 		this.dWO = null;
+		
+		this.tempAccum = 0; //Fixing date: 2026.06.19.
+	}
+	
+	
+	/**
+	 * Resetting backward information.
+	 */
+	void resetBackwardInfo() {
+		if (this.heads != null) {
+			for (int i = 0; i < this.heads.length; i++) {
+				this.heads[i].resetBackwardInfo();
+			}
+		}
+
+		this.dWO = null;
+		
+		this.tempAccum = 0;
 	}
 
 	
@@ -605,7 +635,7 @@ class Attention0 implements Cloneable, Serializable {
 
 	
 	/**
-	 * Y input data.
+	 * Y input data, which is the main input.
 	 */
 	protected Matrix Y = null;
 	
@@ -670,6 +700,12 @@ class Attention0 implements Cloneable, Serializable {
 	 */
 	private Matrix dT2 = null;
 
+	
+	/**
+	 * Temporal account for validating accumulation. It should be removed in improved version.
+	 */
+	private int tempAccum = 0; //This code line should be removed in improved version.
+	
 	
 	/**
 	 * Default constructor.
@@ -871,7 +907,7 @@ class Attention0 implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Getting Y input data.
+	 * Getting Y input data which is the main input.
 	 * @return Y input data.
 	 */
 	public Matrix Y() {
@@ -1064,7 +1100,7 @@ class Attention0 implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Setting Y input data and X input data.
+	 * Setting Y input data, X input data, and input mask.
 	 * @param inputY Y input data.
 	 * @param inputX X input data.
 	 * @param inputMask input mask.
@@ -1189,6 +1225,8 @@ class Attention0 implements Cloneable, Serializable {
 			XBiasList.add(XBias);
 		}
 		
+		this.tempAccum += count;
+		
 		Matrix Q = calcQ();
 		Matrix K = calcK();
 		Matrix dWQ = dW.multiply(K);
@@ -1242,7 +1280,6 @@ class Attention0 implements Cloneable, Serializable {
 	 */
 	void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
 		updateParametersFromBackwardInfo(this.dWQ, this.dWK, this.dWV, this.dT1, this.dT2, recordCount, learningRate);
-		this.dWQ = this.dWK = this.dWV = this.dT1 = this.dT2 = null;
 	}
 	
 	
@@ -1252,6 +1289,8 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param learningRate learning rate.
 	 */
 	private void updateParametersFromBackwardInfo(Matrix dWQ, Matrix dWK, Matrix dWV, Matrix dT1, Matrix dT2, int recordCount, double learningRate) {
+		assert(this.tempAccum == recordCount);
+
 		//Calculating means of gradients.
 		if (dWQ != null) dWQ = dWQ.divide0(recordCount);
 		if (dWK != null) dWK = dWK.divide0(recordCount);
@@ -1260,17 +1299,17 @@ class Attention0 implements Cloneable, Serializable {
 		if (dT2 != null) dT2 = dT2.divide0(recordCount);
 
 		//Updating weight query matrix and weight key matrix.
-		if (dWQ != null) {
+		if (this.WQ != null && dWQ != null) {
 			Matrix WQ = this.WQ.add(dWQ.multiply0(learningRate));
 			MatrixUtil.copy(WQ, this.WQ);
 		}
-		if (dWK != null) {
+		if (this.WK != null && dWK != null) {
 			Matrix WK = this.WK.add(dWK.multiply0(learningRate));
 			MatrixUtil.copy(WK, this.WK);
 		}
 		
 		//Updating weight value matrix.
-		if (dWV != null) {
+		if (this.WV != null && dWV != null) {
 			Matrix WV = this.WV.add(dWV.multiply0(learningRate));
 			MatrixUtil.copy(WV, this.WV);
 		}
@@ -1286,6 +1325,9 @@ class Attention0 implements Cloneable, Serializable {
 			Matrix T2 = this.T2.add(dT2.multiply0(learningRate));
 			MatrixUtil.copy(T2, this.T2);
 		}
+		
+		this.dWQ = this.dWK = this.dWV = this.dT1 = this.dT2 = null;
+		this.tempAccum = 0;
 	}
 	
 	
@@ -1294,6 +1336,7 @@ class Attention0 implements Cloneable, Serializable {
 	 */
 	void resetBackwardInfo() {
 		dWQ = dWK = dWV = dT1 = dT2 = null;
+		this.tempAccum = 0;
 	}
 
 	

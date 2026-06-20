@@ -48,11 +48,13 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks, MatrixNetworkImpl outputAdapter) {
@@ -66,11 +68,13 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
@@ -84,6 +88,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
@@ -100,10 +105,12 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, MatrixNetworkImpl outputAdapter) {
@@ -116,10 +123,12 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth, Size outputAdapterOutputSize) {
@@ -132,10 +141,10 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
-	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int h, int n, int dm, int dk, int dv, int ffnDepth) {
@@ -148,9 +157,11 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int h, int n, int dm, int ffnDepth, int nBlocks, MatrixNetworkImpl outputAdapter) {
@@ -167,9 +178,11 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int h, int n, int dm, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
@@ -186,6 +199,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @return true if initialization is successful.
@@ -199,9 +213,11 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int n, int dm, int ffnDepth, int nBlocks, MatrixNetworkImpl outputAdapter) {
@@ -213,9 +229,11 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int n, int dm, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
@@ -227,6 +245,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @return true if initialization is successful.
@@ -240,8 +259,10 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int n, int dm, int ffnDepth, MatrixNetworkImpl outputAdapter) {
@@ -253,8 +274,10 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int n, int dm, int ffnDepth, Size outputAdapterOutputSize) {
@@ -266,6 +289,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @return true if initialization is successful.
 	 */
@@ -278,7 +302,9 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int n, int dm, MatrixNetworkImpl outputAdapter) {
@@ -290,7 +316,9 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int n, int dm, Size outputAdapterOutputSize) {
@@ -302,6 +330,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(int n, int dm) {
@@ -314,11 +343,13 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks, MatrixNetworkImpl outputAdapter) {
@@ -332,11 +363,13 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
@@ -350,6 +383,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
@@ -366,10 +400,12 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth, MatrixNetworkImpl outputAdapter) {
@@ -382,10 +418,12 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth, Size outputAdapterOutputSize) {
@@ -398,10 +436,10 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
-	 * @param outputAdapterOutputSize output size of output adapter.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int h, int n, int dm, int dk, int dv, int ffnDepth) {
@@ -414,9 +452,11 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int h, int n, int dm, int ffnDepth, int nBlocks, MatrixNetworkImpl outputAdapter) {
@@ -433,9 +473,11 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int h, int n, int dm, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
@@ -452,6 +494,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @return true if initialization is successful.
@@ -465,9 +508,11 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int n, int dm, int ffnDepth, int nBlocks, MatrixNetworkImpl outputAdapter) {
@@ -479,9 +524,11 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int n, int dm, int ffnDepth, int nBlocks, Size outputAdapterOutputSize) {
@@ -493,6 +540,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link TransformerBasic#BLOCKS_NUMBER_DEFAULT}
 	 * @return true if initialization is successful.
@@ -506,8 +554,10 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int n, int dm, int ffnDepth, MatrixNetworkImpl outputAdapter) {
@@ -519,8 +569,10 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int n, int dm, int ffnDepth, Size outputAdapterOutputSize) {
@@ -532,6 +584,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @return true if initialization is successful.
 	 */
@@ -544,7 +597,9 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param outputAdapter output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int n, int dm, MatrixNetworkImpl outputAdapter) {
@@ -556,7 +611,9 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param outputAdapterOutputSize output size of output adapter.
+	 * Output adapter is the auxiliary adapter that attaches to feed forward network, which is optional and can be null.
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int n, int dm, Size outputAdapterOutputSize) {
@@ -568,6 +625,7 @@ public class TransformerInitializer implements Cloneable, Serializable {
 	 * Initializing transformer.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeOnlyEncoder(int n, int dm) {

@@ -50,13 +50,14 @@ public class TransformerImpl extends TransformerAbstract {
 	
 	/**
 	 * Field for containing QK Y input data (QK-Y mode).
+	 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 	 */
 	public final static String YQK_FIELD = "transformer_yqk";
 	
 	
 	/**
 	 * Default value for containing QK Y input data (QK-Y mode).
-	 * In other words, in QK-Y mode (true), attention 0 of decoder will have particular input Y, instead of being dependent on encoder output as input.
+	 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 	 */
 	public final static boolean YQK_DEFAULT = false;
 
@@ -112,7 +113,7 @@ public class TransformerImpl extends TransformerAbstract {
 
 	
 	@Override
-	boolean initialize(int he, int ne, int dme, int dke, int dve, int hd, int nd, int dmd, int dkd, int dvd, int ffnDepth, int nBlocks) {
+	protected boolean initialize(int he, int ne, int dme, int dke, int dve, int hd, int nd, int dmd, int dkd, int dvd, int ffnDepth, int nBlocks) {
 		if (!super.initialize(he, ne, dme, dke, dve, hd, nd, dmd, dkd, dvd, ffnDepth, nBlocks)) return false;
 		if (!paramIsQKY()) return true;
 		
@@ -130,7 +131,52 @@ public class TransformerImpl extends TransformerAbstract {
 
 
 	/**
+	 * Setting Y input data, X input data, input mask, and Yqk input data.
+	 * @param inputY Y input data.
+	 * @param inputX X input data.
+	 * @param inputMask input mask.
+	 * @param Yqk Yqk input data.
+	 */
+	public void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask, Matrix Yqk) {
+		if (!validate())
+			return;
+		else if (encoder != null && decoder != null) {
+			encoder.enterInputs(inputX, null, null, Yqk);
+			decoder.enterInputs(inputY, null, inputMask, Yqk);
+		}
+		else if (encoder != null && decoder == null) {
+			encoder.enterInputs(inputX != null ? inputX : inputY, null, inputMask, Yqk);
+		}
+		else if (encoder == null && decoder != null) {
+			decoder.enterInputs(inputY != null ? inputY : inputX, null, inputMask, Yqk);
+		}
+	}
+	
+	
+	/**
+	 * Setting input data and input mask.
+	 * @param input input data.
+	 * @param inputMask input mask.
+	 * @param Yqk Yqk input data.
+	 */
+	public void enterInputs(Matrix input, boolean[][] inputMask, Matrix Yqk) {
+		if (!validate())
+			return;
+		else if (encoder != null && decoder != null) {
+			decoder.enterInputs(input, null, inputMask, Yqk);
+		}
+		else if (encoder != null && decoder == null) {
+			encoder.enterInputs(input, null, inputMask, Yqk);
+		}
+		else if (encoder == null && decoder != null) {
+			decoder.enterInputs(input, null, inputMask, Yqk);
+		}
+	}
+
+	
+	/**
 	 * Checking QK-Y mode.
+	 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 	 * @return QK-Y mode.
 	 */
 	boolean paramIsQKY() {
@@ -144,6 +190,7 @@ public class TransformerImpl extends TransformerAbstract {
 	/**
 	 * Setting QK-Y mode.
 	 * @param Yqk QK-Y mode.
+	 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 	 * @return this transformer.
 	 */
 	TransformerImpl paramSetQKY(boolean Yqk) {
@@ -156,7 +203,7 @@ public class TransformerImpl extends TransformerAbstract {
 	 * Checking position encoding mode.
 	 * @return position encoding mode.
 	 */
-	boolean paramIsPosEncode() {
+	public boolean paramIsPosEncode() {
 		if (config.containsKey(MatrixNetworkAbstract.POS_ENCODE_FIELD))
 			return config.getAsBoolean(MatrixNetworkAbstract.POS_ENCODE_FIELD);
 		else
@@ -169,7 +216,7 @@ public class TransformerImpl extends TransformerAbstract {
 	 * @param posEncode position encoding mode.
 	 * @return this transformer.
 	 */
-	TransformerImpl paramSetPosEncode(boolean posEncode) {
+	public TransformerImpl paramSetPosEncode(boolean posEncode) {
 		config.put(MatrixNetworkAbstract.POS_ENCODE_FIELD, posEncode);
 		return this;
 	}
@@ -295,31 +342,53 @@ public class TransformerImpl extends TransformerAbstract {
 			return block;
 		}
 
-		@Override
-		public void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
+		/**
+		 * Setting Y input data, X input data, input mask, and Y-QK input data.
+		 * @param inputY Y input data which is main input.
+		 * @param inputX X input data.
+		 * @param inputMask input mask.
+		 * @param inputYqk Y-QK input data.
+		 */
+		void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask, Matrix inputYqk) {
 			if (paramIsPosEncode()) {
 				inputY = inputY != null ? MatrixUtil.posEncode(inputY) : inputY;
 				inputX = inputX != null ? MatrixUtil.posEncode(inputX) : inputX;
+				inputYqk = inputYqk != null ? MatrixUtil.posEncode(inputYqk) : inputYqk;
 			}
 			super.enterInputs(inputY, inputX, inputMask);
+
+			if (!validate() || !(get(0).attention instanceof Attention) || inputYqk == null) return;
+			((Attention)get(0).attention).enterInputs(null, null, null, inputYqk);
+		}
+		
+		@Override
+		public void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask) {
+			enterInputs(inputY, inputX, inputMask, null);
 		}
 
-		
 		/**
 		 * Adding QK Y input data.
+		 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
+		 * Encoder is often attached to the second block of decoder.
+		 * Therefore, in current version, only the first block has input Y-QK so that Y-QK is the key of association of visual information (Y-QK) and language information (Y).
 		 * @return QK Y input data.
 		 */
 		Matrix addYQK() {
 			if (!validate()) return null;
 			Matrix Yqk = null;
-			for (int i = 0; i < size(); i++) {
+			for (int i = 0; i < size() && i < 1 /*pay attention here i < 1*/; i++) {
 				net.ea.ann.transformer.TransformerBlock block = get(i);
 				if (!(block instanceof TransformerBlock)) continue;
+				
+				//Please pay attention to this line because bare first block without auxiliary data X and without attached input transformer have no Y-QK too.
+				if (i == 0 && block.inputAttach == null && !block.containsX()) continue;
+				
 				Yqk = ((TransformerBlock)block).addYQK();
 				
 			}
 			return Yqk;
 		}
+		
 	}
 	
 	
@@ -355,8 +424,12 @@ public class TransformerImpl extends TransformerAbstract {
 		@Override
 		protected net.ea.ann.transformer.Attention createAttention() {return new Attention();}
 		
+		@Override
+		protected MatrixNetworkImpl createFFN() {return super.createFFN();}
+
 		/**
 		 * Adding QK Y input data.
+		 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 		 * @return QK Y input data.
 		 */
 		Matrix addYQK() {
@@ -391,6 +464,7 @@ public class TransformerImpl extends TransformerAbstract {
 
 		/**
 		 * Adding QK Y input data.
+		 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 		 * @return QK Y input data.
 		 */
 		Matrix addYQK() {
@@ -405,6 +479,28 @@ public class TransformerImpl extends TransformerAbstract {
 				if (head instanceof Attention0) ((Attention0)head).assignYQK(YQK);
 			}
 			return YQK;
+		}
+
+		/**
+		 * Getting Y-QK input data.
+		 * @return Y-QK input data.
+		 */
+		Matrix Yqk() {
+			net.ea.ann.transformer.Attention0 head0 = head(0);
+			if (!(head0 instanceof Attention0)) return null;
+			return ((Attention0)head0).Yqk;
+		}
+
+		/**
+		 * Setting Y input data, X input data, input mask, and input Y-QK.
+		 * @param inputY Y input data.
+		 * @param inputX X input data.
+		 * @param inputMask input mask.
+		 * @param inputYqk Y-QK input data.
+		 */
+		void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask, Matrix inputYqk) {
+			super.enterInputs(inputY, inputX, inputMask);
+			if (Yqk() != null && inputYqk != null) MatrixUtil.copy(inputYqk, Yqk());
 		}
 
 	}
@@ -425,14 +521,19 @@ public class TransformerImpl extends TransformerAbstract {
 		/**
 		 * Y input data with regard to query weight matrix Q and key weight matrix K.
 		 * This Yqk replace X when X is null, which means that it is not compulsory that X must be not null.
-		 * In other words, in QK-Y mode (true), attention 0 of decoder will have particular input Y, instead of being dependent on encoder output as input.
+		 * In other words, in QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 		 */
 		protected Matrix Yqk = null;
 		
-		@Override
-		int defineDepth() {
-			return super.defineDepth();
+		/**
+		 * Default constructor.
+		 */
+		Attention0() {
+			super();
 		}
+		
+		@Override
+		int defineDepth() {return super.defineDepth();}
 
 		/**
 		 * Assigning input matrices.
@@ -448,6 +549,7 @@ public class TransformerImpl extends TransformerAbstract {
 
 		/**
 		 * Adding QK Y input data.
+		 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 		 * @return QK Y input data.
 		 */
 		Matrix addYQK() {
@@ -463,6 +565,7 @@ public class TransformerImpl extends TransformerAbstract {
 		/**
 		 * Assigning QK Y input data.
 		 * @param Yqk QK Y input data, which can be null.
+		 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 		 * @return true if adding is successful.
 		 */
 		boolean assignYQK(Matrix Yqk) {
@@ -474,6 +577,18 @@ public class TransformerImpl extends TransformerAbstract {
 			return Yqk.rows() == n && Yqk.columns() == dm ? (this.Yqk = Yqk) != null : false;
 		}
 		
+		/**
+		 * Setting Y input data, X input data, input mask, and Y-QK input data.
+		 * @param inputY Y input data.
+		 * @param inputX X input data.
+		 * @param inputMask input mask.
+		 * @param inputYqk Y-QK input data.
+		 */
+		void enterInputs(Matrix inputY, Matrix inputX, boolean[][] inputMask, Matrix inputYqk) {
+			super.enterInputs(inputY, inputX, inputMask);
+			if (this.Yqk != null && inputYqk != null) MatrixUtil.copy(inputYqk, this.Yqk);
+		}
+
 		@Override
 		public boolean validate() {
 			if (!super.validate()) return false;
@@ -483,29 +598,23 @@ public class TransformerImpl extends TransformerAbstract {
 
 		/**
 		 * Getting Y input data with regard to query weight matrix Q and key weight matrix K.
+		 * In QK-Y mode (true), attention 0 of decoder will have another particular input Y-QK, instead of being dependent on encoder output as another input.
 		 * @return Y input data with regard to query weight matrix Q and key weight matrix K.
 		 */
 		public Matrix Yqk() {return Yqk;};
 		
 		@Override
 		public Matrix calcQ() {
-			Matrix transposedX = calcTransposedX();
-			return transposedX != null || Yqk == null ? super.calcQ() : Yqk.multiply(WQ);
+			if (Yqk == null) return super.calcQ();
+			return X() != null ? super.calcQ() : Yqk.multiply(WQ);
 		}
 		
 		@Override
 		public Matrix calcK() {
-			Matrix transposedX = calcTransposedX();
-			return transposedX != null || Yqk == null ? super.calcK() : Yqk.multiply(WK);
+			if (Yqk == null) return super.calcK();
+			return X() != null ? super.calcK() : Yqk.multiply(WK);
 		}
 
-		/**
-		 * Default constructor.
-		 */
-		Attention0() {
-			super();
-		}
-		
 	}
 	
 	
@@ -651,24 +760,26 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 
 	
 	/**
-	 * Initializing transformer.
+	 * Initializing transformer. Please pay attention that encoder is often attached to the second block of decoder.
 	 * @param he number of heads (encoder). Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param ne sample size (encoder).
 	 * @param dme model dimension (encoder). Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Encoder model dimension is the original length of original vector (model) which is row vector of input data (X data).
 	 * @param dke key dimension (encoder). Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dve value dimension (encoder). Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param hd number of heads (decoder). Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param nd sample size (decoder).
 	 * @param dmd model dimension (decoder). Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Decoder model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dkd key dimension (decoder). Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dvd value dimension (decoder). Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
 	 * @param nBlocks number of blocks. Default number of blocks is {@link #BLOCKS_NUMBER_DEFAULT}
 	 * @return true if initialization is successful.
 	 */
-	boolean initialize(int he, int ne, int dme, int dke, int dve, int hd, int nd, int dmd, int dkd, int dvd, int ffnDepth, int nBlocks) {
+	protected boolean initialize(int he, int ne, int dme, int dke, int dve, int hd, int nd, int dmd, int dkd, int dvd, int ffnDepth, int nBlocks) {
 		nBlocks = nBlocks > 0 ? nBlocks : TransformerBasic.BLOCKS_NUMBER_DEFAULT;
-		int XBlockIndex = nd > 0 && dmd > 0 && nBlocks > 1 ? 1 : -1;
+		int XBlockIndex = nd > 0 && dmd > 0 && nBlocks > 1 ? 1 : -1; //Encoder is often attached to the second block of decoder.
 		this.encoder = null;
 		this.decoder = null;
 		
@@ -700,6 +811,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
@@ -716,6 +828,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @param h number of heads. Default number of heads is {@link Attention0#HEADS_NUMBER_DEFAULT}.
 	 * @param n sample size.
 	 * @param dm model dimension. Default model dimension is {@link Attention0#MODEL_DIMENSION_DEFAULT}.
+	 * Model dimension is the original length of original vector (model) which is row vector of input data (Y data).
 	 * @param dk key dimension. Default key dimension is {@link Attention0#KEY_DIMENSION_DEFAULT}.
 	 * @param dv value dimension. Default value dimension is {@link Attention0#VALUE_DIMENSION_DEFAULT}.
 	 * @param ffnDepth depth of feed forward network. Default depth of feed forward network is {@link MatrixNetworkImpl#DEPTH_DEFAULT}.
@@ -835,13 +948,6 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 		return validate() ? (decoder != null ? decoder.getOutputLayer() : encoder.getOutputLayer()) : null;
 	}
 	
-	
-//	@Override
-//	public Function getOutputActivateRef() {
-//		MatrixLayerAbstract outputLayer = getOutputLayer();
-//		return outputLayer != null ? outputLayer.getActivateRef() : null;
-//	}
-
 	
 	/**
 	 * Getting output adapter.
@@ -1239,9 +1345,9 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @param errors specified errors.
 	 * @param learning learning mode.
 	 * @param learningRate learning rate.
-	 * @return learning errors. The first element is main error and the second element is attached error\\.
+	 * @return learning errors. The first element is main error and the second element is attached error.
 	 */
-	private Error[][] backward0(Error[] errors, boolean learning, double learningRate) {
+	protected Error[][] backward(Error[] errors, boolean learning, double learningRate) {
 		if (!validate()) return null;
 		updateConfig();
 		
@@ -1260,21 +1366,6 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	
 	
 	/**
-	 * Back-warding transformer block by errors.
-	 * @param errors specified errors.
-	 * @param learning learning mode.
-	 * @param learningRate learning rate.
-	 * @return learning errors. The first element is main error and the second element is attached error\\.
-	 */
-	protected Error[][] backward(Error[] errors, boolean learning, double learningRate) {
-		if (!learning) return backward0(errors, learning, learningRate);
-		Error[][] outputErrors = backwardWithoutLearning(errors, learningRate);
-		updateParametersFromBackwardInfo(errors.length, learningRate);
-		return outputErrors;
-	}
-
-	
-	/**
 	 * Learning attention by errors.
 	 * @param errors specified errors.
 	 * @param learningRate learning rate.
@@ -1285,7 +1376,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 		if (outputErrors == null || outputErrors.length == 0) return null;
 		Error[][] errors = new Error[outputErrors.length][];
 		for (int i = 0; i < outputErrors.length; i++) {
-			errors[i] = backward0(new Error[] {outputErrors[i]}, false, learningRate)[0];
+			errors[i] = backward(new Error[] {outputErrors[i]}, false, learningRate)[0];
 		}
 		return errors;
 	}
@@ -1370,6 +1461,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
+		resetBackwardInfo(); //Fixing date: 2026.06.19.
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;

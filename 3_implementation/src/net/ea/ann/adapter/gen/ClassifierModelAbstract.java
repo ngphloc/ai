@@ -9,7 +9,6 @@ package net.ea.ann.adapter.gen;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
 
@@ -22,13 +21,11 @@ import net.ea.ann.adapter.gen.beans.VGG;
 import net.ea.ann.adapter.gen.ui.GenUIClassifier;
 import net.ea.ann.classifier.Classifier;
 import net.ea.ann.classifier.ClassifierBuilder.ClassifierModel;
-import net.ea.ann.conv.stack.StackNetworkAbstract;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.NetworkDoEvent;
 import net.ea.ann.core.NetworkInfoEvent;
 import net.ea.ann.core.NetworkListener;
 import net.ea.ann.gen.GenModel.G;
-import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
@@ -45,12 +42,11 @@ import net.hudup.core.logistic.Inspector;
 
 /**
  * This class implements partially classifier model.
- * 
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract implements GenModel, GenModelRemote, NetworkListener, /*AllowNullTrainingSet,*/ DuplicatableAlg {
+public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract implements net.ea.ann.adapter.gen.ClassifierModel, ClassifierModelRemote, NetworkListener, /*AllowNullTrainingSet,*/ DuplicatableAlg {
 
 
 	/**
@@ -84,9 +80,9 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 
 	
 	/**
-	 * Internal classifier.
+	 * Reference to current classifier model.
 	 */
-	protected Classifier gm = null;
+	private Classifier gm = null;
 	
 	
 	/**
@@ -94,14 +90,10 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	 */
 	public ClassifierModelAbstract() {
 		super();
-		gm = createGenModel();
 		
 		try {
+			Classifier gm = createGenModel();
 			if (gm instanceof Network) config.putAll(Util.toConfig(((Network)gm).getConfig()));
-		} catch (Throwable e) {Util.trace(e);}
-		
-		try {
-			if (gm instanceof Network) ((Network)gm).addListener(this);
 		} catch (Throwable e) {Util.trace(e);}
 	}
 
@@ -113,57 +105,8 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 
 	
 	@Override
-	public void setup(Dataset dataset, Object... info) throws RemoteException {
-		super.setup(dataset, info);
-	}
-
-	
-	@Override
-	public synchronized void unsetup() throws RemoteException {
-		super.unsetup();
-		if (gm == null) return;
-		try {
-			if (gm instanceof StackNetworkAbstract)
-				((StackNetworkAbstract)gm).reset();
-			else if (gm instanceof MatrixNetworkAbstract)
-				((MatrixNetworkAbstract)gm).reset();
-		} catch (Exception e) {Util.trace(e);}
-	}
-
-	
-	@Override
-	public synchronized Remote export(int serverPort) throws RemoteException {
-		Remote remote = super.export(serverPort);
-		try {
-			if (gm != null && gm instanceof Network) ((Network)gm).export(serverPort);
-		} catch (Throwable e) {Util.trace(e);}
-		return remote;
-	}
-
-
-	@Override
-	public synchronized void unexport() throws RemoteException {
-		super.unexport();
-		try {
-			if (gm != null && gm instanceof Network) ((Network)gm).unexport();
-		} catch (Throwable e) {Util.trace(e);}
-	}
-
-
-	@Override
-	public synchronized void forceUnexport() throws RemoteException {
-		super.forceUnexport();
-		try {
-			if (gm != null && gm instanceof Network) ((Network)gm).unexport();
-		} catch (Throwable e) {Util.trace(e);}
-	}
-
-	
-	@Override
 	public Object executeAsLearn(Object input) throws RemoteException {
-		try {
-			if (gm != null && gm instanceof Network) ((Network)gm).getConfig().putAll(Util.transferToANNConfig(config));
-		} catch (Throwable e) {Util.trace(e);}
+		Classifier gm = createDelegate();
 
 		if (input == null) return null; //Running in setup method.
 
@@ -192,25 +135,20 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	protected abstract Classifier createGenModel();
 
 
-	/**
-	 * Creating and updating generative model.
-	 * @return generative model.
-	 */
-	Classifier createUpdateGenModel() {
+	@Override
+	public Classifier createDelegate() {
+		Classifier gm = createGenModel();
 		try {
-			if (gm == null || gm.getNeuronChannel() != getNeuronChannel())
-				gm = createGenModel();
 			if (gm instanceof Network) ((Network)gm).getConfig().putAll(Util.transferToANNConfig(config));
 		} catch (Throwable e) {Util.trace(e);}
-		return gm;
+		return this.gm = gm;
 	}
 
-	
+
 	@Override
 	public List<Raster> genRasters(Iterable<Raster> sample, int nGens) throws RemoteException {
-		createUpdateGenModel();
-		
-//		classifier.learnRaster(sample);
+		Classifier gm = createDelegate();
+		gm.learnRaster(sample);
 		return gm.classify(sample);
 	}
 
@@ -223,7 +161,8 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 
 	@Override
 	public List<G> recoverRasters(Iterable<Raster> sample, Iterable<Raster> rasters, int nGens) throws RemoteException {
-		createUpdateGenModel();
+		Classifier gm = createDelegate();
+		gm.learnRaster(sample);
 		
 		gm.learnRaster(sample);
 		List<Raster> results = gm.classify(rasters);
@@ -288,9 +227,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 
 	
 	@Override
-	public Object getParameter() throws RemoteException {
-		return gm;
-	}
+	public Object getParameter() throws RemoteException {return this.gm;}
 
 
 	@Override
@@ -319,9 +256,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 
 	
 	@Override
-	public Inspector getInspector() {
-		return new GenUIClassifier(this, true);
-	}
+	public Inspector getInspector() {return new GenUIClassifier(this, true);}
 
 	
 	@Override
@@ -331,9 +266,7 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 
 	
 	@Override
-	public void receivedInfo(NetworkInfoEvent evt) throws RemoteException {
-
-	}
+	public void receivedInfo(NetworkInfoEvent evt) throws RemoteException {}
 
 	
 	@Override
@@ -364,10 +297,6 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 		config.put(RASTER_CHANNEL_FIELD, RASTER_CHANNEL_DEFAULT);
 		config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		
-		try {
-			if (gm instanceof Network) config.putAll(Util.toConfig(((Network)gm).getConfig()));
-		} catch (Throwable e) {Util.trace(e);}
-
 		return config;
 	}
 
