@@ -27,6 +27,7 @@ import net.ea.ann.mane.MatrixLayerExt;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.TaskTrainer;
+import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerImpl.Attention0;
@@ -1280,9 +1281,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 			A = decoder.evaluate(inputY, inputX, inputMask, params);
 		}
 		
-		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
-			((Error)params[0]).addLayerOInput(this);
-		}
+		Error.addLayerOInputParams(this, params);
 		return A;
 	}
 	
@@ -1310,9 +1309,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 			A = decoder.evaluate(input, inputMask, params);
 		}
 		
-		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
-			((Error)params[0]).addLayerOInput(this);
-		}
+		Error.addLayerOInputParams(this, params);
 		return A;
 	}
 
@@ -1478,7 +1475,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 				List<Error> errorList = Util.newList(0);
 				for (Record record : subsample) {
 					Error error = new Error((Matrix)null);
-					Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error);
+					Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, new TrainingFlag() {});
 					Matrix err = record.outputA().subtract(A);
 					if (err != null) {
 						error.errorSet(err);

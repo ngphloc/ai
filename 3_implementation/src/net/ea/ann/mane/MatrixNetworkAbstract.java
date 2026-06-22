@@ -257,12 +257,12 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @param inputRaster input raster for evaluating.
 	 * @return matrix as output.
 	 */
-	public Matrix evaluate(Raster inputRaster) {
+	public Matrix evaluate(Raster inputRaster, Object...params) {
 		try {
 			MatrixLayerAbstract inputLayer = getInputLayer();
 			Matrix input = inputLayer.getInput();
 			Matrix matrixInput = inputLayer.toMatrix(inputRaster, new Size(input.columns(), input.rows()));
-			return matrixInput != null ? evaluate(matrixInput) : null;
+			return matrixInput != null ? evaluate(matrixInput, params) : null;
 		} catch (Throwable e) {Util.trace(e);}
 		return null;
 	}

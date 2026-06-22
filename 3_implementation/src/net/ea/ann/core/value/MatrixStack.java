@@ -267,6 +267,7 @@ public class MatrixStack implements Matrix {
 	
 	@Override
 	public Matrix multiplyWise(Matrix other) {
+		assert (this.matrices.length == ((MatrixStack)other).matrices.length);
 		Matrix[] result = new Matrix[this.matrices.length];
 		for (int i = 0; i < this.matrices.length; i++) {
 			result[i] = this.matrices[i].multiplyWise(((MatrixStack)other).matrices[i]);
@@ -512,6 +513,7 @@ public class MatrixStack implements Matrix {
 	 * @param target target matrix stack.
 	 */
 	static void copy(MatrixStack sourceStack, MatrixStack targetStack) {
+		assert (sourceStack.depth() == targetStack.depth());
 		for (int i = 0; i < targetStack.depth(); i++) Matrix.copy(sourceStack.matrices[i], targetStack.matrices[i]);
 	}
 
@@ -558,7 +560,7 @@ public class MatrixStack implements Matrix {
 	 * @return filled matrix.
 	 */
 	public static void fill(MatrixStack matrix, double v) {
-		NeuronValue value = matrix.get(0, 0).valueOf(v);
+		NeuronValue value = matrix.get().get(0, 0).valueOf(v);
 		fill(matrix, value);
 	}
 	

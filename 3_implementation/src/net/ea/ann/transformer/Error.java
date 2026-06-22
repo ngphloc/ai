@@ -7,6 +7,7 @@ import java.util.Set;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.DropoutLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
 
@@ -249,6 +250,37 @@ public class Error implements Cloneable, Serializable {
 	public boolean addLayerOInput(MatrixLayerExt layer) {
 		Error0 error0 = get();
 		return error0 != null ? error0.addLayerOInput(layer) : false;
+	}
+
+	
+	/**
+	 * Adding layer input.
+	 * @param layer layer.
+	 * @param oinput input.
+	 * @param params parameters.
+	 * @return true if adding is successful.
+	 */
+	public static void addLayerOInputParams(Object layer, Matrix oinput, Object[] params) {
+		if (params == null || params.length == 0) return;
+		for (Object param : params) {
+			if (param == null) continue;
+			if (param instanceof Error) ((Error)param).addLayerOInput(layer, oinput);
+		}
+	}
+	
+	
+	/**
+	 * Adding layer input.
+	 * @param layer layer.
+	 * @param params additional parameters.
+	 * @return true if adding is successful.
+	 */
+	public static void addLayerOInputParams(MatrixLayerExt layer, Object[] params) {
+		if (params == null || params.length == 0) return;
+		for (Object param : params) {
+			if (param == null) continue;
+			if (param instanceof Error) ((Error)param).addLayerOInput(layer);
+		}
 	}
 
 	
@@ -542,7 +574,11 @@ class Error0 implements Cloneable, Serializable {
 		MatrixLayerAbstract outputLayer = LayerInput.getOutputLayer(layer);
 		if (outputLayer == null) return false;
 		Matrix oinput = outputLayer.queryActualInput();
-		return oinput != null ? addLayerOInput(new LayerInput(layer, oinput)) : false;
+		Matrix oinputPrev = outputLayer.getPrevInput();
+		LayerInput layerInput = new LayerInput(layer, oinput, oinputPrev);
+		if (layer instanceof DropoutLayer) layerInput.dropoutMask = ((DropoutLayer)layer).getDropoutMask();
+
+		return addLayerOInput(layerInput);
 	}
 
 	
@@ -733,6 +769,16 @@ class LayerInput extends net.ea.ann.mane.Error.LayerInput {
 	 */
 	public LayerInput(net.ea.ann.mane.Error.LayerInput layerOInput) {
 		super(layerOInput.layer, layerOInput.oinput);
+	}
+
+	/**
+	 * Constructor with layer and input.
+	 * @param layer layer.
+	 * @param oinput input.
+	 * @param oinputPrev previous input.
+	 */
+	public LayerInput(Object layer, Matrix oinput, Matrix oinputPrev) {
+		super(layer, oinput, oinputPrev);
 	}
 	
 }

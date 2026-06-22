@@ -25,7 +25,6 @@ import net.ea.ann.raster.Size;
 
 /**
  * This class implements matrix neural network in default.
- * 
  * @author Loc Nguyen
  * @version 1.0
  *
@@ -150,15 +149,11 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 
 
 	@Override
-	public Id getIdRef() {
-		return idRef;
-	}
+	public Id getIdRef() {return idRef;}
 
 
 	@Override
-	public int id() {
-		return idRef.get();
-	}
+	public int id() {return idRef.get();}
 
 
 	@Override
@@ -529,12 +524,12 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		MatrixLayerAbstract inputLayer = getInputLayer();
 		if (inputLayer.getOutput() != inputLayer.getInput()) inputLayer.setOutput(inputLayer.getInput());
 		
-		for (int i = 1; i < layers.length; i++) layers[i].evaluate();
+		for (int i = 1; i < layers.length; i++) {
+			layers[i].evaluate(params);
+		}
 		Matrix output = getOutputLayer().queryOutput();
 		
-		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
-			((Error)params[0]).addLayerOInput(this);
-		}
+		Error.addLayerOInput(this, params);
 		
 //		if (output == null || !paramIsHistoryMode()) return output;
 //		if (history.size() > HISTORY_SIZE) history.clear();
@@ -580,6 +575,14 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 
 
 	/**
+	 * This interface represents training task.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 *
+	 */
+	public static interface TrainingFlag {}
+	
+	/**
 	 * Learning matrix neural network.
 	 * @param sample sample.
 	 * @param learningRate learning rate.
@@ -610,13 +613,13 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 				for (Record record : subsample) {
 					Matrix input = record.input(), realOutput = record.output();
 					Error error = new Error((Matrix)null);
-					Matrix output = evaluate0(input, error);
+					Matrix output = evaluate0(input, error, new TrainingFlag() {});
 					Matrix err = params != null && params.length > 0 ? calcOutputError(output, realOutput, getOutputLayer(), params) :
 						calcOutputError(output, realOutput, getOutputLayer());
-					if (err != null) {
-						error.errorSet(err);
-						outputErrorList.add(error);
-					}
+					if (err == null) continue;
+					
+					error.errorSet(err);
+					outputErrorList.add(error);
 				}
 				outputErrors = backward(outputErrorList.toArray(new Error[] {}), this, true, lr);
 			}

@@ -14,6 +14,7 @@ import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.DropoutNetwork;
 import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.FilterSpec.NetworkType;
@@ -21,7 +22,6 @@ import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.FilterSpec.Type;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
-import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.WeightSpec;
 import net.ea.ann.raster.Size;
@@ -36,7 +36,7 @@ import net.hudup.core.parser.TextParserUtil;
  * @version 1.0
  *
  */
-public class VGG extends MatrixNetworkImpl {
+public class VGG extends DropoutNetwork /*MatrixNetworkImpl*/ {
 
 
 	/**

@@ -181,24 +181,6 @@ abstract class FilterNetwork extends MatrixNetworkImpl implements NetworkFilter 
 	public abstract boolean initialize(Size inputSize, Size outputSize, int length, Dimension kernelSize, KernelType kernelType);
 	
 
-//	@Override
-//	public Matrix evaluate0(Matrix input, Object...params) {
-////		return super.evaluate0(input, params);
-//		FilterLayer inputLayer = (FilterLayer)getInputLayer();
-//		if (input != null) MatrixUtil.copy(input, inputLayer.getInput());
-//		if (inputLayer.getOutput() != inputLayer.getInput()) inputLayer.setOutput(inputLayer.getInput());
-//		
-//		for (int i = 1; i < layers.length; i++) layers[i].evaluate();
-//		Matrix output = ((FilterLayer)getOutputLayer()).queryOutput();
-//		
-//		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
-//			((Error)params[0]).addLayerOInput(this);
-//		}
-//		
-//		return output;
-//	}
-
-	
 	@Override
 	public void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
 		Matrix output = evaluate0(prevLayer, new Object[] {});

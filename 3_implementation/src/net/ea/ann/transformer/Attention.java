@@ -406,9 +406,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		Matrix eval = WO != null ? Matrix.concatV(aList).multiply(WO) : Matrix.concatV(aList);
 		MatrixUtil.copy(eval, A);
 		
-		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
-			((Error)params[0]).addLayerOInput(this, A);
-		}
+		Error.addLayerOInputParams(this, A, params);
 		return A;
 	}
 

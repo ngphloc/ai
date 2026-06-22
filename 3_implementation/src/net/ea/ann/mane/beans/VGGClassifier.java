@@ -52,7 +52,7 @@ public class VGGClassifier extends VGGExt {
 	/**
 	 * Default value for base line field.
 	 */
-	public static final boolean BASELINE_DEFAULT = true;
+	public static final boolean BASELINE_DEFAULT = false;
 
 	
 	/**

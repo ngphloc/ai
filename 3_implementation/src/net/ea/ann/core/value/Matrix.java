@@ -667,6 +667,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param target target matrix.
 	 */
 	static void copy(Matrix source, Matrix target) {
+		assert (source.rows() == target.rows() && source.columns() == target.columns());
 		if (source == null || target == null) return;
 		int rows = Math.min(source.rows(), target.rows());
 		int columns = Math.min(source.columns(), target.columns());

@@ -27,6 +27,7 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixLayer;
+import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
 import net.ea.ann.raster.Raster;
@@ -961,7 +962,7 @@ class VGGExt extends VGG {
 				Record record = toRecord(raster);
 				Matrix input = record.input(), realOutput = record.output();
 				Error error = new Error((Matrix)null);
-				Matrix output = evaluate0(input, error); //Please pay attention to this code line because of tracking errors.
+				Matrix output = evaluate0(input, error, new MatrixNetworkImpl.TrainingFlag(){}); //Please pay attention to this code line because of tracking errors.
 				Matrix err = params != null && params.length > 0 ? calcOutputError(output, realOutput, getOutputLayer(), params) :
 					calcOutputError(output, realOutput, getOutputLayer());
 				if (err != null) {

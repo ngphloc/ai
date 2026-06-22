@@ -31,6 +31,7 @@ import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.TaskTrainer;
+import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
 
@@ -578,9 +579,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 				output = blocks[i].evaluate(Y, null, null, params);
 		}
 		
-		if (params != null && params.length > 0 && params[0] != null && params[0] instanceof Error) {
-			((Error)params[0]).addLayerOInput(this);
-		}
+		Error.addLayerOInputParams(this, params);
 		return output;
 	}
 	
@@ -783,7 +782,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 				List<Error> errorList = Util.newList(0);
 				for (Record record : subsample) {
 					Error error = new Error((Matrix)null);
-					Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error);
+					Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, new TrainingFlag() {});
 					Matrix err = record.outputA().subtract(A);
 					if (err != null) {
 						error.errorSet(err);

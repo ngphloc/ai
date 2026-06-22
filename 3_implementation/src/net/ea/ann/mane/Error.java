@@ -56,6 +56,16 @@ public class Error implements Cloneable, Serializable {
 		public Matrix oinput = null;
 		
 		/**
+		 * Previous input.
+		 */
+		public Matrix oinputPrev = null;
+		
+		/**
+		 * Droput mask.
+		 */
+		public Matrix dropoutMask = null;
+		
+		/**
 		 * Constructor with layer and input.
 		 * @param layer layer.
 		 * @param oinput input.
@@ -65,6 +75,17 @@ public class Error implements Cloneable, Serializable {
 			this.oinput = oinput;
 		}
 		
+		/**
+		 * Constructor with layer and input.
+		 * @param layer layer.
+		 * @param oinput input.
+		 * @param oinputPrev previous input.
+		 */
+		public LayerInput(Object layer, Matrix oinput, Matrix oinputPrev) {
+			this(layer, oinput);
+			this.oinputPrev= oinputPrev;
+		}
+
 		/**
 		 * Getting output layer.
 		 * @return output layer.
@@ -258,7 +279,11 @@ public class Error implements Cloneable, Serializable {
 			MatrixLayerAbstract outputLayer = LayerInput.getOutputLayer(layer);
 			if (outputLayer == null) return false;
 			Matrix oinput = outputLayer.queryActualInput();
-			return oinput != null ? addLayerOInput(new LayerInput(layer, oinput)) : false;
+			Matrix oinputPrev = outputLayer.getPrevInput();
+			LayerInput layerInput = new LayerInput(layer, oinput, oinputPrev);
+			if (layer instanceof DropoutLayer) layerInput.dropoutMask = ((DropoutLayer)layer).dropoutMask;
+			
+			return addLayerOInput(layerInput);
 		}
 
 		/**
@@ -279,6 +304,26 @@ public class Error implements Cloneable, Serializable {
 		public Matrix oinputDerivative(Object layer) {
 			LayerInput layerInput = layerInput(layer);
 			return layerInput != null ? layerInput.derivative() : null;
+		}
+		
+		/**
+		 * Getting previous input of specified layer.
+		 * @param layer specified layer.
+		 * @return previous input of specified layer.
+		 */
+		public Matrix oinputPrevOfLayer(Object layer) {
+			LayerInput layerInput = layerInput(layer);
+			return layerInput != null ? layerInput.oinputPrev : null;
+		}
+
+		/**
+		 * Getting dropout mask of specified layer.
+		 * @param layer specified layer.
+		 * @return dropout mask of specified layer.
+		 */
+		public Matrix oinputDropoutMaskOfLayer(Object layer) {
+			LayerInput layerInput = layerInput(layer);
+			return layerInput != null ? layerInput.dropoutMask : null;
 		}
 		
 		/**
@@ -733,6 +778,20 @@ public class Error implements Cloneable, Serializable {
 
 	
 	/**
+	 * Adding layer input.
+	 * @param layer layer.
+	 * @return true if adding is successful.
+	 */
+	public static void addLayerOInput(MatrixLayerExt layer, Object[] params) {
+		if (params == null || params.length == 0) return;
+		for (Object param : params) {
+			if (param == null) continue;
+			if (param instanceof Error) ((Error)param).addLayerOInput(layer);
+		}
+	}
+
+	
+	/**
 	 * Getting input of specified layer.
 	 * @param layer specified layer.
 	 * @return input of specified layer.
@@ -751,6 +810,28 @@ public class Error implements Cloneable, Serializable {
 	public Matrix oinputDerivative(Object layer) {
 		Error0 error0 = get();
 		return error0 != null ? error0.oinputDerivative(layer) : null;
+	}
+
+	
+	/**
+	 * Getting previous input of specified layer.
+	 * @param layer specified layer.
+	 * @return previous input of specified layer.
+	 */
+	public Matrix oinputPrevOfLayer(Object layer) {
+		Error0 error0 = get();
+		return error0 != null ? error0.oinputPrevOfLayer(layer) : null;
+	}
+	
+	
+	/**
+	 * Getting dropout mask of specified layer.
+	 * @param layer specified layer.
+	 * @return dropout mask of specified layer.
+	 */
+	public Matrix oinputDropoutMaskOfLayer(Object layer) {
+		Error0 error0 = get();
+		return error0 != null ? error0.oinputDropoutMaskOfLayer(layer) : null;
 	}
 
 	

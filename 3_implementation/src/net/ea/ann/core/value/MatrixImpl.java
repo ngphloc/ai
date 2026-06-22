@@ -208,6 +208,9 @@ public class MatrixImpl implements Matrix {
 
 	@Override
 	public Matrix multiplyWise(Matrix other) {
+		assert (this.rows() == other.rows());
+		assert (this.columns() == other.columns());
+
 		int m = Math.min(this.rows(), other.rows());
 		int n = Math.min(this.columns(), other.columns());
 		Matrix result = create(new Size(n, m));

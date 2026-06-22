@@ -31,7 +31,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public abstract class MatrixLayerAbstract extends LayerAbstract implements MatrixLayer, NeuronValueCreator {
+public abstract class MatrixLayerAbstract extends LayerAbstract implements MatrixLayerExt, NeuronValueCreator {
 
 	
 	/**
@@ -353,6 +353,17 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	}
 
 
+	@Override
+	public void enterInputs(Record record) {
+		if (getNetwork() == null || getNetwork().getInputLayer() != this) throw new IllegalArgumentException();
+		getNetwork().enterInputs(record);
+	}
+
+
+	@Override
+	public MatrixLayer getOutputLayer() {return this;}
+
+
 	/**
 	 * Getting reference to weight activation function.
 	 * @return reference to weight activation function.
@@ -415,7 +426,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting previous input value, which is for filtering by default.
 	 * @return previous input value.
 	 */
-	protected abstract Matrix getPrevInput();
+	public abstract Matrix getPrevInput();
 
 	
 	/**

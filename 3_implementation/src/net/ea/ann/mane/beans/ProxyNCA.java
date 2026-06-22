@@ -25,6 +25,7 @@ import net.ea.ann.mane.Error;
 import net.ea.ann.mane.LikelihoodGradient;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.raster.Augmentor;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
@@ -1109,45 +1110,46 @@ public class ProxyNCA extends VGGClassifier {
 	 * @param origins original rasters.
 	 * @param augments augmented rasters.
 	 * @param groupIndex group index.
+	 * @param params additional parameters.
 	 * @return quartets.
 	 */
-	private List<Quartet> createQuartets(List<Raster> origins, List<Raster> augments, int groupIndex) {
+	private List<Quartet> createQuartets(List<Raster> origins, List<Raster> augments, int groupIndex, Object...params) {
 		List<Quartet> quartets = Util.newList(0);
 		for (int i = 0; i < origins.size(); i++) {
 			List<Matrix> positives = Util.newList(0);
 			List<Matrix> negatives = Util.newList(0);
 			Map<Matrix, Matrix> prevs = Util.newMap(0);
 
-			if (i < augments.size()) addOutput(augments.get(i), positives, prevs);
+			if (i < augments.size()) addOutput(augments.get(i), positives, prevs, params);
 			
 			for (int j = 0; j < origins.size() && j != i; j++) {
 				if (isLabeled()) {
 					int isSame = isSameClasses(origins.get(i), origins.get(j), groupIndex);
 					if (isSame == 0)
-						addOutput(origins.get(j), positives, prevs);
+						addOutput(origins.get(j), positives, prevs, params);
 					else if (isSame > 0)
-						addOutput(origins.get(j), negatives, prevs);
+						addOutput(origins.get(j), negatives, prevs, params);
 				}
 				else
-					addOutput(origins.get(j), negatives, prevs);
+					addOutput(origins.get(j), negatives, prevs, params);
 			}
 			for (int j = 0; j < augments.size() && j != i; j++) {
 				if (isLabeled()) {
 					int isSame = isSameClasses(origins.get(i), augments.get(j), groupIndex);
 					if (isSame == 0)
-						addOutput(augments.get(j), positives, prevs);
+						addOutput(augments.get(j), positives, prevs, params);
 					else if (isSame > 0)
-						addOutput(augments.get(j), negatives, prevs);
+						addOutput(augments.get(j), negatives, prevs, params);
 				}
 				else
-					addOutput(augments.get(j), negatives, prevs);
+					addOutput(augments.get(j), negatives, prevs, params);
 			}
 			
 //			if (this.proxyGroupList == null && positives.size() == 0) continue;
 //			if (positives.size() == 0 && negatives.size() > 0) continue;
 			
 			Quartet quartet = null;
-			Matrix anchor = addOutput(origins.get(i), null, prevs);
+			Matrix anchor = addOutput(origins.get(i), null, prevs, params);
 			quartet = create(anchor, positives, negatives, this.proxyGroupList != null ? this.proxyGroupList.get(groupIndex) : null);
 			if (quartet != null) {
 				quartet.triplet.prevs.putAll(prevs);
@@ -1165,10 +1167,11 @@ public class ProxyNCA extends VGGClassifier {
 	 * @param input raster input.
 	 * @param outputs outputs which can be null.
 	 * @param outputPrevs map of previous outputs which can be null.
+	 * @param params additional parameters.
 	 */
-	private Matrix addOutput(Raster input, List<Matrix> outputs, Map<Matrix, Matrix> outputPrevs) {
+	private Matrix addOutput(Raster input, List<Matrix> outputs, Map<Matrix, Matrix> outputPrevs, Object...params) {
 		if (input == null) return null;
-		Matrix output = evaluate(input);
+		Matrix output = evaluate(input, params);
 		output = output != null ? (isProxyVectorized() ? output.vec() : output) : null;
 		Matrix outputPrev = getOutputLayer().getInput();
 		outputPrev = outputPrev != null ? (isProxyVectorized() ? outputPrev.vec() : outputPrev) : null;
@@ -1260,7 +1263,7 @@ public class ProxyNCA extends VGGClassifier {
 	 * @param piece piece of sample.
 	 * @return the last bias.
 	 */
-	private Matrix[] calcOutputError(Iterable<Raster> piece) {
+	private Matrix[] calcOutputError(Iterable<Raster> piece, Object...params) {
 		List<Raster> origins = Util.newList(0);
 		List<Raster> augments = Util.newList(0);
 		for (Raster origin : piece) {
@@ -1283,8 +1286,8 @@ public class ProxyNCA extends VGGClassifier {
 		Matrix dThetaAccum = null;
 		for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
 			List<Quartet> quartets = Util.newList(0);
-			quartets.addAll(createQuartets(origins, augments, groupIndex));
-			quartets.addAll(createQuartets(augments, origins, groupIndex));
+			quartets.addAll(createQuartets(origins, augments, groupIndex, params));
+			quartets.addAll(createQuartets(augments, origins, groupIndex, params));
 			if (quartets.size() == 0) continue;
 			
 			Matrix dProxyGroup = null;
@@ -1323,7 +1326,7 @@ public class ProxyNCA extends VGGClassifier {
 			}
 
 			if (piece.size() >= 2) {
-				Matrix[] errors = calcOutputError(piece);
+				Matrix[] errors = calcOutputError(piece, new MatrixNetworkImpl.TrainingFlag(){});
 				piece.clear();
 				if (errors == null) continue;
 				
@@ -1347,8 +1350,6 @@ public class ProxyNCA extends VGGClassifier {
 			if (errors != null && errors[1] != null) outputErrorList.add(new Error(errors[1]));
 			trained = true;
 		}
-		
-//		if (learning && this.dProxyGroupListAccum != null) updateParametersFromBackwardInfo0(this.dProxyGroupListAccum.count(), learningRate); //This code line is redundant. 
 		
 		for (Error error : outputErrorList) error.addLayerOInput(this); //Please pay attention to this code line for tracking errors.
 		

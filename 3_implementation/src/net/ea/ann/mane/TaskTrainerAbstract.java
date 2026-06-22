@@ -14,6 +14,7 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
 
 /**
  * This class implements partially specifies trainer applying into learning matrix neural network for specific task such as classification and reinforcement learning.
@@ -54,7 +55,7 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 			}
 			
 			Error bias = new Error((Matrix)null);
-			Matrix output = layer.evaluate(bias); //Please pay attention to this code line because of tracking errors.
+			Matrix output = layer.evaluate(bias, new TrainingFlag() {}); //Please pay attention to this code line because of tracking errors.
 			Matrix err = gradient(output, realOutput, params);
 			if (err == null) continue;
 			
