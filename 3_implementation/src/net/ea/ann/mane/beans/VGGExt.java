@@ -55,7 +55,7 @@ class VGGExt extends VGG {
 	/**
 	 * Default value for by-column flag.
 	 */
-	public final static String BYCOLUMN_FIELD = "classifier_bycolumn";
+	public final static String BYCOLUMN_FIELD = "vgg_bycolumn";
 
 	
 	/**
@@ -68,7 +68,7 @@ class VGGExt extends VGG {
 	 * Field of the number elements of a combination.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
-	public static final String COMB_NUMBER_FIELD = "classifier_comb_number";
+	public static final String COMB_NUMBER_FIELD = "vgg_comb_number";
 	
 	
 	/**

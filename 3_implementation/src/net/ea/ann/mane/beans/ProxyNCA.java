@@ -36,7 +36,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class ProxyNCA extends VGGClassifier {
+public class ProxyNCA extends VGGExt {
 
 
 	/**

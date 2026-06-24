@@ -26,7 +26,6 @@ import net.ea.ann.raster.RasterProperty;
 import net.ea.ann.raster.RasterProperty.Label;
 import net.ea.ann.raster.RasterWrapperProperty;
 import net.ea.ann.raster.Size;
-import net.hudup.core.logistic.NextUpdate;
 
 /**
  * This class implements Proxy-NCA (Proxy-Neighborhood Component Analysis) algorithm for deep metric learning, supporting both classification and clustering.
@@ -52,7 +51,7 @@ public class VGGClassifier extends VGGExt {
 	/**
 	 * Default value for base line field.
 	 */
-	public static final boolean BASELINE_DEFAULT = false;
+	public static final boolean BASELINE_DEFAULT = true;
 
 	
 	/**
@@ -221,7 +220,6 @@ public class VGGClassifier extends VGGExt {
 	 * @param sample sample.
 	 * @return baseline.
 	 */
-	@NextUpdate
 	Matrix calcBaseline(Iterable<Raster> sample) {
 		Matrix OUTPUT0 = getOutput();
 		Matrix[] baselines = OUTPUT0 instanceof MatrixStack ? new Matrix[((MatrixStack)OUTPUT0).depth()] : new Matrix[1];

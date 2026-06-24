@@ -73,7 +73,7 @@ public class ProxyNCAClassiter extends ProxyNCA {
 	public List<Raster> classiterRaster(Iterable<Raster> sample) {
 		if (!isLabeled()) throw new RuntimeException("Not implemented yet");
 		
-		return super.classifyRaster(sample);
+		throw new RuntimeException("Not implemented yet");
 	}
 	
 	

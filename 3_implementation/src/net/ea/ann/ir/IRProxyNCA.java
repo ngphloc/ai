@@ -16,7 +16,6 @@ import net.ea.ann.ir.MLAbstract.RasterMatrixMLGeneral;
 import net.ea.ann.ir.Record.RasterRecord;
 import net.ea.ann.ir.ml.ProxyNCA;
 import net.ea.ann.raster.Raster;
-import net.ea.ann.raster.Size;
 
 /**
  * This class is the default implementation of information Retrieval (IR) system based on Proxy-NCA (Proxy-Neighborhood Component Analysis) algorithm.
@@ -56,10 +55,9 @@ public class IRProxyNCA extends IRDefault {
 		}
 		
 		//Removing following lines after debugging.
-		paramSetAugmented(true);
-		paramSetVGGMiddleSize(new Size(32, 32));
-		paramSetFiltersNumberMax(1);
-		System.out.println("IRProxyNCA: Removing following lines after debugging.");
+//		paramSetVGGMiddleSize(new Size(32, 32));
+//		paramSetFiltersNumberMax(1);
+//		System.out.println("IRProxyNCA: Removing following lines after debugging.");
 	}
 
 	
