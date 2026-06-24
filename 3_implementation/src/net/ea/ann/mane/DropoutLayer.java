@@ -54,7 +54,31 @@ public class DropoutLayer extends MatrixLayerImpl implements MatrixLayerExt {
 	/**
 	 * Default value for dropout rate.
 	 */
-	public final static double DROPOUT_RATE_DEFAULT = 0.5;
+	public final static double DROPOUT_RATE_DEFAULT = 0.2;
+
+	
+	/**
+	 * Field for inverted mode.
+	 */
+	public final static String DROPOUT_INVERTED_FIELD = "mane_dropout_inverted";
+	
+	
+	/**
+	 * Default value for inverted mode.
+	 */
+	public final static boolean DROPOUT_INVERTED_DEFAULT = true;
+
+	
+	/**
+	 * Field for dropout all.
+	 */
+	public final static String DROPOUT_ALL_FIELD = "mane_dropout_all";
+	
+	
+	/**
+	 * Default value for dropout all.
+	 */
+	public final static boolean DROPOUT_ALL_DEFAULT = true;
 
 	
 	/**
@@ -132,6 +156,26 @@ public class DropoutLayer extends MatrixLayerImpl implements MatrixLayerExt {
 	
 	
 	/**
+	 * Checking whether to be in mode of inverted dropout.
+	 * @return whether to be in mode of inverted dropout.
+	 */
+	private boolean isDropoutInverted() {
+		if ((getNetwork() == null) || !(getNetwork() instanceof DropoutNetwork)) return DROPOUT_INVERTED_DEFAULT;
+		return ((DropoutNetwork)getNetwork()).paramIsDropoutInverted();
+	}
+	
+	
+	/**
+	 * Getting flag of dropouting all layers.
+	 * @return flag of dropouting all layers.
+	 */
+	private boolean isDropoutAll() {
+		if ((getNetwork() == null) || !(getNetwork() instanceof DropoutNetwork)) return DROPOUT_ALL_DEFAULT;
+		return ((DropoutNetwork)getNetwork()).paramIsDropoutAll();
+	}
+	
+	
+	/**
 	 * Getting dropout mask.
 	 * @return dropout mask.
 	 */
@@ -146,20 +190,15 @@ public class DropoutLayer extends MatrixLayerImpl implements MatrixLayerExt {
 
 	
 	/**
-	 * Checking whether to be in mode of inverted dropout.
-	 * @return whether to be in mode of inverted dropout.
-	 */
-	private boolean isInvertedDropout() {return true;}
-	
-	
-	/**
 	 * Setting up dropout mask.
 	 */
 	void setupMask() {
 		this.dropoutMask = null;
 		if (!isDropoutMode()) return;
+		if (!isDropoutAll() && this.getNetwork() != null && this.getNetwork().getOutputLayer() != this.getNextLayer()) return;//Dropout the layer whose next layer is output layer is enough because the back-propagation mechanism.
 		if (getDropoutRate() <= 0 || getDropoutRate() >= 1) return;
-		if (getWeight() == null && getFilter() == null) return;
+		if (getWeight() == null && getFilter() == null) return; //Do not dropout the input layer.
+		if (this.getNetwork() != null && this.getNetwork().getOutputLayer() == this) return; //Do not dropout the output layer.
 		
 		if ( (getWeight() != null && !(getWeight() instanceof NullWeight)) || (getFilter() != null && !getFilter().isIndexMode()) ) {
 			Matrix thisOutput = queryOutput();
@@ -168,7 +207,7 @@ public class DropoutLayer extends MatrixLayerImpl implements MatrixLayerExt {
 		if (this.dropoutMask == null) return;
 		
 		double keepProb = 1.0 - getDropoutRate();
-        double scale = isInvertedDropout() ? 1.0 / keepProb : 1.0;
+        double scale = isDropoutInverted() ? 1.0/keepProb : 1.0;
         Random rnd = new Random();
         for (int row = 0; row < this.dropoutMask.rows(); row++) {
         	for (int column = 0; column < this.dropoutMask.columns(); column++) {

@@ -12,6 +12,9 @@ import java.util.Random;
 
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.mane.weight.TransformerWeight;
+import net.ea.ann.mane.weight.WeightImpl;
+import net.ea.ann.mane.weight.WeightNetworkImpl;
 
 /**
  * This class represents parametric weight.
@@ -26,6 +29,10 @@ public interface Weight extends Cloneable, Serializable {
 	/**
 	 * Getting back-warding error mode.
 	 * If back-warding error mode is true, the weight will be applied into calculating the error of previous layer.
+	 * Weight can have false back-warding error mode but filter has always true back-warding error.
+	 * The default weight which is {@link WeightImpl} has true back-warding error mode and so true back-warding error mode is usual but
+	 * some weights like {@link WeightNetworkImpl} and {@link TransformerWeight} has false back-warding error mode because they focus on their layers.
+	 * Anyhow back-warding error mode is important to connect two successive layers together when it is true.
 	 * @return back-warding error mode.
 	 */
 	default boolean backwardErrorMode( ) {return true;}

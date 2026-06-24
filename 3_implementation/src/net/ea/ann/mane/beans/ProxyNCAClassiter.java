@@ -37,7 +37,6 @@ public class ProxyNCAClassiter extends ProxyNCA {
 	 */
 	public ProxyNCAClassiter(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
-		// TODO Auto-generated constructor stub
 	}
 
 	/**

@@ -13,6 +13,7 @@ import java.util.Random;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.filter.KernelFilterMax;
 
 /**
  * This interface represents a filter.
@@ -91,7 +92,7 @@ public interface Filter extends Serializable, Cloneable {
 	
 	/**
 	 * Getting applying activation function mode.
-	 * If activation function mode is false, the filter does not apply activation function like ReLU into squashing the output.
+	 * If activation function mode is false, the filter does not apply activation function into squashing the output.
 	 * @return applying activation function mode.
 	 */
 	default boolean doesApplyActivate() {return true;}
@@ -99,6 +100,8 @@ public interface Filter extends Serializable, Cloneable {
 	
 	/**
 	 * Getting index mode. If index mode is true, the filter is index filter like max-pooling filter.
+	 * In some cases, a filter applies activation function (which means that method {@link #doesApplyActivate()} return true) but
+	 * such filter is still in index mode. This is the case of the filter {@link KernelFilterMax}.
 	 * @return index mode.
 	 */
 	default boolean isIndexMode() {return false;}

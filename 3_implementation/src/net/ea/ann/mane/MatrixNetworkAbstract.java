@@ -172,6 +172,13 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 	
 	/**
+	 * Getting neuron channel.
+	 * @return neuron channel.
+	 */
+	public int getNeuronChannel() {return neuronChannel;}
+	
+	
+	/**
 	 * Creating matrix layer.
 	 * @return matrix layer.
 	 */
@@ -270,7 +277,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 	/**
 	 * Learning matrix neural network.
-	 * @param inouts sample.
+	 * @param inouts sample. Each record (Raster[]) of this sample is a 2-dimension array whose first element is raster input and second element is raster output.
 	 * @return learned error.
 	 */
 	public Error[] learnByRaster(Iterable<Raster[]> inouts) {

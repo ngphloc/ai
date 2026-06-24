@@ -26,6 +26,12 @@ public interface LikelihoodGradient {
 
 	
 	/**
+	 * Normalization flag.
+	 */
+	static boolean NORMLIZED = false;
+	
+	
+	/**
 	 * Calculating the optimal derivative given computed output and real output.
 	 * @param output computed or predicted output.
 	 * @param realOutput real output from environment. It can be null.
@@ -56,16 +62,18 @@ public interface LikelihoodGradient {
 	 */
 	private static Matrix entropyGradientByRow0(Matrix output, Matrix realOutputProb, Object...params) {
 		//Normalizing real probabilities.
-		for (int row = 0; realOutputProb != null && row < realOutputProb.rows(); row++) {
-			NeuronValue sum = realOutputProb.get(0, 0).zero();
-			for (int column = 0; column < realOutputProb.columns(); column++) {
-				sum = sum.add(realOutputProb.get(row, column));
-			}
-			if (!sum.canInvert()) continue;
-
-			for (int column = 0; column < realOutputProb.columns(); column++) {
-				NeuronValue p = realOutputProb.get(row, column);
-				realOutputProb.set(row, column, p.divide(sum));
+		if (NORMLIZED) {
+			for (int row = 0; realOutputProb != null && row < realOutputProb.rows(); row++) {
+				NeuronValue sum = realOutputProb.get(0, 0).zero();
+				for (int column = 0; column < realOutputProb.columns(); column++) {
+					sum = sum.add(realOutputProb.get(row, column));
+				}
+				if (!sum.canInvert()) continue;
+	
+				for (int column = 0; column < realOutputProb.columns(); column++) {
+					NeuronValue p = realOutputProb.get(row, column);
+					realOutputProb.set(row, column, p.divide(sum));
+				}
 			}
 		}
 
@@ -73,8 +81,7 @@ public interface LikelihoodGradient {
 		Matrix sampleWeight = null;
 		if (params != null && params.length > 0 && params[0] != null && (params[0] instanceof Matrix)) {
 			sampleWeight = (Matrix)params[0];
-			if (realOutputProb == null || sampleWeight.rows() != realOutputProb.rows() || sampleWeight.columns() != realOutputProb.columns())
-				sampleWeight = null;
+			if (realOutputProb == null || sampleWeight.rows() != realOutputProb.rows() || sampleWeight.columns() != realOutputProb.columns()) sampleWeight = null;
 		}
 		
 		//Calculating gradient of loss entropy by row.
@@ -143,16 +150,18 @@ public interface LikelihoodGradient {
 	 */
 	private static Matrix entropyGradientByColumn0(Matrix output, Matrix realOutputProb, Object...params) {
 		//Normalizing real probabilities.
-		for (int column = 0; realOutputProb != null && column < realOutputProb.columns(); column++) {
-			NeuronValue sum = realOutputProb.get(0, 0).zero();
-			for (int row = 0; row < realOutputProb.rows(); row++) {
-				sum = sum.add(realOutputProb.get(row, column));
-			}
-			if (!sum.canInvert()) continue;
-
-			for (int row = 0; row < realOutputProb.rows(); row++) {
-				NeuronValue p = realOutputProb.get(row, column);
-				realOutputProb.set(row, column, p.divide(sum));
+		if (NORMLIZED) {
+			for (int column = 0; realOutputProb != null && column < realOutputProb.columns(); column++) {
+				NeuronValue sum = realOutputProb.get(0, 0).zero();
+				for (int row = 0; row < realOutputProb.rows(); row++) {
+					sum = sum.add(realOutputProb.get(row, column));
+				}
+				if (!sum.canInvert()) continue;
+	
+				for (int row = 0; row < realOutputProb.rows(); row++) {
+					NeuronValue p = realOutputProb.get(row, column);
+					realOutputProb.set(row, column, p.divide(sum));
+				}
 			}
 		}
 		
@@ -160,8 +169,7 @@ public interface LikelihoodGradient {
 		Matrix sampleWeight = null;
 		if (params != null && params.length > 0 && params[0] != null && (params[0] instanceof Matrix)) {
 			sampleWeight = (Matrix)params[0];
-			if (realOutputProb == null || sampleWeight.rows() != realOutputProb.rows() || sampleWeight.columns() != realOutputProb.columns())
-				sampleWeight = null;
+			if (realOutputProb == null || sampleWeight.rows() != realOutputProb.rows() || sampleWeight.columns() != realOutputProb.columns()) sampleWeight = null;
 		}
 
 		//Calculating gradient of loss entropy by column.

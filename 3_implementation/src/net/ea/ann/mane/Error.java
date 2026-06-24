@@ -51,14 +51,34 @@ public class Error implements Cloneable, Serializable {
 		public Object layer = null;
 		
 		/**
-		 * Input.
+		 * Actual input.
 		 */
-		public Matrix oinput = null;
+		public Matrix oinputActual = null;
 		
 		/**
-		 * Previous input.
+		 * Previous previous input.
+		 */
+		public Matrix oinputPrevPrev = null;
+
+		/**
+		 * Previous input which is after {@link #oinputPrevPrev}.
 		 */
 		public Matrix oinputPrev = null;
+		
+		/**
+		 * Previous output which is after {@link #oinputPrev}.
+		 */
+		public Matrix ooutputPrev = null;
+
+		/**
+		 * Input which is after {@link #ooutputPrev} but before {@link #ooutput}.
+		 */
+		public Matrix oinput = null;
+
+		/**
+		 * Output.
+		 */
+		public Matrix ooutput = null;
 		
 		/**
 		 * Droput mask.
@@ -68,24 +88,27 @@ public class Error implements Cloneable, Serializable {
 		/**
 		 * Constructor with layer and input.
 		 * @param layer layer.
-		 * @param oinput input.
+		 * @param oinput actual input.
 		 */
 		public LayerInput(Object layer, Matrix oinput) {
 			this.layer = layer;
-			this.oinput = oinput;
+			this.oinputActual = oinput;
 		}
 		
 		/**
-		 * Constructor with layer and input.
-		 * @param layer layer.
-		 * @param oinput input.
-		 * @param oinputPrev previous input.
+		 * Constructor with other layer input.
+		 * @param layerInput other layer input.
 		 */
-		public LayerInput(Object layer, Matrix oinput, Matrix oinputPrev) {
-			this(layer, oinput);
-			this.oinputPrev= oinputPrev;
+		public LayerInput(LayerInput layerInput) {
+			this(layerInput.layer, layerInput.oinputActual);
+			this.oinputPrevPrev = layerInput.oinputPrevPrev;
+			this.oinputPrev = layerInput.oinputPrev;
+			this.ooutputPrev = layerInput.ooutputPrev;
+			this.ooutput = layerInput.ooutput;
+			this.oinput = layerInput.oinput;
+			this.dropoutMask = layerInput.dropoutMask;
 		}
-
+		
 		/**
 		 * Getting output layer.
 		 * @return output layer.
@@ -137,9 +160,9 @@ public class Error implements Cloneable, Serializable {
 		 * @return derivative of input.
 		 */
 		public Matrix derivative() {
-			if (oinput == null) return null;
+			if (oinputActual == null) return null;
 			Function activateRef = getOutputActivateRef();
-			return activateRef != null ? oinput.derivativeWise(activateRef) : null;
+			return activateRef != null ? oinputActual.derivativeWise(activateRef) : null;
 		}
 		
 	}
@@ -278,9 +301,14 @@ public class Error implements Cloneable, Serializable {
 			if (layer == null) return false;
 			MatrixLayerAbstract outputLayer = LayerInput.getOutputLayer(layer);
 			if (outputLayer == null) return false;
-			Matrix oinput = outputLayer.queryActualInput();
-			Matrix oinputPrev = outputLayer.getPrevInput();
-			LayerInput layerInput = new LayerInput(layer, oinput, oinputPrev);
+			Matrix oinput = outputLayer.queryInput();
+			LayerInput layerInput = new LayerInput(layer, oinput);
+			
+			if (outputLayer.getPrevLayer() != null) layerInput.oinputPrevPrev = outputLayer.getPrevLayer().queryOutput();
+			layerInput.oinputPrev = outputLayer.getPrevInput();
+			layerInput.ooutputPrev = outputLayer.getPrevOutput();
+			layerInput.oinput = outputLayer.getInput();
+			layerInput.ooutput = outputLayer.getOutput();
 			if (layer instanceof DropoutLayer) layerInput.dropoutMask = ((DropoutLayer)layer).dropoutMask;
 			
 			return addLayerOInput(layerInput);
@@ -293,7 +321,7 @@ public class Error implements Cloneable, Serializable {
 		 */
 		public Matrix oinputOfLayer(Object layer) {
 			LayerInput layerInput = layerInput(layer);
-			return layerInput != null ? layerInput.oinput : null;
+			return layerInput != null ? layerInput.oinputActual : null;
 		}
 		
 		/**
@@ -307,6 +335,16 @@ public class Error implements Cloneable, Serializable {
 		}
 		
 		/**
+		 * Getting previus previous input of specified layer.
+		 * @param layer specified layer.
+		 * @return previous previous input of specified layer.
+		 */
+		public Matrix oinputPrevPrevOfLayer(Object layer) {
+			LayerInput layerInput = layerInput(layer);
+			return layerInput != null ? layerInput.oinputPrevPrev : null;
+		}
+
+		/**
 		 * Getting previous input of specified layer.
 		 * @param layer specified layer.
 		 * @return previous input of specified layer.
@@ -314,6 +352,26 @@ public class Error implements Cloneable, Serializable {
 		public Matrix oinputPrevOfLayer(Object layer) {
 			LayerInput layerInput = layerInput(layer);
 			return layerInput != null ? layerInput.oinputPrev : null;
+		}
+
+		/**
+		 * Getting previous output of specified layer.
+		 * @param layer specified layer.
+		 * @return previous output of specified layer.
+		 */
+		public Matrix ooutputPrevOfLayer(Object layer) {
+			LayerInput layerInput = layerInput(layer);
+			return layerInput != null ? layerInput.ooutputPrev : null;
+		}
+
+		/**
+		 * Getting output of specified layer.
+		 * @param layer specified layer.
+		 * @return output of specified layer.
+		 */
+		public Matrix ooutputOfLayer(Object layer) {
+			LayerInput layerInput = layerInput(layer);
+			return layerInput != null ? layerInput.ooutput : null;
 		}
 
 		/**
@@ -546,9 +604,7 @@ public class Error implements Cloneable, Serializable {
 	 * @param error0 core error.
 	 * @return true if adding is successful.
 	 */
-	public boolean add(Error0 error0) {
-		return errors.add(error0);
-	}
+	public boolean add(Error0 error0) {return errors.add(error0);}
 	
 	
 	/**
@@ -569,9 +625,7 @@ public class Error implements Cloneable, Serializable {
 	 * @param input input of current layer.
 	 * @param output output of current layer.
 	 */
-	public boolean add(Matrix error, Matrix input, Matrix output) {
-		return add(new Error0(error, input, output));
-	}
+	public boolean add(Matrix error, Matrix input, Matrix output) {return add(new Error0(error, input, output));}
 
 	
 	/**
@@ -579,18 +633,14 @@ public class Error implements Cloneable, Serializable {
 	 * @param error error.
 	 * @param input input of current layer.
 	 */
-	public boolean add(Matrix error, Matrix input) {
-		return add(new Error0(error, input));
-	}
+	public boolean add(Matrix error, Matrix input) {return add(new Error0(error, input));}
 
 	
 	/**
 	 * Adding core error.
 	 * @param error error.
 	 */
-	public boolean add(Matrix error) {
-		return add(new Error0(error));
-	}
+	public boolean add(Matrix error) {return add(new Error0(error));}
 	
 	
 	/**
@@ -598,17 +648,13 @@ public class Error implements Cloneable, Serializable {
 	 * @param index specified index.
 	 * @return previous core error.
 	 */
-	public Error0 remove(int index) {
-		return errors.remove(index);
-	}
+	public Error0 remove(int index) {return errors.remove(index);}
 	
 	
 	/**
 	 * Clearing core errors.
 	 */
-	public void clear() {
-		errors.clear();
-	}
+	public void clear() {errors.clear();}
 	
 	
 	/**
@@ -744,6 +790,17 @@ public class Error implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Getting layer input.
+	 * @param layer specified layer.
+	 * @return layer input.
+	 */
+	public LayerInput layerOInput(Object layer) {
+		Error0 error0 = get();
+		return error0 != null ? error0.layerInput(layer) : null;
+	}
+	
+	
+	/**
 	 * Adding layer input.
 	 * @param layerOInput layer input
 	 * @return true if adding is successful.
@@ -803,6 +860,14 @@ public class Error implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Getting input of specified layer.
+	 * @param layer specified layer.
+	 * @return input of specified layer.
+	 */
+	public Matrix oinputOfLayerActual(Object layer) {return oinputOfLayer(layer);	}
+
+	
+	/**
 	 * Calculating derivative of input given layer.
 	 * @param layer layer.
 	 * @return derivative of input given layer.
@@ -810,6 +875,17 @@ public class Error implements Cloneable, Serializable {
 	public Matrix oinputDerivative(Object layer) {
 		Error0 error0 = get();
 		return error0 != null ? error0.oinputDerivative(layer) : null;
+	}
+
+	
+	/**
+	 * Getting previous previous input of specified layer.
+	 * @param layer specified layer.
+	 * @return previous previous input of specified layer.
+	 */
+	public Matrix oinputPrevPrevOfLayer(Object layer) {
+		Error0 error0 = get();
+		return error0 != null ? error0.oinputPrevPrevOfLayer(layer) : null;
 	}
 
 	
@@ -823,6 +899,28 @@ public class Error implements Cloneable, Serializable {
 		return error0 != null ? error0.oinputPrevOfLayer(layer) : null;
 	}
 	
+	
+	/**
+	 * Getting previous output of specified layer.
+	 * @param layer specified layer.
+	 * @return previous output of specified layer.
+	 */
+	public Matrix ooutputPrevOfLayer(Object layer) {
+		Error0 error0 = get();
+		return error0 != null ? error0.ooutputPrevOfLayer(layer) : null;
+	}
+
+	
+	/**
+	 * Getting output of specified layer.
+	 * @param layer specified layer.
+	 * @return output of specified layer.
+	 */
+	public Matrix ooutputOfLayer(Object layer) {
+		Error0 error0 = get();
+		return error0 != null ? error0.ooutputOfLayer(layer) : null;
+	}
+
 	
 	/**
 	 * Getting dropout mask of specified layer.

@@ -440,7 +440,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting previous output value, which is for filtering by default.
 	 * @return previous output value.
 	 */
-	protected abstract Matrix getPrevOutput();
+	public abstract Matrix getPrevOutput();
 
 	
 	/**
@@ -462,9 +462,13 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	
 	/**
 	 * Querying actual input by most (right-most), which can be previous input.
+	 * In this current, this method and the method {@link #queryInput()} return the same actual input 
 	 * @return actual input by most (right-most), which can be previous input.
 	 */
-	public Matrix queryActualInput() {
+	
+	@SuppressWarnings("unused")
+	@Deprecated
+	private Matrix queryActualInput() {
 		if (getWeight() != null)
 			return queryInput();
 		else if (getFilter() != null) {
@@ -487,7 +491,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Querying output by most, which can be previous input.
 	 * @return output by most, which can be previous input.
 	 */
-	protected Matrix queryOutput() {
+	public Matrix queryOutput() {
 		Matrix output = getOutput();
 		output = output != null ? output : getPrevOutput();
 		return output != null ? output : queryInput();

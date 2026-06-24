@@ -16,7 +16,6 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.filter.NetworkFilter;
 import net.ea.ann.mane.weight.NetworkWeight;
 import net.ea.ann.mane.weight.NullWeight;
-import net.ea.ann.mane.weight.WeightImpl;
 import net.ea.ann.raster.Size;
 
 /**
@@ -278,7 +277,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 
 	@Override
-	protected Matrix getPrevOutput() {return this.prevOutput;}
+	public Matrix getPrevOutput() {return this.prevOutput;}
 
 
 	@Override
@@ -535,46 +534,45 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 		//Browsing errors. Please pay attention that filter is before weight in the same layer.
 		for (int i = 0; i < outputErrors.length; i++) {
-			Matrix actualInput = outputErrors[i].oinputOfLayer(this); //Actual input. Fixing date: 2026.06.21.
-			Matrix actualPrevInput = outputErrors[i].oinputPrevOfLayer(this); //Actual previous input. Fixing date: 2026.06.21.
+			Matrix errPrevPrevInput = outputErrors[i].oinputPrevPrevOfLayer(this); //Previous previous input.
+			Matrix errPrevInput = outputErrors[i].oinputPrevOfLayer(this); //Previous input.
+			Matrix errPrevOutput = outputErrors[i].ooutputPrevOfLayer(this); //Previous output.
+			Matrix actualErrInput = outputErrors[i].oinputOfLayerActual(this); //Actual input.
+			Matrix actualErrOutput = outputErrors[i].ooutputOfLayer(this);
+			actualErrOutput = actualErrOutput != null ? actualErrOutput : errPrevOutput; //Actual output.
 			
 			//Calculating value errors from next layer.
 			if (this.nextLayer == null) {
 				errors[i] = outputErrors[i].error(); //Getting value errors from environment.
 			}
 			else if (this.nextLayer.getFilter() == null && this.nextLayer.getWeight().backwardErrorMode()) {
-				Matrix input = queryInput(), output = queryOutput(); //X^k-1 = input, Xk = output.
-				Function thisActivateRef = input == getInput() ? this.getWeightActivateRef() :
-					(input == getPrevInput() && this.filter.doesApplyActivate() ? this.getFilterActivateRef() : null ); //Getting right-most activation function.
-				
-				//Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
-				if (this.weight == null && this.filter != null && this.filter.isIndexMode()) thisActivateRef = null;
-				
-				//Setting actual input. Fixing date: 2026.06.21.
-				input = actualInput != null ? actualInput : input;
+				Function thisActivateRef = this.weight != null ? this.getWeightActivateRef() :
+					(this.filter != null && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ?
+						this.getFilterActivateRef() : null); //Getting right-most activation function. Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
+				Matrix input = actualErrInput != null ? actualErrInput : queryInput(); //X^k-1 = input.
+				Matrix output = actualErrOutput != null ? actualErrOutput : queryOutput(); //Xk = output.
 				errors[i] = this.nextLayer.getWeight().dValue(input, output, outputErrors[i].error(), thisActivateRef);
 			}
 			else {
 				errors[i] = outputErrors[i].error(); //Getting value errors from next layer.
 			}
 			
-			//Adjusting error.
+			//Adjusting error with dropout mask by default.
 			errors[i] = adjustError(errors[i], outputErrors[i]);
 			
 			//Calculating weight gradient.
 			if (this.weight != null) {
 				if (this.weight.backwardErrorMode()) {
-					Matrix prevOutput = getPrevOutput();
-					prevOutput = prevOutput != null ? prevOutput : this.prevLayer.queryOutput(); //Xk-1
+					Matrix prevOutput = errPrevOutput != null ? errPrevOutput : getPrevOutput();
+					prevOutput = prevOutput != null ? prevOutput : this.prevLayer.queryOutput();
 					dWKernels[i] = this.weight.dKernel(prevOutput, errors[i]);
 				}
 				else {
-					if (this.weight instanceof WeightImpl) throw new IllegalArgumentException(); //Assuring that not applying derivative activation function. Fixing date: 2026.06.21.
-					
 					//Calculating value errors at this layer.
-					Matrix prevInput = getPrevOutput();
-					prevInput = prevInput != null ? prevInput : this.prevLayer.queryOutput(); //Xk-1
+					Matrix prevInput = errPrevOutput != null ? errPrevOutput : (errPrevPrevInput != null ? errPrevPrevInput : getPrevOutput()); //If actualPrevOutput is null then actualPrevInput is always null.
+					prevInput = prevInput != null ? prevInput : this.prevLayer.queryOutput(); //If the method getPrevOutput() returns null then the method getPrevInput() always returns null.
 					Matrix prevOutput = getInput();
+					//Variables prevInput and prevOutput are not important for network weight and transformer because they do not take derivatives on such variables when they have particular internal structures.
 					if (this.weight instanceof NetworkWeight) {
 						errors[i] = ((NetworkWeight)this.weight).dValue(prevInput, prevOutput, errors[i], this.getWeightActivateRef(), learning, learningRate);
 						dWKernels[i] = null;
@@ -590,10 +588,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			if (this.filter != null) {
 				if (this.weight != null && this.weight.backwardErrorMode()) {
 					//Calculating value errors at this layer.
-					Matrix prevInput = getPrevInput(), prevOutput = getPrevOutput(); //X^k-1 = input, Xk = output.
 					Function thisActivateRef = this.filter.doesApplyActivate() && !this.filter.isIndexMode() ? this.getFilterActivateRef() : null; //Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
-					
-					prevInput = actualPrevInput != null ? actualPrevInput : prevInput; //Setting actual previous input. Fixing date: 2026.06.21.
+					Matrix prevInput = errPrevInput != null ? errPrevInput : getPrevInput();
+					Matrix prevOutput = getPrevOutput();
 					errors[i] = this.weight.dValue(prevInput, prevOutput, errors[i], thisActivateRef);
 				}
 				dFBiases[i] = MatrixUtil.valueSum(errors[i]); //Filter errors.
@@ -754,6 +751,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @return backward error.
 	 */
 	@SuppressWarnings("unused")
+	@Deprecated
 	private Error[] backwardBackup(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		if (outputErrors == null || outputErrors.length == 0) return null;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? Network.LEARN_RATE_DEFAULT : learningRate;

@@ -24,9 +24,9 @@ import net.ea.ann.mane.Record;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterProperty;
 import net.ea.ann.raster.RasterProperty.Label;
-import net.hudup.core.logistic.NextUpdate;
 import net.ea.ann.raster.RasterWrapperProperty;
 import net.ea.ann.raster.Size;
+import net.hudup.core.logistic.NextUpdate;
 
 /**
  * This class implements Proxy-NCA (Proxy-Neighborhood Component Analysis) algorithm for deep metric learning, supporting both classification and clustering.
@@ -238,7 +238,7 @@ public class VGGClassifier extends VGGExt {
 		int groups = getNumberOfGroups();
 		for (Raster raster : sample) {
 			if (raster == null) continue;
-			Record record = toRecord(raster);
+			Record record = toRecord(raster, false);
 			if (record == null) continue;
 			Matrix OUTPUT = evaluate(raster);
 			if (OUTPUT == null) continue;

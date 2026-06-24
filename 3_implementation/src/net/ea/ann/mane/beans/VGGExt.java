@@ -91,6 +91,32 @@ class VGGExt extends VGG {
 	
 	
 	/**
+	 * Field for label smoothing.
+	 * If true, label smoothing is applied so that one-hot class vector become class probability in which the probability of certain class is large enough but smaller than 1, for example {@link #MAX_CLASS_PROB_DEFAULT}.
+	 */
+	public final static String LABEL_SMOOTH_FIELD = "vgg_class_label_smooth";
+	
+	
+	/**
+	 * Default value for field of label smoothing.
+	 * If true, label smoothing is applied so that one-hot class vector become class probability in which the probability of certain class is large enough but smaller than 1, for example {@link #MAX_CLASS_PROB_DEFAULT}.
+	 */
+	public final static boolean LABEL_SMOOTH_DEFAULT = true;
+
+	
+	/**
+	 * Field of maximum class probability.
+	 */
+	public final static String MAX_CLASS_PROB_FIELD = "vgg_class_max_prob";
+
+	
+	/**
+	 * Default value for field of maximum class probability.
+	 */
+	private final static double MAX_CLASS_PROB_DEFAULT = 0.9;
+	
+	
+	/**
 	 * This interface specifies trainer applying into VGG for specific task with sample of raster.
 	 * @author Loc Nguyen
 	 * @version 1.0
@@ -163,6 +189,8 @@ class VGGExt extends VGG {
 		config.put(BYCOLUMN_FIELD, BYCOLUMN_DEFAULT);
 		config.put(COMB_NUMBER_FIELD, COMB_NUMBER_DEFAULT);
 		config.put(CLASS_NUMBER_FIELD, CLASS_NUMBER_DEFAULT);
+		config.put(LABEL_SMOOTH_FIELD, LABEL_SMOOTH_DEFAULT);
+		config.put(MAX_CLASS_PROB_FIELD, MAX_CLASS_PROB_DEFAULT);
 	}
 
 
@@ -349,10 +377,10 @@ class VGGExt extends VGG {
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.<br/>
 	 * In current version, this method does not support recursion of matrix stack and so it support only until 3-dimension matrix stack.
 	 * @param classIndices core class indices of group, whose each element is core class index of a group.
+	 * @param training training flag.
 	 * @return output created from core class indices.
 	 */
-	@NextUpdate
-	Matrix createOutputByClass(int[] classIndices) {
+	Matrix createOutputByClass(int[] classIndices, boolean training) {
 		Matrix OUTPUT = this.getCoreOutput();
 		int groupCount = getNumberOfGroups();
 		if (groupCount <= 0) return null;
@@ -363,55 +391,64 @@ class VGGExt extends VGG {
 		Matrix output = OUTPUT instanceof MatrixStack ? ((MatrixStack)OUTPUT).get().create(new Size(columns, rows)) : OUTPUT.create(new Size(columns, rows)); //Fixing date: 2026.06.10.
 		if (classIndices == null || classIndices.length == 0) return output;
 		
-		NeuronValue zero = output.get(0, 0).zero();
-		NeuronValue unit = zero.unit();
+		NeuronValue minor = output.get(0, 0).zero();
+		NeuronValue major = minor.unit();
+		if (training && paramIsLabelSmooth()) {
+			double maxProb = paramGetMaxClassProb();
+			int classCount = getNumberOfClasses(0);
+			if (maxProb >= 0.5 && maxProb < 1 && classCount > 1) {
+				minor = minor.valueOf((1-maxProb)/ (classCount-1));
+				major = major.valueOf(maxProb);
+			}
+		}
+		
 		if (paramIsByColumn()) {
+			assert (columns == classIndices.length);
 			int groups = Math.min(columns, classIndices.length);
 			for (int group = 0; group < groups; group++) {
 				int classIndex = classIndices[group];
 				Map<Integer, int[]> outputClassMap = outputClassMaps.get(group);
-				int unitCount = 0;
 				for (int outputIndex = 0; outputIndex < outputCount; outputIndex++) {
 					int[] realClassIndices = outputClassMap.get(outputIndex);
-					if (Arrays.binarySearch(realClassIndices, classIndex) >= 0) {
-						output.set(outputIndex, group, unit);
-						unitCount++;
-					}
+					if (Arrays.binarySearch(realClassIndices, classIndex) >= 0)
+						output.set(outputIndex, group, major);
 					else
-						output.set(outputIndex, group, zero);
+						output.set(outputIndex, group, minor);
 				}
 				
 				//Normalization.
-				if (unitCount > 0) {
-					for (int outputIndex = 0; outputIndex < outputCount; outputIndex++) {
-						NeuronValue value = output.get(outputIndex, group).divide(unitCount);
-						output.set(outputIndex, group, value);
-					}
+				NeuronValue sum = output.get(0, group).zero();
+				for (int outputIndex = 0; outputIndex < outputCount; outputIndex++) {
+					sum = sum.add(output.get(outputIndex, group));
+				}
+				for (int outputIndex = 0; outputIndex < outputCount; outputIndex++) {
+					NeuronValue value = output.get(outputIndex, group).divide(sum);
+					output.set(outputIndex, group, value);
 				}
 			}
 		}
 		else {
+			assert (rows == classIndices.length);
 			int groups = Math.min(rows, classIndices.length);
 			for (int group = 0; group < groups; group++) {
 				int classIndex = classIndices[group];
 				Map<Integer, int[]> outputClassMap = outputClassMaps.get(group);
-				int unitCount = 0;
 				for (int outputIndex = 0; outputIndex < outputCount; outputIndex++) {
 					int[] realClassIndices = outputClassMap.get(outputIndex);
-					if (Arrays.binarySearch(realClassIndices, classIndex) >= 0) {
-						output.set(group, outputIndex, unit);
-						unitCount++;
-					}
+					if (Arrays.binarySearch(realClassIndices, classIndex) >= 0)
+						output.set(group, outputIndex, major);
 					else
-						output.set(group, outputIndex, zero);
+						output.set(group, outputIndex, minor);
 				}
 				
 				//Normalization.
-				if (unitCount > 0) {
-					for (int outputIndex = 0; outputIndex < outputCount; outputIndex++) {
-						NeuronValue value = output.get(group, outputIndex).divide(unitCount);
-						output.set(group, outputIndex, value);
-					}
+				NeuronValue sum = output.get(group, 0).zero();
+				for (int outputIndex = 0; outputIndex < outputCount; outputIndex++) {
+					sum = sum.add(output.get(group, outputIndex));
+				}
+				for (int outputIndex = 0; outputIndex < outputCount; outputIndex++) {
+					NeuronValue value = output.get(group, outputIndex).divide(sum);
+					output.set(group, outputIndex, value);
 				}
 			}
 		}
@@ -428,7 +465,6 @@ class VGGExt extends VGG {
 	 * @param classIndex class index.
 	 * @return output created from class index.
 	 */
-	@NextUpdate
 	NeuronValue[] createOutputByClass(int groupIndex, int classIndex) {
 		Matrix OUTPUT = this.getCoreOutput();
 		NeuronValue zero = OUTPUT instanceof MatrixStack ? ((MatrixStack)OUTPUT).get().get(0, 0).zero() : OUTPUT.get(0, 0).zero(); //Fixing date: 2026.06.10.
@@ -568,9 +604,10 @@ class VGGExt extends VGG {
 	/**
 	 * Converting raster to record.
 	 * @param raster raster.
+	 * @param training training flag.
 	 * @return record.
 	 */
-	Record toRecord(Raster raster) {
+	Record toRecord(Raster raster, boolean training) {
 		if (raster == null) return null;
 		if (!isLabeled()) return new Record(toMatrix(raster));
 		
@@ -594,7 +631,7 @@ class VGGExt extends VGG {
 		if (!valid) return null;
 
 		Matrix input = toMatrix(raster);
-		Matrix output = createOutputByClass(classIndices);
+		Matrix output = createOutputByClass(classIndices, training);
 		if (input == null || output == null) return null;
 		return new Record(input, output);
 	}
@@ -616,7 +653,12 @@ class VGGExt extends VGG {
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(Size inputSize, Size middleSize, Size outputSize, Size nCoreClasses) {
-		if (!initialize(inputSize, middleSize, outputSize)) return false;
+		if (middleSize != null) {
+			if (!initialize(inputSize, middleSize, outputSize)) return false;
+		}
+		else {
+			if (!initialize(inputSize, outputSize)) return false;
+		}
 		if (nCoreClasses == null) return true;
 		
 		Map<Integer, int[]> outputClassMap = Util.newMap(0);
@@ -832,7 +874,6 @@ class VGGExt extends VGG {
 	/**
 	 * Learning VGG from raster sample.
 	 * @param sample sample.
-	 * @param middleSize middle size.
 	 * @param outputSize output size which can be null.
 	 * @return true if initialization is true.
 	 */
@@ -959,7 +1000,7 @@ class VGGExt extends VGG {
 		if (trainers.size() == 0) {
 			List<Error> outputErrorList = Util.newList(0);
 			for (Raster raster : sample) {
-				Record record = toRecord(raster);
+				Record record = toRecord(raster, true);
 				Matrix input = record.input(), realOutput = record.output();
 				Error error = new Error((Matrix)null);
 				Matrix output = evaluate0(input, error, new MatrixNetworkImpl.TrainingFlag(){}); //Please pay attention to this code line because of tracking errors.
@@ -1067,6 +1108,314 @@ class VGGExt extends VGG {
 		return paramIsByColumn() ? new Size(1, classNumber, 1, 1) : new Size(classNumber, 1, 1, 1);
 	}
 
+	
+	/**
+	 * Checking label smoothing mode.
+	 * If true, label smoothing is applied so that one-hot class vector become class probability in which the probability of certain class is large enough but smaller than 1, for example {@link #MAX_CLASS_PROB_DEFAULT}.
+	 * @return label smoothing mode.
+	 */
+	boolean paramIsLabelSmooth() {
+		if (config.containsKey(LABEL_SMOOTH_FIELD))
+			return config.getAsBoolean(LABEL_SMOOTH_FIELD);
+		else
+			return LABEL_SMOOTH_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting label smoothing mode.
+	 * @param labelSmooth label smoothing mode.
+	 * If true, label smoothing is applied so that one-hot class vector become class probability in which the probability of certain class is large enough but smaller than 1, for example {@link #MAX_CLASS_PROB_DEFAULT}.
+	 * @return this model.
+	 */
+	VGGExt paramSetLabelSmooth(boolean labelSmooth) {
+		config.put(LABEL_SMOOTH_FIELD, labelSmooth);
+		return this;
+	}
+
+	
+	/**
+	 * Getting maximum class probability.
+	 * @return maximum class probability.
+	 */
+	double paramGetMaxClassProb() {
+		if (config.containsKey(MAX_CLASS_PROB_FIELD)) {
+			double maxProb = config.getAsReal(MAX_CLASS_PROB_FIELD);
+			return Math.max(0.5, Math.min(1, maxProb));
+		}
+		else
+			return MAX_CLASS_PROB_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting maximum class probability.
+	 * @param maxProb maximum class probability.
+	 * @return this model.
+	 */
+	VGGExt paramSetMaxClassProb(double maxProb) {
+		maxProb = Math.max(0.5, Math.min(1, maxProb));
+		config.put(MAX_CLASS_PROB_FIELD, maxProb);
+		return this;
+	}
+
+	
+	/**
+	 * Initializing VGG model.
+	 * @param inputSize input size.
+	 * @param middleSize middle size.
+	 * @param nCoreClasses core classes size which can be null.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeByCoreClasses(Size inputSize, Size middleSize, Size nCoreClasses) {
+		if (middleSize != null) {
+			if (!initialize(inputSize, middleSize, nCoreClasses)) return false;
+		}
+		else {
+			if (!initialize(inputSize, nCoreClasses)) return false;
+		}
+		
+		Map<Integer, int[]> outputClassMap = Util.newMap(0);
+		Map<Integer, int[]> classOutputMap = Util.newMap(0);
+		int nClass = paramIsByColumn() ? nCoreClasses.height : nCoreClasses.width;
+		int nClassCount = paramIsByColumn() ? nCoreClasses.width : nCoreClasses.height;
+		if (!configClassInfo(nClass, outputClassMap, classOutputMap)) return false;
+		
+		this.outputClassMaps.clear();
+		this.classOutputMaps.clear();
+		for (int count = 0; count < nClassCount; count++) {
+			this.outputClassMaps.add(outputClassMap);
+			this.classOutputMaps.add(classOutputMap);
+		}
+		
+		this.classMaps.clear();
+		return this.classOutputMaps.size() > 0;
+	}
+
+
+	/**
+	 * Initializing VGG.
+	 * @param inputSize input size.
+	 * @param middleSize middle size.
+	 * @param labelGroups list of label groups which can be null.
+	 * @return true if initialization is true.
+	 */
+	protected boolean initializeByCoreClasses(Size inputSize, Size middleSize, List<List<Label>> labelGroups) {
+		if (labelGroups == null || labelGroups.size() == 0) throw new IllegalArgumentException();
+		
+		//Removing empty labels and sorting labels.
+		List<List<Label>> tempLabelGroups = Util.newList(labelGroups.size());
+		tempLabelGroups.addAll(labelGroups);
+		labelGroups.clear();
+		for (List<Label> labels : tempLabelGroups) {
+			if (labels.size() == 0) continue;
+			Label.sort(labels, true);
+			labelGroups.add(labels);
+		}
+		if (labelGroups.size() == 0) return false;
+
+		//Adjusting the group label list so that every its element has the same class count.
+		int minClassCount = labelGroups.get(0).size();
+		for (List<Label> labels : labelGroups) {
+			if (minClassCount > labels.size()) minClassCount = labels.size();
+		}
+		for (List<Label> labels : labelGroups) {
+			if (labels.size() > minClassCount) {
+				List<Label> temp = Util.newList(0);
+				temp.addAll(labels);
+				List<Label> sub = temp.subList(0, minClassCount);
+				labels.clear();
+				labels.addAll(sub);
+			}
+		}
+
+		//Initializing matrix network.
+		int groupCount = labelGroups.size();
+		Size nCoreClasses = paramIsByColumn() ? new Size(groupCount, minClassCount, 1, 1) : new Size(minClassCount, groupCount, 1, 1);
+		if (!initializeByCoreClasses(inputSize, middleSize, nCoreClasses)) return false;
+		
+		//Main task: setting up class maps.
+		this.classMaps.clear();
+		for (int group = 0; group < groupCount; group++) {
+			Map<Integer, Label> classMap = Util.newMap(0);
+			int classCount = getNumberOfClasses(group);
+			List<Label> labels = labelGroups.get(group);
+			for (int classNumber = 0; classNumber < classCount; classNumber++) {
+				Label label = classNumber < labels.size() ? labels.get(classNumber) : labels.get(labels.size()-1);
+				if (label != null) classMap.put(classNumber, label);
+			}
+			if (classMap.size() > 0) this.classMaps.add(classMap);
+		}
+		return this.classMaps.size() > 0;
+	}
+
+	
+	/**
+	 * Initializing VGG model.
+	 * @param sample sample.
+	 * @param middleSize middle size.
+	 * @return true if initialization is true.
+	 */
+	public boolean initializeByCoreClasses(Iterable<Raster> sample, Size middleSize) {
+		RasterSampleInfo rsi = RasterSampleInfo.extract(sample);
+		if (rsi == null) return false;
+		return initializeByCoreClasses(rsi.averageSize, middleSize, rsi.labelGroups);
+	}
+	
+	
+	/**
+	 * Initializing VGG model.
+	 * @param sample sample.
+	 * @return true if initialization is successful.
+	 */
+	public boolean initializeByCoreClassesWithImplicitMiddleSize(Iterable<Raster> sample) {
+		return initializeByCoreClasses(sample, paramGetVGGMiddleSize());
+	}
+
+	
+	/**
+	 * Learning VGG from raster sample.
+	 * @param sample sample.
+	 * @param middleSize middle size.
+	 * @return true if initialization is true.
+	 */
+	public Error[] learnRasterByCoreClasses(Iterable<Raster> sample, Size middleSize) {
+		reset();
+		if (!initializeByCoreClasses(sample, middleSize)) return null;
+		return learnRaster(sample);
+	}
+
+	
+	/**
+	 * Learning VGG from raster sample.
+	 * @param sample sample.
+	 * @return true if initialization is true.
+	 */
+	public Error[] learnRasterByCoreClassesWithImplicitMiddleSize(Iterable<Raster> sample) {
+		reset();
+		if (!initializeByCoreClassesWithImplicitMiddleSize(sample)) return null;
+		return learnRaster(sample);
+	}
+
+
+}
+
+
+
+/**
+ * This class represents raster sample information.
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+class RasterSampleInfo implements Cloneable, Serializable {
+
+
+	/**
+	 * Serial version UID for serializable class. 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	
+	/**
+	 * Average size.
+	 */
+	public Size averageSize = new Size();
+	
+	
+	/**
+	 * List of label groups.
+	 */
+	List<List<Label>> labelGroups = Util.newList(0);
+	
+	
+	/**
+	 * Default constructor.
+	 */
+	public RasterSampleInfo() {}
+	
+	
+	/**
+	 * Extracting raster sample information.
+	 * @param sample raster sample.
+	 * @return raster sample information.
+	 */
+	public static RasterSampleInfo extract(Iterable<Raster> sample) {
+		//Getting minimum count of labels.
+		int labelCount = -1;
+		List<Raster> train = Util.newList(0);
+		for (Raster raster : sample) {
+			if (raster == null) continue;
+			RasterProperty rp = raster.getProperty();
+			if (rp == null || rp.getLabelId() < 0) continue;
+			int lc = rp.getLabelCount();
+			if (lc <= 0) continue;
+			
+			train.add(raster);
+			if (labelCount == -1)
+				labelCount = lc;
+			else
+				labelCount = labelCount > lc ? lc : labelCount; //Label count is the minimum.
+		}
+		if (train.size() == 0 || labelCount <= 0) return null;
+		
+		List<List<Label>> labelGroups = Util.newList(labelCount);
+		for (int label = 0; label < labelCount; label++) labelGroups.add(Util.newList(0));
+		
+		//Initializing labels.
+		for (Raster raster : train) {
+			if (raster == null) continue;
+			RasterProperty rp = raster.getProperty();
+			if (rp == null) continue;
+			for (int i = 0; i < rp.getLabelCount(); i++) {
+				Label label = rp.getLabel(i);
+				if (label == null || label.labelId < 0 || i >= labelGroups.size()) continue;
+				List<Label> labels = labelGroups.get(i);
+				boolean found = false;
+				for (Label lb : labels) {
+					if (lb.labelId == label.labelId) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) labels.add(label);
+			}
+		}
+
+		//Removing empty labels and sorting labels.
+		List<List<Label>> tempLabelGroups = Util.newList(labelGroups.size());
+		tempLabelGroups.addAll(labelGroups);
+		labelGroups.clear();
+		for (List<Label> labels : tempLabelGroups) {
+			if (labels.size() == 0) continue;
+			Label.sort(labels, true);
+			labelGroups.add(labels);
+		}
+		if (labelGroups.size() == 0) return null;
+
+		//Adjusting the group label list so that every its element has the same class count.
+		int minClassCount = labelGroups.get(0).size();
+		for (List<Label> labels : labelGroups) {
+			if (minClassCount > labels.size()) minClassCount = labels.size();
+		}
+		for (List<Label> labels : labelGroups) {
+			if (labels.size() > minClassCount) {
+				List<Label> temp = Util.newList(0);
+				temp.addAll(labels);
+				List<Label> sub = temp.subList(0, minClassCount);
+				labels.clear();
+				labels.addAll(sub);
+			}
+		}
+
+		Size averageSize = RasterAssoc.getAverageSize(train);
+		
+		RasterSampleInfo rsi = new RasterSampleInfo();
+		rsi.labelGroups = labelGroups;
+		rsi.averageSize = averageSize;
+		return rsi;
+	}
+	
 	
 }
 

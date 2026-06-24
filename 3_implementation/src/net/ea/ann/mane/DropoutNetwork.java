@@ -9,6 +9,7 @@ package net.ea.ann.mane;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 
 /**
  * This class implements matrix neural network with dropout technique.
@@ -36,6 +37,8 @@ public class DropoutNetwork extends MatrixNetworkImpl {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 		config.put(DropoutLayer.DROPOUT_MODE_FIELD, DropoutLayer.DROPOUT_MODE_DEFAULT);
 		config.put(DropoutLayer.DROPOUT_RATE_FIELD, DropoutLayer.DROPOUT_RATE_DEFAULT);
+		config.put(DropoutLayer.DROPOUT_INVERTED_FIELD, DropoutLayer.DROPOUT_INVERTED_DEFAULT);
+		config.put(DropoutLayer.DROPOUT_ALL_FIELD, DropoutLayer.DROPOUT_ALL_DEFAULT);
 	}
 
 	
@@ -72,6 +75,16 @@ public class DropoutNetwork extends MatrixNetworkImpl {
 		DropoutLayer layer = new DropoutLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 		layer.setNetwork(this);
 		return layer;
+	}
+
+
+	@Override
+	protected boolean initialize(LayerSpec[] layerSpecs, boolean dual) {
+		if (!super.initialize(layerSpecs, dual)) return false;
+//		for (int i = 0; i < this.layers.length-1; i++) {
+//			if (this.layers[i].getWeightActivateRef() != null) this.layers[i].setWeightActivateRef(IdentityDefault.identity());
+//		}
+		return true;
 	}
 
 
@@ -119,6 +132,52 @@ public class DropoutNetwork extends MatrixNetworkImpl {
 		dropoutRate = dropoutRate < 0 ? 0 : dropoutRate;
 		dropoutRate = dropoutRate > 1 ? 1 : dropoutRate;
 		config.put(DropoutLayer.DROPOUT_RATE_FIELD, dropoutRate);
+		return this;
+	}
+
+
+	/**
+	 * Checking dropout all.
+	 * @return dropout all.
+	 */
+	boolean paramIsDropoutAll() {
+		if (config.containsKey(DropoutLayer.DROPOUT_ALL_FIELD))
+			return config.getAsBoolean(DropoutLayer.DROPOUT_ALL_FIELD);
+		else
+			return DropoutLayer.DROPOUT_ALL_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting dropout all.
+	 * @param dropoutAll dropout all.
+	 * @return this network.
+	 */
+	DropoutNetwork paramSetDropoutAll(boolean dropoutAll) {
+		config.put(DropoutLayer.DROPOUT_ALL_FIELD, dropoutAll);
+		return this;
+	}
+
+
+	/**
+	 * Checking inverted mode.
+	 * @return inverted mode.
+	 */
+	boolean paramIsDropoutInverted() {
+		if (config.containsKey(DropoutLayer.DROPOUT_INVERTED_FIELD))
+			return config.getAsBoolean(DropoutLayer.DROPOUT_INVERTED_FIELD);
+		else
+			return DropoutLayer.DROPOUT_INVERTED_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting inverted mode.
+	 * @param inverted inverted mode.
+	 * @return this network.
+	 */
+	DropoutNetwork paramSetDropoutInverted(boolean inverted) {
+		config.put(DropoutLayer.DROPOUT_INVERTED_FIELD, inverted);
 		return this;
 	}
 

@@ -25,6 +25,7 @@ import net.ea.ann.adapter.gen.beans.NiN;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
 import net.ea.ann.adapter.gen.beans.TransformerClassifier;
 import net.ea.ann.adapter.gen.beans.VGG;
+import net.ea.ann.adapter.gen.beans.VGGExt;
 import net.ea.ann.classifier.Classifier;
 import net.ea.ann.classifier.ClassifierAbstract;
 import net.ea.ann.classifier.ClassifierAssoc;
@@ -301,7 +302,7 @@ public class GenUIClassifier extends GenUI {
 		}
 
 		if (arg == null) {
-			GenUIClassifier classifierUI = queryLocalGenModel(new VGG(), null);
+			GenUIClassifier classifierUI = queryLocalGenModel(new VGGExt(), null);
 			if (classifierUI != null) classifierUI.setVisible(true);
 		}
 		else if (arg.equalsIgnoreCase("mane") || arg.equalsIgnoreCase("gen") || arg.equalsIgnoreCase("general"))
