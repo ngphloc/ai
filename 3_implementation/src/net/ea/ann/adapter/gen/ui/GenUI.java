@@ -73,7 +73,7 @@ import net.ea.ann.adapter.gen.beans.AVAExt;
 import net.ea.ann.adapter.gen.beans.GAN;
 import net.ea.ann.adapter.gen.beans.IRProxyNCA;
 import net.ea.ann.adapter.gen.beans.VAE;
-import net.ea.ann.adapter.gen.beans.VGG;
+import net.ea.ann.adapter.gen.beans.VGGExt;
 import net.ea.ann.adapter.ui.ImagePathListExt;
 import net.ea.ann.conv.Content;
 import net.ea.ann.conv.ContentAssoc;
@@ -2978,7 +2978,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 			classifierGUI = new GenUIClassifier(cm, this.exclusive);
 		}
 		else {
-			VGG vgg = new VGG();
+			VGGExt vgg = new VGGExt();
 			classifierGUI = new GenUIClassifier(vgg, this.exclusive);
 		}
 		

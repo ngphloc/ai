@@ -27,7 +27,6 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixLayer;
-import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.TaskTrainerLossEntropy;
 import net.ea.ann.raster.Raster;
@@ -397,7 +396,7 @@ class VGGExt extends VGG {
 			double maxProb = paramGetMaxClassProb();
 			int classCount = getNumberOfClasses(0);
 			if (maxProb >= 0.5 && maxProb < 1 && classCount > 1) {
-				minor = minor.valueOf((1-maxProb)/ (classCount-1));
+				minor = minor.valueOf((1-maxProb) / (classCount-1));
 				major = major.valueOf(maxProb);
 			}
 		}
@@ -947,7 +946,7 @@ class VGGExt extends VGG {
 			Iterable<Raster> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
-			outputErrors = learnRaster(subsample, this, true, lr);
+			outputErrors = learnRaster(subsample, lr);
 			
 			iteration ++;
 			
@@ -989,34 +988,37 @@ class VGGExt extends VGG {
 	/**
 	 * Back-warding layer as learning matrix neural network.
 	 * @param sample sample of rasters.
-	 * @param focus focused layer to stop forwarding.
-	 * @param learning learning flag.
 	 * @param learningRate learning rate.
 	 * @return backward error.
 	 */
-	protected Error[] learnRaster(Iterable<Raster> sample, MatrixLayer focus, boolean learning, double learningRate) {
+	protected Error[] learnRaster(Iterable<Raster> sample, double learningRate) {
 		Error[] outputErrors = null;
-		Object[] params = defineOutputErrorParams();
 		if (trainers.size() == 0) {
 			List<Error> outputErrorList = Util.newList(0);
 			for (Raster raster : sample) {
 				Record record = toRecord(raster, true);
 				Matrix input = record.input(), realOutput = record.output();
 				Error error = new Error((Matrix)null);
-				Matrix output = evaluate0(input, error, new MatrixNetworkImpl.TrainingFlag(){}); //Please pay attention to this code line because of tracking errors.
-				Matrix err = params != null && params.length > 0 ? calcOutputError(output, realOutput, getOutputLayer(), params) :
-					calcOutputError(output, realOutput, getOutputLayer());
-				if (err != null) {
-					error.errorSet(err);
-					outputErrorList.add(error);
-				}
+				Object[] params = defineOutputErrorParams(error, new TrainingFlag() {});
+				Matrix output = evaluate0(input, params); //Please pay attention to this code line because of tracking errors.
+				Matrix err = calcOutputError(output, realOutput, getOutputLayer(), params);
+				if (err == null) continue;
+				
+				error.errorSet(err);
+//				Error[] errors = backward(new Error[] {error}, false, learningRate);
+//				assert (errors != null && errors.length == 1 && errors[0] != null);
+//				if (errors != null) outputErrorList.add(errors[0]);
+				outputErrorList.add(error);
 			}
+//			outputErrors = outputErrorList.toArray(new Error[] {});
+//			if (outputErrors.length > 0) updateParametersFromBackwardInfo(outputErrors.length, learningRate);
+//			if (outputErrors.length > 0) outputErrors = backwardAgain(outputErrors, this, true, learningRate);
 			outputErrors = backward(outputErrorList.toArray(new Error[] {}), this, true, learningRate);
 		}
 		else {
+			Object[] params = defineOutputErrorParams(new TrainingFlag() {});
 			for (RasterTaskTrainer trainer : trainers) {
-				outputErrors = params != null && params.length > 0 ? trainer.train(this, sample, false, learningRate, params) :
-					trainer.train(this, sample, false, learningRate);
+				outputErrors = trainer.train(this, sample, false, learningRate, params);
 			}
 		}
 		

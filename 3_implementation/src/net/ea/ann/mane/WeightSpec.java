@@ -291,6 +291,32 @@ public class WeightSpec implements Cloneable, Serializable {
 
 
 	/**
+	 * Creating weight.
+	 * @param prevSize previous size.
+	 * @param size current size.
+	 * @param hint hinting value.
+	 * @param layerSpec layer specification, which can be null.
+	 * @return weight.
+	 */
+	static Weight newWeight(Size prevSize, Size size, NeuronValue hint, LayerSpec layerSpec) {
+		return newWeight(prevSize, size, hint, layerSpec, 0);
+	}
+	
+	
+	/**
+	 * Creating weight.
+	 * @param prevSize previous size.
+	 * @param size current size.
+	 * @param layerSpec layer specification, which can be null.
+	 * @param neuronChannel neuron channel which is only applied to network weight.
+	 * @return weight.
+	 */
+	static Weight newWeight(Size prevSize, Size size, LayerSpec layerSpec, int neuronChannel) {
+		return newWeight(prevSize, size, null, layerSpec, neuronChannel);
+	}
+	
+	
+	/**
 	 * Creating normal weight.
 	 * @param prevSize previous size.
 	 * @param size current size.

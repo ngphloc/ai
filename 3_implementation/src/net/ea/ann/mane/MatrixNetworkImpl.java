@@ -582,6 +582,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 */
 	public static interface TrainingFlag {}
 	
+	
 	/**
 	 * Learning matrix neural network.
 	 * @param sample sample.
@@ -607,28 +608,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
-			Object[] params = defineOutputErrorParams();
-			if (trainers.size() == 0) {
-				List<Error> outputErrorList = Util.newList(0);
-				for (Record record : subsample) {
-					Matrix input = record.input(), realOutput = record.output();
-					Error error = new Error((Matrix)null);
-					Matrix output = evaluate0(input, error, new TrainingFlag() {});
-					Matrix err = params != null && params.length > 0 ? calcOutputError(output, realOutput, getOutputLayer(), params) :
-						calcOutputError(output, realOutput, getOutputLayer());
-					if (err == null) continue;
-					
-					error.errorSet(err);
-					outputErrorList.add(error);
-				}
-				outputErrors = backward(outputErrorList.toArray(new Error[] {}), this, true, lr);
-			}
-			else {
-				for (TaskTrainer trainer : trainers) {
-					outputErrors = params != null && params.length > 0 ? trainer.train(this, subsample, false, lr, params) :
-						trainer.train(this, subsample, false, lr);
-				}
-			}
+			outputErrors = learn(subsample, lr);
 			
 			iteration ++;
 			
@@ -667,14 +647,91 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	}
 
 	
+	/**
+	 * Learning matrix neural network.
+	 * @param sample sample.
+	 * @param learningRate learning rate.
+	 * @return learning errors.
+	 */
+	Error[] learn(Iterable<Record> sample, double learningRate) {
+		Error[] outputErrors = null;
+		if (trainers.size() == 0) {
+			List<Error> outputErrorList = Util.newList(0);
+			for (Record record : sample) {
+				Matrix input = record.input(), realOutput = record.output();
+				Error error = new Error((Matrix)null);
+				Object[] params = defineOutputErrorParams(error, new TrainingFlag() {});
+				Matrix output = evaluate0(input, params); //Please pay attention to this code line because of tracking errors.
+				Matrix err = calcOutputError(output, realOutput, getOutputLayer(), params);
+				if (err == null) continue;
+				
+				error.errorSet(err);
+//				Error[] errors = backward(new Error[] {error}, false, learningRate);
+//				assert (errors != null && errors.length == 1 && errors[0] != null);
+//				if (errors != null) outputErrorList.add(errors[0]);
+				outputErrorList.add(error);
+			}
+//			outputErrors = outputErrorList.toArray(new Error[] {});
+//			if (outputErrors.length > 0) updateParametersFromBackwardInfo(outputErrors.length, learningRate);
+//			if (outputErrors.length > 0) outputErrors = backwardAgain(outputErrors, this, true, learningRate);
+			outputErrors = backward(outputErrorList.toArray(new Error[] {}), this, true, learningRate);
+		}
+		else {
+			Object[] params = defineOutputErrorParams(new TrainingFlag() {});
+			for (TaskTrainer trainer : trainers) {
+				outputErrors = trainer.train(this, sample, false, learningRate, params);
+			}
+		}
+		
+		return outputErrors;
+	}
+	
+	
 	@Override
 	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-		if (!validate() || outputErrors == null || outputErrors.length == 0) return null;
 		if (focus == null) learning = true;
+		outputErrors = backward(outputErrors, learning, learningRate);
+		return outputErrors = backwardAgain(outputErrors, focus, learning, learningRate);
+	}
+
+
+	/**
+	 * Back-warding layer as learning matrix neural network without learning.
+	 * @param outputErrors core last errors which are core last biases.
+	 * @param focus focused layer to stop back-warding.
+	 * @param learningRate learning rate.
+	 * @return backward error.
+	 */
+	public Error[] backwardWithoutLearning(Error[] outputErrors, MatrixLayer focus, double learningRate) {
+		resetBackwardInfo();
+		if (outputErrors == null || outputErrors.length == 0) return null;
+		List<Error> outputErrorList = Util.newList(0);
+		for (int i = 0; i < outputErrors.length; i++) {
+			Error[] errors = backward(new Error[] {outputErrors[i]}, false, learningRate);
+			assert (errors != null && errors.length == 1 && errors[0] != null);
+			if (errors != null) outputErrorList.add(errors[0]);
+		}
+		if (outputErrorList.size() == 0) return null;
 		
-//		outputErrors = Arrays.copyOf(outputErrors, outputErrors.length);
+		outputErrors = outputErrorList.toArray(new Error[] {});
+		return outputErrors = backwardAgain(outputErrors, focus, false, learningRate);
+	}
+
+	
+	/**
+	 * Back-warding layer as learning matrix neural network.
+	 * @param outputErrors core last errors which are core last biases.
+	 * @param learning learning flag. If it is false, parameters are not updated (learned).
+	 * @param learningRate learning rate.
+	 * @return backward error.
+	 */
+	Error[] backward(Error[] outputErrors, boolean learning, double learningRate) {
+		assert (validate() && outputErrors != null && outputErrors.length > 0);
+		if (!validate() || outputErrors == null || outputErrors.length == 0) return null;
+		
 		for (int i = layers.length-1; i >= 0; i--) {
 			assert (layers[i] instanceof MatrixLayerImpl); //Improving later.
+			assert (outputErrors != null && outputErrors.length > 0);
 			
 			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) {
 				outputErrors = layers[i].backward(outputErrors, layers[i], learning, learningRate);
@@ -687,10 +744,23 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			((MatrixLayerImpl)layers[i]).updateParametersFromBackwardInfo(outputErrors.length, learningRate);
 		}
 		
+		return outputErrors;
+	}
+
+
+	/**
+	 * Back-warding this matrix neural network.
+	 * @param outputErrors core last errors which are core last biases.
+	 * @param focus focused layer to stop back-warding.
+	 * @param learning learning flag. If it is false, parameters are not updated (learned).
+	 * @param learningRate learning rate.
+	 * @return backward error.
+	 */
+	protected Error[] backwardAgain(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
+		assert (outputErrors != null && outputErrors.length > 0);
 		if (outputErrors == null || this.prevLayer == null || this == focus) return outputErrors;
-		
+
 		//Adapting backward errors.
-//		Error[] backwardErrors = Arrays.copyOf(outputErrors, outputErrors.length);
 		for (int i = 0; i < outputErrors.length; i++) {
 			outputErrors[i].errorSet(adaptInputToPrevOutput(outputErrors[i].error(), this.prevLayer));
 		}
@@ -699,7 +769,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		Error.adjustErrors(this.prevLayer, outputErrors);
 		return this.prevLayer.backward(outputErrors, focus, learning, learningRate);
 	}
-
+	
 	
 //	/**
 //	 * Getting history mode.

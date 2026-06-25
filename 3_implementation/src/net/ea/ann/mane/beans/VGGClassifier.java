@@ -55,10 +55,16 @@ public class VGGClassifier extends VGGExt {
 
 	
 	/**
-	 * Softmax flag.
+	 * Field for cross-entropy trainer.
 	 */
-	private static boolean SOFTMAX = true;
+	public static final String ENTROPY_TRAINER_FIELD = "classifier_entropy_trainer";
+
 	
+	/**
+	 * Default value for cross-entropy trainer.
+	 */
+	public static final boolean ENTROPY_TRAINER_DEFAULT = true;
+
 	
 	/**
 	 * Baseline.
@@ -76,6 +82,7 @@ public class VGGClassifier extends VGGExt {
 	public VGGClassifier(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 		config.put(BASELINE_FIELD, BASELINE_DEFAULT);
+		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
 	}
 
 
@@ -161,7 +168,7 @@ public class VGGClassifier extends VGGExt {
 	
 	@Override
 	protected Matrix calcOutputError(Matrix output, Matrix realOutput, MatrixLayerAbstract outputLayer, Object... params) {
-		if (SOFTMAX) {
+		if (paramIsEntropyTrainer()) {
 			Matrix error = paramIsByColumn() ? LikelihoodGradient.entropyGradientByColumn(output, realOutput, params) : LikelihoodGradient.entropyGradientByRow(output, realOutput, params);
 			if (error == null) return error;
 			
@@ -178,24 +185,31 @@ public class VGGClassifier extends VGGExt {
 
 	@Override
 	double[] weightsOfOutput(Matrix output, int groupIndex) {
-		if (this.baseline == null) return super.weightsOfOutput(output, groupIndex);
-		
 		Matrix[] OUTPUT = MatrixUtil.split(output);
-		Matrix[] BASELINE = MatrixUtil.split(this.baseline);
-		if (OUTPUT.length != BASELINE.length) throw new IllegalArgumentException();
+		Matrix[] BASELINE = null;
+		if (this.baseline != null) {
+			BASELINE = MatrixUtil.split(this.baseline);
+			if (OUTPUT.length != BASELINE.length) throw new IllegalArgumentException();
+		}
+		
 		NeuronValue[] means = new NeuronValue[paramIsByColumn() ? OUTPUT[0].rows() : OUTPUT[0].columns()];
 		for (int outputIndex = 0; outputIndex < means.length; outputIndex++) means[outputIndex] = OUTPUT[0].get(0, 0).zero();
 		
 		for (int d = 0; d < OUTPUT.length; d++) {
 			NeuronValue[] values = getOutput(OUTPUT[d], groupIndex);
-			values = SOFTMAX ? Softmax.softmax(values) : values;
+			values = paramIsEntropyTrainer() ? Softmax.softmax(values) : values;
 			if (means.length != values.length) throw new IllegalArgumentException();
 			
 			for (int outputIndex = 0; outputIndex < values.length; outputIndex++) {
-				NeuronValue base = paramIsByColumn() ? BASELINE[d].get(outputIndex, groupIndex) : BASELINE[d].get(groupIndex, outputIndex);
-				//Following code lines are important due to apply baseline into determining class.
-				NeuronValue sim = values[outputIndex].subtract(base);
-				means[outputIndex] = means[outputIndex].add(sim);
+				if (BASELINE != null) {
+					NeuronValue base = paramIsByColumn() ? BASELINE[d].get(outputIndex, groupIndex) : BASELINE[d].get(groupIndex, outputIndex);
+					//Following code lines are important due to apply baseline into determining class.
+					NeuronValue sim = values[outputIndex].subtract(base);
+					means[outputIndex] = means[outputIndex].add(sim);
+				}
+				else {
+					means[outputIndex] = means[outputIndex].add(values[outputIndex]);
+				}
 			}
 		}
 		
@@ -276,7 +290,7 @@ public class VGGClassifier extends VGGExt {
 					}
 					
 					NeuronValue[] outputOne = getOutput(output, group);
-					outputOne = SOFTMAX ? Softmax.softmax(outputOne) : outputOne;
+					outputOne = paramIsEntropyTrainer() ? Softmax.softmax(outputOne) : outputOne;
 					for (int index = 0; index < indicator.length; index++) {
 						if (!indicator[index]) continue;
 						NeuronValue unit = countBaselines[d].get(0, 0).unit();
@@ -305,7 +319,7 @@ public class VGGClassifier extends VGGExt {
 					NeuronValue c = countBaselines[d].get(row, column);
 					if (c.canInvertWise())
 						value = value.divide(c);
-					else if (paramIsNorm())
+					else if (paramIsNorm() || paramIsEntropyTrainer())
 						value = value.unit();
 					else {
 						value = value.valueOf(Float.MAX_VALUE); //Improving this code line later for non-normalized case.
@@ -339,6 +353,29 @@ public class VGGClassifier extends VGGExt {
 	 */
 	VGGClassifier paramSetBaseline(boolean baseline) {
 		config.put(BASELINE_FIELD, baseline);
+		return this;
+	}
+
+
+	/**
+	 * Checking cross-entropy trainer mode.
+	 * @return cross-entropy trainer weight mode.
+	 */
+	public boolean paramIsEntropyTrainer() {
+		if (config.containsKey(ENTROPY_TRAINER_FIELD))
+			return config.getAsBoolean(ENTROPY_TRAINER_FIELD);
+		else
+			return ENTROPY_TRAINER_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting cross-entropy trainer mode.
+	 * @param entropyTrainer cross-entropy trainer.
+	 * @return this classifier.
+	 */
+	public VGGClassifier paramSetEntropyTrainer(boolean entropyTrainer) {
+		config.put(ENTROPY_TRAINER_FIELD, entropyTrainer );
 		return this;
 	}
 

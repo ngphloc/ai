@@ -7,6 +7,8 @@
  */
 package net.ea.ann.classifier;
 
+import java.util.Arrays;
+
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
@@ -189,8 +191,11 @@ class MatrixClassifierAbstract extends ClassifierAbstract {
 			private static final long serialVersionUID = 1L;
 
 			@Override
-			protected Object[] defineOutputErrorParams() {
-				return sampleWeight != null ? new Object[] {sampleWeight} : null;
+			protected Object[] defineOutputErrorParams(Object...others) {
+				if (sampleWeight != null) return super.defineOutputErrorParams(others);
+				Object[] params = others == null || others.length == 0 ? new Object[1] : Arrays.copyOf(others, others.length+1);
+				params[params.length-1] = sampleWeight;
+				return params;
 			}
 			
 		};

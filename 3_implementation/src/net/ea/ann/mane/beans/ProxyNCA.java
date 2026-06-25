@@ -25,7 +25,6 @@ import net.ea.ann.mane.Error;
 import net.ea.ann.mane.LikelihoodGradient;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
-import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.raster.Augmentor;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
@@ -1298,7 +1297,7 @@ public class ProxyNCA extends VGGExt {
 					if (classIndex >= 0) realOutputProbs = createOutputByClass(groupIndex, classIndex);
 				}
 				
-				Matrix[] errors = calcOutputError(quartet, realOutputProbs, getOutputLayer(), groupIndex);
+				Matrix[] errors = calcOutputError(quartet, realOutputProbs, getOutputLayer(), groupIndex, params);
 				if (errors == null) continue;
 				if (errors[0] != null) dProxyGroup = dProxyGroup != null ? dProxyGroup.add(errors[0]) : errors[0];
 				if (errors[1] != null) dThetaAccum = dThetaAccum != null ? dThetaAccum.add(errors[1]) : errors[1];
@@ -1313,8 +1312,8 @@ public class ProxyNCA extends VGGExt {
 
 	
 	@Override
-	protected Error[] learnRaster(Iterable<Raster> sample, MatrixLayer focus, boolean learning, double learningRate) {
-		if (this.proxyGroupList == null) return super.learnRaster(sample, focus, learning, learningRate);
+	protected Error[] learnRaster(Iterable<Raster> sample, double learningRate) {
+		if (this.proxyGroupList == null) return super.learnRaster(sample, learningRate);
 		
 		List<Error> outputErrorList = Util.newList(0);
 		List<Raster> piece = Util.newList(0);
@@ -1326,36 +1325,52 @@ public class ProxyNCA extends VGGExt {
 			}
 
 			if (piece.size() >= 2) {
-				Matrix[] errors = calcOutputError(piece, new MatrixNetworkImpl.TrainingFlag(){});
+				Error outputError = backwardPieceWithoutLearning(piece, learningRate);
+				if (outputError != null) outputErrorList.add(outputError);
 				piece.clear();
-				if (errors == null) continue;
-				
-				if (errors[0] != null) {
-					MatrixStack errorStack = (MatrixStack)errors[0];
-					this.dProxyGroupListAccum = this.dProxyGroupListAccum != null ? this.dProxyGroupListAccum.accum(errorStack) : new ProxyGroupListAccumulator(errorStack);
-				}
-				if (errors[1] != null) outputErrorList.add(new Error(errors[1]));
 				trained = true;
 			}
 		}
 		
 		if ((piece.size() >= 2) || (piece.size() == 1 && !trained)){
-			Matrix[] errors = calcOutputError(piece);
+			Error outputError = backwardPieceWithoutLearning(piece, learningRate);
+			if (outputError != null) outputErrorList.add(outputError);
 			piece.clear();
-			
-			if (errors != null && errors[0] != null) {
-				MatrixStack errorStack = (MatrixStack)errors[0];
-				this.dProxyGroupListAccum = this.dProxyGroupListAccum != null ? this.dProxyGroupListAccum.accum(errorStack) : new ProxyGroupListAccumulator(errorStack);
-			}
-			if (errors != null && errors[1] != null) outputErrorList.add(new Error(errors[1]));
 			trained = true;
 		}
 		
-		for (Error error : outputErrorList) error.addLayerOInput(this); //Please pay attention to this code line for tracking errors.
+		Error[] outputErrors = outputErrorList.toArray(new Error[] {});
+		if (outputErrors.length > 0) updateParametersFromBackwardInfo(outputErrors.length, learningRate);
+		if (outputErrors.length > 0) outputErrors = backwardAgain(outputErrors, this, true, learningRate);
+		return outputErrors.length > 0 ? outputErrors : null;
+	}
+
+	
+	/**
+	 * Back-warding piece without learning.
+	 * @param piece sample piece.
+	 * @param learningRate learning rate.
+	 * @return backward error.
+	 */
+	private Error backwardPieceWithoutLearning(List<Raster> piece, double learningRate) {
+		Matrix[] errors = calcOutputError(piece, new TrainingFlag() {});
+
+		if (errors != null && errors[0] != null) {
+			MatrixStack errorStack = (MatrixStack)errors[0];
+			this.dProxyGroupListAccum = this.dProxyGroupListAccum != null ? this.dProxyGroupListAccum.accum(errorStack) : new ProxyGroupListAccumulator(errorStack);
+		}
+		if (errors != null && errors[1] != null) {
+			Error error1 = new Error(errors[1]);
+			Object[] params = defineOutputErrorParams(error1, new TrainingFlag() {});
+			int index = new Random().nextInt(piece.size());
+			evaluate(piece.get(index), params); //Please pay attention to this code line so as to set inputs and outputs to error at the random raster in the piece.
+			
+			Error[] outputErrors = backward(new Error[] {error1}, this, false, learningRate);
+			assert (outputErrors != null && outputErrors.length == 1 && outputErrors[0] != null);
+			if (outputErrors != null) return outputErrors[0];
+		}
 		
-		Error[]  outputErrors = outputErrorList.size() > 0 ? backward(outputErrorList.toArray(new Error[] {}), focus, learning, learningRate) : null;
-		if (outputErrors != null) learnRasterVerify(sample);
-		return outputErrors;
+		return null;
 	}
 
 	

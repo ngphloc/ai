@@ -169,13 +169,13 @@ public abstract class ClassifierAbstract extends NetworkAbstract implements Clas
 	/**
 	 * Field for cross-entropy trainer.
 	 */
-	public static final String ENTROPY_TRAINER_FIELD = "classifier_entropy_trainer";
+	public static final String ENTROPY_TRAINER_FIELD = VGGClassifier.ENTROPY_TRAINER_FIELD;
 
 	
 	/**
 	 * Default value for cross-entropy trainer.
 	 */
-	public static final boolean ENTROPY_TRAINER_DEFAULT = true;
+	public static final boolean ENTROPY_TRAINER_DEFAULT = VGGClassifier.ENTROPY_TRAINER_DEFAULT;
 	
 	
 	/**

@@ -553,6 +553,7 @@ class WCore implements Cloneable, Serializable {
 	
 	/**
 	 * Calculate gradient of previous layer.
+	 * The three gradient methods {@link #dW1(Matrix, Matrix)}, {@link #dW2(Matrix, Matrix)}, and {@link #dValue(Matrix, Matrix, Matrix, Function)} are the most important in training matrix neural network.
 	 * @param prevInput previous input.
 	 * @param prevOutput previous output.
 	 * @param thisError current error.
@@ -581,6 +582,7 @@ class WCore implements Cloneable, Serializable {
 	
 	/**
 	 * Calculating gradient of the current first weight.
+	 * The three gradient methods {@link #dW1(Matrix, Matrix)}, {@link #dW2(Matrix, Matrix)}, and {@link #dValue(Matrix, Matrix, Matrix, Function)} are the most important in training matrix neural network.
 	 * @param prevOutput previous output.
 	 * @param thisError current error.
 	 * @return gradient of the current first weight.
@@ -602,6 +604,7 @@ class WCore implements Cloneable, Serializable {
 	
 	/**
 	 * Calculating gradient of the current second weight.
+	 * The three gradient methods {@link #dW1(Matrix, Matrix)}, {@link #dW2(Matrix, Matrix)}, and {@link #dValue(Matrix, Matrix, Matrix, Function)} are the most important in training matrix neural network.
 	 * @param prevOutput previous output.
 	 * @param thisError current error.
 	 * @return gradient of the current second weight.

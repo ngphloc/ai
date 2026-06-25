@@ -498,7 +498,7 @@ public class VGG extends DropoutNetwork /*MatrixNetworkImpl*/ {
 					}
 				} //End setting weight specification.
 				
-				assert (layerSpec.filterSpec != null || layerSpec.weightSpec != null);
+				assert (layerSpec.filterSpec != null || layerSpec.weightSpec != null); //This assertion is not important, which can be removed.
 				layerSpecs.add(layerSpec);
 			}
 			
@@ -516,6 +516,9 @@ public class VGG extends DropoutNetwork /*MatrixNetworkImpl*/ {
 				}
 			}
 		}
+		
+		//Adding more layers to layer specifications.
+		addMoreLayers(layerSpecs);
 		if (outputSize == null || ffnLength < 1) return initialize(layerSpecs.toArray(new LayerSpec[] {}), false);
 		
 		Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
@@ -537,6 +540,9 @@ public class VGG extends DropoutNetwork /*MatrixNetworkImpl*/ {
 			}
 		}
 		layerSpecs.addAll(ffnlLayerSpecs);
+		
+		//Adding more FFN layers to layer specifications.
+		addMoreFFNLayers(layerSpecs);
 		return initialize(layerSpecs.toArray(new LayerSpec[] {}), false);
 	}
 	
@@ -547,9 +553,7 @@ public class VGG extends DropoutNetwork /*MatrixNetworkImpl*/ {
 	 * @param outputSize output size which can be null.
 	 * @return true if initialization is successful.
 	 */
-	public boolean initialize(Size inputSize, Size outputSize) {
-		return initialize(inputSize, outputSize, null);
-	}
+	public boolean initialize(Size inputSize, Size outputSize) {return initialize(inputSize, outputSize, null);}
 	
 	
 	/**
@@ -562,6 +566,20 @@ public class VGG extends DropoutNetwork /*MatrixNetworkImpl*/ {
 		return initialize(inputSize, paramGetVGGMiddleSize(), outputSize);
 	}
 
+	
+	/**
+	 * Adding more layers to layer specifications.
+	 * @param layerSpecs layer specifications.
+	 */
+	protected void addMoreLayers(List<LayerSpec> layerSpecs) {}
+	
+	
+	/**
+	 * Adding more FFN layers to layer specifications.
+	 * @param layerSpecs layer specifications.
+	 */
+	protected void addMoreFFNLayers(List<LayerSpec> layerSpecs) {}
+	
 	
 	/**
 	 * Getting VGG middle size.

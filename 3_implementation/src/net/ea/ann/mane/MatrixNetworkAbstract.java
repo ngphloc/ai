@@ -300,23 +300,6 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 	
 	/**
-	 * Back-warding layer as learning matrix neural network.
-	 * @param outputErrors core last errors which are core last biases.
-	 * @param learningRate learning rate.
-	 * @return training error.
-	 */
-	public Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
-		resetBackwardInfo();
-		if (outputErrors == null || outputErrors.length == 0) return null;
-		Error[] errors = new Error[outputErrors.length];
-		for (int i = 0; i < outputErrors.length; i++) {
-			errors[i] = backward(new Error[] {outputErrors[i]}, this, false, learningRate)[0];
-		}
-		return errors;
-	}
-
-	
-	/**
 	 * Updating parameters from backward information.
 	 * @param recordCount count of records in sample.
 	 * @param learningRate learning rate.
@@ -371,9 +354,13 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Defining additional parameters for output errors.
 	 * @return additional parameters for output errors.
 	 */
-	protected Object[] defineOutputErrorParams() {return null;}
+	protected Object[] defineOutputErrorParams(Object...others) {
+		if (others == null || others.length == 0) return null;
+		return others;
+	}
 	
 
+	
 	/**
 	 * Getting likelihood gradient.
 	 * @return likelihood gradient.
