@@ -430,7 +430,7 @@ public class FilterSpec implements Cloneable, Serializable {
 	 * all previous matrices needs only one pooling filter.<br/>
 	 * For network filter, the specification is slight different, in which width and height are size of filter itself.
 	 * @param hint value hint.
-	 * @param layerSpec layer specification.
+	 * @param layerSpec layer specification which can be null.
 	 * @param neuronChannel neuron channel which is only applied to network filter.
 	 * @return filter.
 	 */
@@ -494,12 +494,134 @@ public class FilterSpec implements Cloneable, Serializable {
 
 	
 	/**
+	 * Creating filter.
+	 * @param filterSize filter size.
+	 * @param hint value hint.
+	 * @param layerSpec layer specification.
+	 * @return filter.
+	 */
+	static Filter newFilter(Size filterSize, NeuronValue hint, LayerSpec layerSpec) {
+		return newFilter(filterSize, hint, layerSpec, 0);
+	}
+	
+	
+	/**
+	 * Creating filter.
+	 * @param filterSize filter size.
+	 * @param layerSpec layer specification.
+	 * @param neuronChannel neuron channel which is only applied to network filter.
+	 * @return filter.
+	 */
+	static Filter newFilter(Size filterSize, LayerSpec layerSpec, int neuronChannel) {
+		return newFilter(filterSize, null, layerSpec, neuronChannel);
+	}
+	
+	
+	/**
 	 * Creating default filter which is product filter as usual.
 	 * @param filterSize filter size.
 	 * @param hint value hint.
 	 * @return default filter which is product filter as usual.
 	 */
-	static Filter newFilter(Size filterSize, NeuronValue hint) {return newFilter(filterSize, hint, null, 0);}
+	static Filter newFilter(Size filterSize, NeuronValue hint) {
+		return newFilter(filterSize, hint, (LayerSpec)null, 0);
+	}
+	
+	
+	/**
+	 * Creating filter.
+	 * @param filterSize filter size.
+	 * @param neuronChannel neuron channel which is only applied to network filter.
+	 * @return filter.
+	 */
+	static Filter newFilter(Size filterSize, int neuronChannel) {
+		return newFilter(filterSize, null, (LayerSpec)null, neuronChannel);
+	}
+
+	
+	/**
+	 * Creating filter.
+	 * @param filterSize filter size in which width and height are size of filter itself
+	 * whereas depth is the number of previous matrices (length of matrix stack in previous layer) and
+	 * time is the number of current matrices (length of matrix stack in current layer).<br/>
+	 * For pooling filter, depth is the number of current matrices (length of matrix stack in current layer) and time is 1 because
+	 * all previous matrices needs only one pooling filter.
+	 * @param hint value hint.
+	 * @param filterSpec filter specification which can be null.
+	 * @param neuronChannel neuron channel which is only applied to network filter.
+	 * @return filter.
+	 */
+	public static Filter newFilter(Size filterSize, NeuronValue hint, FilterSpec filterSpec, int neuronChannel) {
+		if (filterSize == null || filterSize.width <= 0 || filterSize.height <= 0) return null;
+		neuronChannel = neuronChannel < 1 ? 1 : neuronChannel;
+		hint = hint != null ? hint : NeuronValueCreator.newNeuronValue(neuronChannel);
+
+		double factor = 1.0 / (filterSize.width*filterSize.height);
+		Filter filter = null;
+		filterSpec = filterSpec != null ? filterSpec : new FilterSpec(filterSize);
+		switch (filterSpec.type) {
+			case kernel:
+				switch (filterSpec.kernelType) {
+				case product:
+					filter = KernelFilterProduct.create(factor, filterSize, hint);
+					break;
+				case product_max:
+					filter = KernelFilterMax.create(factor, filterSize, hint);
+					break;
+				default:
+					filter = KernelFilterProduct.create(factor, filterSize, hint);
+					break;
+				}
+				break;
+			case pool:
+				if (filterSize.depth != filterSize.time || filterSize.time <= 0) throw new IllegalArgumentException();
+				Size adjustedSize = new Size(filterSize.width, filterSize.height, filterSize.time, 1);
+				switch (filterSpec.poolType) {
+				case max:
+					filter = PoolFilterMax.create(adjustedSize);
+					break;
+				case average:
+					filter = PoolFilterAverage.create(adjustedSize);
+					break;
+				default:
+					filter = PoolFilterMax.create(adjustedSize);
+					break;
+				}
+				break;
+			case network:
+				throw new IllegalArgumentException();
+			default:
+				filter = KernelFilterProduct.create(factor, filterSize, hint);
+				break;
+		}
+		
+		filter.setMoveStride(filterSpec.moveStride);
+		return filter;
+	}
+
+
+	/**
+	 * Creating filter.
+	 * @param filterSize filter size.
+	 * @param hint value hint.
+	 * @param filterSpec filter specification which can be null.
+	 * @return filter.
+	 */
+	static Filter newFilter(Size filterSize, NeuronValue hint, FilterSpec filterSpec) {
+		return newFilter(filterSize, hint, filterSpec, 0);
+	}
+	
+	
+	/**
+	 * Creating filter.
+	 * @param filterSize filter size.
+	 * @param filterSpec filter specification which can be null.
+	 * @param neuronChannel neuron channel which is only applied to network filter.
+	 * @return filter.
+	 */
+	static Filter newFilter(Size filterSize, FilterSpec filterSpec, int neuronChannel) {
+		return newFilter(filterSize, null, filterSpec, neuronChannel);
+	}
 	
 	
 }

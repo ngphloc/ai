@@ -323,7 +323,21 @@ public class WeightSpec implements Cloneable, Serializable {
 	 * @param hint hinting value.
 	 * @return normal weight.
 	 */
-	static Weight newWeight(Size prevSize, Size size, NeuronValue hint) {return newWeight(prevSize, size, hint, null, 0);}
+	static Weight newWeight(Size prevSize, Size size, NeuronValue hint) {
+		return newWeight(prevSize, size, hint, (LayerSpec)null, 0);
+	}
+	
+	
+	/**
+	 * Creating weight.
+	 * @param prevSize previous size.
+	 * @param size current size.
+	 * @param neuronChannel neuron channel which is only applied to network weight.
+	 * @return weight.
+	 */
+	static Weight newWeight(Size prevSize, Size size, int neuronChannel) {
+		return newWeight(prevSize, size, null, (LayerSpec)null, neuronChannel);
+	}
 	
 	
 	/**
@@ -333,4 +347,75 @@ public class WeightSpec implements Cloneable, Serializable {
 	static Weight newWeight() {return new NullWeight();}
 
 
+	/**
+	 * Creating weight.
+	 * @param prevSize previous size.
+	 * @param size current size.
+	 * @param hint hinting value.
+	 * @param weightSpec weight specification, which can be null.
+	 * @param neuronChannel neuron channel which is only applied to network weight.
+	 * @return weight.
+	 */
+	public static Weight newWeight(Size prevSize, Size size, NeuronValue hint, WeightSpec weightSpec, int neuronChannel) {
+		if (prevSize == null && size == null && weightSpec == null) return new NullWeight();
+		if (prevSize != null && size != null && weightSpec == null)
+			return WeightImpl.create(prevSize, size, hint);
+		
+		if (prevSize == null || size == null || weightSpec == null) throw new IllegalArgumentException();
+		
+		Weight weight = null;
+		switch (weightSpec.type) {
+		case kernel:
+			switch (weightSpec.kernelType) {
+			case normal:
+				weight = WeightImpl.create(prevSize, size, hint);
+				break;
+			case transformer:
+				weight = TransformerWeight.create(neuronChannel, prevSize, size);
+				break;
+			case nil:
+				weight = new NullWeight();
+				break;
+			default:
+				weight = WeightImpl.create(prevSize, size, hint);
+				break;
+			}
+			break;
+		case network:
+			throw new IllegalArgumentException();
+		default:
+			weight = WeightImpl.create(prevSize, size, hint);
+			break;
+		}
+		return weight;
+	}
+
+
+	/**
+	 * Creating weight.
+	 * @param prevSize previous size.
+	 * @param size current size.
+	 * @param hint hinting value.
+	 * @param weightSpec weight specification, which can be null.
+	 * @param neuronChannel neuron channel which is only applied to network weight.
+	 * @return weight.
+	 */
+	static Weight newWeight(Size prevSize, Size size, NeuronValue hint, WeightSpec weightSpec) {
+		return newWeight(prevSize, size, hint, weightSpec, 0);
+	}
+	
+	
+	/**
+	 * Creating weight.
+	 * @param prevSize previous size.
+	 * @param size current size.
+	 * @param weightSpec weight specification, which can be null.
+	 * @param neuronChannel neuron channel which is only applied to network weight.
+	 * @return weight.
+	 */
+	static Weight newWeight(Size prevSize, Size size, WeightSpec weightSpec, int neuronChannel) {
+		return newWeight(prevSize, size, null, weightSpec, neuronChannel);
+	}
+	
+	
 }
