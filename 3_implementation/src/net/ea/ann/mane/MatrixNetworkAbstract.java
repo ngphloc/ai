@@ -11,12 +11,14 @@ import java.util.List;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.NetworkAbstract;
+import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
+import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
@@ -29,7 +31,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public abstract class MatrixNetworkAbstract extends NetworkAbstract implements MatrixNetwork, MatrixLayerExt, NeuronValueCreator {
+public abstract class MatrixNetworkAbstract extends NetworkAbstract implements MatrixNetwork, MatrixLayerExt, NeuronValueCreator, TextParsable {
 
 
 	/**
@@ -180,14 +182,15 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 	/**
 	 * Creating matrix layer.
+	 * @param layerSpec layer specification which can be null.
 	 * @return matrix layer.
 	 */
-	protected abstract MatrixLayerAbstract newLayer();
+	protected abstract MatrixLayerAbstract newLayer(LayerSpec layerSpec);
 	
 	
 	@Override
 	public NeuronValue newNeuronValue() {
-		return newLayer().newNeuronValue();
+		return newLayer(null).newNeuronValue();
 	}
 
 
@@ -198,7 +201,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @return filter.
 	 */
 	Filter newFilter(Size filterSize, MatrixLayerAbstract.LayerSpec layerSpec) {
-		return newLayer().newFilter(filterSize, layerSpec);
+		return newLayer(null).newFilter(filterSize, layerSpec);
 	}
 	
 	
@@ -224,6 +227,20 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * @return layer at specified index.
 	 */
 	public MatrixLayerAbstract get(int index) {return layers[index];}
+	
+	
+	/**
+	 * Getting index of specified layer.
+	 * @param layer specified layer.
+	 * @return index of specified layer.
+	 */
+	public int indexOf(MatrixLayerAbstract layer) {
+		if (layer == null || this.layers == null || this.layers.length == 0) return -1;
+		for (int i = 0; i < this.layers.length; i++) {
+			if (this.layers[i] == layer) return i;
+		}
+		return -1;
+	}
 	
 	
 	/**
@@ -557,6 +574,18 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	public MatrixNetworkAbstract paramSetPosEncode(boolean posEncode) {
 		config.put(POS_ENCODE_FIELD, posEncode);
 		return this;
+	}
+
+
+	@Override
+	public String toText() {
+		StringBuffer buffer = new StringBuffer();
+		if (layers == null || layers.length == 0) return "";
+		for (int i = 0; i < layers.length; i++) {
+			if (i > 0) buffer.append("\n\n");
+			buffer.append(layers[i] instanceof TextParsable ? ((TextParsable)layers[i]).toText() : layers[i].toString());
+		}
+		return buffer.toString();
 	}
 
 

@@ -37,15 +37,11 @@ public class NullWeight implements Weight {
 
 	
 	@Override
-	public Weight accumKernel(Kernel dKernel, double factor) {
-		return this;
-	}
+	public Weight accumKernel(Kernel dKernel, double factor) {return this;}
 
 	
 	@Override
-	public Matrix evaluate(Matrix input, Matrix bias) {
-		return input;
-	}
+	public Matrix evaluate(Matrix input, Matrix bias) {return input;}
 
 	
 	@Override

@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.raster.Raster;
@@ -23,7 +24,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class MatrixStack implements Matrix {
+public class MatrixStack implements Matrix, TextParsable {
 
 	
 	/**
@@ -394,6 +395,30 @@ public class MatrixStack implements Matrix {
 	}
 
 	
+	@Override
+	public String toText() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("{");
+		for (int d = 0; d < depth(); d++) {
+			if (d > 0) buffer.append(", ");
+			buffer.append("{");
+			for (int row = 0; row < rows(); row++) {
+				if (row > 0) buffer.append(", ");
+				buffer.append("{");
+				for (int column = 0; column < columns(); column++) {
+					if (column > 0) buffer.append(", ");
+					NeuronValue value = get(d).get(row, column);
+					buffer.append(value instanceof TextParsable ? ((TextParsable)value).toText() : value.toString());
+				}
+				buffer.append("}");
+			}
+			buffer.append("}");
+		}
+		buffer.append("}");
+		return buffer.toString();
+	}
+
+
 	/**
 	 * Accumulating stacks.
 	 * @param W stacks.

@@ -30,4 +30,5 @@ public interface Logistic extends FunctionInvertible, NormSupporter {
 	 */
 	final static boolean CONCERN_MID = false; //true;
 	
+	
 }

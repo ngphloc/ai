@@ -12,6 +12,8 @@ import java.io.Serializable;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
+import net.ea.ann.mane.weight.ActivateFWeight;
+import net.ea.ann.mane.weight.ActivateWWeight;
 import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.mane.weight.TransformerWeight;
 import net.ea.ann.mane.weight.WeightImpl;
@@ -70,6 +72,16 @@ public class WeightSpec implements Cloneable, Serializable {
 		 * Transformer-based kernel.
 		 */
 		transformer,
+		
+		/**
+		 * Filter activation type which is like null type but having filter activation function.
+		 */
+		filter_activate,
+		
+		/**
+		 * Weight activation type which is like null type but having weight activation function.
+		 */
+		weight_activate,
 		
 		/**
 		 * Null type.
@@ -186,6 +198,15 @@ public class WeightSpec implements Cloneable, Serializable {
 		case 1:
 			kernelType = KernelType.transformer;
 			break;
+		case 2:
+			kernelType = KernelType.filter_activate;
+			break;
+		case 3:
+			kernelType = KernelType.weight_activate;
+			break;
+		case 4:
+			kernelType = KernelType.nil;
+			break;
 		default:
 			kernelType = KernelType.normal;
 			break;
@@ -270,6 +291,12 @@ public class WeightSpec implements Cloneable, Serializable {
 				break;
 			case transformer:
 				weight = TransformerWeight.create(neuronChannel, prevSize, size);
+				break;
+			case filter_activate:
+				weight = new ActivateFWeight();
+				break;
+			case weight_activate:
+				weight = new ActivateWWeight();
 				break;
 			case nil:
 				weight = new NullWeight();
@@ -372,6 +399,12 @@ public class WeightSpec implements Cloneable, Serializable {
 				break;
 			case transformer:
 				weight = TransformerWeight.create(neuronChannel, prevSize, size);
+				break;
+			case filter_activate:
+				weight = new ActivateFWeight();
+				break;
+			case weight_activate:
+				weight = new ActivateWWeight();
 				break;
 			case nil:
 				weight = new NullWeight();

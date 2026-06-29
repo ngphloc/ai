@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.FunctionInvertible;
@@ -1350,6 +1351,24 @@ public interface NeuronValue extends Value {
 	 */
 	static double r(Random rnd) {
 		return rnd.nextDouble()*0.1 - 0.05;
+	}
+	
+	
+	/**
+	 * Converting vector to text.
+	 * @param vector vector of neuron values.
+	 * @return text form.
+	 */
+	static String toText(NeuronValue[] vector) {
+		if (vector == null || vector.length == 0) return "{}";
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("{");
+		for (int i = 0; i < vector.length; i++) {
+			if (i > 0) buffer.append(", ");
+			buffer.append(vector[i] instanceof TextParsable ? ((TextParsable)vector[i]).toText() : vector[i].toString());
+		}
+		buffer.append("}");
+		return buffer.toString();
 	}
 	
 	

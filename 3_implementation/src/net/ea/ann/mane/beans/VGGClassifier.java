@@ -141,6 +141,7 @@ public class VGGClassifier extends VGGExt {
 		if (!isLabeled()) return Util.newList(0);
 		
 		List<Raster> results = Util.newList(0);
+//		int i = 0;
 		for (Raster raster : sample) {
 			if (raster == null) continue;
 			Matrix output = evaluate(raster);
@@ -161,6 +162,8 @@ public class VGGClassifier extends VGGExt {
 			RasterWrapperProperty rw = new RasterWrapperProperty(raster);
 			rw.setProperty(rp);
 			results.add(rw);
+			
+//			Util.randomWrite("working/vgg" + (++i) + ".txt", this.toText());
 		}
 		return results;
 	}
@@ -214,6 +217,7 @@ public class VGGClassifier extends VGGExt {
 		}
 		
 		for (int outputIndex = 0; outputIndex < means.length; outputIndex++) means[outputIndex] = means[outputIndex].divide(OUTPUT.length);
+//		Util.randomWrite("working/weight_output.txt", NeuronValue.toText(means) + "\n");
 		return weightsOfOutput(means);
 	}
 
@@ -241,7 +245,7 @@ public class VGGClassifier extends VGGExt {
 		Matrix output0 = OUTPUT0 instanceof MatrixStack ? ((MatrixStack)OUTPUT0).get() : OUTPUT0;
 		for (int d = 0; d < baselines.length; d++) {
 			baselines[d] = output0.create(new Size(output0.columns(), output0.rows()));
-			MatrixUtil.fill(baselines[d], 0);
+			MatrixUtil.fill(baselines[d], 0/*1*/);
 			countBaselines[d] = baselines[d].create(new Size(baselines[d].columns(), baselines[d].rows()));
 			MatrixUtil.fill(countBaselines[d], 0);
 		}
@@ -296,14 +300,18 @@ public class VGGClassifier extends VGGExt {
 						NeuronValue unit = countBaselines[d].get(0, 0).unit();
 						if (paramIsByColumn()) {
 							NeuronValue value = baselines[d].get(index, group).add(outputOne[index]);
+//							NeuronValue value = baselines[d].get(index, group).min(outputOne[index]);
 							baselines[d].set(index, group, value);
 							NeuronValue c = countBaselines[d].get(index, group).add(unit);
+//							NeuronValue c = unit;
 							countBaselines[d].set(index, group, c);
 						}
 						else {
 							NeuronValue value = baselines[d].get(group, index).add(outputOne[index]);
+//							NeuronValue value = baselines[d].get(group, index).min(outputOne[index]);
 							baselines[d].set(group, index, value);
 							NeuronValue c = countBaselines[d].get(group, index).add(unit);
+//							NeuronValue c = unit;
 							countBaselines[d].set(group, index, c);
 						}
 					}

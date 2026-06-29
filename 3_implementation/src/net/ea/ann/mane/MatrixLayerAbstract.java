@@ -12,13 +12,13 @@ import java.io.Serializable;
 import net.ea.ann.conv.Content;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.LayerAbstract;
+import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
-import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
@@ -31,7 +31,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public abstract class MatrixLayerAbstract extends LayerAbstract implements MatrixLayerExt, NeuronValueCreator {
+public abstract class MatrixLayerAbstract extends LayerAbstract implements MatrixLayerExt, NeuronValueCreator, TextParsable {
 
 	
 	/**
@@ -41,7 +41,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 	
 	/**
-	 * This class contains size and filter.
+	 * This class represents layer specification.
 	 * @author Loc Nguyen
 	 * @version 1.0
 	 *
@@ -376,7 +376,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param weightActivateRef reference to activation function.
 	 * @return this function reference.
 	 */
-	protected Function setWeightActivateRef(Function weightActivateRef) {return this.activateRef = weightActivateRef;}
+	public Function setWeightActivateRef(Function weightActivateRef) {return this.activateRef = weightActivateRef;}
 
 	
 	/**
@@ -391,7 +391,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param filterActivateRef reference to filter activation function.
 	 * @return this function reference.
 	 */
-	protected Function setFilterActivateRef(Function filterActivateRef) {return this.convActivateRef = filterActivateRef;}
+	public Function setFilterActivateRef(Function filterActivateRef) {return this.convActivateRef = filterActivateRef;}
 
 	
 	/**
@@ -400,13 +400,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 */
 	public Function getOutputActivateRef() {
 		if (getWeight() != null) {
-			Weight weight = getWeight();
-			if (weight instanceof NullWeight) {
-				assert (true);
-				return null; //It should return null.
-			}
-			else
-				return getWeightActivateRef();
+			return getWeightActivateRef();
 		}
 		else if (getFilter() != null) {
 			Filter filter = getFilter();
@@ -523,7 +517,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting weight.
 	 * @return the weight.
 	 */
-	protected abstract Weight getWeight();
+	public abstract Weight getWeight();
 	
 	
 	/**
@@ -544,7 +538,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting convolutional filter.
 	 * @return convolutional filter.
 	 */
-	protected abstract Filter getFilter();
+	public abstract Filter getFilter();
 	
 	
 	/**
@@ -713,17 +707,25 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Checking whether filter is learned.
 	 * @return whether filter is learned.
 	 */
-	boolean isLearnFilter() {
-		return learnFilter;
-	}
+	boolean isLearnFilter() {return learnFilter;}
 	
 	
 	/**
 	 * Setting whether filter is learned.
 	 * @param learnFilter flag to indicate whether filter is learned.
 	 */
-	void setLearnFilter(boolean learnFilter) {
-		this.learnFilter = learnFilter;
+	void setLearnFilter(boolean learnFilter) {this.learnFilter = learnFilter;}
+	
+	
+	/**
+	 * Getting decay factor for L2 regularization.
+	 * @param learningRate learning rate.
+	 * @param batchSize batch size.
+	 * @return decay factor for L2 regularization.
+	 */
+	double decay(double learningRate, int batchSize) {
+		double lambda = 0.01; //Regularization strength.
+		return 1.0 - (learningRate * (lambda/batchSize));
 	}
 	
 	
@@ -731,17 +733,77 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Checking whether something normalized in rang [0, 1].
 	 * @return whether something normalized in rang [0, 1].
 	 */
-	boolean paramIsNorm() {
-		return network != null ? network.paramIsNorm() : Raster.NORM_DEFAULT;
-	}
+	boolean paramIsNorm() {return network != null ? network.paramIsNorm() : Raster.NORM_DEFAULT;}
 
 
 	/**
 	 * Getting default alpha.
 	 * @return default alpha.
 	 */
-	int paramGetDefaultAlpha() {
-		return network != null ? network.paramGetDefaultAlpha() : Image.ALPHA_DEFAULT;
+	int paramGetDefaultAlpha() {return network != null ? network.paramGetDefaultAlpha() : Image.ALPHA_DEFAULT;}
+
+
+	@Override
+	public String toText() {
+		StringBuffer buffer = new StringBuffer();
+		
+		Matrix prevInput0 = getPrevInput();
+		if (prevInput0 == null)
+			buffer.append("prevInput = {}");
+		else
+			buffer.append("prevInput = " + (prevInput0 instanceof TextParsable ? ((TextParsable)prevInput0).toText() : prevInput0.toString()));
+		buffer.append("\n");
+		
+		Matrix prevOutput0 = getPrevOutput();
+		if (prevOutput0 == null)
+			buffer.append("prevOutput = {}");
+		else
+			buffer.append("prevOutput = " + (prevOutput0 instanceof TextParsable ? ((TextParsable)prevOutput0).toText() : prevOutput0.toString()));
+		buffer.append("\n");
+
+		Matrix input0 = getInput();
+		if (input0 == null)
+			buffer.append("input = {}");
+		else
+			buffer.append("input = " + (input0 instanceof TextParsable ? ((TextParsable)input0).toText() : input0.toString()));
+		buffer.append("\n");
+
+		Matrix output0 = getOutput();
+		if (output0 == null)
+			buffer.append("output = {}");
+		else
+			buffer.append("output = " + (output0 instanceof TextParsable ? ((TextParsable)output0).toText() : output0.toString()));
+		buffer.append("\n");
+
+		Weight weight0 = getWeight();
+		if (weight0 == null)
+			buffer.append("weight = {}");
+		else
+			buffer.append("weight = " + (weight0 instanceof TextParsable ? ((TextParsable)weight0).toText() : weight0.toString()));
+		buffer.append("\n");
+
+		Matrix bias0 = getBias();
+		if (bias0 == null)
+			buffer.append("bias = {}");
+		else
+			buffer.append("bias = " + (bias0 instanceof TextParsable ? ((TextParsable)bias0).toText() : bias0.toString()));
+		buffer.append("\n");
+
+		Filter filter0 = getFilter();
+		if (filter0 == null)
+			buffer.append("filter = {}");
+		else
+			buffer.append("filter = " + (filter0 instanceof TextParsable ? ((TextParsable)filter0).toText() : filter0.toString()));
+		buffer.append("\n");
+
+		NeuronValue filterBias0 = getFilterBias();
+		if (filterBias0 == null)
+			buffer.append("filterBias = {}");
+		else
+			buffer.append("filterBias = " + (filterBias0 instanceof TextParsable ? ((TextParsable)filterBias0).toText() : filterBias0.toString()));
+		buffer.append("\n");
+
+		return buffer.toString();
 	}
 
 

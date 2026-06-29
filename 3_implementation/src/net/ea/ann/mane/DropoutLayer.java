@@ -15,7 +15,6 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
-import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.raster.Size;
 
 /**
@@ -24,7 +23,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class DropoutLayer extends MatrixLayerImpl implements MatrixLayerExt {
+public class DropoutLayer extends MatrixLayerImpl {
 
 
 	/**
@@ -78,7 +77,7 @@ public class DropoutLayer extends MatrixLayerImpl implements MatrixLayerExt {
 	/**
 	 * Default value for dropout all.
 	 */
-	public final static boolean DROPOUT_ALL_DEFAULT = true;
+	public final static boolean DROPOUT_ALL_DEFAULT = false;
 
 	
 	/**
@@ -166,16 +165,6 @@ public class DropoutLayer extends MatrixLayerImpl implements MatrixLayerExt {
 	
 	
 	/**
-	 * Getting flag of dropouting all layers.
-	 * @return flag of dropouting all layers.
-	 */
-	private boolean isDropoutAll() {
-		if ((getNetwork() == null) || !(getNetwork() instanceof DropoutNetwork)) return DROPOUT_ALL_DEFAULT;
-		return ((DropoutNetwork)getNetwork()).paramIsDropoutAll();
-	}
-	
-	
-	/**
 	 * Getting dropout mask.
 	 * @return dropout mask.
 	 */
@@ -194,29 +183,43 @@ public class DropoutLayer extends MatrixLayerImpl implements MatrixLayerExt {
 	 */
 	void setupMask() {
 		this.dropoutMask = null;
-		if (!isDropoutMode()) return;
-		if (!isDropoutAll() && this.getNetwork() != null && this.getNetwork().getOutputLayer() != this.getNextLayer()) return;//Dropout the layer whose next layer is output layer is enough because the back-propagation mechanism.
-		if (getDropoutRate() <= 0 || getDropoutRate() >= 1) return;
-		if (getWeight() == null && getFilter() == null) return; //Do not dropout the input layer.
+		assert (this.getNetwork() != null);
+		if (!isDropoutMode() || getDropoutRate() <= 0 || getDropoutRate() >= 1) return;
 		if (this.getNetwork() != null && this.getNetwork().getOutputLayer() == this) return; //Do not dropout the output layer.
+		if (getWeight() == null && getFilter() == null) return; //Do not dropout the input layer.
 		
-		if ( (getWeight() != null && !(getWeight() instanceof NullWeight)) || (getFilter() != null && !getFilter().isIndexMode()) ) {
+		if ( (getWeight() != null) || (getFilter() != null && !getFilter().isIndexMode()) ) {
 			Matrix thisOutput = queryOutput();
 			this.dropoutMask = thisOutput.create(new Size(thisOutput.columns(), thisOutput.rows()));
 		}
 		if (this.dropoutMask == null) return;
 		
+//		//Spatial dropout with only rows.
+//		double keepProb = 1.0 - getDropoutRate();
+//		double scale = isDropoutInverted() ? 1.0/keepProb : 1.0;
+//		Random rnd = new Random();
+//		for (int row = 0; row < this.dropoutMask.rows(); row++) {
+//			boolean keep = rnd.nextDouble() < keepProb;
+//			for (int column = 0; column < this.dropoutMask.columns(); column++) {
+//				if (keep)
+//					setValue(this.dropoutMask, row, column, scale);
+//				else
+//					setValue(this.dropoutMask, row, column, 0);
+//			}
+//		}
+
 		double keepProb = 1.0 - getDropoutRate();
-        double scale = isDropoutInverted() ? 1.0/keepProb : 1.0;
-        Random rnd = new Random();
-        for (int row = 0; row < this.dropoutMask.rows(); row++) {
-        	for (int column = 0; column < this.dropoutMask.columns(); column++) {
-                if (rnd.nextDouble() < keepProb)
-                	setValue(this.dropoutMask, row, column, scale);
-                else
-                	setValue(this.dropoutMask, row, column, 0);
-        	}
-        }
+		double scale = isDropoutInverted() ? 1.0/keepProb : 1.0;
+		Random rnd = new Random();
+		for (int row = 0; row < this.dropoutMask.rows(); row++) {
+			for (int column = 0; column < this.dropoutMask.columns(); column++) {
+				if (rnd.nextDouble() < keepProb)
+					setValue(this.dropoutMask, row, column, scale);
+				else
+					setValue(this.dropoutMask, row, column, 0);
+			}
+		}
+		
 	}
 
 	

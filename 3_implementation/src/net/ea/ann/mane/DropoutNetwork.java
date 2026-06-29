@@ -9,7 +9,6 @@ package net.ea.ann.mane;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
-import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 
 /**
  * This class implements matrix neural network with dropout technique.
@@ -70,29 +69,11 @@ public class DropoutNetwork extends MatrixNetworkImpl {
 	public DropoutNetwork(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 	
-	@Override
-	protected MatrixLayerAbstract newLayer() {
-		DropoutLayer layer = new DropoutLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
-		layer.setNetwork(this);
-		return layer;
-	}
-
-
-	@Override
-	protected boolean initialize(LayerSpec[] layerSpecs, boolean dual) {
-		if (!super.initialize(layerSpecs, dual)) return false;
-//		for (int i = 0; i < this.layers.length-1; i++) {
-//			if (this.layers[i].getWeightActivateRef() != null) this.layers[i].setWeightActivateRef(IdentityDefault.identity());
-//		}
-		return true;
-	}
-
-
 	/**
 	 * Checking dropout mode.
 	 * @return dropout mode.
 	 */
-	boolean paramIsDropoutMode() {
+	protected boolean paramIsDropoutMode() {
 		if (config.containsKey(DropoutLayer.DROPOUT_MODE_FIELD))
 			return config.getAsBoolean(DropoutLayer.DROPOUT_MODE_FIELD);
 		else
@@ -105,7 +86,7 @@ public class DropoutNetwork extends MatrixNetworkImpl {
 	 * @param dropout dropout mode.
 	 * @return this network.
 	 */
-	DropoutNetwork paramSetDropoutMode(boolean dropout) {
+	protected DropoutNetwork paramSetDropoutMode(boolean dropout) {
 		config.put(DropoutLayer.DROPOUT_MODE_FIELD, dropout);
 		return this;
 	}
@@ -140,6 +121,7 @@ public class DropoutNetwork extends MatrixNetworkImpl {
 	 * Checking dropout all.
 	 * @return dropout all.
 	 */
+	@Deprecated
 	boolean paramIsDropoutAll() {
 		if (config.containsKey(DropoutLayer.DROPOUT_ALL_FIELD))
 			return config.getAsBoolean(DropoutLayer.DROPOUT_ALL_FIELD);
@@ -153,6 +135,7 @@ public class DropoutNetwork extends MatrixNetworkImpl {
 	 * @param dropoutAll dropout all.
 	 * @return this network.
 	 */
+	@Deprecated
 	DropoutNetwork paramSetDropoutAll(boolean dropoutAll) {
 		config.put(DropoutLayer.DROPOUT_ALL_FIELD, dropoutAll);
 		return this;

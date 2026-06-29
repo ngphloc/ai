@@ -3,9 +3,7 @@ package net.ea.ann.mane;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
-import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.mane.weight.NullWeight;
-import net.hudup.core.logistic.NextUpdate;
+import net.ea.ann.mane.filter.KernelFilterProduct;
 
 /**
  * This class represents residual layer.
@@ -13,7 +11,7 @@ import net.hudup.core.logistic.NextUpdate;
  * @version 1.0
  *
  */
-public class ResidualLayer extends DropoutLayer {
+public class ResidualLayer extends MatrixLayerImpl  {
 
 	
 	/**
@@ -23,59 +21,22 @@ public class ResidualLayer extends DropoutLayer {
 
 	
 	/**
-	 * This class represents residual function.
-	 * @author Loc Nguyen
-	 * @version 1.0
-	 *
+	 * Field for residual mode.
 	 */
-	public static class ResidualFunction implements Function {
-		
-		/**
-		 * Serial version UID for serializable class. 
-		 */
-		private static final long serialVersionUID = 1L;
-		
-		/**
-		 * Internal function.
-		 */
-		protected Function function = null;
-		
-		/**
-		 * Constructor with function.
-		 * @param function function.
-		 */
-		public ResidualFunction(Function function) {
-			this.function = function;
-		}
-
-		@Override
-		public NeuronValue evaluate(NeuronValue x) {
-			return function.evaluate(x);
-		}
-
-		/*
-		 * Checking this method.
-		 */
-		@NextUpdate
-		@Override
-		public NeuronValue derivative(NeuronValue x) {
-			return function.derivative(x).add(x.unit()); //This code line is very important.
-		}
-		
-	}
+	public final static String RESIDUAL_MODE_FIELD = "mane_residual";
 	
 	
 	/**
-	 * Input layer.
+	 * Default value for residual mode.
 	 */
-	protected MatrixLayerAbstract inputLayer = null;
+	public final static boolean RESIDUAL_MODE_DEFAULT = true;
 
 	
 	/**
-	 * Residual function.
+	 * Staring layer.
 	 */
-	protected ResidualFunction residualRef = null;
-	
+	protected MatrixLayerAbstract startLayer = null;
+
 	
 	/**
 	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
@@ -118,66 +79,48 @@ public class ResidualLayer extends DropoutLayer {
 	
 	
 	/**
-	 * Getting input layer.
-	 * @return input layer.
+	 * Getting start layer.
+	 * @return start layer.
 	 */
-	public MatrixLayerAbstract getInputLayer() {return this.inputLayer;}
+	public MatrixLayerAbstract getStartLayer() {return this.startLayer;}
 	
-	
-	/**
-	 * Getting residual function.
-	 * @return residual function.
-	 */
-	public ResidualFunction getResidualRef() {return this.residualRef;}
-	
-	
-	/**
-	 * Setting residual function.
-	 * @param residualRef function.
-	 */
-	public void setResidualRef(ResidualFunction residualRef) {this.residualRef = residualRef;}
-	
-	
-	/**
-	 * Evaluating layer.
-	 * @param params additional parameters.
-	 * @return evaluated matrix as output.
-	 */
-	private Matrix evaluate0(Object...params) {
-		if (this.getResidualRef() == null || this.getInputLayer() == null || this.getPrevLayer() == null) return super.evaluate(params);
-		if (this.getWeight() == null) return super.evaluate(params);
+
+	@Override
+	Matrix evaluateByFilter() {
+		if (this.filter == null || this.prevLayer == null) return super.evaluateByFilter();
+		if (!this.filter.doesApplyActivate() || this.filter.isIndexMode()) return super.evaluateByFilter();
+		if (getStartLayer() == null) return super.evaluateByFilter();
+		assert (this.filter instanceof KernelFilterProduct);
 		
-		Matrix prevOutput = this.filter != null ? evaluateByFilter() : null;
-		this.input = prevOutput != null ? prevOutput : this.prevLayer.queryOutput();
-		this.input = this.weight.evaluate(this.input, this.bias);
-		this.input = this.input.add(this.getInputLayer().queryInput()); //This code line is very important.
-		this.output = !(this.weight instanceof NullWeight) ? this.input.evaluate0(this.getResidualRef()) : this.input;
+		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(this.prevLayer.queryOutput());
+		Matrix thisPrevInputConv = matrixToConvLayer(this.prevInput);
+		Matrix thisPrevOutputConv = matrixToConvLayer(this.prevOutput);
 		
-		Error.addLayerOInput(this, params);
-		return this.output;
+		this.filter.forward(prevLayerOutputConv, thisPrevInputConv, thisPrevOutputConv, this.filterBias, null/*this.getFilterActivateRef()*/); //Please pay attention to this code line.
+		this.prevInput = convLayerToMatrix(thisPrevInputConv);
+		this.prevInput = this.prevInput.add(getStartLayer().queryInput()); //This code line is important for residual network.
+		return this.prevOutput = this.prevInput.evaluate0(this.getFilterActivateRef());
 	}
 
 	
 	@Override
 	public Matrix evaluate(Object...params) {
-		if (!isDropoutMode()) return this.evaluate0(params);
-		if (!extractTrainingFlag(params)) {
-			this.dropoutMask = null;
-			return this.evaluate0(params);
+		if (this.getStartLayer() == null) return super.evaluate(params);
+		
+		if (this.prevLayer == null) return null;
+		Matrix prevOutput = this.filter != null ? evaluateByFilter() : null;
+		if (this.weight == null) {
+			Error.addLayerOInput(this, params);
+			return prevOutput;
 		}
-		setupMask();
-		if (this.dropoutMask == null) return this.evaluate0(params);
-        
-		Matrix thisOutput = this.evaluate0(params);
-		Matrix maskedOutput = this.dropoutMask.multiplyWise(thisOutput);
-		if (thisOutput == this.output) this.output = maskedOutput;
-        return maskedOutput;
-	}
-
-	
-	@Override
-	public Function getOutputActivateRef() {
-		return this.residualRef == null ? super.getOutputActivateRef() : this.residualRef;
+		
+		this.input = prevOutput != null ? prevOutput : this.prevLayer.queryOutput();
+		this.input = this.weight.evaluate(this.input, this.bias);
+		this.input = this.input.add(this.getStartLayer().queryInput()); //This code line is important for residual network.
+		this.output = this.getWeightActivateRef() != null ? this.input.evaluate0(this.getWeightActivateRef()) : this.input;
+		
+		Error.addLayerOInput(this, params);
+		return this.output;
 	}
 
 	

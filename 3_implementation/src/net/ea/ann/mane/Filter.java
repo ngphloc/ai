@@ -138,6 +138,18 @@ public interface Filter extends Serializable, Cloneable {
 
 	
 	/**
+	 * Accumulating kernel for L2 regularization.
+	 * @param dKernel kernel bias.
+	 * @param factor factor.
+	 * @param decay decay.
+	 * @return this filter.
+	 */
+	default Filter accumKernel(Kernel dKernel, double factor, double decay) {
+		return accumKernel(dKernel, factor);
+	}
+	
+	
+	/**
 	 * Forwarding evaluation from previous layer to current layer.
 	 * @param time time.
 	 * @param prevLayer current layer.

@@ -59,7 +59,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	/**
 	 * Default value of minimum width field.
 	 */
-	public final static int MINSIZE = 16; //= ImageListItem.ICON_MINSIZE/BASE_DEFAULT but it should be 32;
+	public final static int MINSIZE = 32; //= 16 or = ImageListItem.ICON_MINSIZE/BASE_DEFAULT but it should be 32;
 
 	
 //	/**
@@ -157,7 +157,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 
 
 	@Override
-	protected MatrixLayerAbstract newLayer() {
+	protected MatrixLayerAbstract newLayer(LayerSpec layerSpec) {
 		MatrixLayerImpl layer = new MatrixLayerImpl(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 		layer.setNetwork(this);
 		return layer;
@@ -186,7 +186,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		
 		//Initializing layer.
 		List<MatrixLayerAbstract> layers = Util.newList(layerSpecs.length);
-		MatrixLayerImpl prevLayer = (MatrixLayerImpl)newLayer();
+		MatrixLayerImpl prevLayer = (MatrixLayerImpl)newLayer(layerSpecs[0]);
 		if (layerSpecs[0].isVectorized()) prevLayer.setVecRows(layerSpecs[0].vecRows);
 		prevLayer.setLearnFilter(paramIsLearnFilter());
 		if (!new MatrixLayerInitializer(prevLayer).initialize(layerSpecs[0].size)) return false;
@@ -197,7 +197,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		Size thisSize = prevSize;
 		for (int i = 1; i < layerSpecs.length; i++) {
 			int thisVecRows = layerSpecs[i].vecRows;
-			MatrixLayerImpl layer = (MatrixLayerImpl)newLayer();
+			MatrixLayerImpl layer = (MatrixLayerImpl)newLayer(layerSpecs[i]);
 			if (layerSpecs[i].isVectorized()) layer.setVecRows(thisVecRows);
 			layer.setLearnFilter(paramIsLearnFilter());
 			
@@ -212,7 +212,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			if (layerSpecs[i].filterSpec == null || !dual) continue; //In dual model, for each pair of two successive layers, the previous one has only one filter and the later one has only one weight.
 			
 			thisSize = prevSize;
-			MatrixLayerImpl dualLayer = (MatrixLayerImpl)newLayer();
+			MatrixLayerImpl dualLayer = (MatrixLayerImpl)newLayer(layerSpecs[i]);
 			if (layerSpecs[i].isVectorized()) dualLayer.setVecRows(thisVecRows);
 			dualLayer.setLearnFilter(paramIsLearnFilter());
 			if (!new MatrixLayerInitializer(dualLayer).initialize(thisSize, prevSize, prevLayer, null)) return false;

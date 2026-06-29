@@ -314,6 +314,30 @@ class VGGExt extends VGG {
 
 	
 	/**
+	 * Configure class information.
+	 * @param nCoreClasses the number of rows and columns of core classes.
+	 * @return true if configuration is successful.
+	 */
+	private boolean configClassInfo(Size nCoreClasses) {
+		Map<Integer, int[]> outputClassMap = Util.newMap(0);
+		Map<Integer, int[]> classOutputMap = Util.newMap(0);
+		int nClass = paramIsByColumn() ? nCoreClasses.height : nCoreClasses.width;
+		int nClassCount = paramIsByColumn() ? nCoreClasses.width : nCoreClasses.height;
+		if (!configClassInfo(nClass, outputClassMap, classOutputMap)) return false;
+		
+		this.outputClassMaps.clear();
+		this.classOutputMaps.clear();
+		for (int count = 0; count < nClassCount; count++) {
+			this.outputClassMaps.add(outputClassMap);
+			this.classOutputMaps.add(classOutputMap);
+		}
+		
+		this.classMaps.clear();
+		return this.classOutputMaps.size() > 0;
+	}
+
+	
+	/**
 	 * Getting the number of output groups.
 	 * @return the number of output groups.
 	 */
@@ -396,7 +420,7 @@ class VGGExt extends VGG {
 			double maxProb = paramGetMaxClassProb();
 			int classCount = getNumberOfClasses(0);
 			if (maxProb >= 0.5 && maxProb < 1 && classCount > 1) {
-				minor = minor.valueOf((1-maxProb) / (classCount-1));
+				minor = minor.valueOf((1.0-maxProb) / (classCount-1));
 				major = major.valueOf(maxProb);
 			}
 		}
@@ -636,13 +660,6 @@ class VGGExt extends VGG {
 	}
 	
 	
-	@Override
-	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
-		reset0();
-		return super.initialize(inputSize, middleSize, outputSize);
-	}
-
-
 	/**
 	 * Initializing VGG model.
 	 * @param inputSize input size.
@@ -652,29 +669,18 @@ class VGGExt extends VGG {
 	 * @return true if initialization is successful.
 	 */
 	public boolean initialize(Size inputSize, Size middleSize, Size outputSize, Size nCoreClasses) {
+		reset0();
+		if (nCoreClasses != null) {
+			if (!configClassInfo(nCoreClasses)) return false;
+		}
+		
 		if (middleSize != null) {
 			if (!initialize(inputSize, middleSize, outputSize)) return false;
 		}
 		else {
 			if (!initialize(inputSize, outputSize)) return false;
 		}
-		if (nCoreClasses == null) return true;
-		
-		Map<Integer, int[]> outputClassMap = Util.newMap(0);
-		Map<Integer, int[]> classOutputMap = Util.newMap(0);
-		int nClass = paramIsByColumn() ? nCoreClasses.height : nCoreClasses.width;
-		int nClassCount = paramIsByColumn() ? nCoreClasses.width : nCoreClasses.height;
-		if (!configClassInfo(nClass, outputClassMap, classOutputMap)) return false;
-		
-		this.outputClassMaps.clear();
-		this.classOutputMaps.clear();
-		for (int count = 0; count < nClassCount; count++) {
-			this.outputClassMaps.add(outputClassMap);
-			this.classOutputMaps.add(classOutputMap);
-		}
-		
-		this.classMaps.clear();
-		return this.classOutputMaps.size() > 0;
+		return true;
 	}
 
 
@@ -1170,28 +1176,32 @@ class VGGExt extends VGG {
 	 * @return true if initialization is successful.
 	 */
 	public boolean initializeByCoreClasses(Size inputSize, Size middleSize, Size nCoreClasses) {
+		reset0();
+		if (nCoreClasses != null) {
+			if (!configClassInfo(nCoreClasses)) return false;
+		}
+
+		int outputCount = this.outputClassMaps.get(0).size();
+		int groupCount = getNumberOfGroups();
+		Size outputCombSize = paramIsByColumn() ? new Size(groupCount, outputCount, 1) : new Size(outputCount, groupCount, 1);
 		if (middleSize != null) {
-			if (!initialize(inputSize, middleSize, nCoreClasses)) return false;
+			if (!initialize(inputSize, middleSize, outputCombSize)) return false;
 		}
 		else {
-			if (!initialize(inputSize, nCoreClasses)) return false;
+			if (!initialize(inputSize, outputCombSize)) return false;
 		}
 		
-		Map<Integer, int[]> outputClassMap = Util.newMap(0);
-		Map<Integer, int[]> classOutputMap = Util.newMap(0);
-		int nClass = paramIsByColumn() ? nCoreClasses.height : nCoreClasses.width;
-		int nClassCount = paramIsByColumn() ? nCoreClasses.width : nCoreClasses.height;
-		if (!configClassInfo(nClass, outputClassMap, classOutputMap)) return false;
-		
-		this.outputClassMaps.clear();
-		this.classOutputMaps.clear();
-		for (int count = 0; count < nClassCount; count++) {
-			this.outputClassMaps.add(outputClassMap);
-			this.classOutputMaps.add(classOutputMap);
+		Matrix output = getCoreOutput();
+		if (paramIsByColumn()) {
+			if (output.rows() != this.outputClassMaps.get(0).size() ||
+				output.columns() != this.outputClassMaps.size()) return false;
+		}
+		else {
+			if (output.rows() != this.outputClassMaps.size() ||
+				output.columns() != this.outputClassMaps.get(0).size()) return false;
 		}
 		
-		this.classMaps.clear();
-		return this.classOutputMaps.size() > 0;
+		return true;
 	}
 
 

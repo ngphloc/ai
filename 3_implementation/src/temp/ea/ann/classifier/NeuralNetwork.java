@@ -1,4 +1,4 @@
-package temp.ea.ann;
+package temp.ea.ann.classifier;
 
 import java.util.ArrayList;
 import java.util.Arrays;

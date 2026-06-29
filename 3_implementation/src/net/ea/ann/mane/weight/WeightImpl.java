@@ -10,6 +10,8 @@ package net.ea.ann.mane.weight;
 import java.io.Serializable;
 import java.util.Random;
 
+import net.ea.ann.core.TextParsable;
+import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
@@ -26,7 +28,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class WeightImpl implements Weight {
+public class WeightImpl implements Weight, TextParsable {
 
 
 	/**
@@ -194,6 +196,13 @@ public class WeightImpl implements Weight {
 	}
 
 	
+	@Override
+	public Weight accumKernel(Kernel dKernel, double factor, double decay) {
+		this.kernel = (WKernel)this.kernel.multiply(decay).add(dKernel.multiply(factor));
+		return this;
+	}
+
+
 	/**
 	 * Evaluating inputs.
 	 * @param time time.
@@ -378,7 +387,7 @@ public class WeightImpl implements Weight {
 	@Override
 	public void initParams(double v) {
 		MatrixStack[] W1 = W1();
-		MatrixStack[] W2 = W1();
+		MatrixStack[] W2 = W2();
 		if (W1 != null) {
 			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, v);
 		}
@@ -391,7 +400,7 @@ public class WeightImpl implements Weight {
 	@Override
 	public void initParams(Random rnd) {
 		MatrixStack[] W1 = W1();
-		MatrixStack[] W2 = W1();
+		MatrixStack[] W2 = W2();
 		if (W1 != null) {
 			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, rnd);
 		}
@@ -405,7 +414,7 @@ public class WeightImpl implements Weight {
 	public int sizeOfParams() {
 		int size = 0;
 		MatrixStack[] W1 = W1();
-		MatrixStack[] W2 = W1();
+		MatrixStack[] W2 = W2();
 		if (W1 != null) {
 			for (MatrixStack w1 : W1) size += MatrixUtil.capacity(w1);
 		}
@@ -415,6 +424,26 @@ public class WeightImpl implements Weight {
 		return size;
 	}
 	
+
+	@Override
+	public String toText() {
+		if (kernel == null) return "{}";
+		
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("{");
+		
+		MatrixStack[] W1 = W1();
+		if (W1 != null) buffer.append("W1 = {" + Util.toText(W1, ",") + "}");
+		MatrixStack[] W2 = W2();
+		if (W2 != null) {
+			if (W1 != null) buffer.append(", ");
+			buffer.append("W2 = {" + Util.toText(W2, ",") + "}");
+		}
+		
+		buffer.append("}");
+		return buffer.toString();
+	}
+
 
 	/**
 	 * Creating weight.

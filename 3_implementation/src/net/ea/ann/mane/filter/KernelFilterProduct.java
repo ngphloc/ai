@@ -10,11 +10,14 @@ package net.ea.ann.mane.filter;
 import java.awt.Dimension;
 import java.util.Random;
 
+import net.ea.ann.core.TextParsable;
+import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
@@ -25,7 +28,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class KernelFilterProduct extends KernelFilter {
+public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 
 	/**
@@ -176,6 +179,13 @@ public class KernelFilterProduct extends KernelFilter {
 	}
 	
 	
+	@Override
+	public Filter accumKernel(Kernel dKernel, double factor, double decay) {
+		this.kernel = this.kernel.multiply(decay).add(dKernel.multiply(factor));
+		return this;
+	}
+
+
 	/**
 	 * Getting internal weight.
 	 * @return internal weight.
@@ -344,6 +354,22 @@ public class KernelFilterProduct extends KernelFilter {
 		MatrixStack[] kernel = this.kernel.W;
 		for (MatrixStack ker : kernel) size += MatrixUtil.capacity(ker);
 		return size;
+	}
+
+
+	@Override
+	public String toText() {
+		if (kernel == null) return "{}";
+		
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("{");
+		
+		MatrixStack[] W0 = kernel.W;
+		buffer.append("W = {" + Util.toText(W0, ",") + "}");
+		if (weight != null) buffer.append(", w = " + (weight instanceof TextParsable ? ((TextParsable)weight).toText() : weight.toString()));
+		
+		buffer.append("}");
+		return buffer.toString();
 	}
 
 

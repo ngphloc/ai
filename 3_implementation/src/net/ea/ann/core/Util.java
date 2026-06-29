@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -256,6 +257,22 @@ public class Util {
 		
 	}
 
+	
+	/**
+	 * Random access writing.
+	 * @param path file path.
+	 * @param object object to be written.
+	 */
+	public static void randomWrite(String path, Object object) {
+		try (RandomAccessFile raf = new RandomAccessFile(path, "rw")) {
+			raf.seek(raf.length());
+			String text = object instanceof TextParsable ? ((TextParsable)object).toText() : object.toString();
+			raf.writeBytes(text);
+			raf.close();
+		}
+		catch (Throwable e) {Util.trace(e);}
+	}
+	
 	
 	/**
 	 * Randomizing Gaussian number.

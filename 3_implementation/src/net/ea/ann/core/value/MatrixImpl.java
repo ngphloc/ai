@@ -8,6 +8,7 @@
 package net.ea.ann.core.value;
 
 import net.ea.ann.conv.Content;
+import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.raster.Size;
 
@@ -18,7 +19,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class MatrixImpl implements Matrix {
+public class MatrixImpl implements Matrix, TextParsable {
 
 	
 	/**
@@ -391,6 +392,25 @@ public class MatrixImpl implements Matrix {
 			}
 		}
 		return matrix;
+	}
+
+
+	@Override
+	public String toText() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("{");
+		for (int row = 0; row < rows(); row++) {
+			if (row > 0) buffer.append(", ");
+			buffer.append("{");
+			for (int column = 0; column < columns(); column++) {
+				if (column > 0) buffer.append(", ");
+				NeuronValue value = get(row, column);
+				buffer.append(value instanceof TextParsable ? ((TextParsable)value).toText() : value.toString());
+			}
+			buffer.append("}");
+		}
+		buffer.append("}");
+		return buffer.toString();
 	}
 
 

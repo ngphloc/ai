@@ -672,12 +672,14 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 	
 	@Override
 	public String toText() {
-		if (v == null || v.length == 0) return "";
+		if (v == null || v.length == 0) return "{}";
 		StringBuffer buffer = new StringBuffer();
+		buffer.append("{");
 		for (int i = 0; i < v.length; i++) {
 			if ( i > 0) buffer.append(", ");
 			buffer.append(Util.format(v[i]));
 		}
+		buffer.append("}");
 		return buffer.toString();
 	}
 	

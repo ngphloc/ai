@@ -32,7 +32,7 @@ public interface Weight extends Cloneable, Serializable {
 	 * Weight can have false back-warding error mode but filter has always true back-warding error.
 	 * The default weight which is {@link WeightImpl} has true back-warding error mode and so true back-warding error mode is usual but
 	 * some weights like {@link WeightNetworkImpl} and {@link TransformerWeight} has false back-warding error mode because they focus on their layers.
-	 * Anyhow back-warding error mode is important to connect two successive layers together when it is true.
+	 * Anyhow true back-warding error mode is important to connect two successive layers together when it is true.
 	 * @return back-warding error mode.
 	 */
 	default boolean backwardErrorMode( ) {return true;}
@@ -47,6 +47,18 @@ public interface Weight extends Cloneable, Serializable {
 	Weight accumKernel(Kernel dKernel, double factor);
 
 		
+	/**
+	 * Accumulating kernel for L2 regularization.
+	 * @param dKernel kernel bias.
+	 * @param factor factor.
+	 * @param decay decay.
+	 * @return this weight.
+	 */
+	default Weight accumKernel(Kernel dKernel, double factor, double decay) {
+		return accumKernel(dKernel, factor);
+	}
+	
+	
 	/**
 	 * Evaluating inputs.
 	 * @param time time.

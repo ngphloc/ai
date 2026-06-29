@@ -7,6 +7,8 @@
  */
 package net.ea.ann.core.value;
 
+import net.ea.ann.core.TextParsable;
+import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.FunctionInvertible;
 import net.ea.ann.raster.Size;
@@ -381,7 +383,7 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, WeightVa
  * @version 1.0
  *
  */
-abstract class NeuronValueM0 implements Matrix {
+abstract class NeuronValueM0 implements Matrix, TextParsable {
 
 	
 	/**
@@ -765,6 +767,24 @@ abstract class NeuronValueM0 implements Matrix {
 	}
 
 	
+	@Override
+	public String toText() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("{");
+		for (int row = 0; row < rows(); row++) {
+			if (row > 0) buffer.append(", ");
+			buffer.append("{");
+			for (int column = 0; column < columns(); column++) {
+				if (column > 0) buffer.append(", ");
+				buffer.append(Util.format(this.data[row][column]));
+			}
+			buffer.append("}");
+		}
+		buffer.append("}");
+		return buffer.toString();
+	}
+
+
 	/**
 	 * Generate cofactor of matrix, the code is available at https://stackoverflow.com/questions/16602350/calculating-matrix-determinant
 	 * @param A specific squared matrix.

@@ -13,10 +13,12 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.core.function.IdentityDefault;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.filter.NetworkFilter;
+import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.NetworkWeight;
 import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.raster.Size;
@@ -242,6 +244,13 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			this.output = this.input = newMatrix(new Size(size.width, size.height, size.depth)); //Only for input layer where both filter and weights are null and so, its input and output must be initialized.
 		}
 		
+		//Setting identity activation function for null weight and network weight.
+		if ((this.weight != null) && (this.weight instanceof NullWeight || this.weight instanceof NetworkWeight))
+			this.setWeightActivateRef(IdentityDefault.identity());
+		//Setting filter activation function for filter activate weight.
+		if (this.weight != null && this.weight instanceof ActivateFWeight && this.getFilterActivateRef() != null)
+			this.setWeightActivateRef(this.getFilterActivateRef());
+		
 		resetBackwardInfo(); //Fixing date: 2026.06.05
 		return true;
 	}
@@ -312,7 +321,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 
 	@Override
-	protected Weight getWeight() {return weight;}
+	public Weight getWeight() {return weight;}
 
 	
 	@Override
@@ -360,7 +369,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 	
 	@Override
-	protected Filter getFilter() {return filter;}
+	public Filter getFilter() {return filter;}
 
 
 	@Override
@@ -452,7 +461,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 */
 	Filter accumFilterKernel(Kernel dFKernel, double learningRate) {
 		if (this.filter == null) return this.filter;
-		return this.filter.accumKernel(dFKernel, learningRate);
+		return this.filter.accumKernel(dFKernel, learningRate); //No L2 regularization for filter.
 	}
 	
 	
@@ -483,8 +492,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		
 		this.input = prevOutput != null ? prevOutput : this.prevLayer.queryOutput();
 		this.input = this.weight.evaluate(this.input, this.bias);
-		this.output = (this.getWeightActivateRef() != null) && !(this.weight instanceof NullWeight) ?
-			this.input.evaluate0(this.getWeightActivateRef()) : this.input;
+		this.output = this.getWeightActivateRef() != null ? this.input.evaluate0(this.getWeightActivateRef()) : this.input;
 		
 		Error.addLayerOInput(this, params);
 		return this.output;
@@ -493,17 +501,25 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 	@Override
 	public Matrix forward(Record...inputs) {
-		Matrix input = inputs != null && inputs.length > 0 ? inputs[0].input() : null;
+		Matrix input0 = inputs != null && inputs.length > 0 ? inputs[0].input() : null;
+		assert (input0 != null);
+		Object[] params = inputs[0].params.toArray(new Object[] {});
+		Matrix result = null;
 		if (this.prevLayer == null) {
-			if (input != null) MatrixUtil.copy(input, this.input);
+			assert (getPrevInput() == null && getPrevOutput() == null);
+			if (input0 != null) MatrixUtil.copy(input0, this.input);
+			assert (this.input == this.output);
 			if (this.input != this.output) this.output = this.input;
-			if (this.nextLayer == null) return input;
+			result = this.output;
+		}
+		else {
+			if (input0 != null) MatrixUtil.copy(input0, this.queryInput());
+			result = this.evaluate(params);
 		}
 		
-		MatrixLayer nextLayer = null;
-		Matrix result = null;
-		while ((nextLayer = this.getNextLayer()) != null) {
-			result = nextLayer.evaluate(inputs[0].params.toArray(new Object[] {}));
+		MatrixLayer nextLayer0 = null;
+		while ((nextLayer0 = this.getNextLayer()) != null) {
+			result = nextLayer0.evaluate(params);
 		}
 		return result;
 	}
@@ -557,9 +573,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				Function thisActivateRef = this.weight != null ? this.getWeightActivateRef() :
 					(this.filter != null && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ?
 						this.getFilterActivateRef() : null); //Getting right-most activation function. Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
-				Matrix input = actualErrInput != null ? actualErrInput : queryInput(); //X^k-1 = input.
-				Matrix output = actualErrOutput != null ? actualErrOutput : queryOutput(); //Xk = output.
-				errors[i] = this.nextLayer.getWeight().dValue(input, output, outputErrors[i].error(), thisActivateRef);
+				Matrix input0 = actualErrInput != null ? actualErrInput : queryInput(); //X^k-1 = input.
+				Matrix output0 = actualErrOutput != null ? actualErrOutput : queryOutput(); //Xk = output.
+				errors[i] = this.nextLayer.getWeight().dValue(input0, output0, outputErrors[i].error(), thisActivateRef);
 			}
 			else {
 				errors[i] = outputErrors[i].error(); //Getting value errors from next layer.
@@ -571,23 +587,23 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			//Calculating weight gradient.
 			if (this.weight != null) {
 				if (this.weight.backwardErrorMode()) {
-					Matrix prevOutput = errPrevOutput != null ? errPrevOutput : getPrevOutput();
-					prevOutput = prevOutput != null ? prevOutput : this.prevLayer.queryOutput();
-					dWKernels[i] = this.weight.dKernel(prevOutput, errors[i]);
+					Matrix prevOutput0 = errPrevOutput != null ? errPrevOutput : getPrevOutput();
+					prevOutput0 = prevOutput0 != null ? prevOutput0 : this.prevLayer.queryOutput();
+					dWKernels[i] = this.weight.dKernel(prevOutput0, errors[i]);
 				}
 				else {
 					//Calculating value errors at this layer.
-					Matrix prevInput = errPrevOutput != null ? errPrevOutput : (errPrevPrevInput != null ? errPrevPrevInput : getPrevOutput()); //If actualPrevOutput is null then actualPrevInput is always null.
-					prevInput = prevInput != null ? prevInput : this.prevLayer.queryOutput(); //If the method getPrevOutput() returns null then the method getPrevInput() always returns null.
-					Matrix prevOutput = getInput();
+					Matrix prevInput0 = errPrevOutput != null ? errPrevOutput : (errPrevPrevInput != null ? errPrevPrevInput : getPrevOutput()); //If actualPrevOutput is null then actualPrevInput is always null.
+					prevInput0 = prevInput0 != null ? prevInput0 : this.prevLayer.queryOutput(); //If the method getPrevOutput() returns null then the method getPrevInput() always returns null.
+					Matrix prevOutput0 = getInput();
 					//Variables prevInput and prevOutput are not important for network weight and transformer because they do not take derivatives on such variables when they have particular internal structures.
 					if (this.weight instanceof NetworkWeight) {
-						errors[i] = ((NetworkWeight)this.weight).dValue(prevInput, prevOutput, errors[i], this.getWeightActivateRef(), learning, learningRate);
+						errors[i] = ((NetworkWeight)this.weight).dValue(prevInput0, prevOutput0, errors[i], this.getWeightActivateRef(), learning, learningRate);
 						dWKernels[i] = null;
 					}
 					else {
-						errors[i] = this.weight.dValue(prevInput, prevOutput, errors[i], this.getWeightActivateRef());
-						dWKernels[i] = this.weight.dKernel(prevOutput, errors[i]);
+						errors[i] = this.weight.dValue(prevInput0, prevOutput0, errors[i], this.getWeightActivateRef());
+						dWKernels[i] = this.weight.dKernel(prevOutput0, errors[i]);
 					}
 				}
 			} //Calculating weight gradient.
@@ -597,9 +613,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				if (this.weight != null && this.weight.backwardErrorMode()) {
 					//Calculating value errors at this layer.
 					Function thisActivateRef = this.filter.doesApplyActivate() && !this.filter.isIndexMode() ? this.getFilterActivateRef() : null; //Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
-					Matrix prevInput = errPrevInput != null ? errPrevInput : getPrevInput();
-					Matrix prevOutput = getPrevOutput();
-					errors[i] = this.weight.dValue(prevInput, prevOutput, errors[i], thisActivateRef);
+					Matrix prevInput0 = errPrevInput != null ? errPrevInput : getPrevInput();
+					Matrix prevOutput0 = getPrevOutput();
+					errors[i] = this.weight.dValue(prevInput0, prevOutput0, errors[i], thisActivateRef);
 				}
 				dFBiases[i] = MatrixUtil.valueSum(errors[i]); //Filter errors.
 				dFKernels[i] = dFilterKernel(errors[i], outputErrors[i]);
@@ -612,42 +628,42 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		
 		//Update weight bias, first weight, and second weight.
 		if (this.bias != null) {
-			Matrix dBiasMean = MatrixUtil.mean(errors);
+			Matrix dBiasMean0 = MatrixUtil.mean(errors);
 			if (learning) {
-				Matrix bias = this.bias.add(dBiasMean.multiply0(learningRate));
-				this.setBias(bias);
+				Matrix bias0 = this.bias.add(dBiasMean0.multiply0(learningRate));
+				this.setBias(bias0);
 			}
 			else
-				this.dWBiasAccum = this.dWBiasAccum != null ? this.dWBiasAccum.add(dBiasMean) : dBiasMean;
+				this.dWBiasAccum = this.dWBiasAccum != null ? this.dWBiasAccum.add(dBiasMean0) : dBiasMean0;
 		}
 		if (this.weight != null && dWKernels[0] != null) {
-			Kernel dWKernelMean = Kernel.mean(dWKernels);
+			Kernel dWKernelMean0 = Kernel.mean(dWKernels);
 			if (learning) {
-//				this.weight = this.weight.accumKernel(dWKernelMean, learningRate);
-				if (this.weight != this.weight.accumKernel(dWKernelMean, learningRate)) throw new IllegalArgumentException();
+//				this.weight = this.weight.accumKernel(dWKernelMean0, learningRate/*, decay(learningRate, dWKernels.length)*/);
+				if (this.weight != this.weight.accumKernel(dWKernelMean0, learningRate/*, decay(learningRate, dWKernels.length)*/)) throw new IllegalArgumentException();
 			}
 			else 
-				this.dWKernelAccum = this.dWKernelAccum != null ? this.dWKernelAccum.add(dWKernelMean) : dWKernelMean;
+				this.dWKernelAccum = this.dWKernelAccum != null ? this.dWKernelAccum.add(dWKernelMean0) : dWKernelMean0;
 		}
 		
 		//Update filter and filter bias.
 		if (this.filter != null && isLearnFilter()) {
-			NeuronValue dFilterBiasMean = NeuronValue.valueMean(dFBiases);
+			NeuronValue dFilterBiasMean0 = NeuronValue.valueMean(dFBiases);
 			if (learning) {
-				NeuronValue filterBias = this.filterBias.add(dFilterBiasMean.multiply(learningRate));
-				setFilterBias(filterBias);
+				NeuronValue filterBias0 = this.filterBias.add(dFilterBiasMean0.multiply(learningRate));
+				setFilterBias(filterBias0);
 			}
 			else
-				this.dFBiasAccum = this.dFBiasAccum != null ? this.dFBiasAccum.add(dFilterBiasMean) : dFilterBiasMean;
+				this.dFBiasAccum = this.dFBiasAccum != null ? this.dFBiasAccum.add(dFilterBiasMean0) : dFilterBiasMean0;
 			
 			if (dFKernels[0] != null) {
-				Kernel dFilterKernelMean = Kernel.mean(dFKernels);
+				Kernel dFilterKernelMean0 = Kernel.mean(dFKernels);
 				if (learning) {
-//					this.filter = accumFilterKernel(dFilterKernelMean, learningRate);
-					if (this.filter != accumFilterKernel(dFilterKernelMean, learningRate)) throw new IllegalArgumentException();
+//					this.filter = accumFilterKernel(dFilterKernelMean0, learningRate);
+					if (this.filter != accumFilterKernel(dFilterKernelMean0, learningRate)) throw new IllegalArgumentException();
 				}
 				else
-					this.dFKernelAccum = this.dFKernelAccum != null ? this.dFKernelAccum.add(dFilterKernelMean) : dFilterKernelMean;
+					this.dFKernelAccum = this.dFKernelAccum != null ? this.dFKernelAccum.add(dFilterKernelMean0) : dFilterKernelMean0;
 			}
 		}
 		
@@ -702,15 +718,15 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		
 		//Update weight bias, first weight, and second weight.
 		if (this.bias != null && this.dWBiasAccum != null) {
-			Matrix dBiasMean = this.dWBiasAccum.divide0(recordCount);
-			Matrix bias = this.getBias().add(dBiasMean.multiply0(learningRate));
-			this.setBias(bias);
+			Matrix dBiasMean0 = this.dWBiasAccum.divide0(recordCount);
+			Matrix bias0 = this.getBias().add(dBiasMean0.multiply0(learningRate));
+			this.setBias(bias0);
 			this.dWBiasAccum = null;
 		}
 		if (this.weight != null && this.dWKernelAccum != null) {
-			Kernel dWMean = this.dWKernelAccum.divide(recordCount);
-//			this.weight = this.weight.accumKernel(dWMean, learningRate);
-			if (this.weight != this.weight.accumKernel(dWMean, learningRate)) throw new IllegalArgumentException();
+			Kernel dWMean0 = this.dWKernelAccum.divide(recordCount);
+//			this.weight = this.weight.accumKernel(dWMean0, learningRate/*, decay(learningRate, dWKernels.length)*/);
+			if (this.weight != this.weight.accumKernel(dWMean0, learningRate/*, decay(learningRate, dWKernels.length)*/)) throw new IllegalArgumentException();
 			this.dWKernelAccum = null;
 		}
 		if (this.weight != null && this.weight instanceof NetworkWeight) {
@@ -720,16 +736,16 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		//Update filter and filter bias.
 		if (this.filter != null && this.isLearnFilter()) {
 			if (this.dFBiasAccum != null) {
-				NeuronValue dFilterBiasMean = this.dFBiasAccum.divide(recordCount);
-				NeuronValue filterBias = this.filterBias.add(dFilterBiasMean.multiply(learningRate));
-				this.setFilterBias(filterBias);
+				NeuronValue dFilterBiasMean0 = this.dFBiasAccum.divide(recordCount);
+				NeuronValue filterBias0 = this.filterBias.add(dFilterBiasMean0.multiply(learningRate));
+				this.setFilterBias(filterBias0);
 				this.dFBiasAccum = null;
 			}
 			
 			if (this.dFKernelAccum != null) {
-				Kernel dFilterKernelMean = this.dFKernelAccum.divide(recordCount);
-//				this.filter = accumFilterKernel(dFilterKernelMean, learningRate);
-				if (this.filter != accumFilterKernel(dFilterKernelMean, learningRate)) throw new IllegalArgumentException();
+				Kernel dFilterKernelMean0 = this.dFKernelAccum.divide(recordCount);
+//				this.filter = accumFilterKernel(dFilterKernelMean0, learningRate);
+				if (this.filter != accumFilterKernel(dFilterKernelMean0, learningRate)) throw new IllegalArgumentException();
 				this.dFKernelAccum = null;
 			}
 		}

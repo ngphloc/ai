@@ -163,9 +163,8 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	public List<G> recoverRasters(Iterable<Raster> sample, Iterable<Raster> rasters, int nGens) throws RemoteException {
 		Classifier gm = createDelegate();
 		gm.learnRaster(sample);
-		
-		gm.learnRaster(sample);
 		List<Raster> results = gm.classify(rasters);
+		
 		List<G> glist = Util.newList(results.size());
 		for (Raster result : results) {
 			G g = new G();

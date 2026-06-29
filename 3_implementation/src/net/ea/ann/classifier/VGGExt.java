@@ -68,8 +68,8 @@ public class VGGExt extends NetworkAbstract implements Classifier {
 	@Override
 	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
 		this.classifier.setConfig(this.config);
-
-		Error [] errors = classifier.learnRasterByCoreClassesWithImplicitMiddleSize(sample);
+		
+		Error [] errors = this.classifier.learnRasterByCoreClassesWithImplicitMiddleSize(sample);
 		
 		NeuronValue[] errorArray = null;
 		for (Error error : errors) {
@@ -78,6 +78,20 @@ public class VGGExt extends NetworkAbstract implements Classifier {
 		}
 		return errorArray;
 	}
+
+	
+//	@Override
+//	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
+//		classifier.setConfig(this.config);
+//		
+//		classifier.initializeByCoreClassesWithImplicitMiddleSize(sample);
+//		for (int i = 0; i < classifier.size(); i++) {
+//			classifier.get(i).setWeightActivateRef(IdentityDefault.identity());
+//			classifier.get(i).setFilterActivateRef(IdentityDefault.identity());
+//		}
+//		
+//		return new NeuronValue[] {};
+//	}
 
 	
 	@Override
