@@ -55,6 +55,18 @@ public class VGGClassifier extends VGGExt {
 
 	
 	/**
+	 * Field for mean base line field.
+	 */
+	public static final String BASELINE_MEAN_FIELD = "classifier_baseline_mean";
+	
+	
+	/**
+	 * Default value for mean base line field.
+	 */
+	public static final boolean BASELINE_MEAN_DEFAULT = false;
+
+	
+	/**
 	 * Field for cross-entropy trainer.
 	 */
 	public static final String ENTROPY_TRAINER_FIELD = "classifier_entropy_trainer";
@@ -82,6 +94,7 @@ public class VGGClassifier extends VGGExt {
 	public VGGClassifier(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 		config.put(BASELINE_FIELD, BASELINE_DEFAULT);
+		config.put(BASELINE_MEAN_FIELD, BASELINE_MEAN_DEFAULT);
 		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
 	}
 
@@ -245,9 +258,16 @@ public class VGGClassifier extends VGGExt {
 		Matrix output0 = OUTPUT0 instanceof MatrixStack ? ((MatrixStack)OUTPUT0).get() : OUTPUT0;
 		for (int d = 0; d < baselines.length; d++) {
 			baselines[d] = output0.create(new Size(output0.columns(), output0.rows()));
-			MatrixUtil.fill(baselines[d], 0/*1*/);
 			countBaselines[d] = baselines[d].create(new Size(baselines[d].columns(), baselines[d].rows()));
-			MatrixUtil.fill(countBaselines[d], 0);
+			if (paramIsBaselineMean()) {
+				MatrixUtil.fill(baselines[d], 0);
+				MatrixUtil.fill(countBaselines[d], 0);
+			}
+			else {
+				double max = paramIsNorm() || paramIsEntropyTrainer() ? 1 : Float.MAX_VALUE;
+				MatrixUtil.fill(baselines[d], max);
+				MatrixUtil.fill(countBaselines[d], 1);
+			}
 		}
 		
 		int combNumber = paramGetCombNumber();
@@ -299,20 +319,28 @@ public class VGGClassifier extends VGGExt {
 						if (!indicator[index]) continue;
 						NeuronValue unit = countBaselines[d].get(0, 0).unit();
 						if (paramIsByColumn()) {
-							NeuronValue value = baselines[d].get(index, group).add(outputOne[index]);
-//							NeuronValue value = baselines[d].get(index, group).min(outputOne[index]);
-							baselines[d].set(index, group, value);
-							NeuronValue c = countBaselines[d].get(index, group).add(unit);
-//							NeuronValue c = unit;
-							countBaselines[d].set(index, group, c);
+							if (paramIsBaselineMean()) {
+								NeuronValue value = baselines[d].get(index, group).add(outputOne[index]);
+								baselines[d].set(index, group, value);
+								NeuronValue c = countBaselines[d].get(index, group).add(unit);
+								countBaselines[d].set(index, group, c);
+							}
+							else {
+								NeuronValue value = baselines[d].get(index, group).min(outputOne[index]);
+								baselines[d].set(index, group, value);
+							}
 						}
 						else {
-							NeuronValue value = baselines[d].get(group, index).add(outputOne[index]);
-//							NeuronValue value = baselines[d].get(group, index).min(outputOne[index]);
-							baselines[d].set(group, index, value);
-							NeuronValue c = countBaselines[d].get(group, index).add(unit);
-//							NeuronValue c = unit;
-							countBaselines[d].set(group, index, c);
+							if (paramIsBaselineMean()) {
+								NeuronValue value = baselines[d].get(group, index).add(outputOne[index]);
+								baselines[d].set(group, index, value);
+								NeuronValue c = countBaselines[d].get(group, index).add(unit);
+								countBaselines[d].set(group, index, c);
+							}
+							else {
+								NeuronValue value = baselines[d].get(group, index).min(outputOne[index]);
+								baselines[d].set(group, index, value);
+							}
 						}
 					}
 				} //End group.
@@ -320,20 +348,22 @@ public class VGGClassifier extends VGGExt {
 		} //End sample.
 
 		//Mean of base lines.
-		for (int d = 0; d < baselines.length; d++) {
-			for (int row = 0; row < baselines[d].rows(); row++) {
-				for (int column = 0; column < baselines[d].columns(); column++) {
-					NeuronValue value = baselines[d].get(row, column);
-					NeuronValue c = countBaselines[d].get(row, column);
-					if (c.canInvertWise())
-						value = value.divide(c);
-					else if (paramIsNorm() || paramIsEntropyTrainer())
-						value = value.unit();
-					else {
-						value = value.valueOf(Float.MAX_VALUE); //Improving this code line later for non-normalized case.
-						System.out.println("Improving this code line later for non-normalized case.");
+		if (paramIsBaselineMean()) {
+			for (int d = 0; d < baselines.length; d++) {
+				for (int row = 0; row < baselines[d].rows(); row++) {
+					for (int column = 0; column < baselines[d].columns(); column++) {
+						NeuronValue value = baselines[d].get(row, column);
+						NeuronValue c = countBaselines[d].get(row, column);
+						if (c.canInvertWise())
+							value = value.divide(c);
+						else if (paramIsNorm() || paramIsEntropyTrainer())
+							value = value.unit();
+						else {
+							value = value.valueOf(Float.MAX_VALUE); //Improving this code line later for non-normalized case.
+							System.out.println("Improving this code line later for non-normalized case.");
+						}
+						baselines[d].set(row, column, value);
 					}
-					baselines[d].set(row, column, value);
 				}
 			}
 		}
@@ -365,6 +395,29 @@ public class VGGClassifier extends VGGExt {
 	}
 
 
+	/**
+	 * Checking baseline mean mode.
+	 * @return baseline mean mode.
+	 */
+	boolean paramIsBaselineMean() {
+		if (config.containsKey(BASELINE_MEAN_FIELD))
+			return config.getAsBoolean(BASELINE_MEAN_FIELD);
+		else
+			return BASELINE_MEAN_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting baseline mean mode.
+	 * @param baseline baseline mean mode.
+	 * @return this classifier.
+	 */
+	VGGClassifier paramSetBaselineMean(boolean baselineMean) {
+		config.put(BASELINE_MEAN_FIELD, baselineMean);
+		return this;
+	}
+
+	
 	/**
 	 * Checking cross-entropy trainer mode.
 	 * @return cross-entropy trainer weight mode.
