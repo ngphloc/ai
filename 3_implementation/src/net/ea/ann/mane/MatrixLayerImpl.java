@@ -457,11 +457,12 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Accumulating filter kernel.
 	 * @param dFKernel filter kernel gradient.
 	 * @param learningRate learning rate.
+	 * @param recordCount record count.
 	 * @return return accumulated filter. 
 	 */
-	Filter accumFilterKernel(Kernel dFKernel, double learningRate) {
+	Filter accumFilterKernel(Kernel dFKernel, double learningRate, int recordCount) {
 		if (this.filter == null) return this.filter;
-		return this.filter.accumKernel(dFKernel, learningRate); //No L2 regularization for filter.
+		return this.filter.accumKernel(dFKernel, learningRate, decay(learningRate, recordCount));
 	}
 	
 	
@@ -639,8 +640,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (this.weight != null && dWKernels[0] != null) {
 			Kernel dWKernelMean0 = Kernel.mean(dWKernels);
 			if (learning) {
-//				this.weight = this.weight.accumKernel(dWKernelMean0, learningRate/*, decay(learningRate, dWKernels.length)*/);
-				if (this.weight != this.weight.accumKernel(dWKernelMean0, learningRate/*, decay(learningRate, dWKernels.length)*/)) throw new IllegalArgumentException();
+//				this.weight = this.weight.accumKernel(dWKernelMean0, learningRate, decay(learningRate, dWKernels.length));
+				if (this.weight != this.weight.accumKernel(dWKernelMean0, learningRate, decay(learningRate, dWKernels.length))) throw new IllegalArgumentException();
 			}
 			else 
 				this.dWKernelAccum = this.dWKernelAccum != null ? this.dWKernelAccum.add(dWKernelMean0) : dWKernelMean0;
@@ -659,8 +660,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			if (dFKernels[0] != null) {
 				Kernel dFilterKernelMean0 = Kernel.mean(dFKernels);
 				if (learning) {
-//					this.filter = accumFilterKernel(dFilterKernelMean0, learningRate);
-					if (this.filter != accumFilterKernel(dFilterKernelMean0, learningRate)) throw new IllegalArgumentException();
+//					this.filter = accumFilterKernel(dFilterKernelMean0, learningRate, dFKernels.length);
+					if (this.filter != accumFilterKernel(dFilterKernelMean0, learningRate, dFKernels.length)) throw new IllegalArgumentException();
 				}
 				else
 					this.dFKernelAccum = this.dFKernelAccum != null ? this.dFKernelAccum.add(dFilterKernelMean0) : dFilterKernelMean0;
@@ -725,8 +726,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		if (this.weight != null && this.dWKernelAccum != null) {
 			Kernel dWMean0 = this.dWKernelAccum.divide(recordCount);
-//			this.weight = this.weight.accumKernel(dWMean0, learningRate/*, decay(learningRate, dWKernels.length)*/);
-			if (this.weight != this.weight.accumKernel(dWMean0, learningRate/*, decay(learningRate, dWKernels.length)*/)) throw new IllegalArgumentException();
+//			this.weight = this.weight.accumKernel(dWMean0, learningRate, decay(learningRate, recordCount));
+			if (this.weight != this.weight.accumKernel(dWMean0, learningRate, decay(learningRate, recordCount))) throw new IllegalArgumentException();
 			this.dWKernelAccum = null;
 		}
 		if (this.weight != null && this.weight instanceof NetworkWeight) {
@@ -744,8 +745,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			
 			if (this.dFKernelAccum != null) {
 				Kernel dFilterKernelMean0 = this.dFKernelAccum.divide(recordCount);
-//				this.filter = accumFilterKernel(dFilterKernelMean0, learningRate);
-				if (this.filter != accumFilterKernel(dFilterKernelMean0, learningRate)) throw new IllegalArgumentException();
+//				this.filter = accumFilterKernel(dFilterKernelMean0, learningRate, recordCount);
+				if (this.filter != accumFilterKernel(dFilterKernelMean0, learningRate, recordCount)) throw new IllegalArgumentException();
 				this.dFKernelAccum = null;
 			}
 		}

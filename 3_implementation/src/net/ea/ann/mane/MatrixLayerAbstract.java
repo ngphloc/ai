@@ -720,12 +720,12 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	/**
 	 * Getting decay factor for L2 regularization.
 	 * @param learningRate learning rate.
-	 * @param batchSize batch size.
+	 * @param recordCount record count.
 	 * @return decay factor for L2 regularization.
 	 */
-	double decay(double learningRate, int batchSize) {
+	double decay(double learningRate, int recordCount) {
 		double lambda = 0.01; //Regularization strength.
-		return 1.0 - (learningRate * (lambda/batchSize));
+		return 1.0 - (learningRate * (lambda/recordCount));
 	}
 	
 	

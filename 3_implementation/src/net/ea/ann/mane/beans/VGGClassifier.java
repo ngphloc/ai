@@ -13,6 +13,7 @@ import java.util.List;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.core.function.IdentityDefault;
 import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
@@ -140,8 +141,15 @@ public class VGGClassifier extends VGGExt {
 
 	@Override
 	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
-		reset0();
-		return super.initialize(inputSize, middleSize, outputSize);
+		if (!super.initialize(inputSize, middleSize, outputSize)) return false;
+
+		if (paramIsEntropyTrainer()) {
+			MatrixLayerAbstract outputLayer = getOutputLayer();
+			//Setting output as logits.
+			if (outputLayer.getFilterActivateRef() != null) outputLayer.setFilterActivateRef(IdentityDefault.identity());
+			if (outputLayer.getWeightActivateRef() != null) outputLayer.setWeightActivateRef(IdentityDefault.identity());
+		}
+		return true;
 	}
 
 

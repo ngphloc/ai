@@ -15,6 +15,7 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.weight.NullWeight;
 
 /**
  * This class represents residual network (residual connection).
@@ -100,8 +101,10 @@ public class ResidualNetwork extends DropoutNetwork {
 		Matrix output = residualLayer.queryOutput();
 		while ((prevLayer = layer.getPrevLayer()) != null) {
 			Matrix input = prevLayer.queryInput();
+			Weight prevWeight = prevLayer.getWeight();
+			Filter prevFilter = prevLayer.getFilter();
 			if (checkInoutputSameSize(input, output) &&
-				(prevLayer.getWeight() != null || prevLayer.getFilter() != null) &&
+				((prevWeight != null && !(prevWeight instanceof NullWeight)) || (prevFilter != null)) &&
 				residualLayerOf(prevLayer) != residualLayer &&
 				!(prevLayer instanceof ResidualLayer)) found = prevLayer;
 			layer = prevLayer;

@@ -18,6 +18,7 @@ import net.ea.ann.core.NetworkDoEvent.Type;
 import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.core.function.Identity;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
@@ -36,6 +37,18 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * Serial version UID for serializable class. 
 	 */
 	private static final long serialVersionUID = 1L;
+
+	
+	/**
+	 * Field of convolutional activation function which is often ReLU. If true, both filter and weight apply ReLU.
+	 */
+	public final static String CONV_ACTIVATE_FIELD = "mane_conv_activate";
+	
+	
+	/**
+	 * Default value for field of convolutional activation function which is often ReLU. If true, both filter and weight apply ReLU.
+	 */
+	public final static boolean CONV_ACTIVATE_DEFAULT = true;
 
 	
 	/**
@@ -59,7 +72,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	/**
 	 * Default value of minimum width field.
 	 */
-	public final static int MINSIZE = 32; //= 16 or = ImageListItem.ICON_MINSIZE/BASE_DEFAULT but it should be 32;
+	public final static int MINSIZE = 16; //= 32 or = ImageListItem.ICON_MINSIZE/BASE_DEFAULT but it should be 32;
 
 	
 //	/**
@@ -116,6 +129,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 */
 	public MatrixNetworkImpl(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
+		this.config.put(CONV_ACTIVATE_FIELD, CONV_ACTIVATE_DEFAULT);
 //		this.config.put(HISTORY_MODE_FIELD, HISTORY_MODE_DEFAULT);
 	}
 	
@@ -224,6 +238,16 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			prevSize = dualSize;
 		}
 		this.layers = layers.toArray(new MatrixLayerAbstract[] {});
+		
+		//Setting ReLU activation (filter activation) for all layers. Fixing date: 2026.06.30.
+		if (paramIsConvActivate()) {
+			for (int i = 0; i < this.layers.length; i++) {
+				Function wf = this.layers[i].getWeightActivateRef();
+				if (wf == null || wf instanceof Identity) continue;
+				if (this.layers[i].getFilterActivateRef() != null)
+					this.layers[i].setWeightActivateRef(this.layers[i].getFilterActivateRef());
+			}
+		}
 		
 		new MatrixNetworkAssoc(this).initParams();
 //		history.clear();
@@ -770,6 +794,28 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		return this.prevLayer.backward(outputErrors, focus, learning, learningRate);
 	}
 	
+	/**
+	 * Setting mode of convolutional activation function which is often ReLU. If true, both filter and weight apply ReLU.
+	 * @return filter mode.
+	 */
+	boolean paramIsConvActivate() {
+		if (config.containsKey(CONV_ACTIVATE_FIELD))
+			return config.getAsBoolean(CONV_ACTIVATE_FIELD);
+		else
+			return CONV_ACTIVATE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting mode of convolutional activation function which is often ReLU. If true, both filter and weight apply ReLU.
+	 * @param convActivate mode of convolutional activation function which is often ReLU.
+	 * @return this network.
+	 */
+	MatrixNetworkImpl paramSetConvActivate(boolean convActivate) {
+		config.put(CONV_ACTIVATE_FIELD, convActivate);
+		return this;
+	}
+
 	
 //	/**
 //	 * Getting history mode.
