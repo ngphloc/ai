@@ -138,7 +138,7 @@ public class VGGClassifier extends VGGExt {
 	 */
 	private void reset0() {this.baseline = null;}
 	
-
+	
 	@Override
 	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
 		if (!super.initialize(inputSize, middleSize, outputSize)) return false;
@@ -380,6 +380,16 @@ public class VGGClassifier extends VGGExt {
 	}
 
 	
+	/**
+	 * Getting softmax output.
+	 * @return softmax output.
+	 */
+	Matrix getSoftmaxOutput() {
+		Matrix output0 = getCoreOutput();
+		return paramIsByColumn() ? Softmax.softmaxByColumn(output0) : Softmax.softmaxByRow(output0);
+	}
+	
+
 	/**
 	 * Checking baseline mode.
 	 * @return baseline mode.

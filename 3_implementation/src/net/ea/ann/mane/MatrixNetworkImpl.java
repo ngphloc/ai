@@ -19,6 +19,7 @@ import net.ea.ann.core.NetworkDoEventImpl;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.Identity;
+import net.ea.ann.core.function.ReLU;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
@@ -244,8 +245,10 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			for (int i = 0; i < this.layers.length; i++) {
 				Function wf = this.layers[i].getWeightActivateRef();
 				if (wf == null || wf instanceof Identity) continue;
-				if (this.layers[i].getFilterActivateRef() != null)
+				if (this.layers[i].getFilterActivateRef() != null) {
+					assert (this.layers[i].getFilterActivateRef() instanceof ReLU);
 					this.layers[i].setWeightActivateRef(this.layers[i].getFilterActivateRef());
+				}
 			}
 		}
 		

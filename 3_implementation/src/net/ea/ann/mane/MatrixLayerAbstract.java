@@ -718,18 +718,6 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	
 	
 	/**
-	 * Getting decay factor for L2 regularization.
-	 * @param learningRate learning rate.
-	 * @param recordCount record count.
-	 * @return decay factor for L2 regularization.
-	 */
-	double decay(double learningRate, int recordCount) {
-		double lambda = 0.01; //Regularization strength.
-		return 1.0 - (learningRate * (lambda/recordCount));
-	}
-	
-	
-	/**
 	 * Checking whether something normalized in rang [0, 1].
 	 * @return whether something normalized in rang [0, 1].
 	 */
@@ -743,6 +731,18 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	int paramGetDefaultAlpha() {return network != null ? network.paramGetDefaultAlpha() : Image.ALPHA_DEFAULT;}
 
 
+	/**
+	 * Calculating decay factor for L2 regularization.
+	 * @param learningRate learning rate.
+	 * @param recordCount record count.
+	 * @return decay factor for L2 regularization.
+	 */
+	static double decay(double learningRate, int recordCount) {
+		double lambda = 0.01; //Regularization strength.
+		return 1.0 - (learningRate * (lambda/recordCount));
+	}
+	
+	
 	@Override
 	public String toText() {
 		StringBuffer buffer = new StringBuffer();

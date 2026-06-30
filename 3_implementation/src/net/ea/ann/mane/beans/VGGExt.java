@@ -34,7 +34,6 @@ import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
 import net.ea.ann.raster.RasterProperty.Label;
 import net.ea.ann.raster.Size;
-import net.hudup.core.logistic.NextUpdate;
 
 /**
  * This class is an extension of VGG model.
@@ -366,7 +365,6 @@ class VGGExt extends VGG {
 	 * This method can be improved later.
 	 * @return output as result of classification.
 	 */
-	@NextUpdate
 	Matrix getCoreOutput() {return getOutput();}
 	
 	
