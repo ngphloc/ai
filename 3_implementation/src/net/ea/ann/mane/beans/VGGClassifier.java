@@ -262,19 +262,18 @@ public class VGGClassifier extends VGGExt {
 	Matrix calcBaseline(Iterable<Raster> sample) {
 		Matrix OUTPUT0 = getOutput();
 		Matrix[] baselines = OUTPUT0 instanceof MatrixStack ? new Matrix[((MatrixStack)OUTPUT0).depth()] : new Matrix[1];
-		Matrix[] countBaselines = OUTPUT0 instanceof MatrixStack ? new Matrix[((MatrixStack)OUTPUT0).depth()] : new Matrix[1];
+		Matrix[] countBaselines = paramIsBaselineMean() ? (OUTPUT0 instanceof MatrixStack ? new Matrix[((MatrixStack)OUTPUT0).depth()] : new Matrix[1]) : null;
 		Matrix output0 = OUTPUT0 instanceof MatrixStack ? ((MatrixStack)OUTPUT0).get() : OUTPUT0;
 		for (int d = 0; d < baselines.length; d++) {
 			baselines[d] = output0.create(new Size(output0.columns(), output0.rows()));
-			countBaselines[d] = baselines[d].create(new Size(baselines[d].columns(), baselines[d].rows()));
 			if (paramIsBaselineMean()) {
 				MatrixUtil.fill(baselines[d], 0);
+				countBaselines[d] = baselines[d].create(new Size(baselines[d].columns(), baselines[d].rows()));
 				MatrixUtil.fill(countBaselines[d], 0);
 			}
 			else {
 				double max = paramIsNorm() || paramIsEntropyTrainer() ? 1 : Float.MAX_VALUE;
 				MatrixUtil.fill(baselines[d], max);
-				MatrixUtil.fill(countBaselines[d], 1);
 			}
 		}
 		
@@ -325,7 +324,7 @@ public class VGGClassifier extends VGGExt {
 					outputOne = paramIsEntropyTrainer() ? Softmax.softmax(outputOne) : outputOne;
 					for (int index = 0; index < indicator.length; index++) {
 						if (!indicator[index]) continue;
-						NeuronValue unit = countBaselines[d].get(0, 0).unit();
+						NeuronValue unit = baselines[d].get(0, 0).unit();
 						if (paramIsByColumn()) {
 							if (paramIsBaselineMean()) {
 								NeuronValue value = baselines[d].get(index, group).add(outputOne[index]);

@@ -199,7 +199,7 @@ public class ResidualNetwork extends DropoutNetwork {
 	
 	
 	@Override
-	Error[] backward(Error[] outputErrors, boolean learning, double learningRate) {
+	protected Error[] backward(Error[] outputErrors, boolean learning, double learningRate) {
 		if (getResidualLayers().size() == 0) return super.backward(outputErrors, learning, learningRate);
 		assert (validate() && outputErrors != null && outputErrors.length > 0);
 		if (!validate() || outputErrors == null || outputErrors.length == 0) return null;

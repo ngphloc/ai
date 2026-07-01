@@ -693,15 +693,18 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 				if (err == null) continue;
 				
 				error.errorSet(err);
-//				Error[] errors = backward(new Error[] {error}, false, learningRate);
-//				assert (errors != null && errors.length == 1 && errors[0] != null);
-//				if (errors != null) outputErrorList.add(errors[0]);
-				outputErrorList.add(error);
+				Error[] errors = backward(new Error[] {error}, false, learningRate);
+				assert (errors != null && errors.length == 1 && errors[0] != null);
+				if (errors != null) outputErrorList.add(errors[0]);
+//				outputErrorList.add(error);
 			}
-//			outputErrors = outputErrorList.toArray(new Error[] {});
-//			if (outputErrors.length > 0) updateParametersFromBackwardInfo(outputErrors.length, learningRate);
-//			if (outputErrors.length > 0) outputErrors = backwardAgain(outputErrors, this, true, learningRate);
-			outputErrors = backward(outputErrorList.toArray(new Error[] {}), this, true, learningRate);
+			outputErrors = outputErrorList.toArray(new Error[] {});
+			if (outputErrors.length > 0) {
+				updateParametersFromBackwardInfo(outputErrors.length, learningRate);
+				outputErrors = backwardAgain(outputErrors, this, true, learningRate);
+			}
+//			outputErrors = backward(outputErrorList.toArray(new Error[] {}), this, true, learningRate);
+			assert (outputErrors != null && outputErrors.length > 0);
 		}
 		else {
 			Object[] params = defineOutputErrorParams(new TrainingFlag() {});
@@ -752,7 +755,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * @param learningRate learning rate.
 	 * @return backward error.
 	 */
-	Error[] backward(Error[] outputErrors, boolean learning, double learningRate) {
+	protected Error[] backward(Error[] outputErrors, boolean learning, double learningRate) {
 		assert (validate() && outputErrors != null && outputErrors.length > 0);
 		if (!validate() || outputErrors == null || outputErrors.length == 0) return null;
 		

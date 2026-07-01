@@ -554,12 +554,29 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 		//Browsing errors. Please pay attention that filter is before weight in the same layer.
 		for (int i = 0; i < outputErrors.length; i++) {
+			/*
+			Matrix errPrevPrevInput = outputErrors.length > 1 ? outputErrors[i].oinputPrevPrevOfLayer(this) : null; //Previous previous input.
+			Matrix errPrevInput = outputErrors.length > 1 ? outputErrors[i].oinputPrevOfLayer(this) : null; //Previous input.
+			Matrix errPrevOutput = outputErrors.length > 1 ? outputErrors[i].ooutputPrevOfLayer(this) : null; //Previous output.
+			Matrix actualErrInput = outputErrors.length > 1 ? outputErrors[i].oinputOfLayer(this) : null; //Actual input.
+			actualErrInput = actualErrInput != null ? actualErrInput : errPrevInput;
+			Matrix actualErrOutput = outputErrors.length > 1 ? outputErrors[i].ooutputOfLayer(this) : null;
+			actualErrOutput = actualErrOutput != null ? actualErrOutput : errPrevOutput; //Actual output.
+			*/
 			Matrix errPrevPrevInput = outputErrors[i].oinputPrevPrevOfLayer(this); //Previous previous input.
 			Matrix errPrevInput = outputErrors[i].oinputPrevOfLayer(this); //Previous input.
 			Matrix errPrevOutput = outputErrors[i].ooutputPrevOfLayer(this); //Previous output.
-			Matrix actualErrInput = outputErrors[i].oinputOfLayerActual(this); //Actual input.
+			Matrix actualErrInput = outputErrors[i].oinputOfLayer(this); //Actual input.
+			actualErrInput = actualErrInput != null ? actualErrInput : errPrevInput;
 			Matrix actualErrOutput = outputErrors[i].ooutputOfLayer(this);
 			actualErrOutput = actualErrOutput != null ? actualErrOutput : errPrevOutput; //Actual output.
+			if (outputErrors.length == 1 && this.prevLayer != null) {
+				assert (errPrevPrevInput == this.prevLayer.queryOutput());
+				assert (errPrevInput == getPrevInput());
+				assert (errPrevOutput == getPrevOutput());
+				assert (actualErrInput == queryInput());
+				assert (actualErrOutput == queryOutput());
+			}
 			/*
 			 * These inputs and outputs associated with error are not so important for calculating gradients because the accuracy will be improved with a large enough number of batches.
 			 * Moreover, keeping the current inputs and outputs in a small enough batch does not affect significantly on the accuracy in training.
@@ -576,6 +593,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 						this.getFilterActivateRef() : null); //Getting right-most activation function. Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
 				Matrix input0 = actualErrInput != null ? actualErrInput : queryInput(); //X^k-1 = input.
 				Matrix output0 = actualErrOutput != null ? actualErrOutput : queryOutput(); //Xk = output.
+				assert (input0 != null && output0 != null);
 				errors[i] = this.nextLayer.getWeight().dValue(input0, output0, outputErrors[i].error(), thisActivateRef);
 			}
 			else {
@@ -590,14 +608,16 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				if (this.weight.backwardErrorMode()) {
 					Matrix prevOutput0 = errPrevOutput != null ? errPrevOutput : getPrevOutput();
 					prevOutput0 = prevOutput0 != null ? prevOutput0 : this.prevLayer.queryOutput();
+					assert (prevOutput0 != null);
 					dWKernels[i] = this.weight.dKernel(prevOutput0, errors[i]);
 				}
 				else {
 					//Calculating value errors at this layer.
 					Matrix prevInput0 = errPrevOutput != null ? errPrevOutput : (errPrevPrevInput != null ? errPrevPrevInput : getPrevOutput()); //If actualPrevOutput is null then actualPrevInput is always null.
 					prevInput0 = prevInput0 != null ? prevInput0 : this.prevLayer.queryOutput(); //If the method getPrevOutput() returns null then the method getPrevInput() always returns null.
-					Matrix prevOutput0 = getInput();
-					//Variables prevInput and prevOutput are not important for network weight and transformer because they do not take derivatives on such variables when they have particular internal structures.
+					Matrix prevOutput0 = actualErrInput != null ? actualErrInput : queryInput();
+					assert (prevInput0 != null && prevOutput0 != null);
+					//Variables prevInput0 and prevOutput0 are not important for network weight and transformer because they do not take derivatives on such variables when they have particular internal structures.
 					if (this.weight instanceof NetworkWeight) {
 						errors[i] = ((NetworkWeight)this.weight).dValue(prevInput0, prevOutput0, errors[i], this.getWeightActivateRef(), learning, learningRate);
 						dWKernels[i] = null;
@@ -616,6 +636,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 					Function thisActivateRef = this.filter.doesApplyActivate() && !this.filter.isIndexMode() ? this.getFilterActivateRef() : null; //Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
 					Matrix prevInput0 = errPrevInput != null ? errPrevInput : getPrevInput();
 					Matrix prevOutput0 = getPrevOutput();
+					assert (prevInput0 != null && prevOutput0 != null);
 					errors[i] = this.weight.dValue(prevInput0, prevOutput0, errors[i], thisActivateRef);
 				}
 				dFBiases[i] = MatrixUtil.valueSum(errors[i]); //Filter errors.

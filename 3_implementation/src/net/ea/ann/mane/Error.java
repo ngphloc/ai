@@ -859,12 +859,12 @@ public class Error implements Cloneable, Serializable {
 	}
 	
 	
-	/**
-	 * Getting input of specified layer.
-	 * @param layer specified layer.
-	 * @return input of specified layer.
-	 */
-	public Matrix oinputOfLayerActual(Object layer) {return oinputOfLayer(layer);	}
+//	/**
+//	 * Getting input of specified layer.
+//	 * @param layer specified layer.
+//	 * @return input of specified layer.
+//	 */
+//	public Matrix oinputOfLayerActual(Object layer) {return oinputOfLayer(layer);	}
 
 	
 	/**

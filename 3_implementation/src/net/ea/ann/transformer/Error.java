@@ -442,7 +442,7 @@ public class Error implements Cloneable, Serializable {
 
 
 	/**
-	 * Adjusting errors
+	 * Adjusting errors by applying derivatives.
 	 * @param layer layer.
 	 * @param errors errors.
 	 */

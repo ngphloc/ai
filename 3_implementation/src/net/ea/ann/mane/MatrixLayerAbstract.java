@@ -488,7 +488,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	public Matrix queryOutput() {
 		Matrix output = getOutput();
 		output = output != null ? output : getPrevOutput();
-		return output != null ? output : queryInput();
+		return output != null ? output : null /*queryInput()*/;
 	}
 	
 	

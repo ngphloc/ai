@@ -1048,13 +1048,6 @@ public class ProxyNCA extends VGGExt {
 
 	
 	@Override
-	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
-		reset0();
-		return super.initialize(inputSize, middleSize, outputSize);
-	}
-
-
-	@Override
 	public boolean initialize(Size inputSize, Size middleSize, Size outputSize, Size nCoreClasses) {
 		if (!super.initialize(inputSize, middleSize, outputSize, nCoreClasses)) return false;
 		if (getNumberOfGroups() == 0 || !paramIsProxy()) return true;
@@ -1109,7 +1102,7 @@ public class ProxyNCA extends VGGExt {
 	 * @param origins original rasters.
 	 * @param augments augmented rasters.
 	 * @param groupIndex group index.
-	 * @param params additional parameters.
+	 * @param params additional parameters which are rare to be used.
 	 * @return quartets.
 	 */
 	private List<Quartet> createQuartets(List<Raster> origins, List<Raster> augments, int groupIndex, Object...params) {
@@ -1166,7 +1159,7 @@ public class ProxyNCA extends VGGExt {
 	 * @param input raster input.
 	 * @param outputs outputs which can be null.
 	 * @param outputPrevs map of previous outputs which can be null.
-	 * @param params additional parameters.
+	 * @param params additional parameters which are rare to be used.
 	 */
 	private Matrix addOutput(Raster input, List<Matrix> outputs, Map<Matrix, Matrix> outputPrevs, Object...params) {
 		if (input == null) return null;
@@ -1260,6 +1253,7 @@ public class ProxyNCA extends VGGExt {
 	/**
 	 * Calculating the last bias.
 	 * @param piece piece of sample.
+	 * @param params additional parameters which are rare to be used.
 	 * @return the last bias.
 	 */
 	private Matrix[] calcOutputError(Iterable<Raster> piece, Object...params) {
@@ -1353,20 +1347,31 @@ public class ProxyNCA extends VGGExt {
 	 * @return backward error.
 	 */
 	private Error backwardPieceWithoutLearning(List<Raster> piece, double learningRate) {
-		Matrix[] errors = calcOutputError(piece, new TrainingFlag() {});
+		Matrix[] errors = calcOutputError(piece/*, new TrainingFlag() {}*/); //Removing training flag because of not back-warding yet.
 
 		if (errors != null && errors[0] != null) {
 			MatrixStack errorStack = (MatrixStack)errors[0];
 			this.dProxyGroupListAccum = this.dProxyGroupListAccum != null ? this.dProxyGroupListAccum.accum(errorStack) : new ProxyGroupListAccumulator(errorStack);
 		}
+		
 		if (errors != null && errors[1] != null) {
-			Error error1 = new Error(errors[1]);
-			Object[] params = defineOutputErrorParams(error1, new TrainingFlag() {});
-			int index = new Random().nextInt(piece.size());
-			evaluate(piece.get(index), params); //Please pay attention to this code line so as to set inputs and outputs to error at the random raster in the piece.
+			Error error1 = new Error(errors[1]); //One representative error.
+			Object[] params = defineOutputErrorParams(error1, new TrainingFlag() {}); //Adding training flag for back-warding.
 			
+			int index = new Random().nextInt(piece.size()); //Randomized representative anchor in the piece.
+			evaluate(piece.get(index), params); //Please pay attention to this code line so as to set inputs and outputs to error at the random raster in the piece.
 			Error[] outputErrors = backward(new Error[] {error1}, this, false, learningRate);
 			assert (outputErrors != null && outputErrors.length == 1 && outputErrors[0] != null);
+
+//			Error error1 = new Error(errors[1].divide0(piece.size())); //Make the error as average error.
+//			Error[] outputErrors = null;
+//			for (int i = 0; i < piece.size(); i++) {
+//				Object[] params = defineOutputErrorParams(error1, new TrainingFlag() {}); //Adding training flag for back-warding.
+//				evaluate(piece.get(i), params); //Please pay attention to this code line so as to set inputs and outputs to error at every raster in the piece.
+//				outputErrors = backward(new Error[] {error1}, this, false, learningRate);
+//				assert (outputErrors != null && outputErrors.length == 1 && outputErrors[0] != null);
+//			}
+			
 			if (outputErrors != null) return outputErrors[0];
 		}
 		

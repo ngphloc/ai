@@ -325,8 +325,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 		if (layers == null) return;
 		for (int i = layers.length-1; i >= 0; i--) {
 			if (!(layers[i] instanceof MatrixLayerImpl)) continue;
-			MatrixLayerImpl layer = (MatrixLayerImpl)layers[i];
-			layer.updateParametersFromBackwardInfo(recordCount, learningRate);
+			((MatrixLayerImpl)layers[i]).updateParametersFromBackwardInfo(recordCount, learningRate);
 		}
 	}
 	

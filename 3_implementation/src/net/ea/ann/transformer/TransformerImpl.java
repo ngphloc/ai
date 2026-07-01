@@ -1453,7 +1453,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 * @param maxIteration maximum iteration.
 	 * @return learning errors. The first element is main error and the second element is attached error\\.
 	 */
-	protected Error[][] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	private Error[][] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		if (!validate()) return null;
 		try {
 			if (isDoStarted()) return null;
@@ -1471,36 +1471,8 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
-			if (trainers.size() == 0) {
-				List<Error> errorList = Util.newList(0);
-				for (Record record : subsample) {
-					Error error = new Error((Matrix)null);
-					Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, new TrainingFlag() {});
-					Matrix err = record.outputA().subtract(A);
-					if (err != null) {
-						error.errorSet(err);
-						errorList.add(error);
-					}
-				}
-				outputErrors = backward(errorList.toArray(new Error[] {}), true, lr);
-			}
-			else {
-				List<net.ea.ann.mane.Record> subinouts = Util.newList(0);
-				for (Record record : subsample) {
-					net.ea.ann.mane.Record mr = null;
-					if (record.inputX() == null)
-						mr = new net.ea.ann.mane.Record(record.inputY(), record.outputA());
-					else
-						mr = new net.ea.ann.mane.Record(record.inputY(), record.outputA(), record.inputX(), null);
-					subinouts.add(mr);
-				}
-				net.ea.ann.mane.Error[] errors = null;
-				for (TaskTrainer trainer : trainers) {
-					errors = trainer.train(this, subinouts, false, learningRate);
-				}
-				outputErrors = new Error[][] {Error.create(errors)};
-			}
-			
+			outputErrors = learn(subsample, lr);
+
 			iteration ++;
 			
 			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "transformer_backpropogate",
@@ -1538,6 +1510,69 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	}
 
 
+	/**
+	 * Learning transformer.
+	 * @param sample sample.
+	 * @param learningRate learning rate.
+	 * @return learning errors. The first element is main error and the second element is attached error\\.
+	 */
+	protected Error[][] learn(Iterable<Record> sample, double learningRate) {
+		Error[][] outputErrors = null;
+		if (trainers.size() == 0) {
+			List<Error> errorList = Util.newList(0);
+//			List<Error[]> outputErrorsList = Util.newList(0);
+			for (Record record : sample) {
+				Error error = new Error((Matrix)null);
+				Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, new TrainingFlag() {});
+				Matrix err = record.outputA().subtract(A);
+				if (err == null) continue;
+
+				error.errorSet(err);
+//				Error[][] errors = backward(new Error[] {error}, false, learningRate);
+//				assert (errors != null && errors.length > 0 && errors[0] != null && errors[0].length == 1);
+//				if (errors != null) {
+//					if (errors.length > 1) {
+//						assert (errors[1] != null && errors[1].length == 1);
+//						outputErrorsList.add(new Error[] {errors[0][0], errors[1][0]});
+//					}
+//					else
+//						outputErrorsList.add(new Error[] {errors[0][0]});
+//				}
+				errorList.add(error);
+			}
+//			if (outputErrorsList.size() > 0) {
+//				updateParametersFromBackwardInfo(outputErrorsList.size(), learningRate);
+//				Error[] mainErrors = new Error[outputErrorsList.size()];
+//				for (int i = 0; i < mainErrors.length; i++) mainErrors[i] = outputErrorsList.get(i)[0];
+//				//Only return main errors and so, ignoring attached errors. This is the drawback of one-by-one back-warding.
+//				outputErrors = new Error[][] {mainErrors};
+//			}
+//			else
+//				outputErrors = null;
+			outputErrors = backward(errorList.toArray(new Error[] {}), true, learningRate);
+		}
+		else {
+			List<net.ea.ann.mane.Record> subinouts = Util.newList(0);
+			for (Record record : sample) {
+				net.ea.ann.mane.Record mr = null;
+				if (record.inputX() == null)
+					mr = new net.ea.ann.mane.Record(record.inputY(), record.outputA());
+				else
+					mr = new net.ea.ann.mane.Record(record.inputY(), record.outputA(), record.inputX(), null);
+				subinouts.add(mr);
+			}
+			net.ea.ann.mane.Error[] errors = null;
+			for (TaskTrainer trainer : trainers) {
+				errors = trainer.train(this, subinouts, false, learningRate);
+			}
+			//Only return main errors and so, ignoring attached errors. This is the drawback of task trainer.
+			outputErrors = new Error[][] {Error.create(errors)};
+		}
+
+		return outputErrors;
+	}
+
+		
 	/**
 	 * Checking normalization mode.
 	 * @return normalization mode in rang [0, 1].

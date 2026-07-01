@@ -15,6 +15,7 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Error.LayerInput;
 import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
 import net.ea.ann.raster.Size;
 
@@ -261,9 +262,12 @@ public class DropoutLayer extends MatrixLayerImpl {
 		setupMask(params);
 		if (this.dropoutMask == null) return super.evaluate(params);
         
-		Matrix thisOutput = super.evaluate(params);
+		Matrix thisOutput = super.evaluate(params); 
 		Matrix maskedOutput = this.dropoutMask.multiplyWise(thisOutput);
 		if (thisOutput == this.output) this.output = maskedOutput;
+		
+		LayerInput layerInput = extractLayerInput(params);
+		if (layerInput != null) layerInput.ooutput = this.output;
         return maskedOutput;
 	}
 
@@ -279,6 +283,23 @@ public class DropoutLayer extends MatrixLayerImpl {
 			if (param != null && param instanceof TrainingFlag) return true;
 		}
 		return false;
+	}
+	
+	
+	/**
+	 * Extracting layer input.
+	 * @param params parameters.
+	 * @return layer input.
+	 */
+	private LayerInput extractLayerInput(Object[] params) {
+		if (params == null || params.length == 0) return null;
+		for (Object param : params) {
+			if ((param == null) || !(param instanceof Error)) continue;
+			Error error = (Error)param;
+			LayerInput layerInput = error.layerOInput(this);
+			if (layerInput != null) return layerInput;
+		}
+		return null;
 	}
 	
 	

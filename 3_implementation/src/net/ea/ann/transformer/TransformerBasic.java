@@ -615,19 +615,19 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param learningRate learning rate.
 	 * @return learning errors. The first element is main error and the second element is attached error\\.
 	 */
-	protected Error[][] backward(Error[] errors, boolean learning, double learningRate) {
-		if (!validate()) return null;
+	protected Error[][] backward(Error[] outputErrors, boolean learning, double learningRate) {
+		assert (validate() && outputErrors != null && outputErrors.length > 0);
+		if (!validate() || outputErrors == null || outputErrors.length == 0) return null;
 		updateConfig();
 
-		Error[] outputErrors = null;
 		List<Error[]> attachOutputErrorsList = Util.newList(0);
 		for (int i = blocks.length-1; i >= 0; i--) {
 			assert (blocks[i].inputAttach == null || blocks[i].inputAttach instanceof TransformerBasic); //Improving later.
+			assert (outputErrors != null && outputErrors.length > 0);
 			
-			outputErrors = blocks[i].backward(outputErrors == null ? errors : outputErrors, learning, learningRate);
+			outputErrors = blocks[i].backward(outputErrors, learning, learningRate);
 			if (i > 0) Error.adjustErrors(blocks[i-1], outputErrors);
 			
-			if (outputErrors == null || outputErrors.length == 0) continue;
 			if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
 			Error[] attachErrors = Error.createByAttach(outputErrors);
 			if (attachErrors == null || attachErrors.length == 0) continue;
@@ -636,22 +636,22 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 			Error.adjustErrors(attach, attachErrors);
 			Error[][] merr = attach.backward(attachErrors, learning, learningRate);
 			if (merr != null && merr.length > 0 && merr[0] != null) {
-//				if (merr[0].length > 0 && merr[0][0] != null) merr[0][0].tag = attach;
-				attachOutputErrorsList.add(merr[0]);
+				attachOutputErrorsList.add(merr[0]); //Tracking only the first attached error.
 			}
 			else {
 				System.out.println("Error in training attached transformer at block " + i + " inside method TransformerBasic#backward(Error[], double).");
 			}
 		}
 		
-		if (outputErrors == null || outputErrors.length == 0)
-			return null;
-		else if (attachOutputErrorsList.size() == 0)
+		if (attachOutputErrorsList.size() == 0)
 			return new Error[][] {outputErrors};
 		else {
 			Error[][] backwardErrors = new Error[attachOutputErrorsList.size() + 1][];
 			backwardErrors[0] = outputErrors;
-			for (int i = 1; i < backwardErrors.length; i++) backwardErrors[i] = attachOutputErrorsList.get(i-1);
+			for (int i = 1; i < backwardErrors.length; i++) {
+				backwardErrors[i] = attachOutputErrorsList.get(i-1);
+				assert (backwardErrors[i] != null);
+			}
 			return backwardErrors;
 		}
 	}
@@ -761,11 +761,12 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param maxIteration maximum iteration.
 	 * @return learning errors. The first element is main error and the second element is attached error, etc.
 	 */
-	protected Error[][] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	private Error[][] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
 		if (!validate()) return null;
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
+		resetBackwardInfo(); //Fixing date: 2026.07.01.
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
@@ -778,27 +779,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
-			if (trainers.size() == 0) {
-				List<Error> errorList = Util.newList(0);
-				for (Record record : subsample) {
-					Error error = new Error((Matrix)null);
-					Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, new TrainingFlag() {});
-					Matrix err = record.outputA().subtract(A);
-					if (err != null) {
-						error.errorSet(err);
-						errorList.add(error);
-					}
-				}
-				outputErrors = backward(errorList.toArray(new Error[] {}), true, lr);
-			}
-			else {
-				List<net.ea.ann.mane.Record> maneSample = Record.convert(subsample);
-				net.ea.ann.mane.Error[] errors = null;
-				for (TaskTrainer trainer : trainers) {
-					errors = trainer.train(this, maneSample, false, learningRate);
-				}
-				outputErrors = new Error[][] {Error.create(errors)};
-			}
+			outputErrors = learn(subsample, lr);
 			
 			iteration ++;
 			
@@ -837,6 +818,62 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	}
 
 
+	/**
+	 * Learning transformer.
+	 * @param sample sample.
+	 * @param learningRate learning rate.
+	 * @return learning errors. The first element is main error and the second element is attached error, etc.
+	 */
+	protected Error[][] learn(Iterable<Record> sample, double learningRate) {
+		Error[][] outputErrors = null;
+		if (trainers.size() == 0) {
+			List<Error> outputErrorList = Util.newList(0);
+//			List<Error[]> outputErrorsList = Util.newList(0);
+			for (Record record : sample) {
+				Error error = new Error((Matrix)null);
+				Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, new TrainingFlag() {});
+				Matrix err = record.outputA().subtract(A);
+				if (err == null) continue;
+				
+				error.errorSet(err);
+//				Error[][] errors = backward(new Error[] {error}, false, learningRate);
+//				assert (errors != null && errors.length > 0 && errors[0] != null && errors[0].length == 1);
+//				if (errors != null) {
+//					if (errors.length > 1) {
+//						assert (errors[1] != null && errors[1].length == 1);
+//						outputErrorsList.add(new Error[] {errors[0][0], errors[1][0]});
+//					}
+//					else
+//						outputErrorsList.add(new Error[] {errors[0][0]});
+//				}
+				outputErrorList.add(error);
+			}
+//			if (outputErrorsList.size() > 0) {
+//				updateParametersFromBackwardInfo(outputErrorsList.size(), learningRate);
+//				Error[] mainErrors = new Error[outputErrorsList.size()];
+//				for (int i = 0; i < mainErrors.length; i++) mainErrors[i] = outputErrorsList.get(i)[0];
+//				//Only return main errors and so, ignoring attached errors. This is the drawback of one-by-one back-warding.
+//				outputErrors = new Error[][] {mainErrors};
+//			}
+//			else
+//				outputErrors = null;
+			outputErrors = backward(outputErrorList.toArray(new Error[] {}), true, learningRate);
+			assert (outputErrors != null && outputErrors.length > 0);
+		}
+		else {
+			List<net.ea.ann.mane.Record> maneSample = Record.convert(sample);
+			net.ea.ann.mane.Error[] errors = null;
+			for (TaskTrainer trainer : trainers) {
+				errors = trainer.train(this, maneSample, false, learningRate);
+			}
+			//Only return main errors and so, ignoring attached errors. This is the drawback of task trainer.
+			outputErrors = new Error[][] {Error.create(errors)};
+		}
+		
+		return outputErrors;
+	}
+
+	
 //	/**
 //	 * Checking normalization mode.
 //	 * @return normalization mode in rang [0, 1].
