@@ -651,6 +651,7 @@ public interface NeuronValue extends Value {
 	static NeuronValue[][] add(NeuronValue[][] A, NeuronValue[][] B) {
 		if (A == null || B == null) return null;
 		int m = A.length, n = A[0].length;
+		assert (m == B.length && n == B[0].length);
 		NeuronValue[][] C = new NeuronValue[m][n];
 		for (int i = 0; i < m; i++) {
 			for (int j = 0; j < n; j++) C[i][j] = A[i][j].add(B[i][j]);

@@ -17,6 +17,7 @@ import net.ea.ann.core.function.IdentityDefault;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Error.LayerInput;
 import net.ea.ann.mane.filter.NetworkFilter;
 import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.NetworkWeight;
@@ -554,28 +555,20 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 		//Browsing errors. Please pay attention that filter is before weight in the same layer.
 		for (int i = 0; i < outputErrors.length; i++) {
-			/*
-			Matrix errPrevPrevInput = outputErrors.length > 1 ? outputErrors[i].oinputPrevPrevOfLayer(this) : null; //Previous previous input.
-			Matrix errPrevInput = outputErrors.length > 1 ? outputErrors[i].oinputPrevOfLayer(this) : null; //Previous input.
-			Matrix errPrevOutput = outputErrors.length > 1 ? outputErrors[i].ooutputPrevOfLayer(this) : null; //Previous output.
-			Matrix actualErrInput = outputErrors.length > 1 ? outputErrors[i].oinputOfLayer(this) : null; //Actual input.
-			actualErrInput = actualErrInput != null ? actualErrInput : errPrevInput;
-			Matrix actualErrOutput = outputErrors.length > 1 ? outputErrors[i].ooutputOfLayer(this) : null;
-			actualErrOutput = actualErrOutput != null ? actualErrOutput : errPrevOutput; //Actual output.
-			*/
 			Matrix errPrevPrevInput = outputErrors[i].oinputPrevPrevOfLayer(this); //Previous previous input.
 			Matrix errPrevInput = outputErrors[i].oinputPrevOfLayer(this); //Previous input.
 			Matrix errPrevOutput = outputErrors[i].ooutputPrevOfLayer(this); //Previous output.
-			Matrix actualErrInput = outputErrors[i].oinputOfLayer(this); //Actual input.
-			actualErrInput = actualErrInput != null ? actualErrInput : errPrevInput;
+			Matrix actualErrInput = outputErrors[i].oinputOfLayerActual(this); //Actual input.
 			Matrix actualErrOutput = outputErrors[i].ooutputOfLayer(this);
 			actualErrOutput = actualErrOutput != null ? actualErrOutput : errPrevOutput; //Actual output.
-			if (outputErrors.length == 1 && this.prevLayer != null) {
-				assert (errPrevPrevInput == this.prevLayer.queryOutput());
+			Matrix mask = outputErrors[i].oinputDropoutMaskOfLayer(this);
+			if (outputErrors.length == 1) {
+				if (this.prevLayer != null) assert (errPrevPrevInput == this.prevLayer.queryOutput());
 				assert (errPrevInput == getPrevInput());
 				assert (errPrevOutput == getPrevOutput());
 				assert (actualErrInput == queryInput());
 				assert (actualErrOutput == queryOutput());
+				if (this instanceof DropoutLayer) assert (mask == ((DropoutLayer)this).dropoutMask);
 			}
 			/*
 			 * These inputs and outputs associated with error are not so important for calculating gradients because the accuracy will be improved with a large enough number of batches.
@@ -583,26 +576,32 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			 * However the inputs and outputs associated with error make the logic calculation is more precise. 
 			 */
 			
-			//Calculating value errors from next layer.
-			if (this.nextLayer == null) {
-				errors[i] = outputErrors[i].error(); //Getting value errors from environment.
-			}
-			else if (this.nextLayer.getFilter() == null && this.nextLayer.getWeight().backwardErrorMode()) {
+			//Getting errors from environment or next layer.
+			errors[i] = outputErrors[i].error(); 
+			
+			//Calculating errors from weight next layer.
+			if (this.nextLayer != null && this.nextLayer.getFilter() == null /*&& this.nextLayer.getWeight() != null*/ && this.nextLayer.getWeight().backwardErrorMode()) {
 				Function thisActivateRef = this.weight != null ? this.getWeightActivateRef() :
 					(this.filter != null && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ?
 						this.getFilterActivateRef() : null); //Getting right-most activation function. Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
 				Matrix input0 = actualErrInput != null ? actualErrInput : queryInput(); //X^k-1 = input.
 				Matrix output0 = actualErrOutput != null ? actualErrOutput : queryOutput(); //Xk = output.
 				assert (input0 != null && output0 != null);
-				errors[i] = this.nextLayer.getWeight().dValue(input0, output0, outputErrors[i].error(), thisActivateRef);
-			}
-			else {
-				errors[i] = outputErrors[i].error(); //Getting value errors from next layer.
+				errors[i] = this.nextLayer.getWeight().dValue(input0, output0, errors[i], thisActivateRef);
 			}
 			
-			//Adjusting error with dropout mask by default.
+			//Applying dropout mask into errors.
+			mask = mask != null ? mask : (this instanceof DropoutLayer ? ((DropoutLayer)this).dropoutMask : null);
+			errors[i] = mask != null ? mask.multiplyWise(errors[i]) : errors[i];
+			//Adding residual backward errors.
+			if (getEndLayer() != null) {
+				LayerInput layerInput = outputErrors[i].layerOInput(getEndLayer());
+				Matrix endError = layerInput != null && layerInput.backwardError != null ? layerInput.backwardError.error() : null;
+				if (endError != null) errors[i] = errors[i].add(endError);
+			}
+			//Adjusting errors.
 			errors[i] = adjustError(errors[i], outputErrors[i]);
-			
+
 			//Calculating weight gradient.
 			if (this.weight != null) {
 				if (this.weight.backwardErrorMode()) {
@@ -646,6 +645,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			else {
 				outputErrors[i].errorSet(errors[i]); //Please pay attention to this code line to back-warding value errors.
 			} //Calculating filter gradient.
+			
 		} //Browsing errors.
 		
 		//Update weight bias, first weight, and second weight.
@@ -736,7 +736,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @param learningRate learning rate.
 	 */
 	protected void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
-		assert(tempAccum == recordCount);
+		assert (tempAccum == recordCount && recordCount > 0);
 		
 		//Update weight bias, first weight, and second weight.
 		if (this.bias != null && this.dWBiasAccum != null) {

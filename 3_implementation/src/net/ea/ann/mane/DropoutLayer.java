@@ -16,7 +16,6 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error.LayerInput;
-import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
 import net.ea.ann.raster.Size;
 
 /**
@@ -236,7 +235,7 @@ public class DropoutLayer extends MatrixLayerImpl {
 //			}
 //		}
 
-		boolean training = extractTrainingFlag(params);
+		boolean training = Error.extractTrainingFlag(params);
 		double keepProb = 1.0 - getDropoutRate();
 		double scale = isDropoutInverted() ? 1.0/keepProb : (training ? 1.0 : keepProb);
 		Random rnd = new Random();
@@ -255,7 +254,7 @@ public class DropoutLayer extends MatrixLayerImpl {
 	@Override
 	public Matrix evaluate(Object...params) {
 		if (!isDropoutMode()) return super.evaluate(params);
-		if (isDropoutInverted() && !extractTrainingFlag(params)) {
+		if (isDropoutInverted() && !Error.extractTrainingFlag(params)) {
 			this.dropoutMask = null;
 			return super.evaluate(params);
 		}
@@ -266,50 +265,12 @@ public class DropoutLayer extends MatrixLayerImpl {
 		Matrix maskedOutput = this.dropoutMask.multiplyWise(thisOutput);
 		if (thisOutput == this.output) this.output = maskedOutput;
 		
-		LayerInput layerInput = extractLayerInput(params);
+		LayerInput layerInput = Error.extractLayerInput(this, params);
 		if (layerInput != null) layerInput.ooutput = this.output;
         return maskedOutput;
 	}
 
 	
-	/**
-	 * Extracting training flag.
-	 * @param params parameters.
-	 * @return training flag.
-	 */
-	private static boolean extractTrainingFlag(Object[] params) {
-		if (params == null || params.length == 0) return false;
-		for (Object param : params) {
-			if (param != null && param instanceof TrainingFlag) return true;
-		}
-		return false;
-	}
-	
-	
-	/**
-	 * Extracting layer input.
-	 * @param params parameters.
-	 * @return layer input.
-	 */
-	private LayerInput extractLayerInput(Object[] params) {
-		if (params == null || params.length == 0) return null;
-		for (Object param : params) {
-			if ((param == null) || !(param instanceof Error)) continue;
-			Error error = (Error)param;
-			LayerInput layerInput = error.layerOInput(this);
-			if (layerInput != null) return layerInput;
-		}
-		return null;
-	}
-	
-	
-	@Override
-	Matrix adjustError(Matrix error, Error ERROR) {
-		Matrix mask = ERROR.oinputDropoutMaskOfLayer(this);
-		return mask != null ? mask.multiplyWise(error) : error;
-	}
-
-
 	/**
 	 * Setting value of matrix.
 	 * @param matrix matrix.

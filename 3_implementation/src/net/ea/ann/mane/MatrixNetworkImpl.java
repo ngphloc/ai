@@ -20,8 +20,11 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.Identity;
 import net.ea.ann.core.function.ReLU;
+import net.ea.ann.core.function.ReLU1;
+import net.ea.ann.core.function.ReLUV;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.Error.LayerInput;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.raster.Size;
 
@@ -43,13 +46,13 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	/**
 	 * Field of convolutional activation function which is often ReLU. If true, both filter and weight apply ReLU.
 	 */
-	public final static String CONV_ACTIVATE_FIELD = "mane_conv_activate";
+	public final static String CONV_RELU_FIELD = "mane_conv_relu";
 	
 	
 	/**
 	 * Default value for field of convolutional activation function which is often ReLU. If true, both filter and weight apply ReLU.
 	 */
-	public final static boolean CONV_ACTIVATE_DEFAULT = true;
+	public final static boolean CONV_RELU_DEFAULT = true;
 
 	
 	/**
@@ -130,7 +133,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 */
 	public MatrixNetworkImpl(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
-		this.config.put(CONV_ACTIVATE_FIELD, CONV_ACTIVATE_DEFAULT);
+		this.config.put(CONV_RELU_FIELD, CONV_RELU_DEFAULT);
 //		this.config.put(HISTORY_MODE_FIELD, HISTORY_MODE_DEFAULT);
 	}
 	
@@ -240,15 +243,22 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		}
 		this.layers = layers.toArray(new MatrixLayerAbstract[] {});
 		
-		//Setting ReLU activation (filter activation) for all layers. Fixing date: 2026.06.30.
-		if (paramIsConvActivate()) {
+		//Setting ReLU activation (filter activation) for all layers.
+		if (paramIsConvReLU()) {
+			ReLU globalReLU = getConvActivateRef() != null && getConvActivateRef() instanceof ReLU ? (ReLU)getConvActivateRef() : null;
+			if (globalReLU == null) {
+				assert (paramIsNorm() && this.neuronChannel >= 1);
+				globalReLU = neuronChannel == 1 ? new ReLU1(0, 1) : new ReLUV(neuronChannel, 0, 1);
+			}
+			assert (globalReLU != null);
+			
 			for (int i = 0; i < this.layers.length; i++) {
 				Function wf = this.layers[i].getWeightActivateRef();
 				if (wf == null || wf instanceof Identity) continue;
-				if (this.layers[i].getFilterActivateRef() != null) {
-					assert (this.layers[i].getFilterActivateRef() instanceof ReLU);
-					this.layers[i].setWeightActivateRef(this.layers[i].getFilterActivateRef());
-				}
+				
+				Function ff = this.layers[i].getFilterActivateRef();
+				ReLU relu = ff != null && ff instanceof ReLU ? (ReLU)ff : globalReLU;
+				this.layers[i].setWeightActivateRef(relu);
 			}
 		}
 		
@@ -550,6 +560,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		enterInputs(input);
 		MatrixLayerAbstract inputLayer = getInputLayer();
 		if (inputLayer.getOutput() != inputLayer.getInput()) inputLayer.setOutput(inputLayer.getInput());
+		Error.addLayerOInput(inputLayer, params); //Fixing date: 2026.07.01.
 		
 		for (int i = 1; i < layers.length; i++) {
 			layers[i].evaluate(params);
@@ -763,12 +774,18 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			assert (layers[i] instanceof MatrixLayerImpl); //Improving later.
 			assert (outputErrors != null && outputErrors.length > 0);
 			
-			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) {
+			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) )
 				outputErrors = layers[i].backward(outputErrors, layers[i], learning, learningRate);
-				continue;
+			else
+				outputErrors = ((MatrixLayerImpl)layers[i]).backwardWithoutLearning(outputErrors, learningRate);
+			
+			//Adding output errors to layer input.
+			for (int j = 0; j < outputErrors.length; j++) {
+				LayerInput layerInput = outputErrors[j].layerOInput(layers[i]);
+				if (layerInput != null) layerInput.backwardError = outputErrors[j];
 			}
-			outputErrors = ((MatrixLayerImpl)layers[i]).backwardWithoutLearning(outputErrors, learningRate);
 		}
+		
 		for (int i = layers.length-1; i >= 0; i--) {
 			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) continue;
 			((MatrixLayerImpl)layers[i]).updateParametersFromBackwardInfo(outputErrors.length, learningRate);
@@ -804,21 +821,21 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * Setting mode of convolutional activation function which is often ReLU. If true, both filter and weight apply ReLU.
 	 * @return filter mode.
 	 */
-	boolean paramIsConvActivate() {
-		if (config.containsKey(CONV_ACTIVATE_FIELD))
-			return config.getAsBoolean(CONV_ACTIVATE_FIELD);
+	boolean paramIsConvReLU() {
+		if (config.containsKey(CONV_RELU_FIELD))
+			return config.getAsBoolean(CONV_RELU_FIELD);
 		else
-			return CONV_ACTIVATE_DEFAULT;
+			return CONV_RELU_DEFAULT;
 	}
 	
 	
 	/**
 	 * Setting mode of convolutional activation function which is often ReLU. If true, both filter and weight apply ReLU.
-	 * @param convActivate mode of convolutional activation function which is often ReLU.
+	 * @param convReLU mode of convolutional activation function which is often ReLU.
 	 * @return this network.
 	 */
-	MatrixNetworkImpl paramSetConvActivate(boolean convActivate) {
-		config.put(CONV_ACTIVATE_FIELD, convActivate);
+	MatrixNetworkImpl paramSetConvReLU(boolean convReLU) {
+		config.put(CONV_RELU_FIELD, convReLU);
 		return this;
 	}
 

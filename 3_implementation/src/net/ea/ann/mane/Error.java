@@ -15,6 +15,7 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
 
 
 /**
@@ -84,6 +85,11 @@ public class Error implements Cloneable, Serializable {
 		 * Droput mask.
 		 */
 		public Matrix dropoutMask = null;
+		
+		/**
+		 * Backward error.
+		 */
+		public Error backwardError = null;
 		
 		/**
 		 * Constructor with layer and input.
@@ -859,12 +865,12 @@ public class Error implements Cloneable, Serializable {
 	}
 	
 	
-//	/**
-//	 * Getting input of specified layer.
-//	 * @param layer specified layer.
-//	 * @return input of specified layer.
-//	 */
-//	public Matrix oinputOfLayerActual(Object layer) {return oinputOfLayer(layer);	}
+	/**
+	 * Getting input of specified layer.
+	 * @param layer specified layer.
+	 * @return input of specified layer.
+	 */
+	public Matrix oinputOfLayerActual(Object layer) {return oinputOfLayer(layer);}
 
 	
 	/**
@@ -1046,6 +1052,37 @@ public class Error implements Cloneable, Serializable {
 	}
 	
 	
+	/**
+	 * Extracting training flag.
+	 * @param params parameters.
+	 * @return training flag.
+	 */
+	public static boolean extractTrainingFlag(Object[] params) {
+		if (params == null || params.length == 0) return false;
+		for (Object param : params) {
+			if (param != null && param instanceof TrainingFlag) return true;
+		}
+		return false;
+	}
+
+
+	/**
+	 * Extracting layer input.
+	 * @param params parameters.
+	 * @return layer input.
+	 */
+	public static LayerInput extractLayerInput(MatrixLayer layer, Object[] params) {
+		if (params == null || params.length == 0) return null;
+		for (Object param : params) {
+			if ((param == null) || !(param instanceof Error)) continue;
+			Error error = (Error)param;
+			LayerInput layerInput = error.layerOInput(layer);
+			if (layerInput != null) return layerInput;
+		}
+		return null;
+	}
+
+
 }
 
 

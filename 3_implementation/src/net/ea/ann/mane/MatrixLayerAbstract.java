@@ -185,6 +185,18 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 	
 	/**
+	 * Starting layer for residual network.
+	 */
+	protected MatrixLayerAbstract startLayer = null;
+	
+	
+	/**
+	 * End layer for residual network.
+	 */
+	protected MatrixLayerAbstract endLayer = null;
+	
+	
+	/**
 	 * Number of rows in case of vectorization. By default it is zero, which means that there is no vectorization by default.
 	 */
 	protected int vecRows = 0;
@@ -296,9 +308,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	
 	
 	@Override
-	public MatrixLayerAbstract getPrevLayer() {
-		return this.prevLayer;
-	}
+	public MatrixLayerAbstract getPrevLayer() {return this.prevLayer;}
 	
 	
 	/**
@@ -325,9 +335,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 
 	@Override
-	public MatrixLayerAbstract getNextLayer() {
-		return this.nextLayer;
-	}
+	public MatrixLayerAbstract getNextLayer() {return this.nextLayer;}
 
 	
 	/**
@@ -353,6 +361,66 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	}
 
 
+	/**
+	 * Getting starting layer for residual network.
+	 * @return starting layer for residual network.
+	 */
+	MatrixLayerAbstract getStartLayer() {return this.startLayer;}
+	
+	
+	/**
+	 * Setting starting layer for residual network.
+	 * @param startLayer starting layer.
+	 * @return true if setting starting layer is successful.
+	 */
+	boolean setStartLayer(MatrixLayerAbstract startLayer) {
+		if (startLayer == this.startLayer) return false;
+		
+		MatrixLayerAbstract oldStartLayer = this.startLayer;
+		if (oldStartLayer != null) oldStartLayer.endLayer = null;
+		
+		this.startLayer = startLayer;
+		if (startLayer == null) return true;
+		
+		MatrixLayerAbstract endLayerOfStartLayer = startLayer.endLayer;
+		if (endLayerOfStartLayer != null) endLayerOfStartLayer.startLayer = null;
+
+		startLayer.endLayer = this;
+		
+		return true;
+	}
+
+	
+	/**
+	 * Getting end layer for residual network.
+	 * @return end layer for residual network.
+	 */
+	MatrixLayerAbstract getEndLayer() {return this.endLayer;}
+	
+	
+	/**
+	 * Setting end layer for residual network.
+	 * @param endLayer end layer.
+	 * @return true if setting end layer is successful.
+	 */
+	boolean setEndLayer(MatrixLayerAbstract endLayer) {
+		if (endLayer == this.endLayer) return false;
+
+		MatrixLayerAbstract oldEndLayer = this.endLayer;
+		if (oldEndLayer != null) oldEndLayer.startLayer = null;
+
+		this.endLayer = endLayer;
+		if (endLayer == null) return true;
+		
+		MatrixLayerAbstract startLayerOfEndLayer = endLayer.startLayer;
+		if (startLayerOfEndLayer != null) startLayerOfEndLayer.endLayer = null;
+		
+		endLayer.startLayer = this;
+		
+		return true;
+	}
+
+	
 	@Override
 	public void enterInputs(Record record) {
 		if (getNetwork() == null || getNetwork().getInputLayer() != this) throw new IllegalArgumentException();

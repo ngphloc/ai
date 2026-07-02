@@ -33,12 +33,6 @@ public class ResidualLayer extends MatrixLayerImpl  {
 
 	
 	/**
-	 * Staring layer.
-	 */
-	protected MatrixLayerAbstract startLayer = null;
-
-	
-	/**
 	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
@@ -78,13 +72,6 @@ public class ResidualLayer extends MatrixLayerImpl  {
 	public ResidualLayer(int neuronChannel) {this(neuronChannel, null, null, null);}
 	
 	
-	/**
-	 * Getting start layer.
-	 * @return start layer.
-	 */
-	public MatrixLayerAbstract getStartLayer() {return this.startLayer;}
-	
-
 	@Override
 	Matrix evaluateByFilter() {
 		if (this.filter == null || this.prevLayer == null) return super.evaluateByFilter();
@@ -105,7 +92,8 @@ public class ResidualLayer extends MatrixLayerImpl  {
 	
 	@Override
 	public Matrix evaluate(Object...params) {
-		if (this.getStartLayer() == null) return super.evaluate(params);
+		if (getStartLayer() == null) return super.evaluate(params);
+		if ((getNetwork() == null) || !(getNetwork() instanceof ResidualNetwork)) return super.evaluate(params);
 		
 		if (this.prevLayer == null) return null;
 		Matrix prevOutput = this.filter != null ? evaluateByFilter() : null;

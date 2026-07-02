@@ -95,17 +95,15 @@ public class ResidualNetwork extends DropoutNetwork {
 	 * @return start layer of specified residual layer.
 	 */
 	private MatrixLayerAbstract findStartLayer(MatrixLayerAbstract residualLayer) {
-		if (residualLayer == null) return null;
+		if (residualLayer == null || residualLayer == getInputLayer()) return null;
 		MatrixLayerAbstract layer = residualLayer, prevLayer = null, found = null;
 		Matrix output = residualLayer.queryOutput();
 		while ((prevLayer = layer.getPrevLayer()) != null) {
+			if (prevLayer.getEndLayer() != null) break;
 			Matrix input = prevLayer.queryInput();
-			Weight prevWeight = prevLayer.getWeight();
-			Filter prevFilter = prevLayer.getFilter();
 			if (checkInoutputSameSize(input, output) &&
-				(prevWeight != null || prevFilter != null) &&
-				residualLayerOf(prevLayer) != residualLayer &&
-				!(prevLayer instanceof ResidualLayer) &&
+				/*(prevLayer.getWeight() != null || prevLayer.getFilter() != null) &&*/
+				!(prevLayer instanceof ResidualLayer) && //It is possible to remove this condition.
 				!(prevLayer instanceof DropoutLayer)) found = prevLayer;
 			layer = prevLayer;
 		}
@@ -113,21 +111,21 @@ public class ResidualNetwork extends DropoutNetwork {
 	}
 	
 	
-	/**
-	 * Getting residual layer of starting layer.
-	 * @param startLayer starting layer.
-	 * @return residual layer of starting layer.
-	 */
-	private ResidualLayer residualLayerOf(MatrixLayerAbstract startLayer) {
-		if (startLayer == null) return null;
-		MatrixLayerAbstract layer = startLayer, nextLayer = null;
-		while ((nextLayer = layer.getNextLayer()) != null) {
-			if (nextLayer instanceof ResidualLayer && ((ResidualLayer)nextLayer).getStartLayer() == startLayer)
-				return (ResidualLayer)nextLayer;
-			layer = nextLayer;
-		}
-		return null;
-	}
+//	/**
+//	 * Getting residual layer of starting layer.
+//	 * @param startLayer starting layer.
+//	 * @return residual layer of starting layer.
+//	 */
+//	private ResidualLayer residualLayerOf(MatrixLayerAbstract startLayer) {
+//		if (startLayer == null) return null;
+//		MatrixLayerAbstract layer = startLayer, nextLayer = null;
+//		while ((nextLayer = layer.getNextLayer()) != null) {
+//			if (nextLayer instanceof ResidualLayer && ((ResidualLayer)nextLayer).getStartLayer() == startLayer)
+//				return (ResidualLayer)nextLayer;
+//			layer = nextLayer;
+//		}
+//		return null;
+//	}
 	
 	
 	/**
@@ -155,13 +153,13 @@ public class ResidualNetwork extends DropoutNetwork {
 		if (this.layers == null || residualIndex < 0 || residualIndex >= this.layers.length) return false;
 
 		MatrixLayerAbstract layer = this.layers[residualIndex];
-		if (!(layer instanceof ResidualLayer)) return true;
+		if (!(layer instanceof ResidualLayer)) return false;
 		ResidualLayer residualLayer = (ResidualLayer)layer;
 		if (residualLayer.getStartLayer() != null) return false;
 		
 		MatrixLayerAbstract startLayer = findStartLayer(residualLayer);
 		if (startLayer == null) return false;
-		residualLayer.startLayer = startLayer;
+		residualLayer.setStartLayer(startLayer);
 		return true;
 	}
 	
@@ -173,7 +171,7 @@ public class ResidualNetwork extends DropoutNetwork {
 	 */
 	protected boolean unsetResidualLayer(ResidualLayer residualLayer) {
 		if (residualLayer == null) return false;
-		residualLayer.startLayer = null;
+		residualLayer.setStartLayer(null);
 		return true;
 	}
 	
@@ -198,53 +196,53 @@ public class ResidualNetwork extends DropoutNetwork {
 	}
 	
 	
-	@Override
-	protected Error[] backward(Error[] outputErrors, boolean learning, double learningRate) {
-		if (getResidualLayers().size() == 0) return super.backward(outputErrors, learning, learningRate);
-		assert (validate() && outputErrors != null && outputErrors.length > 0);
-		if (!validate() || outputErrors == null || outputErrors.length == 0) return null;
-		
-		MatrixLayerAbstract startResidualLayer = null;
-		Error[] residualErrors = null, startResidualErrors = null;
-		for (int l = layers.length-1; l >= 0; l--) {
-			assert (layers[l] instanceof MatrixLayerImpl); //Improving later.
-			assert (outputErrors != null && outputErrors.length > 0);
-			
-			if ( (!learning) || (!(layers[l] instanceof MatrixLayerImpl)) )
-				outputErrors = layers[l].backward(outputErrors, layers[l], learning, learningRate);
-			else
-				outputErrors = ((MatrixLayerImpl)layers[l]).backwardWithoutLearning(outputErrors, learningRate);
-			
-			//Back-warding residual errors.
-			if (startResidualErrors != null)
-				startResidualErrors = null;
-			if (layers[l] instanceof ResidualLayer && startResidualErrors == null) {
-				residualErrors = outputErrors;
-				startResidualLayer = ((ResidualLayer)layers[l]).getStartLayer();
-				assert (startResidualLayer != null);
-			}
-			if (l > 0 && startResidualLayer != null && layers[l-1] == startResidualLayer && residualErrors != null)
-				startResidualErrors = outputErrors;
-			if (startResidualErrors != null) {
-				//Accumulating starting residual error. Only applying in filter and null weight case in this current version because error from normal weight will be transformed one more time. 
-				for (int i = 0; i < startResidualErrors.length; i++) {
-					Matrix error = startResidualErrors[i].error().add(residualErrors[i].error());
-					startResidualErrors[i].errorSet(error);
-				}
-				outputErrors = startResidualErrors;
-				startResidualLayer = null;
-				startResidualErrors = null;
-				residualErrors = null;
-			}
-		}
-		
-		for (int i = layers.length-1; i >= 0; i--) {
-			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) continue;
-			((MatrixLayerImpl)layers[i]).updateParametersFromBackwardInfo(outputErrors.length, learningRate);
-		}
-		
-		return outputErrors;
-	}
+//	@Override
+//	protected Error[] backward(Error[] outputErrors, boolean learning, double learningRate) {
+//		if (getResidualLayers().size() == 0) return super.backward(outputErrors, learning, learningRate);
+//		assert (validate() && outputErrors != null && outputErrors.length > 0);
+//		if (!validate() || outputErrors == null || outputErrors.length == 0) return null;
+//		
+//		MatrixLayerAbstract startResidualLayer = null;
+//		Error[] residualErrors = null, startResidualErrors = null;
+//		for (int l = layers.length-1; l >= 0; l--) {
+//			assert (layers[l] instanceof MatrixLayerImpl); //Improving later.
+//			assert (outputErrors != null && outputErrors.length > 0);
+//			
+//			if ( (!learning) || (!(layers[l] instanceof MatrixLayerImpl)) )
+//				outputErrors = layers[l].backward(outputErrors, layers[l], learning, learningRate);
+//			else
+//				outputErrors = ((MatrixLayerImpl)layers[l]).backwardWithoutLearning(outputErrors, learningRate);
+//			
+//			//Back-warding residual errors.
+//			if (startResidualErrors != null)
+//				startResidualErrors = null;
+//			if (layers[l] instanceof ResidualLayer && startResidualErrors == null) {
+//				residualErrors = outputErrors;
+//				startResidualLayer = ((ResidualLayer)layers[l]).getStartLayer();
+//				assert (startResidualLayer != null);
+//			}
+//			if (l > 0 && startResidualLayer != null && layers[l-1] == startResidualLayer && residualErrors != null)
+//				startResidualErrors = outputErrors;
+//			if (startResidualErrors != null) {
+//				//Accumulating starting residual error. Only filter and null weight are supported because error from previous normal weight layer must be transformed again.
+//				for (int i = 0; i < startResidualErrors.length; i++) {
+//					Matrix error = startResidualErrors[i].error().add(residualErrors[i].error());
+//					startResidualErrors[i].errorSet(error);
+//				}
+//				outputErrors = startResidualErrors;
+//				startResidualLayer = null;
+//				startResidualErrors = null;
+//				residualErrors = null;
+//			}
+//		}
+//		
+//		for (int i = layers.length-1; i >= 0; i--) {
+//			if ( (!learning) || (!(layers[i] instanceof MatrixLayerImpl)) ) continue;
+//			((MatrixLayerImpl)layers[i]).updateParametersFromBackwardInfo(outputErrors.length, learningRate);
+//		}
+//		
+//		return outputErrors;
+//	}
 
 
 	/**

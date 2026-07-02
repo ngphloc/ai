@@ -506,7 +506,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	 * @param learningRate learning rate.
 	 */
 	void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
-		assert (this.tempAccum == recordCount);
+		assert (this.tempAccum == recordCount && recordCount > 0);
 		
 		if (this.heads != null) {
 			for (int i = 0; i < this.heads.length; i++) {
@@ -527,7 +527,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 	 * @param learningRate learning rate.
 	 */
 	private void updateParametersFromBackwardInfo(Matrix dWO, int recordCount, double learningRate) {
-		assert (this.tempAccum == recordCount);
+		assert (this.tempAccum == recordCount && recordCount > 0);
 		
 		if (this.WO != null && dWO != null) {
 			dWO = dWO.divide0(recordCount);
@@ -1287,7 +1287,7 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param learningRate learning rate.
 	 */
 	private void updateParametersFromBackwardInfo(Matrix dWQ, Matrix dWK, Matrix dWV, Matrix dT1, Matrix dT2, int recordCount, double learningRate) {
-		assert(this.tempAccum == recordCount);
+		assert(this.tempAccum == recordCount && recordCount > 0);
 
 		//Calculating means of gradients.
 		if (dWQ != null) dWQ = dWQ.divide0(recordCount);
