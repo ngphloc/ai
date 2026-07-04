@@ -245,6 +245,11 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			this.output = this.input = newMatrix(new Size(size.width, size.height, size.depth)); //Only for input layer where both filter and weights are null and so, its input and output must be initialized.
 		}
 		
+		/*
+		//Setting identity activation function for null filter and network filter.
+		if ((this.filter != null) && (this.filter instanceof NullFilter || this.filter instanceof NetworkFilter))
+			this.setFilterActivateRef(IdentityDefault.identity());
+		*/
 		//Setting identity activation function for null weight and network weight.
 		if ((this.weight != null) && (this.weight instanceof NullWeight || this.weight instanceof NetworkWeight))
 			this.setWeightActivateRef(IdentityDefault.identity());
@@ -414,10 +419,14 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 */
 	Matrix dFilterValue(Matrix error, boolean learning, double learningRate, Error refError) {
 		if (this.filter == null) return null;
-		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(this.prevLayer.queryOutput());
-		//Fixing date: 2026.06.21.
+		Matrix actualPrevLayerOutput = refError != null ? refError.oinputPrevPrevOfLayer(this) : null; //Actual previous previous input.
+		actualPrevLayerOutput = actualPrevLayerOutput != null ? actualPrevLayerOutput : this.prevLayer.queryOutput();
+		assert (actualPrevLayerOutput == this.prevLayer.queryOutput()); //This assertion should be removed in next version.
+		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(actualPrevLayerOutput);
+		//
 		Matrix actualPrevInput = refError != null ? refError.oinputPrevOfLayer(this) : null; //Actual previous input.
 		actualPrevInput = actualPrevInput != null ? actualPrevInput : getPrevInput();
+		assert (actualPrevInput == getPrevInput()); //This assertion should be removed in next version.
 		Matrix thisPrevInputConv = matrixToConvLayer(actualPrevInput);
 		//
 		Matrix errorConv = matrixToConvLayer(error);
@@ -439,10 +448,14 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 */
 	Kernel dFilterKernel(Matrix error, Error refError) {
 		if (this.filter == null) return null;
-		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(this.prevLayer.queryOutput());
-		//Fixing date: 2026.06.21.
+		Matrix actualPrevLayerOutput = refError != null ? refError.oinputPrevPrevOfLayer(this) : null; //Actual previous previous input.
+		actualPrevLayerOutput = actualPrevLayerOutput != null ? actualPrevLayerOutput : this.prevLayer.queryOutput();
+		assert (actualPrevLayerOutput == this.prevLayer.queryOutput()); //This assertion should be removed in next version.
+		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(actualPrevLayerOutput);
+		//
 		Matrix actualPrevInput = refError != null ? refError.oinputPrevOfLayer(this) : null; //Actual previous input.
 		actualPrevInput = actualPrevInput != null ? actualPrevInput : getPrevInput();
+		assert (actualPrevInput == getPrevInput()); //This assertion should be removed in next version.
 		Matrix thisPrevInputConv = matrixToConvLayer(actualPrevInput);
 		//
 		Matrix errorConv = matrixToConvLayer(error);
@@ -485,16 +498,19 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 	@Override
 	public Matrix evaluate(Object...params) {
+		assert (this.prevLayer != null); //Do not evaluate the input layer.
 		if (this.prevLayer == null) return null;
-		Matrix prevOutput = this.filter != null ? evaluateByFilter() : null;
+		Matrix prevOutput0 = this.filter != null ? evaluateByFilter() : null;
 		if (this.weight == null) {
 			Error.addLayerOInput(this, params);
-			return prevOutput;
+			assert (prevOutput0 != null && prevOutput0 == this.prevOutput);
+			return prevOutput0;
 		}
 		
-		this.input = prevOutput != null ? prevOutput : this.prevLayer.queryOutput();
+		this.input = prevOutput0 != null ? prevOutput0 : this.prevLayer.queryOutput();
 		this.input = this.weight.evaluate(this.input, this.bias);
-		this.output = this.getWeightActivateRef() != null ? this.input.evaluate0(this.getWeightActivateRef()) : this.input;
+		this.output = (this.getWeightActivateRef() != null) && !(this.weight instanceof NullWeight) ?
+			this.input.evaluate0(this.getWeightActivateRef()) : this.input;
 		
 		Error.addLayerOInput(this, params);
 		return this.output;
@@ -581,7 +597,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			
 			//Calculating errors from weight next layer.
 			if (this.nextLayer != null && this.nextLayer.getFilter() == null /*&& this.nextLayer.getWeight() != null*/ && this.nextLayer.getWeight().backwardErrorMode()) {
-				Function thisActivateRef = this.weight != null ? this.getWeightActivateRef() :
+				Function thisActivateRef = this.weight != null ? (!(this.weight instanceof NullWeight) ? this.getWeightActivateRef() : null) :
 					(this.filter != null && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ?
 						this.getFilterActivateRef() : null); //Getting right-most activation function. Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
 				Matrix input0 = actualErrInput != null ? actualErrInput : queryInput(); //X^k-1 = input.

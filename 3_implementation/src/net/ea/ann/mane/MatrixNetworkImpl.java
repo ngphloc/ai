@@ -247,8 +247,8 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		if (paramIsConvReLU()) {
 			ReLU globalReLU = getConvActivateRef() != null && getConvActivateRef() instanceof ReLU ? (ReLU)getConvActivateRef() : null;
 			if (globalReLU == null) {
-				assert (paramIsNorm() && this.neuronChannel >= 1);
-				globalReLU = neuronChannel == 1 ? new ReLU1(0, 1) : new ReLUV(neuronChannel, 0, 1);
+				assert (this.neuronChannel >= 1);
+				globalReLU = neuronChannel == 1 ? (paramIsNorm() ? new ReLU1(0, 1) : new ReLU1(0)) : (paramIsNorm() ? new ReLUV(neuronChannel, 0, 1) : new ReLUV(neuronChannel, 0));
 			}
 			assert (globalReLU != null);
 			
@@ -262,7 +262,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			}
 		}
 		
-		new MatrixNetworkAssoc(this).initParams();
+		new MatrixNetworkAssoc(this).initParams(); //Random initializing parameters is very important.
 //		history.clear();
 		return true;
 	}

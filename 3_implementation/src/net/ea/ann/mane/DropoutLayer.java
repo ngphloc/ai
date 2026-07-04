@@ -261,10 +261,13 @@ public class DropoutLayer extends MatrixLayerImpl {
 		setupMask(params);
 		if (this.dropoutMask == null) return super.evaluate(params);
         
+		//Dropout output.
 		Matrix thisOutput = super.evaluate(params); 
 		Matrix maskedOutput = this.dropoutMask.multiplyWise(thisOutput);
 		if (thisOutput == this.output) this.output = maskedOutput;
+		if (thisOutput == this.prevOutput) this.prevOutput = maskedOutput;
 		
+		//Storing masked output in error.
 		LayerInput layerInput = Error.extractLayerInput(this, params);
 		if (layerInput != null) layerInput.ooutput = this.output;
         return maskedOutput;

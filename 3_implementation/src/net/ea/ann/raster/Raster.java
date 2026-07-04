@@ -14,6 +14,7 @@ import net.ea.ann.conv.ConvLayerSingle;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.Logistic1;
 import net.ea.ann.core.function.LogisticV;
+import net.ea.ann.core.function.ReLU;
 import net.ea.ann.core.function.ReLU1;
 import net.ea.ann.core.function.ReLUV;
 import net.ea.ann.core.function.indexed.IndexedLogistic1;
@@ -408,7 +409,9 @@ public interface Raster extends Serializable, Cloneable {
 	 * @return rectified linear unit (ReLU) activation function from neuron channel.
 	 */
 	static Function toReLUActivationRef(int neuronChannel, boolean isNorm) {
-		return toConvActivationRef(neuronChannel, isNorm);
+		Function relu = toConvActivationRef(neuronChannel, isNorm);
+		if (!(relu instanceof ReLU)) throw new IllegalArgumentException();
+		return relu;
 	}
 
 

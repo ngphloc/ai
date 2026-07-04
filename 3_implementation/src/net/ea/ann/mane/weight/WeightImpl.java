@@ -116,9 +116,8 @@ public class WeightImpl implements Weight, TextParsable {
 	
 	
 	/**
-	 * Constructor with the first weight and the second weight.
-	 * @param W1 the first weight.
-	 * @param W2 the second weight.
+	 * Constructor with the kernel.
+	 * @param w the kernel.
 	 */
 	public WeightImpl(WKernel w) {
 		this.kernel = w;
@@ -433,11 +432,11 @@ public class WeightImpl implements Weight, TextParsable {
 		buffer.append("{");
 		
 		MatrixStack[] W1 = W1();
-		if (W1 != null) buffer.append("W1 = {" + Util.toText(W1, ",") + "}");
+		if (W1 != null) buffer.append("W1 = " + Util.toText(W1, ",") + "");
 		MatrixStack[] W2 = W2();
 		if (W2 != null) {
 			if (W1 != null) buffer.append(", ");
-			buffer.append("W2 = {" + Util.toText(W2, ",") + "}");
+			buffer.append("W2 = " + Util.toText(W2, ",") + "");
 		}
 		
 		buffer.append("}");

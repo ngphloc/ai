@@ -48,7 +48,9 @@ public class ActivateWWeight implements Weight {
 	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
 		if (MatrixUtil.depth(prevInput) != MatrixUtil.depth(prevOutput) || MatrixUtil.depth(prevInput) != MatrixUtil.depth(thisError)) throw new IllegalArgumentException();
 		if (prevInput.rows() != prevOutput.rows() || prevInput.rows() != thisError.rows() || prevInput.columns() != prevOutput.columns() || prevInput.columns() != thisError.columns()) throw new IllegalArgumentException();
-		return thisError;
+		
+		Matrix derivative = prevActivateRef != null ? prevInput.derivativeWise(prevActivateRef) : null;
+		return derivative != null ? derivative.multiplyWise(thisError) : thisError;
 	}
 
 	

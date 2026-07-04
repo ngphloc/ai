@@ -4,6 +4,7 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.filter.KernelFilterProduct;
+import net.ea.ann.mane.weight.NullWeight;
 
 /**
  * This class represents residual layer.
@@ -95,17 +96,20 @@ public class ResidualLayer extends MatrixLayerImpl  {
 		if (getStartLayer() == null) return super.evaluate(params);
 		if ((getNetwork() == null) || !(getNetwork() instanceof ResidualNetwork)) return super.evaluate(params);
 		
+		assert (this.prevLayer != null); //Do not evaluate the input layer.
 		if (this.prevLayer == null) return null;
-		Matrix prevOutput = this.filter != null ? evaluateByFilter() : null;
+		Matrix prevOutput0 = this.filter != null ? evaluateByFilter() : null;
 		if (this.weight == null) {
 			Error.addLayerOInput(this, params);
-			return prevOutput;
+			assert (prevOutput0 != null && prevOutput0 == this.prevOutput);
+			return prevOutput0;
 		}
 		
-		this.input = prevOutput != null ? prevOutput : this.prevLayer.queryOutput();
+		this.input = prevOutput0 != null ? prevOutput0 : this.prevLayer.queryOutput();
 		this.input = this.weight.evaluate(this.input, this.bias);
 		this.input = this.input.add(this.getStartLayer().queryInput()); //This code line is important for residual network.
-		this.output = this.getWeightActivateRef() != null ? this.input.evaluate0(this.getWeightActivateRef()) : this.input;
+		this.output = (this.getWeightActivateRef() != null) && !(this.weight instanceof NullWeight) ?
+			this.input.evaluate0(this.getWeightActivateRef()) : this.input;
 		
 		Error.addLayerOInput(this, params);
 		return this.output;

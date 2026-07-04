@@ -415,6 +415,29 @@ public interface Matrix extends NeuronValueCreator {
 
 	
 	/**
+	 * Calculating value variance of matrices.
+	 * @param matrices specified matrices.
+	 * @return value variance.
+	 */
+	static NeuronValue valueVariance(Matrix...matrices) {
+		if (matrices == null || matrices.length == 0) return null;
+		NeuronValue mean = valueMean(matrices);
+		int N = 0;
+		NeuronValue variance = null;
+		for (Matrix matrix : matrices) {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					NeuronValue d = matrix.get(i, j).subtract(mean);
+					variance = variance != null ? variance.add(d.multiply(d)) : d.multiply(d);
+					N++;
+				}
+			}
+		}
+		return variance.divide((double)N);
+	}
+
+	
+	/**
 	 * Calculating norm sum of matrices.
 	 * @param matrices specified matrices.
 	 * @return norm sum.

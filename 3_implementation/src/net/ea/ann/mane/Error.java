@@ -113,6 +113,7 @@ public class Error implements Cloneable, Serializable {
 			this.ooutput = layerInput.ooutput;
 			this.oinput = layerInput.oinput;
 			this.dropoutMask = layerInput.dropoutMask;
+			this.backwardError = layerInput.backwardError;
 		}
 		
 		/**
@@ -317,6 +318,8 @@ public class Error implements Cloneable, Serializable {
 			layerInput.ooutput = outputLayer.getOutput();
 			if (layer instanceof DropoutLayer) layerInput.dropoutMask = ((DropoutLayer)layer).dropoutMask;
 			
+			if (layerInput.oinput != null) {assert (oinput == layerInput.oinput);}
+			if (layerInput.oinput == null) {assert (oinput == layerInput.oinputPrev);}
 			return addLayerOInput(layerInput);
 		}
 

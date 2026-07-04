@@ -594,6 +594,8 @@ class Error0 implements Cloneable, Serializable {
 		layerInput.ooutput = outputLayer.getOutput();
 		if (layer instanceof DropoutLayer) layerInput.dropoutMask = ((DropoutLayer)layer).getDropoutMask();
 
+		if (layerInput.oinput != null) {assert (oinput == layerInput.oinput);}
+		if (layerInput.oinput == null) {assert (oinput == layerInput.oinputPrev);}
 		return addLayerOInput(layerInput);
 	}
 

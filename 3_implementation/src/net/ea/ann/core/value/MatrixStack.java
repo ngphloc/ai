@@ -464,8 +464,31 @@ public class MatrixStack implements Matrix, TextParsable {
 	 * @return value mean.
 	 */
 	public static NeuronValue valueMean(MatrixStack...stacks) {
-		NeuronValue sum = valueSum(stacks);
-		return sum != null ? sum.divide((double)stacks.length) : null;
+		assert (true); //Please remove this code line in next version because it is only for tracking error.
+		if (stacks == null || stacks.length == 0) return null;
+		NeuronValue mean = Matrix.valueMean(stacks[0].matrices);
+		assert (mean != null);
+		for (int i = 1; i < stacks.length; i++) {
+			mean = mean.add(Matrix.valueMean(stacks[i].matrices));
+		}
+		return mean.divide((double)stacks.length);
+	}
+
+	
+	/**
+	 * Calculating value sum of matrix stacks.
+	 * @param stacks matrix stacks.
+	 * @return value sum.
+	 */
+	public static NeuronValue valueVariance(MatrixStack...stacks) {
+		assert (true); //Please remove this code line in next version because it is only for tracking error.
+		if (stacks == null || stacks.length == 0) return null;
+		NeuronValue variance = Matrix.valueVariance(stacks[0].matrices);
+		assert (variance != null);
+		for (int i = 1; i < stacks.length; i++) {
+			variance = variance.add(Matrix.valueVariance(stacks[i].matrices));
+		}
+		return variance.divide((double)stacks.length);
 	}
 
 	
@@ -479,6 +502,7 @@ public class MatrixStack implements Matrix, TextParsable {
 		MatrixStack[] sum = arrays[0];
 		for (int i = 1; i < arrays.length; i++) {
 			MatrixStack[] array = arrays[i];
+			assert (array.length == sum.length);
 			for (int j = 0; j < array.length; j++) {
 				sum[j] = (MatrixStack)sum[j].add(array[j]);
 			}

@@ -145,6 +145,16 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Calculating value mean.
+	 * @param matrix matrix.
+	 * @return value mean.
+	 */
+	public static NeuronValue valueVariance(Matrix matrix) {
+		return matrix instanceof MatrixStack ? MatrixStack.valueVariance((MatrixStack)matrix): Matrix.valueVariance(matrix);
+	}
+
+	
+	/**
 	 * Calculating sum matrix.
 	 * @param matrices array of matrices.
 	 * @return sum matrix.

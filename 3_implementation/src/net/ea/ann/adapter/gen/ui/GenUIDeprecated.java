@@ -2364,7 +2364,7 @@ class GenUIDeprecated extends JFrame implements Inspector, SetupAlgListener {
 
 		int nImages = -1;
 		try {
-			String txtNumber = JOptionPane.showInputDialog(this, "Enter number of images", nImages);
+			String txtNumber = JOptionPane.showInputDialog(this, "Enter number of images (-1 for all)", nImages);
 			if (txtNumber != null) nImages = Integer.parseInt(txtNumber.trim());
 		} catch (Throwable e) {}
 

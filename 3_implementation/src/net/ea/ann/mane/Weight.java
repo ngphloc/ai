@@ -61,13 +61,26 @@ public interface Weight extends Cloneable, Serializable {
 	
 	/**
 	 * Evaluating inputs.
-	 * @param time time.
 	 * @param input inputs.
 	 * @param bias biases.
 	 * @return evaluated value.
 	 */
 	Matrix evaluate(Matrix input, Matrix bias);
 
+	
+	/**
+	 * Evaluating inputs.
+	 * @param input inputs.
+	 * @param bias biases.
+	 * @param activateRef current activation function.
+	 * @return evaluated value.
+	 */
+	default Matrix evaluate(Matrix input, Matrix bias, Function activateRef) {
+		assert (true); //Tracking calling.
+		Matrix output = evaluate(input, bias);
+		return output != null && activateRef != null ? output.evaluate0(activateRef) : output;
+	}
+	
 	
 	/**
 	 * Calculate gradient of previous layers.

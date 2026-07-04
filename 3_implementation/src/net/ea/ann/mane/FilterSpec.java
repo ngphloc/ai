@@ -14,8 +14,10 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.mane.filter.FilterNetworkImpl;
+import net.ea.ann.mane.filter.GAP;
 import net.ea.ann.mane.filter.KernelFilterMax;
 import net.ea.ann.mane.filter.KernelFilterProduct;
+import net.ea.ann.mane.filter.NullFilter;
 import net.ea.ann.mane.filter.PoolFilterAverage;
 import net.ea.ann.mane.filter.PoolFilterMax;
 import net.ea.ann.raster.Size;
@@ -83,6 +85,11 @@ public class FilterSpec implements Cloneable, Serializable {
 		 * Max filter type.
 		 */
 		product_max,
+		
+		/**
+		 * Null filter.
+		 */
+		nil,
 	}
 
 	
@@ -103,6 +110,11 @@ public class FilterSpec implements Cloneable, Serializable {
 		 * Average pooling filter type.
 		 */
 		average,
+		
+		/**
+		 * Global Pooling Average (GAP) filer type.
+		 */
+		gap,
 		
 	}
 	
@@ -184,6 +196,15 @@ public class FilterSpec implements Cloneable, Serializable {
 		this(size, Type.kernel);
 	}
 	
+	
+	/**
+	 * Constructor with type.
+	 * @param type type.
+	 */
+	public FilterSpec(Type type) {
+		this(Size.unit(), type);
+	}
+
 	
 	/**
 	 * Constructor with size and type.
@@ -322,6 +343,9 @@ public class FilterSpec implements Cloneable, Serializable {
 		case 1:
 			kernelType = KernelType.product_max;
 			break;
+		case 2:
+			kernelType = KernelType.nil;
+			break;
 		default:
 			kernelType = KernelType.product;
 			break;
@@ -363,6 +387,9 @@ public class FilterSpec implements Cloneable, Serializable {
 			break;
 		case 1:
 			poolType = PoolType.average;
+			break;
+		case 2:
+			poolType = PoolType.gap;
 			break;
 		default:
 			poolType = PoolType.max;
@@ -439,7 +466,7 @@ public class FilterSpec implements Cloneable, Serializable {
 		neuronChannel = neuronChannel < 1 ? 1 : neuronChannel;
 		hint = hint != null ? hint : NeuronValueCreator.newNeuronValue(neuronChannel);
 
-		double factor = 1.0 / (filterSize.width*filterSize.height);
+		double factor = 1.0 / (double)(filterSize.width*filterSize.height);
 		Filter filter = null;
 		FilterSpec filterSpec = layerSpec != null ? layerSpec.filterSpec : new FilterSpec(filterSize);
 		switch (filterSpec.type) {
@@ -451,13 +478,16 @@ public class FilterSpec implements Cloneable, Serializable {
 				case product_max:
 					filter = KernelFilterMax.create(factor, filterSize, hint);
 					break;
+				case nil:
+					filter = new NullFilter();
+					break;
 				default:
 					filter = KernelFilterProduct.create(factor, filterSize, hint);
 					break;
 				}
 				break;
 			case pool:
-				if (filterSize.depth != filterSize.time || filterSize.time <= 0) throw new IllegalArgumentException();
+				if ( (filterSpec.poolType != PoolType.gap) && (filterSize.depth != filterSize.time || filterSize.time <= 0) ) throw new IllegalArgumentException();
 				Size adjustedSize = new Size(filterSize.width, filterSize.height, filterSize.time, 1);
 				switch (filterSpec.poolType) {
 				case max:
@@ -465,6 +495,9 @@ public class FilterSpec implements Cloneable, Serializable {
 					break;
 				case average:
 					filter = PoolFilterAverage.create(adjustedSize);
+					break;
+				case gap:
+					filter = new GAP();
 					break;
 				default:
 					filter = PoolFilterMax.create(adjustedSize);
@@ -540,6 +573,13 @@ public class FilterSpec implements Cloneable, Serializable {
 
 	
 	/**
+	 * Creating null filter.
+	 * @return null filter.
+	 */
+	static Filter newFilter() {return new NullFilter();}
+	
+	
+	/**
 	 * Creating filter.
 	 * @param filterSize filter size in which width and height are size of filter itself
 	 * whereas depth is the number of previous matrices (length of matrix stack in previous layer) and
@@ -568,13 +608,16 @@ public class FilterSpec implements Cloneable, Serializable {
 				case product_max:
 					filter = KernelFilterMax.create(factor, filterSize, hint);
 					break;
+				case nil:
+					filter = new NullFilter();
+					break;
 				default:
 					filter = KernelFilterProduct.create(factor, filterSize, hint);
 					break;
 				}
 				break;
 			case pool:
-				if (filterSize.depth != filterSize.time || filterSize.time <= 0) throw new IllegalArgumentException();
+				if ( (filterSpec.poolType != PoolType.gap) && (filterSize.depth != filterSize.time || filterSize.time <= 0) ) throw new IllegalArgumentException();
 				Size adjustedSize = new Size(filterSize.width, filterSize.height, filterSize.time, 1);
 				switch (filterSpec.poolType) {
 				case max:
@@ -582,6 +625,9 @@ public class FilterSpec implements Cloneable, Serializable {
 					break;
 				case average:
 					filter = PoolFilterAverage.create(adjustedSize);
+					break;
+				case gap:
+					filter = new GAP();
 					break;
 				default:
 					filter = PoolFilterMax.create(adjustedSize);
