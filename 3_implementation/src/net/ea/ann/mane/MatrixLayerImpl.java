@@ -209,6 +209,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		this.filterBias = null;
 		this.setPrevLayer(null);
 		this.setNextLayer(null);
+		resetBackwardInfo();
 
 		//Initialize filter and weights.
 		if (prevSize != null) {
@@ -257,7 +258,6 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (this.weight != null && this.weight instanceof ActivateFWeight && this.getFilterActivateRef() != null)
 			this.setWeightActivateRef(this.getFilterActivateRef());
 		
-		resetBackwardInfo(); //Fixing date: 2026.06.05
 		return true;
 	}
 	
@@ -426,7 +426,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		//
 		Matrix actualPrevInput = refError != null ? refError.oinputPrevOfLayer(this) : null; //Actual previous input.
 		actualPrevInput = actualPrevInput != null ? actualPrevInput : getPrevInput();
-		assert (actualPrevInput == getPrevInput()); //This assertion should be removed in next version.
+//		assert (actualPrevInput == getPrevInput()); //This assertion should be removed in next version.
 		Matrix thisPrevInputConv = matrixToConvLayer(actualPrevInput);
 		//
 		Matrix errorConv = matrixToConvLayer(error);
@@ -455,7 +455,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		//
 		Matrix actualPrevInput = refError != null ? refError.oinputPrevOfLayer(this) : null; //Actual previous input.
 		actualPrevInput = actualPrevInput != null ? actualPrevInput : getPrevInput();
-		assert (actualPrevInput == getPrevInput()); //This assertion should be removed in next version.
+//		assert (actualPrevInput == getPrevInput()); //This assertion should be removed in next version.
 		Matrix thisPrevInputConv = matrixToConvLayer(actualPrevInput);
 		//
 		Matrix errorConv = matrixToConvLayer(error);
@@ -596,7 +596,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			errors[i] = outputErrors[i].error(); 
 			
 			//Calculating errors from weight next layer.
-			if (this.nextLayer != null && this.nextLayer.getFilter() == null /*&& this.nextLayer.getWeight() != null*/ && this.nextLayer.getWeight().backwardErrorMode()) {
+			if (this.nextLayer != null && this.nextLayer.getFilter() == null && this.nextLayer.getWeight() != null && this.nextLayer.getWeight().backwardErrorMode()) {
 				Function thisActivateRef = this.weight != null ? (!(this.weight instanceof NullWeight) ? this.getWeightActivateRef() : null) :
 					(this.filter != null && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ?
 						this.getFilterActivateRef() : null); //Getting right-most activation function. Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
@@ -606,18 +606,23 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				errors[i] = this.nextLayer.getWeight().dValue(input0, output0, errors[i], thisActivateRef);
 			}
 			
-			//Applying dropout mask into errors.
-			mask = mask != null ? mask : (this instanceof DropoutLayer ? ((DropoutLayer)this).dropoutMask : null);
-			errors[i] = mask != null ? mask.multiplyWise(errors[i]) : errors[i];
 			//Adding residual backward errors.
 			if (getEndLayer() != null) {
 				LayerInput layerInput = outputErrors[i].layerOInput(getEndLayer());
 				Matrix endError = layerInput != null && layerInput.backwardError != null ? layerInput.backwardError.error() : null;
 				if (endError != null) errors[i] = errors[i].add(endError);
 			}
+			//Applying dropout mask into errors.
+			mask = mask != null ? mask : (this instanceof DropoutLayer ? ((DropoutLayer)this).dropoutMask : null);
+			errors[i] = mask != null ? mask.multiplyWise(errors[i]) : errors[i];
 			//Adjusting errors.
 			errors[i] = adjustError(errors[i], outputErrors[i]);
 
+			//Validating errors. It is possible to remove this assertion.
+			Matrix actualOutput = actualErrOutput != null ? actualErrOutput : queryOutput();
+			assert (errors[i].rows() == actualOutput.rows() && errors[i].columns() == actualOutput.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(actualOutput));
+			
+			
 			//Calculating weight gradient.
 			if (this.weight != null) {
 				if (this.weight.backwardErrorMode()) {
@@ -940,3 +945,86 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 
 }
+
+
+/**
+ * This class implements custom layer.
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+class CustomLayer extends MatrixLayerImpl {
+
+
+	/**
+	 * Serial version UID for serializable class. 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	
+	/**
+	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 * @param idRef identifier reference.
+	 */
+	public CustomLayer(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+		super(neuronChannel, activateRef, convActivateRef, idRef);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel, activation function, and convolutional activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 */
+	public CustomLayer(int neuronChannel, Function activateRef, Function convActivateRef) {
+		this(neuronChannel, activateRef, convActivateRef, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel and activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 */
+	public CustomLayer(int neuronChannel, Function activateRef) {
+		this(neuronChannel, activateRef, null, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel.
+	 * @param neuronChannel neuron channel.
+	 */
+	public CustomLayer(int neuronChannel) {this(neuronChannel, null, null, null);}
+
+
+	@Override
+	public boolean initialize(Size size, Size prevSize, LayerSpec layerSpec) {
+		return super.initialize(size, prevSize, layerSpec);
+	}
+
+
+	@Override
+	public Matrix evaluate(Object... params) {
+		return super.evaluate(params);
+	}
+
+
+	@Override
+	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
+		return super.backward(outputErrors, focus, learning, learningRate);
+	}
+
+
+	@Override
+	protected void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
+		super.updateParametersFromBackwardInfo(recordCount, learningRate);
+	}
+
+
+}
+

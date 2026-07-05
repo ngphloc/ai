@@ -31,9 +31,15 @@ public abstract class NetworkAbstract implements Network, Serializable {
 
 	
 	/**
-	 * Default value for learning rate.
+	 * Minimum value for learning rate.
 	 */
 	public final static double LEARN_RATE_MINIMUM = Float.MIN_VALUE;
+
+	
+	/**
+	 * Small value for learning rate.
+	 */
+	public final static double LEARN_RATE_SMALL = LEARN_TERMINATED_THRESHOLD_DEFAULT;
 
 	
 	/**

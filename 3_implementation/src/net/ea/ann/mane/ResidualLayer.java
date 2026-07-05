@@ -24,7 +24,7 @@ public class ResidualLayer extends MatrixLayerImpl  {
 	/**
 	 * Field for residual mode.
 	 */
-	public final static String RESIDUAL_MODE_FIELD = "mane_residual";
+	public final static String RESIDUAL_MODE_FIELD = "mane_layer_residual";
 	
 	
 	/**
@@ -107,7 +107,7 @@ public class ResidualLayer extends MatrixLayerImpl  {
 		
 		this.input = prevOutput0 != null ? prevOutput0 : this.prevLayer.queryOutput();
 		this.input = this.weight.evaluate(this.input, this.bias);
-		this.input = this.input.add(this.getStartLayer().queryInput()); //This code line is important for residual network.
+		this.input = this.input.add(this.getStartLayer().queryOutput()); //This code line is important for residual network.
 		this.output = (this.getWeightActivateRef() != null) && !(this.weight instanceof NullWeight) ?
 			this.input.evaluate0(this.getWeightActivateRef()) : this.input;
 		

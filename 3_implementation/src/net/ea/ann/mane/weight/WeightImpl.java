@@ -401,10 +401,10 @@ public class WeightImpl implements Weight, TextParsable {
 		MatrixStack[] W1 = W1();
 		MatrixStack[] W2 = W2();
 		if (W1 != null) {
-			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, rnd);
+			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, rnd, w1.columns());
 		}
 		if (W2 != null) {
-			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, rnd);
+			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, rnd, w2.rows());
 		}
 	}
 

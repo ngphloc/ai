@@ -52,7 +52,7 @@ public class VGGClassifier extends VGGExt {
 	/**
 	 * Default value for base line field.
 	 */
-	public static final boolean BASELINE_DEFAULT = true;
+	public static final boolean BASELINE_DEFAULT = false;
 
 	
 	/**
@@ -97,7 +97,10 @@ public class VGGClassifier extends VGGExt {
 		config.put(BASELINE_FIELD, BASELINE_DEFAULT);
 		config.put(BASELINE_MEAN_FIELD, BASELINE_MEAN_DEFAULT);
 		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
-		paramSetGAP(true);
+		
+//		paramSetGAP(true);
+		paramSetFFNFlatten(true);
+		paramSetVectorized(true);
 	}
 
 

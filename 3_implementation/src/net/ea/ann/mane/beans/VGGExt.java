@@ -66,7 +66,7 @@ class VGGExt extends VGG {
 	 * Field of the number elements of a combination.
 	 * Please see <a href="https://cusaas.com/blog/neural-classification">https://cusaas.com/blog/neural-classification</a> or /newtech-research/data-mining-analyzing/classification/neural-network/DataClassificationWithNeuralNetworks-Cusaas-2023.01.12.pdf.
 	 */
-	public static final String COMB_NUMBER_FIELD = "vgg_comb_number";
+	public static final String COMB_NUMBER_FIELD = "vgg_class_comb_number";
 	
 	
 	/**

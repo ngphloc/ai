@@ -70,6 +70,8 @@ public class TransformerImpl extends TransformerAbstract {
 	 */
 	public TransformerImpl(int neuronChannel, Id idRef) {
 		super(neuronChannel, idRef);
+		config.put(LEARN_RATE_FIELD, LEARN_RATE_SMALL); //Small learning rate for large training dataset.
+		
 		config.put(YQK_FIELD, YQK_DEFAULT);
 		config.put(MatrixNetworkAbstract.POS_ENCODE_FIELD, MatrixNetworkAbstract.POS_ENCODE_DEFAULT);
 	}

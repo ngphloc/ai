@@ -34,17 +34,17 @@ public interface Softmax extends Probability, FunctionDelay {
 	static NeuronValue softmax(NeuronValue[] all, NeuronValue x) {
 		if (x == null || all == null || all.length == 0) return null;
 		
-//		NeuronValue max = NeuronValue.max(all);
-//		max = max != null ? max : all[0].zero();
+		NeuronValue max = NeuronValue.max(all);
+		max = max != null ? max : all[0].zero();
 		NeuronValue[] exps = new NeuronValue[all.length];
 		NeuronValue sum = x.zero();
 		for (int i = 0; i < all.length; i++) {
-//			exps[i] = all[i].subtract(max).exp();
-			exps[i] = all[i].exp();
+			exps[i] = all[i].subtract(max).exp();
+//			exps[i] = all[i].exp();
 			sum = sum.add(exps[i]);
 		}
-//		return x.subtract(max).exp().divide(sum);
-		return x.exp().divide(sum);
+		return x.subtract(max).exp().divide(sum);
+//		return x.exp().divide(sum);
 	}
 
 	
@@ -56,10 +56,13 @@ public interface Softmax extends Probability, FunctionDelay {
 	static NeuronValue[] softmaxArray(NeuronValue[] all) {
 		if (all == null || all.length == 0) return null;
 		
+		NeuronValue max = NeuronValue.max(all);
+		max = max != null ? max : all[0].zero();
 		NeuronValue[] softmax = new NeuronValue[all.length];
 		NeuronValue sum = all[0].zero();
 		for (int i = 0; i < all.length; i++) {
-			softmax[i] = all[i].exp();
+			softmax[i] = all[i].subtract(max).exp();
+//			softmax[i] = all[i].exp();
 			sum = sum.add(softmax[i]);
 		}
 		for (int i = 0; i < all.length; i++) softmax[i] = softmax[i].divide(sum);
@@ -75,10 +78,13 @@ public interface Softmax extends Probability, FunctionDelay {
 	static NeuronValue[] softmax(NeuronValue...values) {
 		if (values == null || values.length == 0) return null;
 		
+		NeuronValue max = NeuronValue.max(values);
+		max = max != null ? max : values[0].zero();
 		NeuronValue[] softmax = new NeuronValue[values.length];
 		NeuronValue sum = values[0].zero();
 		for (int i = 0; i < values.length; i++) {
-			softmax[i] = values[i].exp();
+			softmax[i] = values[i].subtract(max).exp();
+//			softmax[i] = values[i].exp();
 			sum = sum.add(softmax[i]);
 		}
 		for (int i = 0; i < values.length; i++) softmax[i] = softmax[i].divide(sum);
@@ -94,10 +100,13 @@ public interface Softmax extends Probability, FunctionDelay {
 	static double[] softmax(double... values) {
 		if (values == null || values.length == 0) return null;
 		
+        double max = values[0];
+        for (double v : values) max = Math.max(max, v);
 		double[] softmax = new double[values.length];
 		double sum = 0;
 		for (int i = 0; i < values.length; i++) {
-			softmax[i] = Math.exp(values[i]);
+			softmax[i] = Math.exp(values[i]-max);
+//			softmax[i] = Math.exp(values[i]);
 			sum += softmax[i];
 		}
 		for (int i = 0; i < values.length; i++) softmax[i] = softmax[i]/sum;
@@ -127,10 +136,14 @@ public interface Softmax extends Probability, FunctionDelay {
 		Matrix softmax = matrix.create(new Size(matrix.columns(), matrix.rows()));
 		NeuronValue zero = matrix.get(0, 0).zero();
 		for (int row = 0; row < matrix.rows(); row++) {
+			NeuronValue max = matrix.get(row, 0);
+			for (int column = 1; column < matrix.columns(); column++) max = max.max(matrix.get(row, column));
+
 			NeuronValue[] exps = new NeuronValue[matrix.columns()];
 			NeuronValue sum = zero;
 			for (int column = 0; column < matrix.columns(); column++) {
-				exps[column] = matrix.get(row, column).exp();
+				exps[column] = matrix.get(row, column).subtract(max).exp();
+//				exps[column] = matrix.get(row, column).exp();
 				sum = sum.add(exps[column]);
 			}
 			
@@ -165,10 +178,13 @@ public interface Softmax extends Probability, FunctionDelay {
 	@Deprecated
 	@SuppressWarnings("unused")
 	private static NeuronValue[] softmaxByRow(Matrix matrix, int row) {
+		NeuronValue max = matrix.get(row, 0);
+		for (int column = 1; column < matrix.columns(); column++) max = max.max(matrix.get(row, column));
+		
 		NeuronValue[] softmax = new NeuronValue[matrix.columns()];
 		NeuronValue sum = matrix.get(0, 0).zero();
 		for (int column = 0; column < matrix.columns(); column++) {
-			softmax[column] = matrix.get(row, column).exp();
+			softmax[column] = matrix.get(row, column).subtract(max).exp();
 			sum = sum.add(softmax[column]);
 		}
 		for (int column = 0; column < matrix.columns(); column++) softmax[column] = softmax[column].divide(sum);
@@ -202,10 +218,14 @@ public interface Softmax extends Probability, FunctionDelay {
 		Matrix softmax = matrix.create(new Size(matrix.columns(), matrix.rows()));
 		NeuronValue zero = matrix.get(0, 0).zero();
 		for (int column = 0; column < matrix.columns(); column++) {
+			NeuronValue max = matrix.get(0, column);
+			for (int row = 1; row < matrix.rows(); row++) max = max.max(matrix.get(row, column));
+			
 			NeuronValue[] exps = new NeuronValue[matrix.rows()];
 			NeuronValue sum = zero;
 			for (int row = 0; row < matrix.rows(); row++) {
-				exps[row] = matrix.get(row, column).exp();
+				exps[row] = matrix.get(row, column).subtract(max).exp();
+//				exps[row] = matrix.get(row, column).exp();
 				sum = sum.add(exps[row]);
 			}
 			
@@ -239,10 +259,14 @@ public interface Softmax extends Probability, FunctionDelay {
 	@Deprecated
 	@SuppressWarnings("unused")
 	private static NeuronValue[] softmaxByColumn(Matrix matrix, int column) {
+		NeuronValue max = matrix.get(0, column);
+		for (int row = 1; row < matrix.rows(); row++) max = max.max(matrix.get(row, column));
+
 		NeuronValue[] softmax = new NeuronValue[matrix.rows()];
 		NeuronValue sum = matrix.get(0, 0).zero();
 		for (int row = 0; row < matrix.rows(); row++) {
-			softmax[row] = matrix.get(row, column).exp();
+			softmax[row] = matrix.get(row, column).subtract(max).exp();
+//			softmax[row] = matrix.get(row, column).exp();
 			sum = sum.add(softmax[row]);
 		}
 		for (int row = 0; row < matrix.rows(); row++) softmax[row] = softmax[row].divide(sum);

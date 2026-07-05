@@ -1356,6 +1356,17 @@ public interface NeuronValue extends Value {
 	
 	
 	/**
+	 * HE randomization.
+	 * @param rnd randomizer.
+	 * @param fanIn the number of incoming connections.
+	 * @return HE initialized value
+	 */
+	static double rHe(Random rnd, int fanIn) {
+		return rnd.nextGaussian() * Math.sqrt(2.0 / fanIn);
+	}
+	
+	
+	/**
 	 * Converting vector to text.
 	 * @param vector vector of neuron values.
 	 * @return text form.

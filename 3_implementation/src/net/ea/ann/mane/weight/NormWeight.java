@@ -261,7 +261,7 @@ public class NormWeight implements Weight, TextParsable {
 	@Override
 	public void initParams(Random rnd) {
 		MatrixStack W = W();
-		if (W != null) MatrixUtil.fill(W, rnd);
+		if (W != null) MatrixUtil.fill(W, rnd, 1);
 	}
 
 

@@ -46,7 +46,16 @@ public class VGGExt extends NetworkAbstract implements Classifier {
 	public VGGExt(int neuronChannel) {
 		super();
 		
+		//Removing following lines after debugging.
 		this.classifier = new VGGClassifier(neuronChannel);
+//		this.classifier.paramSetDropoutMode(false);
+//		this.classifier.paramSetResidualMode(false);
+//		this.classifier.paramSetGAP(false);
+//		this.classifier.paramSetLayerNorm(false);
+		this.classifier.paramSetFiltersNumberMax(1);
+//		this.classifier.paramSetVGGMiddleSize(new Size(32, 32));
+		System.out.println("net.ea.ann.classifier.VGGExt: Removing following lines after debugging.");
+		
 		try {
 			this.config.putAll(this.classifier.getConfig());
 		} catch (Throwable e) {Util.trace(e);}

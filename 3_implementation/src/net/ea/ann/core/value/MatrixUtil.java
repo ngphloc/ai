@@ -245,6 +245,20 @@ public final class MatrixUtil implements Cloneable, Serializable {
 
 	
 	/**
+	 * Filling matrix by random value.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 * @param fanIn the number of incoming connections.
+	 */
+	public static void fill(Matrix matrix, Random rnd, int fanIn) {
+		if (matrix instanceof MatrixStack)
+			MatrixStack.fill((MatrixStack)matrix, rnd, fanIn);
+		else
+			Matrix.fill(matrix, rnd, fanIn);
+	}
+
+	
+	/**
 	 * Flattening array of matrices according to smaller channel.
 	 * @param matrices array of matrices.
 	 * @param smallerChannel smaller channel.

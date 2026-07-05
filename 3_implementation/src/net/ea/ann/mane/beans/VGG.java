@@ -20,8 +20,10 @@ import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.FilterSpec.NetworkType;
 import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.FilterSpec.Type;
+import net.ea.ann.mane.FlattenLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixNetworkInitializer;
+import net.ea.ann.mane.NullLayer;
 import net.ea.ann.mane.ResidualLayer;
 import net.ea.ann.mane.ResidualNetwork;
 import net.ea.ann.mane.WeightSpec;
@@ -56,9 +58,13 @@ public class VGG extends VGGCore {
 	public VGG(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 		
-//		//Removing following lines after debugging.
-//		paramSetVGGMiddleSize(new Size(32, 32));
+		//Removing following lines after debugging.
+//		paramSetDropoutMode(false);
+//		paramSetResidualMode(false);
+//		paramSetGAP(false);
+//		paramSetLayerNorm(false);
 //		paramSetFiltersNumberMax(1);
+//		paramSetVGGMiddleSize(new Size(32, 32));
 //		System.out.println("VGG: Removing following lines after debugging.");
 	}
 	
@@ -94,7 +100,7 @@ public class VGG extends VGGCore {
 	
 	@Override
 	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
-		List<Size> blockSizes = calcBlockSizes(inputSize, middleSize, paramGetBlocksNumber(), paramGetFiltersNumberInit(), paramGetFiltersNumberMax(), paramIsFiltersNumberIncrease());
+		List<Size> blockSizes = calcBlockSizes(inputSize, middleSize, paramGetBlocksNumber(), paramGetFiltersNumberInit());
 		if (blockSizes.size() == 0) return false;
 		
 		int base = Math.max(BASE, 1);
@@ -105,21 +111,21 @@ public class VGG extends VGGCore {
 
 		int rasterChannel = paramGetRasterChannel();
 		boolean flatten = MatrixUtil.isFlatten(inputSize.depth, this.neuronChannel, rasterChannel); //inputSize.depth is actually raster depth.
-		MatrixLayerAbstract.LayerSpec layerSpec0 = null;
+		VGG.LayerSpec layerSpec0 = null;
 		if (flatten)
-			layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height, rasterChannel, 1));
+			layerSpec0 = new VGG.LayerSpec(new Size(inputSize.width, inputSize.height, rasterChannel, 1));
 		else
-			layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height,
+			layerSpec0 = new VGG.LayerSpec(new Size(inputSize.width, inputSize.height,
 				inputSize.depth < 1 ? 1 : inputSize.depth,
 				1/*inputSize.time < 1 ? 1 : inputSize.time*/)); //In current version, time is 1, which means that the model supports until 3-dimension layers.
 		List<MatrixLayerAbstract.LayerSpec> layerSpecs = Util.newList(0);
 		layerSpecs.add(layerSpec0);
 		
+		assert (layerSpecs.size() > 0);
 		for (int block = 0; block < blockSizes.size(); block++) {
 			Size blockSize = blockSizes.get(block);
 			for (int j = 0; j < layersNumberPerBlock; j++) {
-				assert (layerSpecs.size() > 0);
-				MatrixLayerAbstract.LayerSpec layerSpec = new MatrixLayerAbstract.LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth, 1));
+				VGG.LayerSpec layerSpec = new VGG.LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth, 1));
 				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 				
 				//Setting filter specification.
@@ -174,10 +180,9 @@ public class VGG extends VGGCore {
 				
 				//Adding residual layer.
 				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= DEPTH_DEFAULT) {
-					assert (layerSpecs.size() > 0);
 					VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(layerSpecs.get(layerSpecs.size()-1).size,
 						new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-					resLayerSpec.prevSize = resLayerSpec.size;
+					resLayerSpec.prevSize = resLayerSpec.size; //Setting previous size not important.
 					resLayerSpec.type = VGG.LayerSpec.Type.residual;
 					if (paramIsFilterMode())
 						resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.filter_activate;
@@ -190,7 +195,7 @@ public class VGG extends VGGCore {
 					Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 					if (paramIsLayerNorm() && (prevSize.width == 1 || MATRIX_NORM)) {
 						VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-						normLayerSpec.prevSize = resLayerSpec.size;
+						normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
 						normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
 						layerSpecs.add(normLayerSpec);
 					}
@@ -199,10 +204,9 @@ public class VGG extends VGGCore {
 			
 			//Adding ending pool layer.
 			if (paramIsFilterEndPoolMode() && block < blockSizes.size()-1) {
-				assert (layerSpecs.size() > 0);
 				Size poolSize = new Size(blockSizes.get(block+1).width, blockSizes.get(block+1).height, blockSize.depth, 1);
-				MatrixLayerAbstract.LayerSpec layerSpec = new MatrixLayerAbstract.LayerSpec(poolSize);
-				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
+				VGG.LayerSpec layerSpec = new VGG.LayerSpec(poolSize);
+				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size; //Setting previous size not important.
 				
 				if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
@@ -216,7 +220,7 @@ public class VGG extends VGGCore {
 			//Adding dropout layer.
 			if (paramIsDropoutMode() && (block < blockSizes.size()-1 || ffnLength > 0)) {
 				VGG.LayerSpec doLayerSpec = new VGG.LayerSpec(layerSpecs.get(layerSpecs.size()-1).size, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-				doLayerSpec.prevSize = doLayerSpec.size;
+				doLayerSpec.prevSize = doLayerSpec.size; //Setting previous size not important.
 				doLayerSpec.type = VGG.LayerSpec.Type.dropout;
 				doLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.nil;
 				layerSpecs.add(doLayerSpec);
@@ -229,92 +233,100 @@ public class VGG extends VGGCore {
 		
 		//Adding Global Average Pooling (GAP) layer.
 		boolean gap = paramIsGAP();
+		Size ffnSize = null;
 		if (gap) {
-			assert (layerSpecs.size() > 0);
 			Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 			Size gapSize = new Size(1, prevSize.depth, 1, 1);
-			VGG.LayerSpec layerSpec = new VGG.LayerSpec(gapSize, new FilterSpec(Type.pool));
-			layerSpec.prevSize = prevSize;
-			layerSpec.filterSpec.poolType = PoolType.gap;
-			layerSpecs.add(layerSpec);
+			VGG.LayerSpec gapLayerSpec = new VGG.LayerSpec(gapSize, new FilterSpec(Type.pool));
+			gapLayerSpec.prevSize = prevSize; //Setting previous size not important.
+			gapLayerSpec.filterSpec.poolType = PoolType.gap;
+			layerSpecs.add(gapLayerSpec);
+			
+			ffnSize = gapSize;
+		}
+		else if (paramIsFFNFlatten()) {
+			if (paramIsVectorized()) {
+				Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
+				ffnSize = new Size(1, lastSize.width*lastSize.height*lastSize.depth, 1);
+				
+				//Adding flatten layer.
+				VGG.LayerSpec flatLayerSpec = new VGG.LayerSpec(ffnSize);
+				flatLayerSpec.prevSize = lastSize; //Setting previous size not important.
+				flatLayerSpec.type = VGG.LayerSpec.Type.flatten;
+				layerSpecs.add(flatLayerSpec);
+			}
+			else {
+				//Improving later.
+				Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
+				ffnSize = new Size(middleSize.width, lastSize.depth*middleSize.height, 1);
+			}
+		}
+		else {
+			//Improving later.
+			Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
+			ffnSize = new Size(middleSize.width, middleSize.height, lastSize.depth);
 		}
 		
-		Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
-		Size ffnSize = gap ? lastSize :
-			(paramIsFFNFlatten() ?
-				new Size(middleSize.width, lastSize.depth*middleSize.height, 1) :
-				new Size(middleSize.width, middleSize.height, lastSize.depth));
-		List<MatrixLayerAbstract.LayerSpec> ffnlLayerSpecs = Util.newList(0);
 		//Setting input and hidden FFN layers.
+		List<MatrixLayerAbstract.LayerSpec> ffnLayerSpecs = Util.newList(0);
 		for (int i = 0; i < ffnLength-1; i++) {
-			ffnlLayerSpecs.add(new MatrixLayerAbstract.LayerSpec(new Size(ffnSize)));
+			VGG.LayerSpec ffnLayerSpec = new VGG.LayerSpec(ffnSize);
+			if (i == 0)
+				ffnLayerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size; //Setting previous size not important.
+			else
+				ffnLayerSpec.prevSize = ffnLayerSpec.size; //Setting previous size not important.
+			ffnLayerSpecs.add(ffnLayerSpec);
 		}
 		
-		//Adjusting output depth.
-		int outputDepth = outputSize.depth < 1 ? 1 : outputSize.depth;
+		//Adjusting output size.
+		outputSize = new Size(outputSize.width, outputSize.height, outputSize.depth < 1 ? 1 : outputSize.depth);
 		boolean ffnLargeEnough = ffnLength >= DEPTH_DEFAULT;
+		boolean diffOutputSize = outputSize.width != ffnSize.width || outputSize.height != ffnSize.height || outputSize.depth != ffnSize.depth;
 
 		//Adding residual layer if the output size is different from the FFN size.
-		if ((outputSize.width != ffnSize.width || outputSize.height != ffnSize.height || outputDepth != ffnSize.depth) && ffnLargeEnough) {
-			VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(ffnSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-			resLayerSpec.prevSize = ffnSize;
-			resLayerSpec.type = VGG.LayerSpec.Type.residual;
-			resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
-			residualIndices.add(layerSpecs.size() + ffnlLayerSpecs.size());
-			ffnlLayerSpecs.add(resLayerSpec);
-			
-			//Adding norm layer.
-			Size prevSize = ffnlLayerSpecs.get(ffnlLayerSpecs.size()-1).size;
-			if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || MATRIX_NORM)) {
-				VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-				normLayerSpec.prevSize = resLayerSpec.size;
-				normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
-				ffnlLayerSpecs.add(normLayerSpec);
-			}
+		if (diffOutputSize && ffnLargeEnough) {
+			addNorm(ffnSize, ffnLayerSpecs, residualIndices, layerSpecs.size());
 		}
 		
 		//Adding dropout FFN layer.
 		if (paramIsDropoutMode() && ffnLargeEnough) {
-			VGG.LayerSpec doLayerSpec = new VGG.LayerSpec(new Size(ffnSize), new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
+			VGG.LayerSpec doLayerSpec = new VGG.LayerSpec(ffnSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
+			doLayerSpec.prevSize = doLayerSpec.size; //Setting previous size not important.
 			doLayerSpec.type = VGG.LayerSpec.Type.dropout;
 			doLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.nil;
-			ffnlLayerSpecs.add(doLayerSpec);
+			ffnLayerSpecs.add(doLayerSpec);
 		}
 		
 		//Setting output FFN layer (classifier layer as usual).
-		ffnlLayerSpecs.add(new MatrixLayerAbstract.LayerSpec(new Size(outputSize.width, outputSize.height, outputDepth)));
+		VGG.LayerSpec outputLayerSpec = new VGG.LayerSpec(outputSize);
+		outputLayerSpec.prevSize = ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size; //Setting previous size not important.
+		ffnLayerSpecs.add(outputLayerSpec);
 		
 		//Adding residual layer if the output size is the same to the FFN size.
-		if (outputSize.width == ffnSize.width && outputSize.height == ffnSize.height && outputDepth == ffnSize.depth && ffnLargeEnough) {
-			VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(ffnSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-			resLayerSpec.prevSize = ffnSize;
-			resLayerSpec.type = VGG.LayerSpec.Type.residual;
-			resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
-			residualIndices.add(layerSpecs.size() + ffnlLayerSpecs.size());
-			ffnlLayerSpecs.add(resLayerSpec);
-			
-			//Adding norm layer.
-			Size prevSize = ffnlLayerSpecs.get(ffnlLayerSpecs.size()-1).size;
-			if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || MATRIX_NORM)) {
-				VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-				normLayerSpec.prevSize = resLayerSpec.size;
-				normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
-				ffnlLayerSpecs.add(normLayerSpec);
-			}
+		if (!diffOutputSize && ffnLargeEnough) {
+			addNorm(ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size, ffnLayerSpecs, residualIndices, layerSpecs.size());
 		}
 
 		//Adjusting previous size of FFN layers.
-		for (int i = 0; i < ffnlLayerSpecs.size(); i++) {
-			if (i > 0) ffnlLayerSpecs.get(i).prevSize = ffnlLayerSpecs.get(i-1).size;
-			if (paramIsVectorized()) {
-				ffnlLayerSpecs.get(i).vecRows = ffnlLayerSpecs.get(i).size.height;
-				ffnlLayerSpecs.get(i).size = new Size(1, ffnlLayerSpecs.get(i).size.width*ffnlLayerSpecs.get(i).size.height, ffnlLayerSpecs.get(i).size.depth);
+		for (int i = 0; i < ffnLayerSpecs.size(); i++) {
+			if (i > 0) {
+				assert (ffnLayerSpecs.get(i).prevSize.width == ffnLayerSpecs.get(i-1).size.width);
+				assert (ffnLayerSpecs.get(i).prevSize.height == ffnLayerSpecs.get(i-1).size.height);
+				assert (ffnLayerSpecs.get(i).prevSize.depth == ffnLayerSpecs.get(i-1).size.depth);
+				ffnLayerSpecs.get(i).prevSize = ffnLayerSpecs.get(i-1).size; //Setting previous size not important.
+			}
+			
+			if (i == ffnLayerSpecs.size()-1 && diffOutputSize) continue;
+			
+			if (paramIsVectorized() && ffnLayerSpecs.get(i).size.width > 1) {
+				ffnLayerSpecs.get(i).vecRows = ffnLayerSpecs.get(i).size.height;
+				ffnLayerSpecs.get(i).size = new Size(1, ffnLayerSpecs.get(i).size.width*ffnLayerSpecs.get(i).size.height, ffnLayerSpecs.get(i).size.depth);
 			}
 		}
 		
 		//Adding more FFN layers to layer specifications.
-		addMoreFFNLayers(ffnlLayerSpecs);
-		layerSpecs.addAll(ffnlLayerSpecs);
+		addMoreFFNLayers(ffnLayerSpecs);
+		layerSpecs.addAll(ffnLayerSpecs);
 		
 		if (!initialize(layerSpecs.toArray(new MatrixLayerAbstract.LayerSpec[] {}), false)) return false;
 		
@@ -333,7 +345,7 @@ public class VGG extends VGGCore {
 		return true;
 	}
 
-
+	
 }
 
 	
@@ -434,14 +446,16 @@ class VGGCore extends ResidualNetwork {
 	
 	/**
 	 * Field for initial number of filters.
+	 * It can be zero for automatic calculation.
 	 */
 	public final static String FILTERS_NUMBER_INIT_FIELD = "vgg_filter_number_init";
 	
 	
 	/**
 	 * Default value for initial number of filters. It is also the initial depth of layer.
+	 * It can be zero for automatic calculation.
 	 */
-	public final static int FILTERS_NUMBER_INIT_DEFAULT = BASE*BASE;
+	public final static int FILTERS_NUMBER_INIT_DEFAULT = 0; //BASE*BASE;
 
 	
 	/**
@@ -603,7 +617,7 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Field of Global Average Pool (GAP) filter.
 	 */
-	public final static String GAP_FIELD = "vgg_gap";
+	public final static String GAP_FIELD = "mane_layer_gap";
 	
 	
 	/**
@@ -615,7 +629,7 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Field of layer normalization.
 	 */
-	public final static String LAYER_NORM_FIELD = "vgg_layer_norm";
+	public final static String LAYER_NORM_FIELD = "mane_layer_norm";
 	
 	
 	/**
@@ -659,6 +673,16 @@ class VGGCore extends ResidualNetwork {
 			 * Residual layer.
 			 */
 			residual,
+			
+			/**
+			 * Flattening layer.
+			 */
+			flatten,
+			
+			/**
+			 * Null layer.
+			 */
+			nil,
 			
 		}
 		
@@ -716,6 +740,8 @@ class VGGCore extends ResidualNetwork {
 	 * @param config configuration.
 	 */
 	private static void config(NetworkConfig config) {
+		config.put(LEARN_RATE_FIELD, LEARN_RATE_SMALL); //Small learning rate for large training dataset.
+		
 		config.put(MIDDLE_SIZE_FIELD, MIDDLE_SIZE_DEFAULT_TEXT);
 		config.put(FILTER_MODE_FIELD, FILTER_MODE_DEFAULT);
 		config.put(FILTER_MODE_ENDPOOL_FIELD, FILTER_MODE_ENDPOOL_DEFAULT);
@@ -789,6 +815,7 @@ class VGGCore extends ResidualNetwork {
 		
 		VGG.LayerSpec vggLayerSpec = (VGG.LayerSpec)layerSpec;
 		if (vggLayerSpec.type == VGG.LayerSpec.Type.normal) return super.newLayer(layerSpec);
+		
 		MatrixLayerAbstract layer = null;
 		switch (vggLayerSpec.type) {
 		case dropout:
@@ -796,6 +823,12 @@ class VGGCore extends ResidualNetwork {
 			break;
 		case residual:
 			layer = new ResidualLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
+			break;
+		case flatten:
+			layer = new FlattenLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
+			break;
+		case nil:
+			layer = new NullLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 			break;
 		default:
 			layer = super.newLayer(layerSpec);
@@ -812,12 +845,10 @@ class VGGCore extends ResidualNetwork {
 	 * @param middleSize middle size.
 	 * @param blocksNumber number of blocks.
 	 * @param filtersNumberInitPerLayer initial number of filters per layer (initial) which can be zero for automatic calculation.
-	 * It is also the initial depth of layer which is 4 as usual.
-	 * @param filterNumberMax maximum number of filters. The zero value indicates there is no limit number of filters. 
-	 * @param increaseFiltersNumber flag to increase filter number.
+	 * It is also the initial depth of layer which is 4 by default.
 	 * @return true if initialization is successful.
 	 */
-	static List<Size> calcBlockSizes(Size inputSize, Size middleSize, int blocksNumber, int filtersNumberInitPerLayer, int filterNumberMax, boolean increaseFiltersNumber) {
+	List<Size> calcBlockSizes(Size inputSize, Size middleSize, int blocksNumber, int filtersNumberInitPerLayer) {
 		if (inputSize == null) return Util.newList(0);
 		int base = Math.max(BASE, 1);
 		
@@ -829,11 +860,8 @@ class VGGCore extends ResidualNetwork {
 		int[][] numbers = MatrixNetworkInitializer.constructHiddenOutputNeuronNumbers(inputSize, middleSize, base, base, blocksNumber);
 		if (numbers == null) return Util.newList(0);
 		
-		int factor = 2; //The factor 2 implies the basic 2-dimension matrix is decreased base*base each time.
-		filtersNumberInitPerLayer = filtersNumberInitPerLayer < 1 ? (int)Math.pow(base, factor) : filtersNumberInitPerLayer;
-		
-		int[] heights = numbers[0];
-		int[] widths = numbers[1];
+		int[] heights = numbers[0], widths = numbers[1];
+		assert (heights.length == widths.length);
 		int[] tempHeights = new int[heights.length+1], tempWidths = new int[widths.length+1];
 		tempHeights[0] = inputSize.height;
 		tempWidths[0] = inputSize.width;
@@ -844,11 +872,34 @@ class VGGCore extends ResidualNetwork {
 		heights = tempHeights;
 		widths = tempWidths;
 
+		int factor = 2; //The factor 2 implies the basic 2-dimension matrix is decreased base*base each time.
+		if (filtersNumberInitPerLayer < 1) {
+			List<Size> blockSizes = Util.newList(0);
+			for (int i = 0; i < heights.length; i++) {
+				if (blockSizes.size() == 0) {
+					blockSizes.add(new Size(widths[i], heights[i]));
+					continue;
+				}
+				
+				int prevWidth = blockSizes.get(blockSizes.size()-1).width;
+				int prevHeight = blockSizes.get(blockSizes.size()-1).height;
+				if (widths[i] != prevWidth || heights[i] != prevHeight) {
+					blockSizes.add(new Size(widths[i], heights[i]));
+				}
+			}
+			
+			int rasterChannel = paramGetRasterChannel();
+			boolean flatten = MatrixUtil.isFlatten(inputSize.depth, this.neuronChannel, rasterChannel);
+			int LENGTH = inputSize.height*inputSize.width*(flatten?rasterChannel:1);
+			int length = blockSizes.get(blockSizes.size()-1).height*blockSizes.get(blockSizes.size()-1).width;
+			filtersNumberInitPerLayer = (int) ((double)LENGTH / (paramIsGAP()?1:length) / Math.pow(base, factor*(blockSizes.size()-1)) + 0.5);
+		}
+		
 		List<Size> blockSizes = Util.newList(0);
 		int power = 0;
 		for (int i = 0; i < heights.length; i++) {
-			int filterNumber = increaseFiltersNumber ? (int)(filtersNumberInitPerLayer*Math.pow(base, factor*power)) : filtersNumberInitPerLayer;
-			if (filterNumberMax > 0) filterNumber = Math.min(filterNumber, filterNumberMax);
+			int filterNumber = paramIsFiltersNumberIncrease() ? (int)(filtersNumberInitPerLayer*Math.pow(base, factor*power)) : filtersNumberInitPerLayer;
+			if (paramGetFiltersNumberMax() > 0) filterNumber = Math.min(filterNumber, paramGetFiltersNumberMax());
 			if (blockSizes.size() == 0) {
 				blockSizes.add(new Size(widths[i], heights[i], filterNumber));
 				power++;
@@ -874,7 +925,7 @@ class VGGCore extends ResidualNetwork {
 	 * @return true if initialization is successful.
 	 */
 	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
-		List<Size> blockSizes = calcBlockSizes(inputSize, middleSize, paramGetBlocksNumber(), paramGetFiltersNumberInit(), paramGetFiltersNumberMax(), paramIsFiltersNumberIncrease());
+		List<Size> blockSizes = calcBlockSizes(inputSize, middleSize, paramGetBlocksNumber(), paramGetFiltersNumberInit());
 		if (blockSizes.size() == 0) return false;
 		
 		int base = Math.max(BASE, 1);
@@ -885,21 +936,21 @@ class VGGCore extends ResidualNetwork {
 
 		int rasterChannel = paramGetRasterChannel();
 		boolean flatten = MatrixUtil.isFlatten(inputSize.depth, this.neuronChannel, rasterChannel); //inputSize.depth is actually raster depth.
-		MatrixLayerAbstract.LayerSpec layerSpec0 = null;
+		VGG.LayerSpec layerSpec0 = null;
 		if (flatten)
-			layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height, rasterChannel, 1));
+			layerSpec0 = new VGG.LayerSpec(new Size(inputSize.width, inputSize.height, rasterChannel, 1));
 		else
-			layerSpec0 = new MatrixLayerAbstract.LayerSpec(new Size(inputSize.width, inputSize.height,
+			layerSpec0 = new VGG.LayerSpec(new Size(inputSize.width, inputSize.height,
 				inputSize.depth < 1 ? 1 : inputSize.depth,
 				1/*inputSize.time < 1 ? 1 : inputSize.time*/)); //In current version, time is 1, which means that the model supports until 3-dimension layers.
 		List<MatrixLayerAbstract.LayerSpec> layerSpecs = Util.newList(0);
 		layerSpecs.add(layerSpec0);
 		
+		assert (layerSpecs.size() > 0);
 		for (int block = 0; block < blockSizes.size(); block++) {
 			Size blockSize = blockSizes.get(block);
 			for (int j = 0; j < layersNumberPerBlock; j++) {
-				assert (layerSpecs.size() > 0);
-				MatrixLayerAbstract.LayerSpec layerSpec = new MatrixLayerAbstract.LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth, 1));
+				VGG.LayerSpec layerSpec = new VGG.LayerSpec(new Size(blockSize.width, blockSize.height, blockSize.depth, 1));
 				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 				
 				//Setting filter specification.
@@ -954,10 +1005,9 @@ class VGGCore extends ResidualNetwork {
 				
 				//Adding residual layer.
 				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= DEPTH_DEFAULT) {
-					assert (layerSpecs.size() > 0);
 					VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(layerSpecs.get(layerSpecs.size()-1).size,
 						new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-					resLayerSpec.prevSize = resLayerSpec.size;
+					resLayerSpec.prevSize = resLayerSpec.size; //Setting previous size not important.
 					resLayerSpec.type = VGG.LayerSpec.Type.residual;
 					if (paramIsFilterMode())
 						resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.filter_activate;
@@ -970,7 +1020,7 @@ class VGGCore extends ResidualNetwork {
 					Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 					if (paramIsLayerNorm() && (prevSize.width == 1 || MATRIX_NORM)) {
 						VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-						normLayerSpec.prevSize = resLayerSpec.size;
+						normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
 						normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
 						layerSpecs.add(normLayerSpec);
 					}
@@ -979,10 +1029,9 @@ class VGGCore extends ResidualNetwork {
 			
 			//Adding ending pool layer.
 			if (paramIsFilterEndPoolMode() && block < blockSizes.size()-1) {
-				assert (layerSpecs.size() > 0);
 				Size poolSize = new Size(blockSizes.get(block+1).width, blockSizes.get(block+1).height, blockSize.depth, 1);
-				MatrixLayerAbstract.LayerSpec layerSpec = new MatrixLayerAbstract.LayerSpec(poolSize);
-				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
+				VGG.LayerSpec layerSpec = new VGG.LayerSpec(poolSize);
+				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size; //Setting previous size not important.
 				
 				if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
@@ -996,7 +1045,7 @@ class VGGCore extends ResidualNetwork {
 			//Adding dropout layer.
 			if (paramIsDropoutMode() && (block < blockSizes.size()-1 || ffnLength > 0)) {
 				VGG.LayerSpec doLayerSpec = new VGG.LayerSpec(layerSpecs.get(layerSpecs.size()-1).size, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-				doLayerSpec.prevSize = doLayerSpec.size;
+				doLayerSpec.prevSize = doLayerSpec.size; //Setting previous size not important.
 				doLayerSpec.type = VGG.LayerSpec.Type.dropout;
 				doLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.nil;
 				layerSpecs.add(doLayerSpec);
@@ -1009,92 +1058,100 @@ class VGGCore extends ResidualNetwork {
 		
 		//Adding Global Average Pooling (GAP) layer.
 		boolean gap = paramIsGAP();
+		Size ffnSize = null;
 		if (gap) {
-			assert (layerSpecs.size() > 0);
 			Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 			Size gapSize = new Size(1, prevSize.depth, 1, 1);
-			VGG.LayerSpec layerSpec = new VGG.LayerSpec(gapSize, new FilterSpec(Type.pool));
-			layerSpec.prevSize = prevSize;
-			layerSpec.filterSpec.poolType = PoolType.gap;
-			layerSpecs.add(layerSpec);
+			VGG.LayerSpec gapLayerSpec = new VGG.LayerSpec(gapSize, new FilterSpec(Type.pool));
+			gapLayerSpec.prevSize = prevSize; //Setting previous size not important.
+			gapLayerSpec.filterSpec.poolType = PoolType.gap;
+			layerSpecs.add(gapLayerSpec);
+			
+			ffnSize = gapSize;
+		}
+		else if (paramIsFFNFlatten()) {
+			if (paramIsVectorized()) {
+				Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
+				ffnSize = new Size(1, lastSize.width*lastSize.height*lastSize.depth, 1);
+				
+				//Adding flatten layer.
+				VGG.LayerSpec flatLayerSpec = new VGG.LayerSpec(ffnSize);
+				flatLayerSpec.prevSize = lastSize; //Setting previous size not important.
+				flatLayerSpec.type = VGG.LayerSpec.Type.flatten;
+				layerSpecs.add(flatLayerSpec);
+			}
+			else {
+				//Improving later.
+				Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
+				ffnSize = new Size(middleSize.width, lastSize.depth*middleSize.height, 1);
+			}
+		}
+		else {
+			//Improving later.
+			Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
+			ffnSize = new Size(middleSize.width, middleSize.height, lastSize.depth);
 		}
 		
-		Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
-		Size ffnSize = gap ? lastSize :
-			(paramIsFFNFlatten() ?
-				new Size(middleSize.width, lastSize.depth*middleSize.height, 1) :
-				new Size(middleSize.width, middleSize.height, lastSize.depth));
-		List<MatrixLayerAbstract.LayerSpec> ffnlLayerSpecs = Util.newList(0);
 		//Setting input and hidden FFN layers.
+		List<MatrixLayerAbstract.LayerSpec> ffnLayerSpecs = Util.newList(0);
 		for (int i = 0; i < ffnLength-1; i++) {
-			ffnlLayerSpecs.add(new MatrixLayerAbstract.LayerSpec(new Size(ffnSize)));
+			VGG.LayerSpec ffnLayerSpec = new VGG.LayerSpec(ffnSize);
+			if (i == 0)
+				ffnLayerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size; //Setting previous size not important.
+			else
+				ffnLayerSpec.prevSize = ffnLayerSpec.size; //Setting previous size not important.
+			ffnLayerSpecs.add(ffnLayerSpec);
 		}
 		
-		//Adjusting output depth.
-		int outputDepth = outputSize.depth < 1 ? 1 : outputSize.depth;
+		//Adjusting output size.
+		outputSize = new Size(outputSize.width, outputSize.height, outputSize.depth < 1 ? 1 : outputSize.depth);
 		boolean ffnLargeEnough = ffnLength >= DEPTH_DEFAULT;
+		boolean diffOutputSize = outputSize.width != ffnSize.width || outputSize.height != ffnSize.height || outputSize.depth != ffnSize.depth;
 
 		//Adding residual layer if the output size is different from the FFN size.
-		if ((outputSize.width != ffnSize.width || outputSize.height != ffnSize.height || outputDepth != ffnSize.depth) && ffnLargeEnough) {
-			VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(ffnSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-			resLayerSpec.prevSize = ffnSize;
-			resLayerSpec.type = VGG.LayerSpec.Type.residual;
-			resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
-			residualIndices.add(layerSpecs.size() + ffnlLayerSpecs.size());
-			ffnlLayerSpecs.add(resLayerSpec);
-			
-			//Adding norm layer.
-			Size prevSize = ffnlLayerSpecs.get(ffnlLayerSpecs.size()-1).size;
-			if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || MATRIX_NORM)) {
-				VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-				normLayerSpec.prevSize = resLayerSpec.size;
-				normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
-				ffnlLayerSpecs.add(normLayerSpec);
-			}
+		if (diffOutputSize && ffnLargeEnough) {
+			addNorm(ffnSize, ffnLayerSpecs, residualIndices, layerSpecs.size());
 		}
 		
 		//Adding dropout FFN layer.
 		if (paramIsDropoutMode() && ffnLargeEnough) {
-			VGG.LayerSpec doLayerSpec = new VGG.LayerSpec(new Size(ffnSize), new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
+			VGG.LayerSpec doLayerSpec = new VGG.LayerSpec(ffnSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
+			doLayerSpec.prevSize = doLayerSpec.size; //Setting previous size not important.
 			doLayerSpec.type = VGG.LayerSpec.Type.dropout;
 			doLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.nil;
-			ffnlLayerSpecs.add(doLayerSpec);
+			ffnLayerSpecs.add(doLayerSpec);
 		}
 		
 		//Setting output FFN layer (classifier layer as usual).
-		ffnlLayerSpecs.add(new MatrixLayerAbstract.LayerSpec(new Size(outputSize.width, outputSize.height, outputDepth)));
+		VGG.LayerSpec outputLayerSpec = new VGG.LayerSpec(outputSize);
+		outputLayerSpec.prevSize = ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size; //Setting previous size not important.
+		ffnLayerSpecs.add(outputLayerSpec);
 		
 		//Adding residual layer if the output size is the same to the FFN size.
-		if (outputSize.width == ffnSize.width && outputSize.height == ffnSize.height && outputDepth == ffnSize.depth && ffnLargeEnough) {
-			VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(ffnSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-			resLayerSpec.prevSize = ffnSize;
-			resLayerSpec.type = VGG.LayerSpec.Type.residual;
-			resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
-			residualIndices.add(layerSpecs.size() + ffnlLayerSpecs.size());
-			ffnlLayerSpecs.add(resLayerSpec);
-			
-			//Adding norm layer.
-			Size prevSize = ffnlLayerSpecs.get(ffnlLayerSpecs.size()-1).size;
-			if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || MATRIX_NORM)) {
-				VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
-				normLayerSpec.prevSize = resLayerSpec.size;
-				normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
-				ffnlLayerSpecs.add(normLayerSpec);
-			}
+		if (!diffOutputSize && ffnLargeEnough) {
+			addNorm(ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size, ffnLayerSpecs, residualIndices, layerSpecs.size());
 		}
 
 		//Adjusting previous size of FFN layers.
-		for (int i = 0; i < ffnlLayerSpecs.size(); i++) {
-			if (i > 0) ffnlLayerSpecs.get(i).prevSize = ffnlLayerSpecs.get(i-1).size;
-			if (paramIsVectorized()) {
-				ffnlLayerSpecs.get(i).vecRows = ffnlLayerSpecs.get(i).size.height;
-				ffnlLayerSpecs.get(i).size = new Size(1, ffnlLayerSpecs.get(i).size.width*ffnlLayerSpecs.get(i).size.height, ffnlLayerSpecs.get(i).size.depth);
+		for (int i = 0; i < ffnLayerSpecs.size(); i++) {
+			if (i > 0) {
+				assert (ffnLayerSpecs.get(i).prevSize.width == ffnLayerSpecs.get(i-1).size.width);
+				assert (ffnLayerSpecs.get(i).prevSize.height == ffnLayerSpecs.get(i-1).size.height);
+				assert (ffnLayerSpecs.get(i).prevSize.depth == ffnLayerSpecs.get(i-1).size.depth);
+				ffnLayerSpecs.get(i).prevSize = ffnLayerSpecs.get(i-1).size; //Setting previous size not important.
+			}
+			
+			if (i == ffnLayerSpecs.size()-1 && diffOutputSize) continue;
+			
+			if (paramIsVectorized() && ffnLayerSpecs.get(i).size.width > 1) {
+				ffnLayerSpecs.get(i).vecRows = ffnLayerSpecs.get(i).size.height;
+				ffnLayerSpecs.get(i).size = new Size(1, ffnLayerSpecs.get(i).size.width*ffnLayerSpecs.get(i).size.height, ffnLayerSpecs.get(i).size.depth);
 			}
 		}
 		
 		//Adding more FFN layers to layer specifications.
-		addMoreFFNLayers(ffnlLayerSpecs);
-		layerSpecs.addAll(ffnlLayerSpecs);
+		addMoreFFNLayers(ffnLayerSpecs);
+		layerSpecs.addAll(ffnLayerSpecs);
 		
 		if (!initialize(layerSpecs.toArray(new MatrixLayerAbstract.LayerSpec[] {}), false)) return false;
 		
@@ -1113,6 +1170,32 @@ class VGGCore extends ResidualNetwork {
 		return true;
 	}
 
+
+	/**
+	 * Adding residual layer and normalization layer.
+	 * @param size size.
+	 * @param layerSpecs list of layer specification.
+	 * @param residualIndices list of residual indices.
+	 * @param beginIndex begin index for residual layers.
+	 */
+	void addNorm(Size size, List<MatrixLayerAbstract.LayerSpec> layerSpecs, List<Integer> residualIndices, int beginIndex) {
+		VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(size, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
+		resLayerSpec.prevSize = resLayerSpec.size; //Setting previous size not important.
+		resLayerSpec.type = VGG.LayerSpec.Type.residual;
+		resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
+		residualIndices.add(beginIndex + layerSpecs.size());
+		layerSpecs.add(resLayerSpec);
+		
+		//Adding norm layer.
+		Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
+		if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || MATRIX_NORM)) {
+			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
+			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
+			normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
+			layerSpecs.add(normLayerSpec);
+		}
+	}
+	
 
 	/**
 	 * Adding more layers to layer specifications.
@@ -1287,7 +1370,8 @@ class VGGCore extends ResidualNetwork {
 
 	
 	/**
-	 * Getting initial number of filters per layer which is also the initial depth of layer.
+	 * Getting initial number of filters per layer which is also the initial depth of layer, which is 4 by default.
+	 * Moreover it can be zero for automatic calculation.
 	 * @return initial number of filters per layer.
 	 */
 	public int paramGetFiltersNumberInit() {
@@ -1300,7 +1384,8 @@ class VGGCore extends ResidualNetwork {
 	
 	/**
 	 * Setting initial number of filters per layer.
-	 * @param filtersNumberInit initial number of filters per layer which is also the initial depth of layer.
+	 * @param filtersNumberInit initial number of filters per layer which is also the initial depth of layer, which is 4 by default.
+	 * Moreover it can be zero for automatic calculation.
 	 * @return this VGG.
 	 */
 	public VGGCore paramSetFiltersNumberInit(int filtersNumberInit) {
@@ -1311,10 +1396,10 @@ class VGGCore extends ResidualNetwork {
 	
 	
 	/**
-	 * Getting maximum number of filters per layer (also layer depth).
+	 * Getting maximum number of filters per layer (also layer depth). The zero value indicates there is no limit number of filters. 
 	 * @return maximum number of filters per layer.
 	 */
-	int paramGetFiltersNumberMax() {
+	public int paramGetFiltersNumberMax() {
 		if (config.containsKey(FILTERS_NUMBER_MAX_FIELD))
 			return config.getAsInt(FILTERS_NUMBER_MAX_FIELD);
 		else
@@ -1323,11 +1408,11 @@ class VGGCore extends ResidualNetwork {
 	
 	
 	/**
-	 * Setting maximum number of filters per layer (also layer depth).
+	 * Setting maximum number of filters per layer (also layer depth). The zero value indicates there is no limit number of filters. 
 	 * @param maxFiltersNumber maximum number of filters per layer.
 	 * @return this VGG.
 	 */
-	VGGCore paramSetFiltersNumberMax(int maxFiltersNumber) {
+	public VGGCore paramSetFiltersNumberMax(int maxFiltersNumber) {
 		maxFiltersNumber = maxFiltersNumber < 0 ? FILTERS_NUMBER_MAX_DEFAULT : maxFiltersNumber;
 		config.put(FILTERS_NUMBER_MAX_FIELD, maxFiltersNumber);
 		return this;

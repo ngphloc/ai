@@ -36,7 +36,7 @@ public class DropoutLayer extends MatrixLayerImpl {
 	/**
 	 * Field for dropout mode.
 	 */
-	public final static String DROPOUT_MODE_FIELD = "mane_dropout";
+	public final static String DROPOUT_MODE_FIELD = "mane_layer_dropout";
 	
 	
 	/**
@@ -48,7 +48,7 @@ public class DropoutLayer extends MatrixLayerImpl {
 	/**
 	 * Field for dropout rate.
 	 */
-	public final static String DROPOUT_RATE_FIELD = "mane_dropout_rate";
+	public final static String DROPOUT_RATE_FIELD = "mane_layer_dropout_rate";
 	
 	
 	/**
@@ -60,7 +60,7 @@ public class DropoutLayer extends MatrixLayerImpl {
 	/**
 	 * Field for inverted mode.
 	 */
-	public final static String DROPOUT_INVERTED_FIELD = "mane_dropout_inverted";
+	public final static String DROPOUT_INVERTED_FIELD = "mane_layer_dropout_inverted";
 	
 	
 	/**
@@ -72,7 +72,7 @@ public class DropoutLayer extends MatrixLayerImpl {
 	/**
 	 * Field for dropout all.
 	 */
-	public final static String DROPOUT_ALL_FIELD = "mane_dropout_all";
+	public final static String DROPOUT_ALL_FIELD = "mane_layer_dropout_all";
 	
 	
 	/**

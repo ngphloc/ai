@@ -633,6 +633,25 @@ public class MatrixStack implements Matrix, TextParsable {
 
 	
 	/**
+	 * Filling matrix by random value.
+	 * @param stack matrix stack.
+	 * @param rnd randomizer.
+	 * @param fanIn the number of incoming connections.
+	 */
+	public static void fill(MatrixStack stack, Random rnd, int fanIn) {
+		for (int i = 0; i < stack.depth(); i++) {
+			Matrix matrix = stack.matrices[i];
+			for (int j = 0; j < matrix.rows(); j++) {
+				for (int k = 0; k < matrix.columns(); k++) {
+					NeuronValue value = matrix.get(j, k).valueOf(NeuronValue.rHe(rnd, fanIn));
+					matrix.set(j, k, value);
+				}
+			}
+		}
+	}
+
+	
+	/**
 	 * Flattening array of matrix stacks according to smaller channel.
 	 * @param stacks array of matrix stacks.
 	 * @param smallerChannel smaller channel.

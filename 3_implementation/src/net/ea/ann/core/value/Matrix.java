@@ -816,6 +816,22 @@ public interface Matrix extends NeuronValueCreator {
 
 	
 	/**
+	 * Filling matrix by random value.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 * @param fanIn the number of incoming connections.
+	 */
+	static void fill(Matrix matrix, Random rnd, int fanIn) {
+		for (int i = 0; i < matrix.rows(); i++) {
+			for (int j = 0; j < matrix.columns(); j++) {
+				NeuronValue value = matrix.get(i, j).valueOf(NeuronValue.rHe(rnd, fanIn));
+				matrix.set(i, j, value);
+			}
+		}
+	}
+
+	
+	/**
 	 * Extracting values of matrix as vector.
 	 * @param matrix specified matrix.
 	 * @return values of matrix as vector.
