@@ -375,7 +375,7 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Matrix normalization flag.
 	 */
-	final static boolean MATRIX_NORM = true;
+	final static boolean MATRIX_NORM = false;
 	
 	
 	/**
