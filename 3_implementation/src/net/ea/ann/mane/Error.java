@@ -16,6 +16,7 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
+import net.ea.ann.mane.layers.DropoutLayer;
 
 
 /**
@@ -316,7 +317,7 @@ public class Error implements Cloneable, Serializable {
 			layerInput.ooutputPrev = outputLayer.getPrevOutput();
 			layerInput.oinput = outputLayer.getInput();
 			layerInput.ooutput = outputLayer.getOutput();
-			if (layer instanceof DropoutLayer) layerInput.dropoutMask = ((DropoutLayer)layer).dropoutMask;
+			if (layer instanceof DropoutLayer) layerInput.dropoutMask = ((DropoutLayer)layer).getDropoutMask();
 			
 			if (layerInput.oinput != null) {assert (oinput == layerInput.oinput);}
 			if (layerInput.oinput == null) {assert (oinput == layerInput.oinputPrev);}

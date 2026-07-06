@@ -9,6 +9,8 @@ package net.ea.ann.mane;
 
 import java.io.Serializable;
 
+import net.ea.ann.mane.train.Optimizer;
+
 /**
  * This class represent kernel.
  * @author Loc Nguyen
@@ -16,6 +18,12 @@ import java.io.Serializable;
  *
  */
 public interface Kernel extends Cloneable, Serializable {
+	
+	
+	/**
+	 * Optimizer flag.
+	 */
+	final static boolean OPTIMIZER = true;
 	
 	
 	/**
@@ -39,6 +47,12 @@ public interface Kernel extends Cloneable, Serializable {
 
 		@Override
 		public Kernel divide(double value) {return this;}
+
+		@Override
+		public Optimizer getOptimizer() {return null;}
+
+		@Override
+		public void setOptimizer(Optimizer optimizer) {}
 		
 	}
 	
@@ -65,6 +79,27 @@ public interface Kernel extends Cloneable, Serializable {
 	 * @return divided kernel.
 	 */
 	Kernel divide(double value);
+	
+	
+	/**
+	 * Optimizing kernel itself.
+	 * @return kernel itself.
+	 */
+	default Kernel optimize() {return this;}
+	
+	
+	/**
+	 * Getting optimizer.
+	 * @return optimizer.
+	 */
+	Optimizer getOptimizer();
+	
+	
+	/**
+	 * Setting optimizer.
+	 * @param optimizer optimizer.
+	 */
+	void setOptimizer(Optimizer optimizer);
 	
 	
 	/**

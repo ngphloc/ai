@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane;
+package net.ea.ann.mane.layers;
 
 import java.util.List;
 
@@ -15,6 +15,7 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.MatrixLayerAbstract;
 
 /**
  * This class represents residual network (residual connection).

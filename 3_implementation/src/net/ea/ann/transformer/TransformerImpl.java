@@ -1401,6 +1401,15 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	}
 
 	
+	/**
+	 * Resetting optimizers.
+	 */
+	void resetOptimizers() {
+		if (encoder != null) encoder.resetOptimizers();
+		if (decoder != null) decoder.resetOptimizers();
+	}
+	
+	
 	@Override
 	public net.ea.ann.mane.Error[] backward(net.ea.ann.mane.Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		Error[] errors = Error.create(outputErrors);
@@ -1460,7 +1469,8 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
-		resetBackwardInfo(); //Fixing date: 2026.06.19.
+		resetBackwardInfo();
+		resetOptimizers();
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
@@ -1525,7 +1535,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 //			List<Error[]> outputErrorsList = Util.newList(0);
 			for (Record record : sample) {
 				Error error = new Error((Matrix)null);
-				Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, new TrainingFlag() {});
+				Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, TrainingFlag.create());
 				Matrix err = record.outputA().subtract(A);
 				if (err == null) continue;
 

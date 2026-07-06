@@ -28,7 +28,7 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.Record;
-import net.ea.ann.mane.TaskTrainerLossEntropy;
+import net.ea.ann.mane.train.TaskTrainerLossEntropy;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
@@ -937,7 +937,8 @@ class VGGExt extends VGG {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
-		resetBackwardInfo(); //Fixing date: 2026.06.19.
+		resetBackwardInfo();
+		resetOptimizers();
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
@@ -1003,7 +1004,7 @@ class VGGExt extends VGG {
 				Record record = toRecord(raster, true);
 				Matrix input = record.input(), realOutput = record.output();
 				Error error = new Error((Matrix)null);
-				Object[] params = defineOutputErrorParams(error, new TrainingFlag() {});
+				Object[] params = defineOutputErrorParams(error, TrainingFlag.create());
 				Matrix output = evaluate0(input, params); //Please pay attention to this code line because of tracking errors.
 				Matrix err = calcOutputError(output, realOutput, getOutputLayer(), params);
 				if (err == null) continue;
@@ -1023,7 +1024,7 @@ class VGGExt extends VGG {
 			assert (outputErrors != null && outputErrors.length > 0);
 		}
 		else {
-			Object[] params = defineOutputErrorParams(new TrainingFlag() {});
+			Object[] params = defineOutputErrorParams(TrainingFlag.create());
 			for (RasterTaskTrainer trainer : trainers) {
 				outputErrors = trainer.train(this, sample, false, learningRate, params);
 			}

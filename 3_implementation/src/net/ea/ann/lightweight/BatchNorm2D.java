@@ -56,42 +56,58 @@ public class BatchNorm2D {
         batchVar = new double[channels];
 
         int N = h * w;
-
-        for (int c = 0; c < channels; c++) {
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                    batchMean[c] += input[c][y][x];
-
-            batchMean[c] /= N;
-
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++) {
-                    double diff = input[c][y][x] - batchMean[c];
-                    batchVar[c] += diff * diff;
-                }
-
-            batchVar[c] /= N;
-
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    xHatCache[c][y][x] =
-                        (input[c][y][x] - batchMean[c]) /
-                        Math.sqrt(batchVar[c] + eps);
-
-                    out[c][y][x] =
-                        gamma[c] * xHatCache[c][y][x] + beta[c];
-                }
-            }
-
-            runningMean[c] =
-                momentum * runningMean[c] +
-                (1 - momentum) * batchMean[c];
-
-            runningVar[c] =
-                momentum * runningVar[c] +
-                (1 - momentum) * batchVar[c];
+        
+        if (training) {
+	        for (int c = 0; c < channels; c++) {
+	            for (int y = 0; y < h; y++)
+	                for (int x = 0; x < w; x++)
+	                    batchMean[c] += input[c][y][x];
+	
+	            batchMean[c] /= N;
+	
+	            for (int y = 0; y < h; y++)
+	                for (int x = 0; x < w; x++) {
+	                    double diff = input[c][y][x] - batchMean[c];
+	                    batchVar[c] += diff * diff;
+	                }
+	
+	            batchVar[c] /= N;
+	
+	            for (int y = 0; y < h; y++) {
+	                for (int x = 0; x < w; x++) {
+	                    xHatCache[c][y][x] =
+	                        (input[c][y][x] - batchMean[c]) /
+	                        Math.sqrt(batchVar[c] + eps);
+	
+	                    out[c][y][x] =
+	                        gamma[c] * xHatCache[c][y][x] + beta[c];
+	                }
+	            }
+	
+	            runningMean[c] =
+	                momentum * runningMean[c] +
+	                (1 - momentum) * batchMean[c];
+	
+	            runningVar[c] =
+	                momentum * runningVar[c] +
+	                (1 - momentum) * batchVar[c];
+	        }
         }
-
+        else {
+	        for (int c = 0; c < channels; c++) {
+	            for (int y = 0; y < h; y++) {
+	                for (int x = 0; x < w; x++) {
+	                    xHatCache[c][y][x] =
+	                        (input[c][y][x] - runningMean[c]) /
+	                        Math.sqrt(runningVar[c] + eps);
+	
+	                    out[c][y][x] =
+	                        gamma[c] * xHatCache[c][y][x] + beta[c];
+	                }
+	            }
+	        }
+        }
+        
         return out;
     }
 

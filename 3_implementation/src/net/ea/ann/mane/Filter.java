@@ -38,6 +38,13 @@ public interface Filter extends Serializable, Cloneable {
 	
 	
 	/**
+	 * Getting kernel.
+	 * @return kernel.
+	 */
+	Kernel kernel();
+	
+	
+	/**
 	 * Getting filter width.
 	 * @return filter width.
 	 */

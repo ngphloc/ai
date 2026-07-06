@@ -7,9 +7,9 @@ import java.util.Set;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
-import net.ea.ann.mane.DropoutLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
+import net.ea.ann.mane.layers.DropoutLayer;
 
 /**
  * This class represents core error in training.

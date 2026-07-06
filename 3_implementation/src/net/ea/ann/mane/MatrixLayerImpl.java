@@ -19,6 +19,7 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error.LayerInput;
 import net.ea.ann.mane.filter.NetworkFilter;
+import net.ea.ann.mane.layers.DropoutLayer;
 import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.NetworkWeight;
 import net.ea.ann.mane.weight.NullWeight;
@@ -37,6 +38,12 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Serial version UID for serializable class. 
 	 */
 	private static final long serialVersionUID = 1L;
+	
+	
+	/**
+	 * Clipping gradient flag. Gradient Clipping is a useful technique to improve training neural network.
+	 */
+	private final static boolean CLIP_GRAD = false;
 	
 	
 	/**
@@ -484,7 +491,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Evaluating by filtering. This method should be private.
 	 * @return filtered matrix.
 	 */
-	Matrix evaluateByFilter() {
+	protected Matrix evaluateByFilter() {
 		if (this.filter == null || this.prevLayer == null) return null;
 		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(this.prevLayer.queryOutput());
 		Matrix thisPrevInputConv = matrixToConvLayer(this.prevInput);
@@ -584,7 +591,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				assert (errPrevOutput == getPrevOutput());
 				assert (actualErrInput == queryInput());
 				assert (actualErrOutput == queryOutput());
-				if (this instanceof DropoutLayer) assert (mask == ((DropoutLayer)this).dropoutMask);
+				if (this instanceof DropoutLayer) assert (mask == ((DropoutLayer)this).getDropoutMask());
 			}
 			/*
 			 * These inputs and outputs associated with error are not so important for calculating gradients because the accuracy will be improved with a large enough number of batches.
@@ -613,7 +620,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				if (endError != null) errors[i] = errors[i].add(endError);
 			}
 			//Applying dropout mask into errors.
-			mask = mask != null ? mask : (this instanceof DropoutLayer ? ((DropoutLayer)this).dropoutMask : null);
+			mask = mask != null ? mask : (this instanceof DropoutLayer ? ((DropoutLayer)this).getDropoutMask() : null);
 			errors[i] = mask != null ? mask.multiplyWise(errors[i]) : errors[i];
 			//Adjusting errors.
 			errors[i] = adjustError(errors[i], outputErrors[i]);
@@ -730,7 +737,21 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @param ERROR referred error which can be null.
 	 * @return adjusted error.
 	 */
-	Matrix adjustError(Matrix error, Error ERROR) {return error;}
+	protected Matrix adjustError(Matrix error, Error ERROR) {
+		if (CLIP_GRAD) { //Gradient Clipping is a useful technique to improve training neural network.
+			NeuronValue min = error.get(0, 0).valueOf(-5.0);
+			NeuronValue max = error.get(0, 0).valueOf(5.0);
+			for (int row = 0; row < error.rows(); row++) {
+				for (int column = 0; column < error.columns(); column++) {
+					NeuronValue value = error.get(row, column);
+					value = value.max(min).min(max);
+					error.set(row, column, value);
+				}
+			}
+		}
+		return error;
+	}
+	
 	
 	/**
 	 * Back-warding layer as learning matrix neural network.
@@ -946,85 +967,4 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 }
 
-
-/**
- * This class implements custom layer.
- * @author Loc Nguyen
- * @version 1.0
- *
- */
-class CustomLayer extends MatrixLayerImpl {
-
-
-	/**
-	 * Serial version UID for serializable class. 
-	 */
-	private static final long serialVersionUID = 1L;
-
-	
-	/**
-	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
-	 * @param neuronChannel neuron channel.
-	 * @param activateRef activation function.
-	 * @param convActivateRef convolutional activation function.
-	 * @param idRef identifier reference.
-	 */
-	public CustomLayer(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
-		super(neuronChannel, activateRef, convActivateRef, idRef);
-	}
-
-	
-	/**
-	 * Constructor with neuron channel, activation function, and convolutional activation function.
-	 * @param neuronChannel neuron channel.
-	 * @param activateRef activation function.
-	 * @param convActivateRef convolutional activation function.
-	 */
-	public CustomLayer(int neuronChannel, Function activateRef, Function convActivateRef) {
-		this(neuronChannel, activateRef, convActivateRef, null);
-	}
-
-	
-	/**
-	 * Constructor with neuron channel and activation function.
-	 * @param neuronChannel neuron channel.
-	 * @param activateRef activation function.
-	 */
-	public CustomLayer(int neuronChannel, Function activateRef) {
-		this(neuronChannel, activateRef, null, null);
-	}
-
-	
-	/**
-	 * Constructor with neuron channel.
-	 * @param neuronChannel neuron channel.
-	 */
-	public CustomLayer(int neuronChannel) {this(neuronChannel, null, null, null);}
-
-
-	@Override
-	public boolean initialize(Size size, Size prevSize, LayerSpec layerSpec) {
-		return super.initialize(size, prevSize, layerSpec);
-	}
-
-
-	@Override
-	public Matrix evaluate(Object... params) {
-		return super.evaluate(params);
-	}
-
-
-	@Override
-	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-		return super.backward(outputErrors, focus, learning, learningRate);
-	}
-
-
-	@Override
-	protected void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
-		super.updateParametersFromBackwardInfo(recordCount, learningRate);
-	}
-
-
-}
 

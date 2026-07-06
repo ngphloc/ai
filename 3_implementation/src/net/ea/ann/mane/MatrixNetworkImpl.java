@@ -7,6 +7,7 @@
  */
 package net.ea.ann.mane;
 
+import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -202,7 +203,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		if (layerSpecs == null || layerSpecs.length < 2) return false;
 		this.layers = null;
 		
-		//Initializing layer.
+		//Initializing the first layer.
 		List<MatrixLayerAbstract> layers = Util.newList(layerSpecs.length);
 		MatrixLayerImpl prevLayer = (MatrixLayerImpl)newLayer(layerSpecs[0]);
 		if (layerSpecs[0].isVectorized()) prevLayer.setVecRows(layerSpecs[0].vecRows);
@@ -219,6 +220,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			if (layerSpecs[i].isVectorized()) layer.setVecRows(thisVecRows);
 			layer.setLearnFilter(paramIsLearnFilter());
 			
+			//Initializing the ith layer.
 			thisSize = layerSpecs[i].size;
 			if (!new MatrixLayerInitializer(layer).initialize(thisSize, prevSize, prevLayer, layerSpecs[i])) return false;
 			Size currentSize = layer.getSize();
@@ -229,6 +231,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			prevSize = currentSize;
 			if (layerSpecs[i].filterSpec == null || !dual) continue; //In dual model, for each pair of two successive layers, the previous one has only one filter and the later one has only one weight.
 			
+			//Initializing the ith dual layer.
 			thisSize = prevSize;
 			MatrixLayerImpl dualLayer = (MatrixLayerImpl)newLayer(layerSpecs[i]);
 			if (layerSpecs[i].isVectorized()) dualLayer.setVecRows(thisVecRows);
@@ -243,7 +246,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		}
 		this.layers = layers.toArray(new MatrixLayerAbstract[] {});
 		
-		//Setting ReLU activation (filter activation) for all layers.
+		//Setting ReLU activation for all layers.
 		if (paramIsConvReLU()) {
 			ReLU globalReLU = getConvActivateRef() != null && getConvActivateRef() instanceof ReLU ? (ReLU)getConvActivateRef() : null;
 			if (globalReLU == null) {
@@ -252,10 +255,19 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			}
 			assert (globalReLU != null);
 			
+			//Setting filter ReLU.
+			for (int i = 0; i < this.layers.length; i++) {
+				Function ff = this.layers[i].getFilterActivateRef();
+				assert (ff != null);
+				if (ff == null || ff instanceof Identity || ff instanceof ReLU) continue;
+				this.layers[i].setFilterActivateRef(globalReLU);
+			}
+			
+			//Setting weight ReLU.
 			for (int i = 0; i < this.layers.length; i++) {
 				Function wf = this.layers[i].getWeightActivateRef();
-				if (wf == null || wf instanceof Identity) continue;
-				
+				assert (wf != null);
+				if (wf == null || wf instanceof Identity || wf instanceof ReLU) continue;
 				Function ff = this.layers[i].getFilterActivateRef();
 				ReLU relu = ff != null && ff instanceof ReLU ? (ReLU)ff : globalReLU;
 				this.layers[i].setWeightActivateRef(relu);
@@ -618,7 +630,24 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * @version 1.0
 	 *
 	 */
-	public static interface TrainingFlag {}
+	public static interface TrainingFlag extends Serializable, Cloneable {
+		
+		/**
+		 * Creating training flag.
+		 * @return training flag.
+		 */
+		static TrainingFlag create() {
+			return new TrainingFlag() {
+				
+				/**
+				 * Serial version UID for serializable class. 
+				 */
+				private static final long serialVersionUID = 1L;
+
+			};
+		}
+		
+	}
 	
 	
 	/**
@@ -633,7 +662,8 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
-		resetBackwardInfo(); //Fixing date: 2026.06.19.
+		resetBackwardInfo();
+		resetOptimizers();
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
@@ -698,7 +728,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			for (Record record : sample) {
 				Matrix input = record.input(), realOutput = record.output();
 				Error error = new Error((Matrix)null);
-				Object[] params = defineOutputErrorParams(error, new TrainingFlag() {});
+				Object[] params = defineOutputErrorParams(error, TrainingFlag.create());
 				Matrix output = evaluate0(input, params); //Please pay attention to this code line because of tracking errors.
 				Matrix err = calcOutputError(output, realOutput, getOutputLayer(), params);
 				if (err == null) continue;
@@ -718,7 +748,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			assert (outputErrors != null && outputErrors.length > 0);
 		}
 		else {
-			Object[] params = defineOutputErrorParams(new TrainingFlag() {});
+			Object[] params = defineOutputErrorParams(TrainingFlag.create());
 			for (TaskTrainer trainer : trainers) {
 				outputErrors = trainer.train(this, sample, false, learningRate, params);
 			}
@@ -867,71 +897,3 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 }
 
 
-/**
- * This class represents custom matrix neural network.
- * @author Loc Nguyen
- * @version 1.0
- *
- */
-class CustomNetwork extends MatrixNetworkImpl {
-
-
-	/**
-	 * Serial version UID for serializable class. 
-	 */
-	private static final long serialVersionUID = 1L;
-
-	
-	/**
-	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
-	 * @param neuronChannel neuron channel.
-	 * @param activateRef activation function.
-	 * @param convActivateRef convolutional activation function.
-	 * @param idRef identifier reference.
-	 */
-	public CustomNetwork(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
-		super(neuronChannel, activateRef, convActivateRef, idRef);
-	}
-
-
-	/**
-	 * Constructor with neuron channel, activation function, and convolutional activation function.
-	 * @param neuronChannel neuron channel.
-	 * @param activateRef activation function.
-	 * @param convActivateRef convolutional activation function.
-	 */
-	public CustomNetwork(int neuronChannel, Function activateRef, Function convActivateRef) {
-		this(neuronChannel, activateRef, convActivateRef, null);
-	}
-
-	
-	/**
-	 * Constructor with neuron channel and activation function.
-	 * @param neuronChannel neuron channel.
-	 * @param activateRef activation function.
-	 */
-	public CustomNetwork(int neuronChannel, Function activateRef) {
-		this(neuronChannel, activateRef, null, null);
-	}
-
-	
-	/**
-	 * Constructor with neuron channel.
-	 * @param neuronChannel neuron channel.
-	 */
-	public CustomNetwork(int neuronChannel) {this(neuronChannel, null, null, null);}
-
-
-	@Override
-	public Matrix evaluate0(Matrix input, Object... params) {
-		return super.evaluate0(input, params);
-	}
-
-
-	@Override
-	protected Error[] backward(Error[] outputErrors, boolean learning, double learningRate) {
-		return super.backward(outputErrors, learning, learningRate);
-	}
-	
-	
-}

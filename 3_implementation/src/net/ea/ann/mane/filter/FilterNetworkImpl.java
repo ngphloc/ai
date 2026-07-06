@@ -14,6 +14,7 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.mane.FilterSpec;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.FilterSpec.Type;
 import net.ea.ann.mane.MatrixLayerAbstract;
@@ -88,6 +89,10 @@ public class FilterNetworkImpl extends FilterNetwork {
 	public FilterNetworkImpl(int neuronChannel) {
 		this(neuronChannel, null, null, null);
 	}
+
+	
+	@Override
+	public Kernel kernel() {return new Kernel.NullKernel();}
 
 	
 	/**

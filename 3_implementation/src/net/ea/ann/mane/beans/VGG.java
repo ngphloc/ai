@@ -14,18 +14,19 @@ import net.ea.ann.core.NetworkConfig;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.MatrixUtil;
-import net.ea.ann.mane.DropoutLayer;
 import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.FilterSpec.NetworkType;
 import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.FilterSpec.Type;
-import net.ea.ann.mane.FlattenLayer;
+import net.ea.ann.mane.layers.DropoutLayer;
+import net.ea.ann.mane.layers.FlattenLayer;
+import net.ea.ann.mane.layers.FlattenLayer2;
+import net.ea.ann.mane.layers.NullLayer;
+import net.ea.ann.mane.layers.ResidualLayer;
+import net.ea.ann.mane.layers.ResidualNetwork;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixNetworkInitializer;
-import net.ea.ann.mane.NullLayer;
-import net.ea.ann.mane.ResidualLayer;
-import net.ea.ann.mane.ResidualNetwork;
 import net.ea.ann.mane.WeightSpec;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerBasic;
@@ -250,19 +251,23 @@ public class VGG extends VGGCore {
 				ffnSize = new Size(1, lastSize.width*lastSize.height*lastSize.depth, 1);
 				
 				//Adding flatten layer.
-				VGG.LayerSpec flatLayerSpec = new VGG.LayerSpec(ffnSize);
-				flatLayerSpec.prevSize = lastSize; //Setting previous size not important.
-				flatLayerSpec.type = VGG.LayerSpec.Type.flatten;
-				layerSpecs.add(flatLayerSpec);
+				VGG.LayerSpec flattenLayerSpec = new VGG.LayerSpec(ffnSize);
+				flattenLayerSpec.prevSize = lastSize; //Setting previous size not important.
+				flattenLayerSpec.type = VGG.LayerSpec.Type.flatten;
+				layerSpecs.add(flattenLayerSpec);
 			}
 			else {
-				//Improving later.
 				Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 				ffnSize = new Size(middleSize.width, lastSize.depth*middleSize.height, 1);
+				
+				//Adding flatten layer.
+				VGG.LayerSpec flattenLayerSpec = new VGG.LayerSpec(ffnSize);
+				flattenLayerSpec.prevSize = lastSize; //Setting previous size not important.
+				flattenLayerSpec.type = VGG.LayerSpec.Type.flatten2;
+				layerSpecs.add(flattenLayerSpec);
 			}
 		}
 		else {
-			//Improving later.
 			Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 			ffnSize = new Size(middleSize.width, middleSize.height, lastSize.depth);
 		}
@@ -680,6 +685,11 @@ class VGGCore extends ResidualNetwork {
 			flatten,
 			
 			/**
+			 * Extensive flattening layer.
+			 */
+			flatten2,
+
+			/**
 			 * Null layer.
 			 */
 			nil,
@@ -826,6 +836,9 @@ class VGGCore extends ResidualNetwork {
 			break;
 		case flatten:
 			layer = new FlattenLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
+			break;
+		case flatten2:
+			layer = new FlattenLayer2(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 			break;
 		case nil:
 			layer = new NullLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);

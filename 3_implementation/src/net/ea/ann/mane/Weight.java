@@ -39,6 +39,13 @@ public interface Weight extends Cloneable, Serializable {
 	 
 	 
 	/**
+	 * Getting internal weight.
+	 * @return internal weight.
+	 */
+	Kernel kernel();
+
+	
+	/**
 	 * Accumulating kernel.
 	 * @param dKernel kernel bias.
 	 * @param factor factor.

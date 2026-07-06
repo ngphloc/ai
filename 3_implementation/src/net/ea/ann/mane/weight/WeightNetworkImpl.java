@@ -12,6 +12,7 @@ import java.util.List;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.mane.WeightSpec;
@@ -89,6 +90,10 @@ public class WeightNetworkImpl extends WeightNetwork {
 	}
 
 
+	@Override
+	public Kernel kernel() {return new Kernel.NullKernel();}
+
+	
 	@Override
 	public boolean initialize(Size inputSize, Size outputSize, int length, KernelType kernelType) {
 		if (inputSize == null || outputSize == null) throw new IllegalArgumentException();

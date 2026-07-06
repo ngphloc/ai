@@ -1,10 +1,13 @@
-package net.ea.ann.mane;
+package net.ea.ann.mane.layers;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Error.LayerInput;
+import net.ea.ann.mane.MatrixLayer;
+import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.raster.Size;
 
 /**
@@ -13,7 +16,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class NullLayer extends CustomLayer {
+public class NullLayer extends MatrixLayerImpl {
 
 
 	/**

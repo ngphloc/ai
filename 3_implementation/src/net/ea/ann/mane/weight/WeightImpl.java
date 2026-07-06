@@ -19,6 +19,8 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.Weight;
+import net.ea.ann.mane.train.AdamOptimizer;
+import net.ea.ann.mane.train.Optimizer;
 import net.ea.ann.raster.Size;
 
 /**
@@ -59,6 +61,11 @@ public class WeightImpl implements Weight, TextParsable {
 		 * The second weight.
 		 */
 		protected MatrixStack[] W2 = null;
+		
+		/**
+		 * Optimizer.
+		 */
+		private Optimizer optimizer = null;
 		
 		/**
 		 * Constructor with the first weight and the second weight.
@@ -106,6 +113,36 @@ public class WeightImpl implements Weight, TextParsable {
 			return new WKernel(d1, d2);
 		}
 
+		@Override
+		public Optimizer getOptimizer() {return optimizer;}
+
+		@Override
+		public void setOptimizer(Optimizer optimizer) {this.optimizer = optimizer;}
+
+		@Override
+		public Kernel optimize() {
+			if ((this.optimizer == null) || !(this.optimizer instanceof AdamOptimizer)) return Kernel.super.optimize();
+			if (this.W1 == null && this.W2 == null) return Kernel.super.optimize();
+			
+			AdamOptimizer adam = (AdamOptimizer)this.optimizer;
+			int time = adam.incTime();
+			if (this.W1 != null) {
+				for (int i = 0; i < this.W1.length; i++) {
+					Matrix W = adam.recalcGradient(this.W1[i], time);
+					this.W1[i] = W instanceof MatrixStack ? (MatrixStack)W : new MatrixStack(W);
+				}
+			}
+			
+			if (this.W2 != null) {
+				for (int i = 0; i < this.W2.length; i++) {
+					Matrix W = adam.recalcGradient(this.W2[i], time);
+					this.W2[i] = W instanceof MatrixStack ? (MatrixStack)W : new MatrixStack(W);
+				}
+			}
+
+			return this;
+		}
+		
 	}
 	
 
@@ -117,11 +154,19 @@ public class WeightImpl implements Weight, TextParsable {
 	
 	/**
 	 * Constructor with the kernel.
-	 * @param w the kernel.
+	 * @param kernel the kernel.
 	 */
-	public WeightImpl(WKernel w) {
-		this.kernel = w;
+	public WeightImpl(WKernel kernel) {
+		this.kernel = kernel;
+		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(createOptimizer());
 	}
+
+	
+	/**
+	 * Create default optimizer.
+	 * @return default optimizer.
+	 */
+	Optimizer createOptimizer() {return new AdamOptimizer();}
 
 	
 	/**
@@ -144,11 +189,8 @@ public class WeightImpl implements Weight, TextParsable {
 	 */
 	private MatrixStack[] nonnull() {return W1() != null ? W1() : W2();}
 	
-	
-	/**
-	 * Getting internal weight.
-	 * @return internal weight.
-	 */
+
+	@Override
 	public WKernel kernel() {return kernel;}
 	
 	
@@ -190,14 +232,18 @@ public class WeightImpl implements Weight, TextParsable {
 
 	@Override
 	public Weight accumKernel(Kernel dKernel, double factor) {
-		this.kernel = (WKernel)this.kernel.add(dKernel.multiply(factor));
+		assert (factor > 0 && factor < 1);
+		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
+		this.kernel = (WKernel)this.kernel.add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 
 	
 	@Override
 	public Weight accumKernel(Kernel dKernel, double factor, double decay) {
-		this.kernel = (WKernel)this.kernel.multiply(decay).add(dKernel.multiply(factor));
+		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
+		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
+		this.kernel = (WKernel)this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 
@@ -379,7 +425,9 @@ public class WeightImpl implements Weight, TextParsable {
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
 		MatrixStack[] dW1 = dW1(prevOutputs, thisErrors);
 		MatrixStack[] dW2 = dW2(prevOutputs, thisErrors);
-		return new WKernel(dW1, dW2);
+		WKernel dKernel = new WKernel(dW1, dW2);
+		if (this.kernel() != null && this.kernel().getOptimizer() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
+		return dKernel;
 	}
 
 

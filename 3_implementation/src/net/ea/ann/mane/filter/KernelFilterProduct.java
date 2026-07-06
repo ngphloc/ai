@@ -19,6 +19,8 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.train.AdamOptimizer;
+import net.ea.ann.mane.train.Optimizer;
 import net.ea.ann.raster.Size;
 
 /**
@@ -73,8 +75,17 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		this.weight = weight;
 		this.strideWidth = kernel.width();
 		this.strideHeight = kernel.height();
+		
+		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(createOptimizer());
 	}
 
+	
+	/**
+	 * Create default optimizer.
+	 * @return default optimizer.
+	 */
+	Optimizer createOptimizer() {return new AdamOptimizer();}
+	
 	
 	/**
 	 * Checking kernel.
@@ -155,7 +166,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 
 	@Override
-	FKernel kernel() {return kernel;}
+	public FKernel kernel() {return kernel;}
 	
 	
 	/**
@@ -163,25 +174,33 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param otherKernel internal kernel.
 	 * @return true if setting is successful.
 	 */
-	boolean setKernel(FKernel otherKernel) {
+	@SuppressWarnings("unused")
+	@Deprecated
+	private boolean setKernel(FKernel otherKernel) {
 		if (!checkValid(otherKernel)) throw new IllegalArgumentException();
 		this.kernel = otherKernel;
 		this.strideWidth = otherKernel.width();
 		this.strideHeight = otherKernel.height();
+		
+		if (Kernel.OPTIMIZER && this.kernel.getOptimizer() == null) this.kernel.setOptimizer(createOptimizer());
 		return true;
 	}
 	
 
 	@Override
 	public KernelFilterProduct accumKernel(Kernel dKernel, double factor) {
-		this.kernel = this.kernel.add(dKernel.multiply(factor));
+		assert (factor > 0 && factor < 1);
+		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
+		this.kernel = this.kernel.add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 	
 	
 	@Override
 	public Filter accumKernel(Kernel dKernel, double factor, double decay) {
-		this.kernel = this.kernel.multiply(decay).add(dKernel.multiply(factor));
+		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
+		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
+		this.kernel = this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 

@@ -344,6 +344,24 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 
 	/**
+	 * Resetting optimizers.
+	 */
+	public void resetOptimizers() {
+		if (layers == null) return;
+		for (int i = layers.length-1; i >= 0; i--) {
+			if (!(layers[i] instanceof MatrixLayerAbstract)) continue;
+			MatrixLayerAbstract layer = (MatrixLayerAbstract)layers[i];
+			
+			Weight weight = layer.getWeight();
+			if (weight != null && weight.kernel() != null && weight.kernel().getOptimizer() != null) weight.kernel().getOptimizer().reset();
+			
+			Filter filter = layer.getFilter();
+			if (filter != null && filter.kernel() != null && filter.kernel().getOptimizer() != null) filter.kernel().getOptimizer().reset();
+		}
+	}
+	
+	
+	/**
 	 * Calculating the last bias which is often the negative of output error, often multiplied with gradient.
 	 * Derived class can override this method but it is better to apply the method {@link #setLikelihoodGradient(LikelihoodGradient)} into changing how to calculate the bias (error). 
 	 * @param output computed or predicted output.

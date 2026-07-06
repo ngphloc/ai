@@ -37,6 +37,10 @@ public class NullWeight implements Weight {
 
 	
 	@Override
+	public Kernel kernel() {return new Kernel.NullKernel();}
+
+
+	@Override
 	public Weight accumKernel(Kernel dKernel, double factor) {return this;}
 
 	

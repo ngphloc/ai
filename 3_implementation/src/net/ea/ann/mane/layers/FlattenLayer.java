@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane;
+package net.ea.ann.mane.layers;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
@@ -13,16 +13,19 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Error.LayerInput;
+import net.ea.ann.mane.MatrixLayer;
+import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.raster.Size;
 
 /**
- * This class implements custom layer.
+ * This class implements flattening layer.
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class FlattenLayer extends CustomLayer {
+public class FlattenLayer extends MatrixLayerImpl {
 
 
 	/**

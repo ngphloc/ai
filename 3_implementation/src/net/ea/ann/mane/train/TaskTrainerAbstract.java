@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane;
+package net.ea.ann.mane.train;
 
 import java.io.Serializable;
 import java.util.List;
@@ -14,7 +14,15 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
+import net.ea.ann.mane.Error;
+import net.ea.ann.mane.MatrixLayer;
+import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.MatrixLayerExt;
+import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
+import net.ea.ann.mane.OutputConverter;
+import net.ea.ann.mane.Record;
+import net.ea.ann.mane.TaskTrainer;
 
 /**
  * This class implements partially specifies trainer applying into learning matrix neural network for specific task such as classification and reinforcement learning.
@@ -55,7 +63,7 @@ public abstract class TaskTrainerAbstract implements TaskTrainer, OutputConverte
 			}
 			
 			Error bias = new Error((Matrix)null);
-			Matrix output = layer.evaluate(bias, new TrainingFlag() {}); //Please pay attention to this code line because of tracking errors.
+			Matrix output = layer.evaluate(bias, TrainingFlag.create()); //Please pay attention to this code line because of tracking errors.
 			Matrix err = gradient(output, realOutput, params);
 			if (err == null) continue;
 			

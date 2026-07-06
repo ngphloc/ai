@@ -1,8 +1,10 @@
-package net.ea.ann.mane;
+package net.ea.ann.mane.layers;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.mane.Error;
+import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.mane.filter.KernelFilterProduct;
 import net.ea.ann.mane.weight.NullWeight;
 
@@ -74,7 +76,7 @@ public class ResidualLayer extends MatrixLayerImpl  {
 	
 	
 	@Override
-	Matrix evaluateByFilter() {
+	protected Matrix evaluateByFilter() {
 		if (this.filter == null || this.prevLayer == null) return super.evaluateByFilter();
 		if (!this.filter.doesApplyActivate() || this.filter.isIndexMode()) return super.evaluateByFilter();
 		if (getStartLayer() == null) return super.evaluateByFilter();

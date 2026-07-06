@@ -13,6 +13,8 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.train.AdamOptimizer;
+import net.ea.ann.mane.train.Optimizer;
 import net.ea.ann.raster.Size;
 
 /**
@@ -48,6 +50,11 @@ public abstract class KernelFilter extends FilterAbstract {
 		 * The weight.
 		 */
 		protected MatrixStack[] W = null;
+		
+		/**
+		 * Optimizer.
+		 */
+		private Optimizer optimizer = null;
 		
 		/**
 		 * Constructor with weight.
@@ -144,7 +151,29 @@ public abstract class KernelFilter extends FilterAbstract {
 			FKernel sum = sum(kernels);
 			return sum.divide(kernels.length);
 		}
+
+		@Override
+		public Optimizer getOptimizer() {return optimizer;}
 		
+		@Override
+		public void setOptimizer(Optimizer optimizer) {this.optimizer = optimizer;}
+		
+		@Override
+		public Kernel optimize() {
+			if ((this.optimizer == null) || !(this.optimizer instanceof AdamOptimizer)) return Kernel.super.optimize();
+			if (this.W == null) return Kernel.super.optimize();
+			
+			AdamOptimizer adam = (AdamOptimizer)this.optimizer;
+			int time = adam.incTime();
+			if (this.W != null) {
+				for (int i = 0; i < this.W.length; i++) {
+					Matrix W0 = adam.recalcGradient(this.W[i], time);
+					this.W[i] = W0 instanceof MatrixStack ? (MatrixStack)W0 : new MatrixStack(W0);
+				}
+			}
+			
+			return this;
+		}
 	}
 
 	
@@ -170,11 +199,8 @@ public abstract class KernelFilter extends FilterAbstract {
 	abstract int time();
 
 	
-	/**
-	 * Getting kernel.
-	 * @return kernel.
-	 */
-	abstract FKernel kernel();
+	@Override
+	public abstract FKernel kernel();
 
 	
 	/**
@@ -469,7 +495,9 @@ public abstract class KernelFilter extends FilterAbstract {
 		MatrixStack prevInputLayers = prevInputLayer instanceof MatrixStack ? (MatrixStack)prevInputLayer : new MatrixStack(prevInputLayer);
 		MatrixStack prevOutputLayers = prevOutputLayer instanceof MatrixStack ? (MatrixStack)prevOutputLayer : new MatrixStack(prevOutputLayer);
 		MatrixStack thisErrorLayers = thisErrorLayer instanceof MatrixStack ? (MatrixStack)thisErrorLayer : new MatrixStack(thisErrorLayer);
-		return new FKernel(dKernel(prevInputLayers, prevOutputLayers, thisErrorLayers, thisActivateRef));
+		FKernel dKernel = new FKernel(dKernel(prevInputLayers, prevOutputLayers, thisErrorLayers, thisActivateRef));
+		if (this.kernel() != null && this.kernel().getOptimizer() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
+		return dKernel;
 	}
 	
 	

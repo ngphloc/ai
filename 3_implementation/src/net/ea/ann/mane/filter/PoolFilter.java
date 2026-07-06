@@ -57,6 +57,10 @@ public abstract class PoolFilter extends FilterAbstract {
 
 	
 	@Override
+	public Kernel kernel() {return new Kernel.NullKernel();}
+
+	
+	@Override
 	public int width() {return width;}
 
 

@@ -17,6 +17,8 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.Weight;
+import net.ea.ann.mane.train.AdamOptimizer;
+import net.ea.ann.mane.train.Optimizer;
 import net.ea.ann.raster.Size;
 
 /**
@@ -59,6 +61,11 @@ public class NormWeight implements Weight, TextParsable {
 		protected MatrixStack W = null;
 		
 		/**
+		 * Optimizer.
+		 */
+		private Optimizer optimizer = null;
+		
+		/**
 		 * Constructor with the linear weight.
 		 * @param W the linear weight.
 		 */
@@ -95,6 +102,27 @@ public class NormWeight implements Weight, TextParsable {
 			return new WKernel(W0);
 		}
 
+		@Override
+		public Optimizer getOptimizer() {return optimizer;}
+
+		@Override
+		public void setOptimizer(Optimizer optimizer) {this.optimizer = optimizer;}
+		
+		@Override
+		public Kernel optimize() {
+			if ((this.optimizer == null) || !(this.optimizer instanceof AdamOptimizer)) return Kernel.super.optimize();
+			if (this.W == null) return Kernel.super.optimize();
+			
+			AdamOptimizer adam = (AdamOptimizer)this.optimizer;
+			int time = adam.incTime();
+			if (this.W != null) {
+				Matrix W0 = adam.recalcGradient(this.W, time);
+				this.W = W0 instanceof MatrixStack ? (MatrixStack)W0 : new MatrixStack(W0);
+			}
+			
+			return this;
+		}
+		
 	}
 
 	
@@ -110,7 +138,15 @@ public class NormWeight implements Weight, TextParsable {
 	 */
 	public NormWeight(WKernel kernel) {
 		this.kernel = kernel;
+		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(createOptimizer());
 	}
+
+	
+	/**
+	 * Create default optimizer.
+	 * @return default optimizer.
+	 */
+	Optimizer createOptimizer() {return new AdamOptimizer();}
 
 	
 	/**
@@ -121,15 +157,23 @@ public class NormWeight implements Weight, TextParsable {
 
 	
 	@Override
+	public WKernel kernel() {return this.kernel;}
+
+
+	@Override
 	public Weight accumKernel(Kernel dKernel, double factor) {
-		this.kernel = (WKernel)this.kernel.add(dKernel.multiply(factor));
+		assert (factor > 0 && factor < 1);
+		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
+		this.kernel = (WKernel)this.kernel.add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 
 	
 	@Override
 	public Weight accumKernel(Kernel dKernel, double factor, double decay) {
-		this.kernel = (WKernel)this.kernel.multiply(decay).add(dKernel.multiply(factor));
+		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
+		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
+		this.kernel = (WKernel)this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 
@@ -247,7 +291,9 @@ public class NormWeight implements Weight, TextParsable {
 
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
-		return new WKernel((MatrixStack)prevOutputs.multiplyWise(thisErrors));
+		WKernel dKernel = new WKernel((MatrixStack)prevOutputs.multiplyWise(thisErrors));
+		if (this.kernel() != null && this.kernel().getOptimizer() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
+		return dKernel;
 	}
 
 	

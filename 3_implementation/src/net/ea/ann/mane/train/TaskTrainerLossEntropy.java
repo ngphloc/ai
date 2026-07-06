@@ -5,10 +5,11 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane;
+package net.ea.ann.mane.train;
 
 import net.ea.ann.core.function.Softmax;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.mane.LikelihoodGradient;
 
 /**
  * This class implements soft-max task trainer.

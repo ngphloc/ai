@@ -28,7 +28,7 @@ public interface LikelihoodGradient {
 	/**
 	 * Normalization flag.
 	 */
-	static boolean NORMLIZED = false;
+	static boolean NORMALIZED = false;
 	
 	
 	/**
@@ -62,7 +62,7 @@ public interface LikelihoodGradient {
 	 */
 	private static Matrix entropyGradientByRow0(Matrix output, Matrix realOutputProb, Object...params) {
 		//Normalizing real probabilities.
-		if (NORMLIZED) {
+		if (NORMALIZED) {
 			for (int row = 0; realOutputProb != null && row < realOutputProb.rows(); row++) {
 				NeuronValue sum = realOutputProb.get(0, 0).zero();
 				for (int column = 0; column < realOutputProb.columns(); column++) {
@@ -150,7 +150,7 @@ public interface LikelihoodGradient {
 	 */
 	private static Matrix entropyGradientByColumn0(Matrix output, Matrix realOutputProb, Object...params) {
 		//Normalizing real probabilities.
-		if (NORMLIZED) {
+		if (NORMALIZED) {
 			for (int column = 0; realOutputProb != null && column < realOutputProb.columns(); column++) {
 				NeuronValue sum = realOutputProb.get(0, 0).zero();
 				for (int row = 0; row < realOutputProb.rows(); row++) {

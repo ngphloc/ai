@@ -556,6 +556,18 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 
 	
 	/**
+	 * Resetting optimizers.
+	 */
+	void resetOptimizers() {
+		if (this.heads != null) {
+			for (int i = 0; i < this.heads.length; i++) {
+				this.heads[i].resetOptimizers();
+			}
+		}
+	}
+	
+	
+	/**
 	 * Initializing attention parameters.
 	 * @param attention attention.
 	 * @param rnd randomizer.
@@ -1337,6 +1349,12 @@ class Attention0 implements Cloneable, Serializable {
 		this.tempAccum = 0;
 	}
 
+	
+	/**
+	 * Resetting optimizers.
+	 */
+	void resetOptimizers() {};
+	
 	
 	/**
 	 * Initializing attention parameters.

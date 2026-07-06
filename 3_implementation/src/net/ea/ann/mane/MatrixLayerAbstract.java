@@ -132,6 +132,24 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		public boolean isVectorized() {return vecRows > 0;}
 		
 		/**
+		 * Checking whether this layer is vector layer.
+		 * @return whether this layer is vector layer.
+		 */
+		public boolean isVectorLayer() {return size.width == 1;}
+		
+		/**
+		 * Vectorizing layer.
+		 * @return true if vectorization is successful.
+		 */
+		public boolean vectorize() {
+			assert (size != null);
+			if (size.width == 1) return true;
+			vecRows = size.height;
+			size = new Size(1, size.width*size.height, size.depth, size.time);
+			return true;
+		}
+		
+		/**
 		 * Getting size of this layer with regard to vectorization.
 		 * @return size of this layer with regard to vectorization.
 		 */
@@ -153,6 +171,12 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 */
 	final static boolean LEARN_FILTER_DEFAULT = true;
 
+	
+	/**
+	 * Regularization strength.
+	 */
+	final static double LAMBDA = 0.01;
+	
 	
 	/**
 	 * Neuron channel.
@@ -365,7 +389,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting starting layer for residual network.
 	 * @return starting layer for residual network.
 	 */
-	MatrixLayerAbstract getStartLayer() {return this.startLayer;}
+	public MatrixLayerAbstract getStartLayer() {return this.startLayer;}
 	
 	
 	/**
@@ -373,7 +397,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param startLayer starting layer.
 	 * @return true if setting starting layer is successful.
 	 */
-	boolean setStartLayer(MatrixLayerAbstract startLayer) {
+	public boolean setStartLayer(MatrixLayerAbstract startLayer) {
 		if (startLayer == this.startLayer) return false;
 		
 		MatrixLayerAbstract oldStartLayer = this.startLayer;
@@ -395,7 +419,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting end layer for residual network.
 	 * @return end layer for residual network.
 	 */
-	MatrixLayerAbstract getEndLayer() {return this.endLayer;}
+	public MatrixLayerAbstract getEndLayer() {return this.endLayer;}
 	
 	
 	/**
@@ -403,7 +427,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param endLayer end layer.
 	 * @return true if setting end layer is successful.
 	 */
-	boolean setEndLayer(MatrixLayerAbstract endLayer) {
+	protected boolean setEndLayer(MatrixLayerAbstract endLayer) {
 		if (endLayer == this.endLayer) return false;
 
 		MatrixLayerAbstract oldEndLayer = this.endLayer;
@@ -684,9 +708,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Checking whether to apply vectorization.
 	 * @return whether to apply vectorization.
 	 */
-	public boolean isVectorized() {
-		return vecRows > 0;
-	}
+	public boolean isVectorized() {return vecRows > 0;}
 	
 	
 	/**
@@ -698,6 +720,23 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		this.vecRows = vecRows;
 	}
 
+	
+	/**
+	 * Checking whether this layer is vector layer.
+	 * @return whether this layer is vector layer.
+	 */
+	boolean isVectorLayer() {return getSize().width == 1;}
+
+	
+	/**
+	 * Checking whether this layer is flattened.
+	 * @return whether this layer is flattened.
+	 */
+	boolean isFlatten() {
+		Size size = getSize();
+		return size.width == 1 && size.depth == 1;
+	}
+	
 	
 	/**
 	 * Create raster from matrix.
@@ -756,7 +795,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param convLayer convolutional layer.
 	 * @return matrix.
 	 */
-	Matrix convLayerToMatrix(Matrix convLayer) {
+	public Matrix convLayerToMatrix(Matrix convLayer) {
 		return convLayer != null && isVectorized() ? convLayer.vec() : convLayer;
 	}
 	
@@ -766,7 +805,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param matrix matrix.
 	 * @return convolutional layer.
 	 */
-	Matrix matrixToConvLayer(Matrix matrix) {
+	public Matrix matrixToConvLayer(Matrix matrix) {
 		return matrix != null && isVectorized() ? matrix.vecInverse(vecRows) : matrix;
 	}
 	
@@ -806,7 +845,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @return decay factor for L2 regularization.
 	 */
 	static double decay(double learningRate, int recordCount) {
-		double lambda = 0.01; //Regularization strength.
+		double lambda = LAMBDA; //Regularization strength.
 		return 1.0 - (learningRate * (lambda/recordCount));
 	}
 	

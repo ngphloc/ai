@@ -36,6 +36,10 @@ public class NullFilter extends FilterAbstract {
 
 	
 	@Override
+	public Kernel kernel() {return new Kernel.NullKernel();}
+
+
+	@Override
 	public boolean doesApplyActivate() {return false;}
 
 

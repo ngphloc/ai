@@ -706,6 +706,21 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	}
 	
 	
+	/**
+	 * Resetting optimizers.
+	 */
+	void resetOptimizers() {
+		if (blocks != null) {
+			for (int i = blocks.length-1; i >= 0; i--) {
+				blocks[i].resetOptimizers();
+				if ((blocks[i].inputAttach == null) || !(blocks[i].inputAttach instanceof TransformerBasic)) continue;
+				TransformerBasic attach = (TransformerBasic)blocks[i].inputAttach;
+				attach.resetOptimizers();
+			}
+		}
+	}
+
+	
 	@Override
 	public net.ea.ann.mane.Error[] backward(net.ea.ann.mane.Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		if (!learning) throw new IllegalArgumentException("Method Transformer::backward(Matrix[], MatrixLayer, boolean, double) does not support learning = false");
@@ -766,7 +781,8 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
-		resetBackwardInfo(); //Fixing date: 2026.07.01.
+		resetBackwardInfo();
+		resetOptimizers();
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
@@ -831,7 +847,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 //			List<Error[]> outputErrorsList = Util.newList(0);
 			for (Record record : sample) {
 				Error error = new Error((Matrix)null);
-				Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, new TrainingFlag() {});
+				Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, TrainingFlag.create());
 				Matrix err = record.outputA().subtract(A);
 				if (err == null) continue;
 				
@@ -1505,6 +1521,16 @@ class TransformerBlock implements Cloneable, Serializable {
 		if (outputAdapter != null) outputAdapter.resetBackwardInfo();
 		if (ffn != null) ffn.resetBackwardInfo();
 		if (attention != null) attention.resetBackwardInfo();
+	}
+	
+	
+	/**
+	 * Resetting optimizers.
+	 */
+	void resetOptimizers() {
+		if (outputAdapter != null) outputAdapter.resetOptimizers();
+		if (ffn != null) ffn.resetOptimizers();
+		if (attention != null) attention.resetOptimizers();
 	}
 	
 	

@@ -19,7 +19,7 @@ import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.Record;
-import net.ea.ann.mane.TaskTrainerLossEntropy;
+import net.ea.ann.mane.train.TaskTrainerLossEntropy;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
 
