@@ -83,7 +83,6 @@ public interface Weight extends Cloneable, Serializable {
 	 * @return evaluated value.
 	 */
 	default Matrix evaluate(Matrix input, Matrix bias, Function activateRef) {
-		assert (true); //Tracking calling.
 		Matrix output = evaluate(input, bias);
 		return output != null && activateRef != null ? output.evaluate0(activateRef) : output;
 	}

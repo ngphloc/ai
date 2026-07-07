@@ -30,7 +30,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class WeightImpl implements Weight, TextParsable {
+public class WeightImplDeprecated implements Weight, TextParsable {
 
 
 	/**
@@ -163,7 +163,7 @@ public class WeightImpl implements Weight, TextParsable {
 	 * Constructor with the kernel.
 	 * @param kernel the kernel.
 	 */
-	public WeightImpl(WKernel kernel) {
+	public WeightImplDeprecated(WKernel kernel) {
 		this.kernel = kernel;
 		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(this.kernel.createOptimizer());
 	}
@@ -231,7 +231,7 @@ public class WeightImpl implements Weight, TextParsable {
 
 
 	@Override
-	public WeightImpl accumKernel(Kernel dKernel, double factor) {
+	public WeightImplDeprecated accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
@@ -241,7 +241,7 @@ public class WeightImpl implements Weight, TextParsable {
 
 	
 	@Override
-	public WeightImpl accumKernel(Kernel dKernel, double factor, double decay) {
+	public WeightImplDeprecated accumKernel(Kernel dKernel, double factor, double decay) {
 		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
@@ -261,8 +261,7 @@ public class WeightImpl implements Weight, TextParsable {
 		int depth = depth();
 		Matrix sum = null;
 		for (int d = 0; d < depth; d++) {
-			Matrix value = new WCore(W1(time, d), W2(time, d)).
-				evaluate(depth > 1 ? inputs.get(d) : inputs.get(time), null); //Please pay attention to this code line.
+			Matrix value = new WCoreDeprecated(W1(time, d), W2(time, d)).evaluate(inputs.get(d), null);
 			sum = sum != null ? sum.add(value) : value;
 		}
 		return bias != null ? sum.add(bias) : sum;
@@ -277,13 +276,7 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return evaluated value.
 	 */
 	private MatrixStack evaluate(MatrixStack inputs, MatrixStack biases) {
-		if (depth() != 1) {
-			if (inputs.depth() != depth() || inputs.depth() != depth() || (biases != null && biases.depth() != time())) throw new IllegalArgumentException();
-		}
-		else {
-			if (inputs.depth() != time() || inputs.depth() != time() || (biases != null && biases.depth() != time())) throw new IllegalArgumentException();
-		}
-		
+		if (inputs.depth() != depth() || inputs.depth() != depth() || biases.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
 		Matrix[] values = new Matrix[time];
 		for (int t = 0; t < time; t++) {
@@ -316,10 +309,8 @@ public class WeightImpl implements Weight, TextParsable {
 		int depth = depth();
 		Matrix[] dValues = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			Matrix prevInput = depth > 1 ? prevInputs.get(d) : prevInputs.get(time); //Please pay attention to this code line.
-			Matrix prevOutput = depth > 1 ? prevOutputs.get(d) : prevOutputs.get(time); //Please pay attention to this code line.
-			dValues[d] = new WCore(W1(time, d), W2(time, d)).
-				dValue(prevInput, prevOutput, thisError, prevActivateRef);
+			dValues[d] = new WCoreDeprecated(W1(time, d), W2(time, d)).
+				dValue(prevInputs.get(d), prevOutputs.get(d), thisError, prevActivateRef);
 		}
 		return new MatrixStack(dValues);
 	}
@@ -334,35 +325,14 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return gradient of previous layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef) {
-		if (prevOutputs.depth() != thisErrors.depth()) {
-			if (prevInputs.depth() != depth() || prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-		}
-		else {
-			if (prevInputs.depth() != time() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
-		}
-		
+		if (prevInputs.depth() != depth() || prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
-		MatrixStack dValueSum = null;
-		if (depth() > 1) {
-			for (int t = 0; t < time; t++) {
-				MatrixStack dValue = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef);
-				dValueSum = dValueSum != null ? (MatrixStack)dValueSum.add(dValue) : dValue;
-				assert (dValueSum.depth() == depth());
-			}
+		MatrixStack sum = null;
+		for (int t = 0; t < time; t++) {
+			MatrixStack dValue = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef);
+			sum = sum != null ? (MatrixStack)sum.add(dValue) : dValue;
 		}
-		else {
-			Matrix[] dValues = new Matrix[time()];
-			for (int t = 0; t < time(); t++) {
-				MatrixStack ds = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef);
-				dValues[t] = ds.get(0);
-				assert (ds.depth() == depth());
-			}
-			dValueSum = new MatrixStack(dValues);
-		}
-		assert (dValueSum.depth() == prevOutputs.depth());
-		assert (dValueSum.depth() == prevInputs.depth());
-		return dValueSum;
+		return sum;
 	}
 
 
@@ -388,8 +358,7 @@ public class WeightImpl implements Weight, TextParsable {
 		int depth = depth();
 		Matrix[] dW1s = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			dW1s[d] = new WCore(W1(time, d), W2(time, d)).
-				dW1(depth > 1 ? prevOutputs.get(d) : prevOutputs.get(time), thisError); //Please pay attention to this code line.
+			dW1s[d] = new WCoreDeprecated(W1(time, d), W2(time, d)).dW1(prevOutputs.get(d), thisError);
 		}
 		return new MatrixStack(dW1s);
 	}
@@ -403,20 +372,12 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return gradient of the current first weight.
 	 */
 	private MatrixStack[] dW1(MatrixStack prevOutputs, MatrixStack thisErrors) {
-		if (prevOutputs.depth() != thisErrors.depth()) {
-			if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-		}
-		else {
-			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
-		}
-		
 		if (this.W1() == null) return null;
+		if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
 		MatrixStack[] dW1s = new MatrixStack[time];
 		for (int t = 0; t < time; t++) {
 			dW1s[t] = dW1(t, prevOutputs, thisErrors.get(t));
-			assert (dW1s[t].depth() == depth());
 		}
 		return dW1s;
 	}
@@ -435,8 +396,7 @@ public class WeightImpl implements Weight, TextParsable {
 		if (prevOutputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix[] dW2s = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			dW2s[d] = new WCore(W1(time, d), W2(time, d)).
-				dW2(depth > 1 ? prevOutputs.get(d) : prevOutputs.get(time), thisError); //Please pay attention to this code line.
+			dW2s[d] = new WCoreDeprecated(W1(time, d), W2(time, d)).dW2(prevOutputs.get(d), thisError);
 		}
 		return new MatrixStack(dW2s);
 	}
@@ -450,20 +410,12 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return gradient of the current first weight.
 	 */
 	private MatrixStack[] dW2(MatrixStack prevOutputs, MatrixStack thisErrors) {
-		if (prevOutputs.depth() != thisErrors.depth()) {
-			if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-		}
-		else {
-			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
-		}
-		
 		if (this.W2() == null) return null;
+		if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
 		MatrixStack[] dW2s = new MatrixStack[time];
 		for (int t = 0; t < time; t++) {
 			dW2s[t] = dW2(t, prevOutputs, thisErrors.get(t));
-			assert (dW2s[t].depth() == depth());
 		}
 		return dW2s;
 	}
@@ -561,9 +513,6 @@ public class WeightImpl implements Weight, TextParsable {
 			depth = size.depth;
 			time = size.time;
 		}
-		
-		if (depth == time && !Kernel.ALWAYS_SUM) depth = 1; //Please pay attention to this code line.
-		
 		MatrixStack[] W = new MatrixStack[time];
 		for (int t = 0; t < time; t++) {
 			Matrix matrix = MatrixUtil.create(new Size(size.width, size.height, depth, 1), hint); 
@@ -580,10 +529,10 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @param hint hint.
 	 * @return weight.
 	 */
-	private static WeightImpl create0(Size sizeW1, Size sizeW2, NeuronValue hint) {
+	private static WeightImplDeprecated create0(Size sizeW1, Size sizeW2, NeuronValue hint) {
 		MatrixStack[] W1 = sizeW1 != null ? createW(sizeW1, hint) : null;
 		MatrixStack[] W2 = sizeW2 != null ? createW(sizeW2, hint) : null;
-		return new WeightImpl(new WKernel(W1, W2));
+		return new WeightImplDeprecated(new WKernel(W1, W2));
 	}
 
 	
@@ -594,7 +543,7 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @param hint hint value.
 	 * @return weight.
 	 */
-	public static WeightImpl create(Size prevSize, Size size, NeuronValue hint) {
+	public static WeightImplDeprecated create(Size prevSize, Size size, NeuronValue hint) {
 		Size sizeW1 = null, sizeW2 = null;
 		if (prevSize.height == size.height && prevSize.width == size.width) {
 			sizeW1 = new Size(size.height, size.height, prevSize.depth, size.depth);
@@ -625,7 +574,7 @@ public class WeightImpl implements Weight, TextParsable {
  * @version 1.0
  *
  */
-class WCore implements Cloneable, Serializable {
+class WCoreDeprecated implements Cloneable, Serializable {
 
 
 	/**
@@ -651,7 +600,7 @@ class WCore implements Cloneable, Serializable {
 	 * @param W1 the first weight.
 	 * @param W2 the second weight.
 	 */
-	WCore(Matrix W1, Matrix W2) {
+	WCoreDeprecated(Matrix W1, Matrix W2) {
 		if (!checkValid(W1, W2)) throw new IllegalArgumentException();
 		this.W1 = W1;
 		this.W2 = W2;

@@ -9,6 +9,7 @@ package net.ea.ann.mane;
 
 import java.io.Serializable;
 
+import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
 
 /**
@@ -24,6 +25,12 @@ public interface Kernel extends Cloneable, Serializable {
 	 * Optimizer flag.
 	 */
 	final static boolean OPTIMIZER = true;
+	
+	
+	/**
+	 * Always summing flag.
+	 */
+	final static boolean ALWAYS_SUM = false;
 	
 	
 	/**
@@ -55,8 +62,8 @@ public interface Kernel extends Cloneable, Serializable {
 		public void setOptimizer(Optimizer optimizer) {}
 		
 	}
-	
-	
+
+
 	/**
 	 * Adding other kernel.
 	 * @param kernel other kernel.
@@ -100,6 +107,13 @@ public interface Kernel extends Cloneable, Serializable {
 	 * @param optimizer optimizer.
 	 */
 	void setOptimizer(Optimizer optimizer);
+	
+	
+	/**
+	 * Create default optimizer.
+	 * @return default optimizer.
+	 */
+	default Optimizer createOptimizer() {return new AdamOptimizer();}
 	
 	
 	/**

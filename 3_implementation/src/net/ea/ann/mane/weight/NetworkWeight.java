@@ -10,8 +10,8 @@ package net.ea.ann.mane.weight;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.Weight;
-import net.ea.ann.mane.weight.WeightImpl.WKernel;
 
 /**
  * This class represent network weight.
@@ -46,7 +46,7 @@ public interface NetworkWeight extends Weight {
 
 
 	@Override
-	default WKernel dKernel(Matrix prevOutput, Matrix thisError) {
+	default Kernel dKernel(Matrix prevOutput, Matrix thisError) {
 		throw new RuntimeException("Network-based weight does not calculate gradient of kernel");
 	}
 	

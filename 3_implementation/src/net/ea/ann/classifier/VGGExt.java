@@ -53,6 +53,7 @@ public class VGGExt extends NetworkAbstract implements Classifier {
 //		this.classifier.paramSetGAP(false);
 //		this.classifier.paramSetLayerNorm(false);
 		this.classifier.paramSetFiltersNumberMax(1);
+//		this.classifier.paramSetFiltersNumberInit(16);
 //		this.classifier.paramSetVGGMiddleSize(new Size(32, 32));
 		System.out.println("net.ea.ann.classifier.VGGExt: Removing following lines after debugging.");
 		

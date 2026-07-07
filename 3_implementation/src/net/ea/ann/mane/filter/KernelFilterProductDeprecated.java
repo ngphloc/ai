@@ -27,7 +27,8 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class KernelFilterProduct extends KernelFilter implements TextParsable {
+@Deprecated
+public class KernelFilterProductDeprecated extends KernelFilterDeprecated implements TextParsable {
 
 
 	/**
@@ -65,7 +66,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param kernel specific kernel.
 	 * @param weight specific weight.
 	 */
-	protected KernelFilterProduct(FKernel kernel, NeuronValue weight) {
+	protected KernelFilterProductDeprecated(FKernel kernel, NeuronValue weight) {
 		super();
 		if (!checkValid(kernel)) throw new IllegalArgumentException();
 		this.kernel = kernel;
@@ -176,7 +177,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	
 
 	@Override
-	public KernelFilterProduct accumKernel(Kernel dKernel, double factor) {
+	public KernelFilterProductDeprecated accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
@@ -186,7 +187,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	
 	
 	@Override
-	public KernelFilterProduct accumKernel(Kernel dKernel, double factor, double decay) {
+	public KernelFilterProductDeprecated accumKernel(Kernel dKernel, double factor, double decay) {
 		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
@@ -234,8 +235,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		for (int i = 0; i < kernelDepth; i++) {
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValue value = kernelDepth > 1 ? layers.get(i).get(y+j, x+k) :
-						layers.get(time).get(y+j, x+k); //Please pay attention to this code line.
+					NeuronValue value = layers.get(i).get(y+j, x+k);
 					result = result.add(value.multiply(kernel[time].get(i).get(j, k)));
 				}
 			}
@@ -328,8 +328,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValue prevInput = kernelDepth > 1 ? prevInputLayers.get(i).get(thisY+j, thisX+k) :
-						prevInputLayers.get(time).get(thisY+j, thisX+k); //Please pay attention to this code line.
+					NeuronValue prevInput = prevInputLayers.get(i).get(thisY+j, thisX+k);
 					NeuronValue dKernel = prevInput.multiply(thisError);
 					if (thisActivateRef != null) {
 						NeuronValue prevOutput = prevOutputLayer.get(thisY, thisX);
@@ -405,9 +404,6 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 			depth = size.depth;
 			time = size.time;
 		}
-		
-		if (depth == time && !Kernel.ALWAYS_SUM) depth = 1; //Please pay attention to this code line.
-		
 		MatrixStack[] W = new MatrixStack[time];
 		NeuronValue value = hint.valueOf(kernelValue);
 		for (int t = 0; t < time; t++) {
@@ -426,8 +422,8 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param hint hint value.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterProduct create(double kernelValue, Size size, NeuronValue hint) {
-		return new KernelFilterProduct(createKernel(kernelValue, size, hint), hint.unit());
+	public static KernelFilterProductDeprecated create(double kernelValue, Size size, NeuronValue hint) {
+		return new KernelFilterProductDeprecated(createKernel(kernelValue, size, hint), hint.unit());
 	}
 	
 	
@@ -439,7 +435,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param hint hint value.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterProduct create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
+	public static KernelFilterProductDeprecated create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
 		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint);
 	}
 
@@ -451,7 +447,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param hint hint value.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterProduct create(double kernelValue, Dimension size, NeuronValue hint) {
+	public static KernelFilterProductDeprecated create(double kernelValue, Dimension size, NeuronValue hint) {
 		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint);
 	}
 

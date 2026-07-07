@@ -12,15 +12,16 @@ import java.util.Random;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.core.function.Identity;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Filter;
+import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
-import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.raster.Size;
 
 /**
@@ -183,6 +184,7 @@ abstract class FilterNetwork extends MatrixNetworkImpl implements NetworkFilter 
 
 	@Override
 	public void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
+		assert (thisActivateRef == null || thisActivateRef instanceof Identity); //This code line should be removed in the next version.
 		Matrix output = evaluate0(prevLayer, new Object[] {});
 		MatrixUtil.copy(output, thisInputLayer);
 		MatrixUtil.copy(output, thisOutputLayer); //It is unnecessary to apply activation function on this input layer so as to produce this output layer.

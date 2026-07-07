@@ -497,7 +497,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		else if (getFilter() != null) {
 			Filter filter = getFilter();
 			if (filter.isIndexMode() || !filter.doesApplyActivate()) {
-				assert (true);
+				assert (false);
 				return null; //It should return null.
 			}
 			else

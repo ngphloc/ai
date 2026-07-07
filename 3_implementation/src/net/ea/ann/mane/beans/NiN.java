@@ -18,6 +18,7 @@ import net.ea.ann.mane.FilterSpec.KernelType;
  * @version 1.0
  *
  */
+@Deprecated
 public class NiN extends VGG {
 
 

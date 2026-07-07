@@ -24,7 +24,8 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public abstract class KernelFilter extends FilterAbstract {
+@Deprecated
+public abstract class KernelFilterDeprecated extends FilterAbstract {
 
 
 	/**
@@ -187,7 +188,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	/**
 	 * Default constructor.
 	 */
-	protected KernelFilter() {
+	protected KernelFilterDeprecated() {
 		super();
 	}
 
@@ -272,13 +273,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @param thisActivateRef current activation function.
 	 */
 	private void forward(MatrixStack prevLayers, MatrixStack thisInputLayers, MatrixStack thisOutputLayers, NeuronValue bias, Function thisActivateRef) {
-		if (prevLayers.depth() != thisInputLayers.depth()) {
-			if (prevLayers.depth() != depth() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
-		}
-		else {
-			if (prevLayers.depth() != time() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
-		}
+		if (prevLayers.depth() != depth() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
 		if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
 		
 		for (int t = 0; t < time(); t++) {
@@ -324,10 +319,15 @@ public abstract class KernelFilter extends FilterAbstract {
 	private MatrixStack dValue(int time, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		NeuronValue zero = prevInputLayers.get().get(0, 0).zero();
 		Matrix[] dPrevValues = new Matrix[this.depth()];
+		int[][][] dPrevValuesCount = new int[this.depth()][][];
 		for (int i = 0; i < dPrevValues.length; i++) {
 			int rows = prevInputLayers.rows(), columns = prevInputLayers.columns();
 			dPrevValues[i] = prevInputLayers.get().create(new Size(columns, rows));
 			MatrixUtil.fill(dPrevValues[i], zero);
+			dPrevValuesCount[i] = new int[rows][columns];
+			for (int j = 0; j < rows; j++) {
+				for (int k = 0; k < columns; k++) dPrevValuesCount[i][j][k] = 0;
+			}
 		}
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
@@ -348,7 +348,6 @@ public abstract class KernelFilter extends FilterAbstract {
 				//Calculating gradient.
 				MatrixStack dPrevValue = this.dValue(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
 				if (dPrevValue == null) continue;
-				assert (dPrevValue.depth() == depth());
 				
 				for (int i = 0; i < dPrevValue.depth(); i++) {
 					for (int j = 0; j < dPrevValue.get(i).rows(); j++) {
@@ -357,12 +356,27 @@ public abstract class KernelFilter extends FilterAbstract {
 							int prevColumn = prevX + k;
 							NeuronValue dv = dPrevValues[i].get(prevRow, prevColumn).add(dPrevValue.get(i).get(j, k));
 							dPrevValues[i].set(prevRow, prevColumn, dv);
+							dPrevValuesCount[i][prevRow][prevColumn] = dPrevValuesCount[i][prevRow][prevColumn] + 1; 
 						}
 					}
 				} //End dValues.
 			}
 		}
 		
+//		//Calculating mean of values.
+//		if (CALC_ERROR_MEAN) {
+//			for (int i = 0; i < dPrevValues.length; i++) {
+//				int rows = dPrevValues[i].rows(), columns = dPrevValues[i].columns();
+//				for (int row = 0; row < rows; row++) {
+//					for (int column = 0; column < columns; column++) {
+//						int count = dPrevValuesCount[i][row][column];
+//						if (count <= 0) continue;
+//						NeuronValue mean = dPrevValues[i].get(row, column).divide(count);
+//						dPrevValues[i].set(row, column, mean);
+//					}
+//				}
+//			}
+//		}
 		return new MatrixStack(dPrevValues);
 	}
 
@@ -377,32 +391,14 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
-		if (prevInputLayers.depth() != prevOutputLayers.depth()) {
-			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-		}
-		else {
-			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
-		}
+		if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
 		MatrixStack dValueSum = null;
-		if (depth() > 1) {
-			for (int t = 0; t < time(); t++) {
-				MatrixStack dValue = dValue(t, prevInputLayers, prevOutputLayers.get(t), thisErrorLayers.get(t), thisActivateRef);
-				dValueSum = dValueSum != null ? (MatrixStack)dValueSum.add(dValue) : dValue;
-			}
+		for (int t = 0; t < time(); t++) {
+			MatrixStack dValue = dValue(t, prevInputLayers, prevOutputLayers.get(t), thisErrorLayers.get(t), thisActivateRef);
+			dValueSum = dValueSum != null ? (MatrixStack)dValueSum.add(dValue) : dValue;
 		}
-		else {
-			Matrix[] dValues = new Matrix[time()];
-			for (int t = 0; t < time(); t++) {
-				MatrixStack ds = dValue(t, prevInputLayers, prevOutputLayers.get(t), thisErrorLayers.get(t), thisActivateRef);
-				dValues[t] = ds.get(0);
-				assert (ds.depth() == depth());
-			}
-			dValueSum = new MatrixStack(dValues);
-		}
-		assert (dValueSum.depth() == prevInputLayers.depth());
 		return dValueSum;
 	}
 	
@@ -449,6 +445,7 @@ public abstract class KernelFilter extends FilterAbstract {
 			MatrixUtil.fill(dKernelArray[i], zero);
 		}
 		MatrixStack dKernels = new MatrixStack(dKernelArray);
+		int dKernelCount = 0;
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
@@ -468,11 +465,14 @@ public abstract class KernelFilter extends FilterAbstract {
 				//Calculating gradient.
 				MatrixStack dKernel = this.dKernel(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
 				if (dKernel == null) continue;
-				assert (dKernel.depth() == depth());
 				dKernels = (MatrixStack)dKernels.add(dKernel);
+				dKernelCount++;
 			}
 		}
+		if (dKernelCount <= 0) return dKernels;
 		
+//		//Calculating mean of kernel.
+//		if (CALC_ERROR_MEAN) dKernels = (MatrixStack)dKernels.divide0(dKernelCount);
 		return dKernels;
 	}
 	
@@ -487,19 +487,12 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack[] dKernel(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
-		if (prevInputLayers.depth() != prevOutputLayers.depth()) {
-			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-		}
-		else {
-			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
-		}
+		if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
 		MatrixStack[] dKernels = new MatrixStack[time()];
 		for (int t = 0; t < time(); t++) {
 			dKernels[t] = dKernel(t, prevInputLayers, prevOutputLayers.get(t), thisErrorLayers.get(t), thisActivateRef);
-			assert (dKernels[t].depth() == depth());
 		}
 		return dKernels;
 	}

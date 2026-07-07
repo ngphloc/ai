@@ -218,6 +218,7 @@ public class MatrixStack implements Matrix, TextParsable {
 	
 	@Override
 	public Matrix add(Matrix other) {
+		assert (((MatrixStack)other).matrices.length == this.matrices.length);
 		Matrix[] result = new Matrix[this.matrices.length];
 		for (int i = 0; i < this.matrices.length; i++) {
 			result[i] = this.matrices[i].add(((MatrixStack)other).matrices[i]);
@@ -228,6 +229,7 @@ public class MatrixStack implements Matrix, TextParsable {
 	
 	@Override
 	public Matrix subtract(Matrix other) {
+		assert (((MatrixStack)other).matrices.length == this.matrices.length);
 		Matrix[] result = new Matrix[this.matrices.length];
 		for (int i = 0; i < this.matrices.length; i++) {
 			result[i] = this.matrices[i].subtract(((MatrixStack)other).matrices[i]);
@@ -238,6 +240,7 @@ public class MatrixStack implements Matrix, TextParsable {
 	
 	@Override
 	public Matrix multiply(Matrix other) {
+		assert (((MatrixStack)other).matrices.length == this.matrices.length);
 		Matrix[] result = new Matrix[this.matrices.length];
 		for (int i = 0; i < this.matrices.length; i++) {
 			result[i] = this.matrices[i].multiply(((MatrixStack)other).matrices[i]);
@@ -268,7 +271,7 @@ public class MatrixStack implements Matrix, TextParsable {
 	
 	@Override
 	public Matrix multiplyWise(Matrix other) {
-		assert (this.matrices.length == ((MatrixStack)other).matrices.length);
+		assert (((MatrixStack)other).matrices.length == this.matrices.length);
 		Matrix[] result = new Matrix[this.matrices.length];
 		for (int i = 0; i < this.matrices.length; i++) {
 			result[i] = this.matrices[i].multiplyWise(((MatrixStack)other).matrices[i]);
@@ -299,6 +302,7 @@ public class MatrixStack implements Matrix, TextParsable {
 	
 	@Override
 	public Matrix kroneckerProductRowOf(Matrix other, int rowOfThis) {
+		assert (((MatrixStack)other).matrices.length == this.matrices.length);
 		Matrix[] result = new Matrix[this.matrices.length];
 		for (int i = 0; i < this.matrices.length; i++) {
 			result[i] = this.matrices[i].kroneckerProductRowOf(((MatrixStack)other).matrices[i], rowOfThis);
@@ -464,7 +468,7 @@ public class MatrixStack implements Matrix, TextParsable {
 	 * @return value mean.
 	 */
 	public static NeuronValue valueMean(MatrixStack...stacks) {
-		assert (true); //Please remove this code line in next version because it is only for tracking error.
+		assert (false); //Please remove this code line in next version because it is only for tracking error.
 		if (stacks == null || stacks.length == 0) return null;
 		NeuronValue mean = Matrix.valueMean(stacks[0].matrices);
 		assert (mean != null);
@@ -481,7 +485,7 @@ public class MatrixStack implements Matrix, TextParsable {
 	 * @return value sum.
 	 */
 	public static NeuronValue valueVariance(MatrixStack...stacks) {
-		assert (true); //Please remove this code line in next version because it is only for tracking error.
+		assert (false); //Please remove this code line in next version because it is only for tracking error.
 		if (stacks == null || stacks.length == 0) return null;
 		NeuronValue variance = Matrix.valueVariance(stacks[0].matrices);
 		assert (variance != null);

@@ -131,7 +131,7 @@ public class ReLUV implements ReLU {
 		NeuronValueV result = new NeuronValueV(n, 0.0);
 		NeuronValueV v = (NeuronValueV)x;
 		for (int i = 0; i < n; i++) {
-			if ((v.get(i) < min[i]) || (isConcernMax() && v.get(i) > max[i]))
+			if ((v.get(i) < min[i] /*v.get(i) <= min[i]*/) || (isConcernMax() && v.get(i) > max[i] /*v.get(i) >= max[i]*/))
 				result.set(i, 0);
 			else
 				result.set(i, 1);

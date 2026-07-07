@@ -87,19 +87,25 @@ public class NormWeight implements Weight, TextParsable {
 		@Override
 		public WKernel add(Kernel kernel) {
 			MatrixStack W0 = (MatrixStack)this.W.add(((WKernel)kernel).W);
-			return new WKernel(W0);
+			WKernel result = new WKernel(W0);
+			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
+			return result;
 		}
 
 		@Override
 		public WKernel multiply(double value) {
 			MatrixStack W0 = (MatrixStack)this.W.multiply0(value);
-			return new WKernel(W0);
+			WKernel result = new WKernel(W0);
+			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
+			return result;
 		}
 
 		@Override
 		public WKernel divide(double value) {
 			MatrixStack W0 = (MatrixStack)this.W.divide0(value);
-			return new WKernel(W0);
+			WKernel result = new WKernel(W0);
+			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
+			return result;
 		}
 
 		@Override
@@ -110,6 +116,7 @@ public class NormWeight implements Weight, TextParsable {
 		
 		@Override
 		public Kernel optimize() {
+			if (this.optimizer == null) System.out.println("WARNING: norm weight has no optimizer");
 			if ((this.optimizer == null) || !(this.optimizer instanceof AdamOptimizer)) return Kernel.super.optimize();
 			if (this.W == null) return Kernel.super.optimize();
 			
@@ -138,15 +145,8 @@ public class NormWeight implements Weight, TextParsable {
 	 */
 	public NormWeight(WKernel kernel) {
 		this.kernel = kernel;
-		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(createOptimizer());
+		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(this.kernel.createOptimizer());
 	}
-
-	
-	/**
-	 * Create default optimizer.
-	 * @return default optimizer.
-	 */
-	Optimizer createOptimizer() {return new AdamOptimizer();}
 
 	
 	/**
@@ -161,18 +161,20 @@ public class NormWeight implements Weight, TextParsable {
 
 
 	@Override
-	public Weight accumKernel(Kernel dKernel, double factor) {
+	public NormWeight accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
+		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
 		this.kernel = (WKernel)this.kernel.add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 
 	
 	@Override
-	public Weight accumKernel(Kernel dKernel, double factor, double decay) {
+	public NormWeight accumKernel(Kernel dKernel, double factor, double decay) {
 		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
+		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
 		this.kernel = (WKernel)this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
 		return this;
 	}

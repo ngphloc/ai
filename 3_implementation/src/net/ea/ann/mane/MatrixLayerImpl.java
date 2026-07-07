@@ -19,6 +19,7 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error.LayerInput;
 import net.ea.ann.mane.filter.NetworkFilter;
+import net.ea.ann.mane.filter.NullFilter;
 import net.ea.ann.mane.layers.DropoutLayer;
 import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.NetworkWeight;
@@ -253,13 +254,12 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			this.output = this.input = newMatrix(new Size(size.width, size.height, size.depth)); //Only for input layer where both filter and weights are null and so, its input and output must be initialized.
 		}
 		
-		/*
 		//Setting identity activation function for null filter and network filter.
-		if ((this.filter != null) && (this.filter instanceof NullFilter || this.filter instanceof NetworkFilter))
+		if ((this.filter != null) && (this.filter instanceof NullFilter || this.filter instanceof NetworkFilter) && (this.getFilterActivateRef() != null))
 			this.setFilterActivateRef(IdentityDefault.identity());
-		*/
+		
 		//Setting identity activation function for null weight and network weight.
-		if ((this.weight != null) && (this.weight instanceof NullWeight || this.weight instanceof NetworkWeight))
+		if ((this.weight != null) && (this.weight instanceof NullWeight || this.weight instanceof NetworkWeight) && (this.getWeightActivateRef() != null))
 			this.setWeightActivateRef(IdentityDefault.identity());
 		//Setting filter activation function for filter activate weight.
 		if (this.weight != null && this.weight instanceof ActivateFWeight && this.getFilterActivateRef() != null)

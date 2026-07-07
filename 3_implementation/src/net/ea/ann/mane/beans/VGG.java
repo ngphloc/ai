@@ -460,7 +460,7 @@ class VGGCore extends ResidualNetwork {
 	 * Default value for initial number of filters. It is also the initial depth of layer.
 	 * It can be zero for automatic calculation.
 	 */
-	public final static int FILTERS_NUMBER_INIT_DEFAULT = 0; //BASE*BASE;
+	public final static int FILTERS_NUMBER_INIT_DEFAULT = BASE*BASE; //= 0
 
 	
 	/**
@@ -885,7 +885,7 @@ class VGGCore extends ResidualNetwork {
 		heights = tempHeights;
 		widths = tempWidths;
 
-		int factor = 2; //The factor 2 implies the basic 2-dimension matrix is decreased base*base each time.
+		int factor = 2; //base <= 2 && paramGetLayersNumber() >= 2 ? 1 : 2; //The factor should be 2 because the factor 2 implies the basic 2-dimension matrix is decreased base*base each time.
 		if (filtersNumberInitPerLayer < 1) {
 			List<Size> blockSizes = Util.newList(0);
 			for (int i = 0; i < heights.length; i++) {

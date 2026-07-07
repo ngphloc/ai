@@ -95,7 +95,7 @@ public class ReLU1 implements ReLU {
 	@Override
 	public NeuronValue derivative(NeuronValue x) {
 		double v = ((NeuronValue1)x).get();
-		if ((v < min) || (isConcernMax() && v > max))
+		if ((v < min /*v <= min*/) || (isConcernMax() && v > max /*v >= max*/))
 			return new NeuronValue1(0);
 		else
 			return new NeuronValue1(1);

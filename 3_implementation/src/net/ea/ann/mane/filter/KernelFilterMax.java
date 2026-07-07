@@ -103,7 +103,8 @@ public class KernelFilterMax extends KernelFilterProduct {
 			result[i] = zero;
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValue value = layers.get(i).get(y+j, x+k);
+					NeuronValue value = kernelDepth > 1 ? layers.get(i).get(y+j, x+k) :
+						layers.get(time).get(y+j, x+k); //Please pay attention to this code line.
 					result[i] = result[i].add(value.multiply(kernel[time].get(i).get(j, k)));
 				}
 			}
@@ -145,7 +146,6 @@ public class KernelFilterMax extends KernelFilterProduct {
 				if (bias != null) filteredValueMax = filteredValueMax.add(bias);
 				if (thisActivateRef != null) filteredValueMax = filteredValueMax.evaluate(thisActivateRef);
 				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValueMax);
-				
 			}
 		}
 	}
@@ -250,7 +250,8 @@ public class KernelFilterMax extends KernelFilterProduct {
 						dKernels[i].set(j, k, zero);
 						continue;
 					}
-					NeuronValue prevInput = prevInputLayers.get(i).get(thisY+j, thisX+k);
+					NeuronValue prevInput = kernelDepth > 1 ? prevInputLayers.get(i).get(thisY+j, thisX+k) :
+						prevInputLayers.get(time).get(thisY+j, thisX+k); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
 					if (derivative != null) dKernel = dKernel.multiply(derivative);
 					dKernels[i].set(j, k, dKernel.multiply(this.weight));

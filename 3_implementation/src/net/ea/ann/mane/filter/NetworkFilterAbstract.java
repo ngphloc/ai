@@ -99,10 +99,6 @@ abstract class NetworkFilterAbstract extends KernelFilter implements NetworkFilt
 		int rows = prevInputLayer.rows(), columns = prevInputLayer.columns();
 		Matrix dPrevValues = prevInputLayer.create(new Size(columns, rows));
 		MatrixUtil.fill(dPrevValues, zero);
-		int[][] dPrevValuesCount = new int[rows][columns];
-		for (int j = 0; j < rows; j++) {
-			for (int k = 0; k < columns; k++) dPrevValuesCount[j][k] = 0;
-		}
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayer.columns(), prevHeight = prevInputLayer.rows();
@@ -129,23 +125,11 @@ abstract class NetworkFilterAbstract extends KernelFilter implements NetworkFilt
 						int prevColumn = prevX + k;
 						NeuronValue dv = dPrevValues.get(prevRow, prevColumn).add(dPrevValue.get(j, k));
 						dPrevValues.set(prevRow, prevColumn, dv);
-						dPrevValuesCount[prevRow][prevColumn] = dPrevValuesCount[prevRow][prevColumn] + 1; 
 					}
 				} //End dValues.
 			}
 		}
 		
-//		//Calculating mean of values.
-//		if (CALC_ERROR_MEAN) {
-//			for (int row = 0; row < rows; row++) {
-//				for (int column = 0; column < columns; column++) {
-//					int count = dPrevValuesCount[row][column];
-//					if (count <= 0) continue;
-//					NeuronValue mean = dPrevValues.get(row, column).divide(count);
-//					dPrevValues.set(row, column, mean);
-//				}
-//			}
-//		}
 		return dPrevValues;
 	}
 	
