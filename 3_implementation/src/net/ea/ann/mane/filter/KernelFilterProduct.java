@@ -234,7 +234,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		for (int i = 0; i < kernelDepth; i++) {
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValue value = kernelDepth > 1 ? layers.get(i).get(y+j, x+k) :
+					NeuronValue value = summode ? layers.get(i).get(y+j, x+k) :
 						layers.get(time).get(y+j, x+k); //Please pay attention to this code line.
 					result = result.add(value.multiply(kernel[time].get(i).get(j, k)));
 				}
@@ -328,7 +328,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValue prevInput = kernelDepth > 1 ? prevInputLayers.get(i).get(thisY+j, thisX+k) :
+					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(thisY+j, thisX+k) :
 						prevInputLayers.get(time).get(thisY+j, thisX+k); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
 					if (thisActivateRef != null) {
@@ -386,14 +386,11 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 
 	/**
-	 * Creating kernel with kernel value.
-	 * @param kernelValue kernel value.
-	 * @param size size of kernel.
-	 * @param hint hint value.
-	 * @return kernel created from kernel value.
+	 * Adjusting size.
+	 * @param size size.
+	 * @return adjusted size.
 	 */
-	static FKernel createKernel(double kernelValue, Size size, NeuronValue hint) {
-		if (size.width < 1 || size.height < 1 || hint == null) return null;
+	private static Size adjustSize(Size size) {
 		int depth = 1, time = 1;
 		if (size.depth < 1)
 			time = depth = 1;
@@ -405,12 +402,27 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 			depth = size.depth;
 			time = size.time;
 		}
+		return new Size(size.width, size.height, depth, time);
+	}
+	
+	
+	/**
+	 * Creating kernel with kernel value.
+	 * @param kernelValue kernel value.
+	 * @param size size of kernel.
+	 * @param hint hint value.
+	 * @return kernel created from kernel value.
+	 */
+	static FKernel createKernel(double kernelValue, Size size, NeuronValue hint) {
+		if (size.width < 1 || size.height < 1 || hint == null) return null;
+		size = adjustSize(size);
 		
-		if (depth == time && !Kernel.ALWAYS_SUM) depth = 1; //Please pay attention to this code line.
+		int depth = size.depth;
+		if (size.depth == size.time && !Kernel.ALWAYS_SUM) depth = 1; //Please pay attention to this code line.
 		
-		MatrixStack[] W = new MatrixStack[time];
+		MatrixStack[] W = new MatrixStack[size.time];
 		NeuronValue value = hint.valueOf(kernelValue);
-		for (int t = 0; t < time; t++) {
+		for (int t = 0; t < size.time; t++) {
 			Matrix matrix = MatrixUtil.create(new Size(size.width, size.height, depth, 1), hint); 
 			W[t] = matrix instanceof MatrixStack ? (MatrixStack)matrix : new MatrixStack(matrix);
 			MatrixUtil.fill(W[t], value);
@@ -427,7 +439,10 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @return product filter created from kernel value.
 	 */
 	public static KernelFilterProduct create(double kernelValue, Size size, NeuronValue hint) {
-		return new KernelFilterProduct(createKernel(kernelValue, size, hint), hint.unit());
+		KernelFilterProduct filter = new KernelFilterProduct(createKernel(kernelValue, size, hint), hint.unit());
+		size = adjustSize(size);
+		filter.summode = size.depth != size.time || Kernel.ALWAYS_SUM;
+		return filter;
 	}
 	
 	

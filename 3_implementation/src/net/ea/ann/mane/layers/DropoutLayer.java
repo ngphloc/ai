@@ -49,13 +49,13 @@ public class DropoutLayer extends MatrixLayerImpl {
 
 	
 	/**
-	 * Field for dropout rate.
+	 * Field for dropout rate. The dropout rate should be from 0.2 to 0.5.
 	 */
 	public final static String DROPOUT_RATE_FIELD = "mane_layer_dropout_rate";
 	
 	
 	/**
-	 * Default value for dropout rate.
+	 * Default value for dropout rate. The dropout rate should be from 0.2 to 0.5.
 	 */
 	public final static double DROPOUT_RATE_DEFAULT = 0.2;
 
@@ -155,7 +155,7 @@ public class DropoutLayer extends MatrixLayerImpl {
 	
 	
 	/**
-	 * Getting dropout rate.
+	 * Getting dropout rate. The dropout rate should be from 0.2 to 0.5.
 	 * @return dropout rate.
 	 */
 	private double getDropoutRate() {

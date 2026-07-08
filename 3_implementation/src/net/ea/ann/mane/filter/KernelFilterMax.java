@@ -17,6 +17,7 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.core.value.vector.NeuronValueVector;
 import net.ea.ann.core.value.vector.NeuronValueVectorImpl;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
 /**
@@ -103,7 +104,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 			result[i] = zero;
 			for (int j = 0; j < kernelHeight; j++) {
 				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValue value = kernelDepth > 1 ? layers.get(i).get(y+j, x+k) :
+					NeuronValue value = summode ? layers.get(i).get(y+j, x+k) :
 						layers.get(time).get(y+j, x+k); //Please pay attention to this code line.
 					result[i] = result[i].add(value.multiply(kernel[time].get(i).get(j, k)));
 				}
@@ -250,7 +251,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 						dKernels[i].set(j, k, zero);
 						continue;
 					}
-					NeuronValue prevInput = kernelDepth > 1 ? prevInputLayers.get(i).get(thisY+j, thisX+k) :
+					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(thisY+j, thisX+k) :
 						prevInputLayers.get(time).get(thisY+j, thisX+k); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
 					if (derivative != null) dKernel = dKernel.multiply(derivative);
@@ -270,7 +271,9 @@ public class KernelFilterMax extends KernelFilterProduct {
 	 * @return product filter created from kernel value.
 	 */
 	public static KernelFilterMax create(double kernelValue, Size size, NeuronValue hint) {
-		return new KernelFilterMax(createKernel(kernelValue, size, hint), hint.unit());
+		KernelFilterMax filter = new KernelFilterMax(createKernel(kernelValue, size, hint), hint.unit());
+		filter.summode = size.depth != size.time || Kernel.ALWAYS_SUM;
+		return filter;
 	}
 
 

@@ -185,6 +185,12 @@ public abstract class KernelFilter extends FilterAbstract {
 
 	
 	/**
+	 * Bilinear flag
+	 */
+	boolean summode = true;
+	
+	
+	/**
 	 * Default constructor.
 	 */
 	protected KernelFilter() {
@@ -274,10 +280,11 @@ public abstract class KernelFilter extends FilterAbstract {
 	private void forward(MatrixStack prevLayers, MatrixStack thisInputLayers, MatrixStack thisOutputLayers, NeuronValue bias, Function thisActivateRef) {
 		if (prevLayers.depth() != thisInputLayers.depth()) {
 			if (prevLayers.depth() != depth() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
+			if (!summode) throw new IllegalArgumentException();
 		}
 		else {
 			if (prevLayers.depth() != time() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
+			if (depth() != 1 || summode) throw new IllegalArgumentException();
 		}
 		if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
 		
@@ -379,15 +386,16 @@ public abstract class KernelFilter extends FilterAbstract {
 	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
 		if (prevInputLayers.depth() != prevOutputLayers.depth()) {
 			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+			if (!summode) throw new IllegalArgumentException();
 		}
 		else {
 			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
+			if (depth() != 1 || summode) throw new IllegalArgumentException();
 		}
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
 		MatrixStack dValueSum = null;
-		if (depth() > 1) {
+		if (summode) { //Please pay attention to this code line.
 			for (int t = 0; t < time(); t++) {
 				MatrixStack dValue = dValue(t, prevInputLayers, prevOutputLayers.get(t), thisErrorLayers.get(t), thisActivateRef);
 				dValueSum = dValueSum != null ? (MatrixStack)dValueSum.add(dValue) : dValue;
@@ -489,10 +497,11 @@ public abstract class KernelFilter extends FilterAbstract {
 	private MatrixStack[] dKernel(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
 		if (prevInputLayers.depth() != prevOutputLayers.depth()) {
 			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+			if (!summode) throw new IllegalArgumentException();
 		}
 		else {
 			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
+			if (depth() != 1 || summode) throw new IllegalArgumentException();
 		}
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
