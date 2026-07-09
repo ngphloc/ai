@@ -30,7 +30,7 @@ public interface Kernel extends Cloneable, Serializable {
 	/**
 	 * Always summing flag.
 	 */
-	final static boolean ALWAYS_SUM = false;
+	final static boolean BILINEAR = true;
 	
 	
 	/**

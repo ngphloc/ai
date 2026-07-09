@@ -25,12 +25,6 @@ import net.ea.ann.mane.filter.KernelFilterMax;
 public interface Filter extends Serializable, Cloneable {
 
 	
-//	/**
-//	 * Flag to calculate error mean.
-//	 */
-//	static boolean CALC_ERROR_MEAN = net.ea.ann.conv.filter.Filter.CALC_ERROR_MEAN;
-	
-	
 	/**
 	 * Moving stride mode.
 	 */
@@ -148,7 +142,7 @@ public interface Filter extends Serializable, Cloneable {
 	 * Accumulating kernel for L2 regularization.
 	 * @param dKernel kernel bias.
 	 * @param factor factor.
-	 * @param decay decay.
+	 * @param decay decay which is factor of L2 regularization.
 	 * @return this filter.
 	 */
 	default Filter accumKernel(Kernel dKernel, double factor, double decay) {

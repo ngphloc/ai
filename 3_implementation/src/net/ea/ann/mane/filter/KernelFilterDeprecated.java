@@ -113,26 +113,20 @@ public abstract class KernelFilterDeprecated extends FilterAbstract {
 
 		@Override
 		public FKernel add(Kernel kernel) {
-			MatrixStack[] sum = this.W != null ? MatrixStack.sum2(this.W, ((FKernel)kernel).W) : null;
-			FKernel result = new FKernel(sum);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W = this.W != null ? MatrixStack.sum2(this.W, ((FKernel)kernel).W) : null;
+			return this;
 		}
 
 		@Override
 		public FKernel multiply(double value) {
-			MatrixStack[] d = this.W != null ? MatrixStack.multiply(this.W, value) : null;
-			FKernel result = new FKernel(d);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W = this.W != null ? MatrixStack.multiply(this.W, value) : null;
+			return this;
 		}
 
 		@Override
 		public FKernel divide(double value) {
-			MatrixStack[] d = this.W != null ? MatrixStack.divide(this.W, value) : null;
-			FKernel result = new FKernel(d);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W = this.W != null ? MatrixStack.divide(this.W, value) : null;
+			return this;
 		}
 
 		/**
@@ -504,7 +498,7 @@ public abstract class KernelFilterDeprecated extends FilterAbstract {
 		MatrixStack prevOutputLayers = prevOutputLayer instanceof MatrixStack ? (MatrixStack)prevOutputLayer : new MatrixStack(prevOutputLayer);
 		MatrixStack thisErrorLayers = thisErrorLayer instanceof MatrixStack ? (MatrixStack)thisErrorLayer : new MatrixStack(thisErrorLayer);
 		FKernel dKernel = new FKernel(dKernel(prevInputLayers, prevOutputLayers, thisErrorLayers, thisActivateRef));
-		if (this.kernel() != null && this.kernel().getOptimizer() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
+		if (this.kernel() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
 		return dKernel;
 	}
 	

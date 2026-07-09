@@ -101,6 +101,9 @@ public class VGG extends VGGCore {
 	
 	@Override
 	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
+		assert (DEPTH_DEFAULT > 1); //Asserting default depth to be larger than 1. This code line can be removed.
+		int depthDefault = Math.max(DEPTH_DEFAULT, 2);
+
 		List<Size> blockSizes = calcBlockSizes(inputSize, middleSize, paramGetBlocksNumber(), paramGetFiltersNumberInit());
 		if (blockSizes.size() == 0) return false;
 		
@@ -180,7 +183,7 @@ public class VGG extends VGGCore {
 				layerSpecs.add(layerSpec);
 				
 				//Adding residual layer.
-				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= DEPTH_DEFAULT) {
+				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= depthDefault) {
 					addResidual(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
 				}
 			}
@@ -250,6 +253,11 @@ public class VGG extends VGGCore {
 			ffnSize = new Size(middleSize.width, middleSize.height, lastSize.depth);
 		}
 		
+		//Adjusting output size.
+		outputSize = new Size(outputSize.width, outputSize.height, outputSize.depth < 1 ? 1 : outputSize.depth);
+		boolean sameOutputSize = outputSize.width == ffnSize.width && outputSize.height == ffnSize.height && outputSize.depth == ffnSize.depth;
+		if (paramIsOutputNormAlways() && !sameOutputSize) ffnLength = ffnLength + 1; //Increasing FFN length if the output size is different from the FFN size.
+
 		//Setting input and hidden FFN layers.
 		List<MatrixLayerAbstract.LayerSpec> ffnLayerSpecs = Util.newList(0);
 		int ffnMainCount = 0;
@@ -263,7 +271,7 @@ public class VGG extends VGGCore {
 			ffnLayerSpecs.add(ffnLayerSpec);
 			
 			ffnMainCount++;
-			if (ffnMainCount >= 3*DEPTH_DEFAULT) {
+			if (ffnMainCount >= 2*depthDefault) {
 				//Adding residual layer.
 				if (paramIsResidualMode()) addResidual(ffnSize, ffnLayerSpecs, residualIndices, layerSpecs.size(), false);
 				//Adding dropout layer.
@@ -273,12 +281,8 @@ public class VGG extends VGGCore {
 			}
 		}
 		
-		//Adjusting output size.
-		outputSize = new Size(outputSize.width, outputSize.height, outputSize.depth < 1 ? 1 : outputSize.depth);
-		boolean sameOutputSize = outputSize.width == ffnSize.width && outputSize.height == ffnSize.height && outputSize.depth == ffnSize.depth;
-
 		//Adding residual layer if the output size is different from the FFN size.
-		if (paramIsResidualMode() && ffnMainCount >= DEPTH_DEFAULT && !sameOutputSize && !ffnResAdded) {
+		if (paramIsResidualMode() && ffnMainCount >= depthDefault && !sameOutputSize && !ffnResAdded) {
 			addResidual(ffnSize, ffnLayerSpecs, residualIndices, layerSpecs.size(), false);
 		}
 		
@@ -291,7 +295,7 @@ public class VGG extends VGGCore {
 		ffnLayerSpecs.add(outputLayerSpec);
 		
 		//Adding residual layer if the output size is the same to the FFN size.
-		if (paramIsResidualMode() && ffnMainCount >= DEPTH_DEFAULT-1 && sameOutputSize) {
+		if (paramIsResidualMode() && ffnMainCount >= depthDefault-1 && sameOutputSize) {
 			addResidual(ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size, ffnLayerSpecs, residualIndices, layerSpecs.size(), false);
 		}
 
@@ -301,7 +305,6 @@ public class VGG extends VGGCore {
 				assert (ffnLayerSpecs.get(i).prevSize.width == ffnLayerSpecs.get(i-1).size.width);
 				assert (ffnLayerSpecs.get(i).prevSize.height == ffnLayerSpecs.get(i-1).size.height);
 				assert (ffnLayerSpecs.get(i).prevSize.depth == ffnLayerSpecs.get(i-1).size.depth);
-				ffnLayerSpecs.get(i).prevSize = ffnLayerSpecs.get(i-1).size; //Setting previous size not important.
 			}
 			
 			if (i == ffnLayerSpecs.size()-1 && !sameOutputSize) continue;
@@ -309,6 +312,7 @@ public class VGG extends VGGCore {
 			if (paramIsVectorized() && ffnLayerSpecs.get(i).size.width > 1) {
 				ffnLayerSpecs.get(i).vecRows = ffnLayerSpecs.get(i).size.height;
 				ffnLayerSpecs.get(i).size = new Size(1, ffnLayerSpecs.get(i).size.width*ffnLayerSpecs.get(i).size.height, ffnLayerSpecs.get(i).size.depth);
+				if (i < ffnLayerSpecs.size()-1) ffnLayerSpecs.get(i+1).prevSize = ffnLayerSpecs.get(i).size; //Setting previous size not important.
 			}
 		}
 		
@@ -624,6 +628,18 @@ class VGGCore extends ResidualNetwork {
 	 * Default value for field of layer normalization.
 	 */
 	public final static boolean LAYER_NORM_DEFAULT = true;
+	
+	
+	/**
+	 * Field of always output normalization.
+	 */
+	public final static String OUTPUT_NORM_ALWAYS_FIELD = "vgg_output_norm_always";
+	
+	
+	/**
+	 * Default value for field of always output normalization.
+	 */
+	public final static boolean OUTPUT_NORM_ALWAYS_DEFAULT = false;
 
 	
 	/**
@@ -757,6 +773,7 @@ class VGGCore extends ResidualNetwork {
 		config.put(SUB_NETWORK_LENGTH_FIELD, SUB_NETWORK_LENGTH_DEFAULT);
 		config.put(GAP_FIELD, GAP_DEFAULT);
 		config.put(LAYER_NORM_FIELD, LAYER_NORM_DEFAULT);
+		config.put(OUTPUT_NORM_ALWAYS_FIELD, OUTPUT_NORM_ALWAYS_DEFAULT);
 	}
 	
 	
@@ -926,6 +943,9 @@ class VGGCore extends ResidualNetwork {
 	 * @return true if initialization is successful.
 	 */
 	protected boolean initialize(Size inputSize, Size middleSize, Size outputSize) {
+		assert (DEPTH_DEFAULT > 1); //Asserting default depth to be larger than 1. This code line can be removed.
+		int depthDefault = Math.max(DEPTH_DEFAULT, 2);
+
 		List<Size> blockSizes = calcBlockSizes(inputSize, middleSize, paramGetBlocksNumber(), paramGetFiltersNumberInit());
 		if (blockSizes.size() == 0) return false;
 		
@@ -1005,7 +1025,7 @@ class VGGCore extends ResidualNetwork {
 				layerSpecs.add(layerSpec);
 				
 				//Adding residual layer.
-				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= DEPTH_DEFAULT) {
+				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= depthDefault) {
 					addResidual(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
 				}
 			}
@@ -1075,6 +1095,11 @@ class VGGCore extends ResidualNetwork {
 			ffnSize = new Size(middleSize.width, middleSize.height, lastSize.depth);
 		}
 		
+		//Adjusting output size.
+		outputSize = new Size(outputSize.width, outputSize.height, outputSize.depth < 1 ? 1 : outputSize.depth);
+		boolean sameOutputSize = outputSize.width == ffnSize.width && outputSize.height == ffnSize.height && outputSize.depth == ffnSize.depth;
+		if (paramIsOutputNormAlways() && !sameOutputSize) ffnLength = ffnLength + 1; //Increasing FFN length if the output size is different from the FFN size.
+
 		//Setting input and hidden FFN layers.
 		List<MatrixLayerAbstract.LayerSpec> ffnLayerSpecs = Util.newList(0);
 		int ffnMainCount = 0;
@@ -1088,7 +1113,7 @@ class VGGCore extends ResidualNetwork {
 			ffnLayerSpecs.add(ffnLayerSpec);
 			
 			ffnMainCount++;
-			if (ffnMainCount >= 3*DEPTH_DEFAULT) {
+			if (ffnMainCount >= 2*depthDefault) {
 				//Adding residual layer.
 				if (paramIsResidualMode()) addResidual(ffnSize, ffnLayerSpecs, residualIndices, layerSpecs.size(), false);
 				//Adding dropout layer.
@@ -1098,12 +1123,8 @@ class VGGCore extends ResidualNetwork {
 			}
 		}
 		
-		//Adjusting output size.
-		outputSize = new Size(outputSize.width, outputSize.height, outputSize.depth < 1 ? 1 : outputSize.depth);
-		boolean sameOutputSize = outputSize.width == ffnSize.width && outputSize.height == ffnSize.height && outputSize.depth == ffnSize.depth;
-
 		//Adding residual layer if the output size is different from the FFN size.
-		if (paramIsResidualMode() && ffnMainCount >= DEPTH_DEFAULT && !sameOutputSize && !ffnResAdded) {
+		if (paramIsResidualMode() && ffnMainCount >= depthDefault && !sameOutputSize && !ffnResAdded) {
 			addResidual(ffnSize, ffnLayerSpecs, residualIndices, layerSpecs.size(), false);
 		}
 		
@@ -1116,8 +1137,7 @@ class VGGCore extends ResidualNetwork {
 		ffnLayerSpecs.add(outputLayerSpec);
 		
 		//Adding residual layer if the output size is the same to the FFN size.
-		assert (DEPTH_DEFAULT > 1);
-		if (paramIsResidualMode() && ffnMainCount >= DEPTH_DEFAULT-1 && sameOutputSize) {
+		if (paramIsResidualMode() && ffnMainCount >= depthDefault-1 && sameOutputSize) {
 			addResidual(ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size, ffnLayerSpecs, residualIndices, layerSpecs.size(), false);
 		}
 
@@ -1127,7 +1147,6 @@ class VGGCore extends ResidualNetwork {
 				assert (ffnLayerSpecs.get(i).prevSize.width == ffnLayerSpecs.get(i-1).size.width);
 				assert (ffnLayerSpecs.get(i).prevSize.height == ffnLayerSpecs.get(i-1).size.height);
 				assert (ffnLayerSpecs.get(i).prevSize.depth == ffnLayerSpecs.get(i-1).size.depth);
-				ffnLayerSpecs.get(i).prevSize = ffnLayerSpecs.get(i-1).size; //Setting previous size not important.
 			}
 			
 			if (i == ffnLayerSpecs.size()-1 && !sameOutputSize) continue;
@@ -1135,6 +1154,7 @@ class VGGCore extends ResidualNetwork {
 			if (paramIsVectorized() && ffnLayerSpecs.get(i).size.width > 1) {
 				ffnLayerSpecs.get(i).vecRows = ffnLayerSpecs.get(i).size.height;
 				ffnLayerSpecs.get(i).size = new Size(1, ffnLayerSpecs.get(i).size.width*ffnLayerSpecs.get(i).size.height, ffnLayerSpecs.get(i).size.depth);
+				if (i < ffnLayerSpecs.size()-1) ffnLayerSpecs.get(i+1).prevSize = ffnLayerSpecs.get(i).size; //Setting previous size not important.
 			}
 		}
 		
@@ -1769,6 +1789,29 @@ class VGGCore extends ResidualNetwork {
 	 */
 	VGGCore paramSetLayerNorm(boolean layerNorm) {
 		config.put(LAYER_NORM_FIELD, layerNorm);
+		return this;
+	}
+
+	
+	/**
+	 * Checking always output normalization mode.
+	 * @return always output normalization mode.
+	 */
+	boolean paramIsOutputNormAlways() {
+		if (config.containsKey(OUTPUT_NORM_ALWAYS_FIELD))
+			return config.getAsBoolean(OUTPUT_NORM_ALWAYS_FIELD);
+		else
+			return OUTPUT_NORM_ALWAYS_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting always output normalization mode.
+	 * @param outputNormAlways always output normalization mode.
+	 * @return this VGG.
+	 */
+	VGGCore paramSetOutputNormAlways(boolean outputNormAlways) {
+		config.put(OUTPUT_NORM_ALWAYS_FIELD, outputNormAlways);
 		return this;
 	}
 

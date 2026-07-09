@@ -254,6 +254,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			this.output = this.input = newMatrix(new Size(size.width, size.height, size.depth)); //Only for input layer where both filter and weights are null and so, its input and output must be initialized.
 		}
 		
+		//The bias of weighted layer contributes to evaluation. In other cases, it stores backward errors.
+		//Except that weight evaluation, the bias can be null for saving memory.
+		if (this.bias == null) this.bias = newMatrix(new Size(size.width, size.height, size.depth));
+
 		//Setting identity activation function for null filter and network filter.
 		if ((this.filter != null) && (this.filter instanceof NullFilter || this.filter instanceof NetworkFilter) && (this.getFilterActivateRef() != null))
 			this.setFilterActivateRef(IdentityDefault.identity());
@@ -428,7 +432,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (this.filter == null) return null;
 		Matrix actualPrevLayerOutput = refError != null ? refError.oinputPrevPrevOfLayer(this) : null; //Actual previous previous input.
 		actualPrevLayerOutput = actualPrevLayerOutput != null ? actualPrevLayerOutput : this.prevLayer.queryOutput();
-		assert (actualPrevLayerOutput == this.prevLayer.queryOutput()); //This assertion should be removed in next version.
+//		assert (actualPrevLayerOutput == this.prevLayer.queryOutput()); //This assertion should be removed in next version.
 		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(actualPrevLayerOutput);
 		//
 		Matrix actualPrevInput = refError != null ? refError.oinputPrevOfLayer(this) : null; //Actual previous input.
@@ -457,7 +461,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (this.filter == null) return null;
 		Matrix actualPrevLayerOutput = refError != null ? refError.oinputPrevPrevOfLayer(this) : null; //Actual previous previous input.
 		actualPrevLayerOutput = actualPrevLayerOutput != null ? actualPrevLayerOutput : this.prevLayer.queryOutput();
-		assert (actualPrevLayerOutput == this.prevLayer.queryOutput()); //This assertion should be removed in next version.
+//		assert (actualPrevLayerOutput == this.prevLayer.queryOutput()); //This assertion should be removed in next version.
 		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(actualPrevLayerOutput);
 		//
 		Matrix actualPrevInput = refError != null ? refError.oinputPrevOfLayer(this) : null; //Actual previous input.
@@ -602,7 +606,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			//Getting errors from environment or next layer.
 			errors[i] = outputErrors[i].error(); 
 			
-			//Calculating errors from weight next layer.
+			//TRANSFORMING ERRORS FROM WEIGHT NEXT LAYER.
 			if (this.nextLayer != null && this.nextLayer.getFilter() == null && this.nextLayer.getWeight() != null && this.nextLayer.getWeight().backwardErrorMode()) {
 				Function thisActivateRef = this.weight != null ? (!(this.weight instanceof NullWeight) ? this.getWeightActivateRef() : null) :
 					(this.filter != null && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ?
@@ -628,9 +632,11 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			//Validating errors. It is possible to remove this assertion.
 			Matrix actualOutput = actualErrOutput != null ? actualErrOutput : queryOutput();
 			assert (errors[i].rows() == actualOutput.rows() && errors[i].columns() == actualOutput.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(actualOutput));
+			if (this.bias != null) {
+				assert (errors[i].rows() == this.bias.rows() && errors[i].columns() == this.bias.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(this.bias));
+			}
 			
-			
-			//Calculating weight gradient.
+			//CALCULATING WEIGHT GRADIENT.
 			if (this.weight != null) {
 				if (this.weight.backwardErrorMode()) {
 					Matrix prevOutput0 = errPrevOutput != null ? errPrevOutput : getPrevOutput();
@@ -656,7 +662,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				}
 			} //Calculating weight gradient.
 
-			//Calculating filter gradient.
+			//Validating errors again after inside weight transformation. It is possible to remove this assertion.
+			assert (errors[i].rows() == actualOutput.rows() && errors[i].columns() == actualOutput.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(actualOutput));
+
+			//CALCULATING FILTER GRADIENT.
 			if (this.filter != null) {
 				if (this.weight != null && this.weight.backwardErrorMode()) {
 					//Calculating value errors at this layer.
@@ -665,16 +674,22 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 					Matrix prevOutput0 = getPrevOutput();
 					assert (prevInput0 != null && prevOutput0 != null);
 					errors[i] = this.weight.dValue(prevInput0, prevOutput0, errors[i], thisActivateRef);
+					
+					//Validating errors again after inside weight transformation. It is possible to remove this assertion.
+					assert (errors[i].rows() == actualOutput.rows() && errors[i].columns() == actualOutput.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(actualOutput));
 				}
 				dFBiases[i] = MatrixUtil.valueSum(errors[i]); //Filter errors.
 				dFKernels[i] = dFilterKernel(errors[i], outputErrors[i]);
-				outputErrors[i].errorSet(dFilterValue(errors[i], learning, learningRate, outputErrors[i])); //Please pay attention to this code line to back-warding value errors.
+				//Please pay attention to this code line to back-warding value errors. Only this case that the filter is not null, this errors are transformed into the errors of previous layer. 
+				outputErrors[i].errorSet(dFilterValue(errors[i], learning, learningRate, outputErrors[i]));
 			}
 			else {
-				outputErrors[i].errorSet(errors[i]); //Please pay attention to this code line to back-warding value errors.
+				//Please pay attention to this code line to back-warding value errors.
+				outputErrors[i].errorSet(errors[i]);
 			} //Calculating filter gradient.
 			
 		} //Browsing errors.
+		
 		
 		//Update weight bias, first weight, and second weight.
 		if (this.bias != null) {
@@ -726,8 +741,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		dWKernels = null;
 		dFBiases = null;
 		dFKernels = null;
-		//Browsing backward layers.
-		return this.prevLayer.backward(outputErrors, focus, learning, learningRate);
+		return this.prevLayer.backward(outputErrors, focus, learning, learningRate); //Backwarding errors back to previous layers.
 	}
 
 

@@ -112,26 +112,20 @@ public abstract class KernelFilter extends FilterAbstract {
 
 		@Override
 		public FKernel add(Kernel kernel) {
-			MatrixStack[] sum = this.W != null ? MatrixStack.sum2(this.W, ((FKernel)kernel).W) : null;
-			FKernel result = new FKernel(sum);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W = this.W != null ? MatrixStack.sum2(this.W, ((FKernel)kernel).W) : null;
+			return this;
 		}
 
 		@Override
 		public FKernel multiply(double value) {
-			MatrixStack[] d = this.W != null ? MatrixStack.multiply(this.W, value) : null;
-			FKernel result = new FKernel(d);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W = this.W != null ? MatrixStack.multiply(this.W, value) : null;
+			return this;
 		}
 
 		@Override
 		public FKernel divide(double value) {
-			MatrixStack[] d = this.W != null ? MatrixStack.divide(this.W, value) : null;
-			FKernel result = new FKernel(d);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W = this.W != null ? MatrixStack.divide(this.W, value) : null;
+			return this;
 		}
 
 		/**
@@ -181,6 +175,16 @@ public abstract class KernelFilter extends FilterAbstract {
 			
 			return this;
 		}
+		
+		/**
+		 * Making L2 regularization.
+		 * @param decay decay factor.
+		 * @return this kernel.
+		 */
+		public FKernel L2(double decay) {
+			return multiply(decay);
+		}
+		
 	}
 
 	
@@ -284,7 +288,7 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		else {
 			if (prevLayers.depth() != time() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1 || summode) throw new IllegalArgumentException();
+			if (summode || depth() != 1) throw new IllegalArgumentException();
 		}
 		if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
 		
@@ -355,7 +359,7 @@ public abstract class KernelFilter extends FilterAbstract {
 				//Calculating gradient.
 				MatrixStack dPrevValue = this.dValue(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
 				if (dPrevValue == null) continue;
-				assert (dPrevValue.depth() == depth());
+				assert (dPrevValue.width() == width() && dPrevValue.height() == height() && dPrevValue.depth() == depth());
 				
 				for (int i = 0; i < dPrevValue.depth(); i++) {
 					for (int j = 0; j < dPrevValue.get(i).rows(); j++) {
@@ -390,7 +394,7 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		else {
 			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1 || summode) throw new IllegalArgumentException();
+			if (summode || depth() != 1) throw new IllegalArgumentException();
 		}
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
@@ -476,7 +480,7 @@ public abstract class KernelFilter extends FilterAbstract {
 				//Calculating gradient.
 				MatrixStack dKernel = this.dKernel(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
 				if (dKernel == null) continue;
-				assert (dKernel.depth() == depth());
+				assert (dKernel.width() == width() && dKernel.height() == height() && dKernel.depth() == depth());
 				dKernels = (MatrixStack)dKernels.add(dKernel);
 			}
 		}
@@ -501,7 +505,7 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		else {
 			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1 || summode) throw new IllegalArgumentException();
+			if (summode || depth() != 1) throw new IllegalArgumentException();
 		}
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
@@ -520,7 +524,7 @@ public abstract class KernelFilter extends FilterAbstract {
 		MatrixStack prevOutputLayers = prevOutputLayer instanceof MatrixStack ? (MatrixStack)prevOutputLayer : new MatrixStack(prevOutputLayer);
 		MatrixStack thisErrorLayers = thisErrorLayer instanceof MatrixStack ? (MatrixStack)thisErrorLayer : new MatrixStack(thisErrorLayer);
 		FKernel dKernel = new FKernel(dKernel(prevInputLayers, prevOutputLayers, thisErrorLayers, thisActivateRef));
-		if (this.kernel() != null && this.kernel().getOptimizer() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
+		if (this.kernel() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
 		return dKernel;
 	}
 	

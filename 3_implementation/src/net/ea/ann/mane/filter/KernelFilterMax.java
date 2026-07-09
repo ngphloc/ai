@@ -272,7 +272,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 	 */
 	public static KernelFilterMax create(double kernelValue, Size size, NeuronValue hint) {
 		KernelFilterMax filter = new KernelFilterMax(createKernel(kernelValue, size, hint), hint.unit());
-		filter.summode = size.depth != size.time || Kernel.ALWAYS_SUM;
+		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
 		return filter;
 	}
 

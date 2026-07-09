@@ -87,7 +87,7 @@ public abstract class MicroFilter extends KernelFilter {
 		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
+		this.kernel = this.kernel.L2(decay).add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 

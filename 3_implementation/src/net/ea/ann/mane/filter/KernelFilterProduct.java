@@ -190,7 +190,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
+		this.kernel = this.kernel.L2(decay).add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 
@@ -418,7 +418,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		size = adjustSize(size);
 		
 		int depth = size.depth;
-		if (size.depth == size.time && !Kernel.ALWAYS_SUM) depth = 1; //Please pay attention to this code line.
+		if (Kernel.BILINEAR) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
 		
 		MatrixStack[] W = new MatrixStack[size.time];
 		NeuronValue value = hint.valueOf(kernelValue);
@@ -441,7 +441,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	public static KernelFilterProduct create(double kernelValue, Size size, NeuronValue hint) {
 		KernelFilterProduct filter = new KernelFilterProduct(createKernel(kernelValue, size, hint), hint.unit());
 		size = adjustSize(size);
-		filter.summode = size.depth != size.time || Kernel.ALWAYS_SUM;
+		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
 		return filter;
 	}
 	

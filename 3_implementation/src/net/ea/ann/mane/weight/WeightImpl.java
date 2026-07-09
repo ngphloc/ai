@@ -94,29 +94,23 @@ public class WeightImpl implements Weight, TextParsable {
 
 		@Override
 		public WKernel add(Kernel kernel) {
-			MatrixStack[] sum1 = this.W1 != null ? MatrixStack.sum2(this.W1, ((WKernel)kernel).W1) : null;
-			MatrixStack[] sum2 = this.W2 != null ? MatrixStack.sum2(this.W2, ((WKernel)kernel).W2) : null;
-			WKernel result = new WKernel(sum1, sum2);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W1 = this.W1 != null ? MatrixStack.sum2(this.W1, ((WKernel)kernel).W1) : null;
+			this.W2 = this.W2 != null ? MatrixStack.sum2(this.W2, ((WKernel)kernel).W2) : null;
+			return this;
 		}
 
 		@Override
 		public WKernel multiply(double value) {
-			MatrixStack[] d1 = this.W1 != null ? MatrixStack.multiply(this.W1, value) : null;
-			MatrixStack[] d2 = this.W2 != null ? MatrixStack.multiply(this.W2, value) : null;
-			WKernel result = new WKernel(d1, d2);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W1 = this.W1 != null ? MatrixStack.multiply(this.W1, value) : null;
+			this.W2 = this.W2 != null ? MatrixStack.multiply(this.W2, value) : null;
+			return this;
 		}
 
 		@Override
 		public WKernel divide(double value) {
-			MatrixStack[] d1 = this.W1 != null ? MatrixStack.divide(this.W1, value) : null;
-			MatrixStack[] d2 = this.W2 != null ? MatrixStack.divide(this.W2, value) : null;
-			WKernel result = new WKernel(d1, d2);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W1 = this.W1 != null ? MatrixStack.divide(this.W1, value) : null;
+			this.W2 = this.W2 != null ? MatrixStack.divide(this.W2, value) : null;
+			return this;
 		}
 
 		@Override
@@ -148,6 +142,15 @@ public class WeightImpl implements Weight, TextParsable {
 			}
 
 			return this;
+		}
+		
+		/**
+		 * Making L2 regularization.
+		 * @param decay decay factor.
+		 * @return this kernel.
+		 */
+		public WKernel L2(double decay) {
+			return multiply(decay);
 		}
 		
 	}
@@ -236,6 +239,25 @@ public class WeightImpl implements Weight, TextParsable {
 	}
 
 
+	/**
+	 * Creating core of weight.
+	 * @param W1 the first weight.
+	 * @param W2 the second weight.
+	 * @return core of weight.
+	 */
+	WCore newCore(Matrix W1, Matrix W2) {
+		//return new WCore(W1, W2);
+		if (W1 != null && W2 != null)
+			return new WCore(W1, W2);
+		else if (W1 != null)
+			return new WCore1(W1);
+		else if (W2 != null)
+			return new WCore2(W2);
+		else
+			throw new IllegalArgumentException();
+	}
+	
+	
 	@Override
 	public WeightImpl accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
@@ -251,7 +273,7 @@ public class WeightImpl implements Weight, TextParsable {
 		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = (WKernel)this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
+		this.kernel = (WKernel)this.kernel.L2(decay).add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 
@@ -267,7 +289,7 @@ public class WeightImpl implements Weight, TextParsable {
 		int depth = depth();
 		Matrix sum = null;
 		for (int d = 0; d < depth; d++) {
-			Matrix value = new WCore(W1(time, d), W2(time, d)).
+			Matrix value = newCore(W1(time, d), W2(time, d)).
 				evaluate(summode ? inputs.get(d) : inputs.get(time), null); //Please pay attention to this code line.
 			sum = sum != null ? sum.add(value) : value;
 		}
@@ -325,7 +347,7 @@ public class WeightImpl implements Weight, TextParsable {
 		for (int d = 0; d < depth; d++) {
 			Matrix prevInput = summode ? prevInputs.get(d) : prevInputs.get(time); //Please pay attention to this code line.
 			Matrix prevOutput = summode ? prevOutputs.get(d) : prevOutputs.get(time); //Please pay attention to this code line.
-			dValues[d] = new WCore(W1(time, d), W2(time, d)).
+			dValues[d] = newCore(W1(time, d), W2(time, d)).
 				dValue(prevInput, prevOutput, thisError, prevActivateRef);
 		}
 		return new MatrixStack(dValues);
@@ -347,7 +369,7 @@ public class WeightImpl implements Weight, TextParsable {
 		}
 		else {
 			if (prevInputs.depth() != time() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1 || summode) throw new IllegalArgumentException();
+			if (summode || depth() != 1) throw new IllegalArgumentException();
 		}
 		
 		int time = time();
@@ -396,7 +418,7 @@ public class WeightImpl implements Weight, TextParsable {
 		int depth = depth();
 		Matrix[] dW1s = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			dW1s[d] = new WCore(W1(time, d), W2(time, d)).
+			dW1s[d] = newCore(W1(time, d), W2(time, d)).
 				dW1(summode ? prevOutputs.get(d) : prevOutputs.get(time), thisError); //Please pay attention to this code line.
 		}
 		return new MatrixStack(dW1s);
@@ -417,7 +439,8 @@ public class WeightImpl implements Weight, TextParsable {
 		}
 		else {
 			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1 || summode) throw new IllegalArgumentException();
+			if (summode) throw new IllegalArgumentException();
+			if (depth() != 1) throw new IllegalArgumentException();
 		}
 		
 		if (this.W1() == null) return null;
@@ -441,10 +464,9 @@ public class WeightImpl implements Weight, TextParsable {
 	private MatrixStack dW2(int time, MatrixStack prevOutputs, Matrix thisError) {
 		if (this.W2() == null) return null;
 		int depth = depth();
-		if (prevOutputs.depth() != depth) throw new IllegalArgumentException();
 		Matrix[] dW2s = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			dW2s[d] = new WCore(W1(time, d), W2(time, d)).
+			dW2s[d] = newCore(W1(time, d), W2(time, d)).
 				dW2(summode ? prevOutputs.get(d) : prevOutputs.get(time), thisError); //Please pay attention to this code line.
 		}
 		return new MatrixStack(dW2s);
@@ -465,7 +487,7 @@ public class WeightImpl implements Weight, TextParsable {
 		}
 		else {
 			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (depth() != 1 || summode) throw new IllegalArgumentException();
+			if (summode || depth() != 1) throw new IllegalArgumentException();
 		}
 		
 		if (this.W2() == null) return null;
@@ -584,7 +606,7 @@ public class WeightImpl implements Weight, TextParsable {
 		size = adjustSize(size);
 		
 		int depth = size.depth;
-		if (size.depth == size.time && !Kernel.ALWAYS_SUM) depth = 1; //Please pay attention to this code line.
+		if (Kernel.BILINEAR) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
 		
 		MatrixStack[] W = new MatrixStack[size.time];
 		for (int t = 0; t < size.time; t++) {
@@ -613,7 +635,7 @@ public class WeightImpl implements Weight, TextParsable {
 			if (sizeW1.depth != sizeW2.depth || sizeW1.time != sizeW2.time) throw new IllegalArgumentException();
 		}
 		Size sizeW = sizeW1 != null ? sizeW1 : sizeW2;
-		weight.summode = sizeW.depth != sizeW.time || Kernel.ALWAYS_SUM;
+		weight.summode = sizeW.depth != sizeW.time || !Kernel.BILINEAR;
 		
 		return weight;
 	}
@@ -651,7 +673,7 @@ public class WeightImpl implements Weight, TextParsable {
 
 
 /**
- * This class represents specification of standard parametric weight.
+ * This class represents the core of standard parametric weight.
  * 
  * @author Loc Nguyen
  * @version 1.0
@@ -787,3 +809,91 @@ class WCore implements Cloneable, Serializable {
 
 
 }
+
+
+
+/**
+ * This class represents the core of standard parametric weight in vector form.
+ * 
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+class WCore1 extends WCore {
+
+
+	/**
+	 * Serial version UID for serializable class.
+	 */
+	private static final long serialVersionUID = 1L;
+
+	
+	/**
+	 * Constructor with the weight.
+	 * @param W the weight.
+	 */
+	WCore1(Matrix W) {
+		super(W, null);
+	}
+
+
+	@Override
+	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
+		Matrix derivative = prevInput != null && prevActivateRef != null ? prevInput.derivativeWise(prevActivateRef) : null;
+		Matrix prevError = this.W1.transpose().multiply(thisError);
+		return derivative != null ? derivative.multiplyWise(prevError) : prevError;
+	}
+
+
+	@Override
+	Matrix dW1(Matrix prevOutput, Matrix thisError) {
+		return thisError.multiply(prevOutput.transpose());
+	}
+
+
+}
+
+
+
+/**
+ * This class represents the core of standard parametric weight in vector form.
+ * 
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+class WCore2 extends WCore {
+
+
+	/**
+	 * Serial version UID for serializable class.
+	 */
+	private static final long serialVersionUID = 1L;
+
+	
+	/**
+	 * Constructor with the weight.
+	 * @param W the weight.
+	 */
+	WCore2(Matrix W) {
+		super(null, W);
+	}
+
+
+	@Override
+	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
+		Matrix derivative = prevInput != null && prevActivateRef != null ? prevInput.derivativeWise(prevActivateRef) : null;
+		Matrix prevError = thisError.multiply(this.W2.transpose());
+		return derivative != null ? derivative.multiplyWise(prevError) : prevError;
+	}
+
+
+	@Override
+	Matrix dW1(Matrix prevOutput, Matrix thisError) {
+		return prevOutput.transpose().multiply(thisError);
+	}
+
+
+}
+
+

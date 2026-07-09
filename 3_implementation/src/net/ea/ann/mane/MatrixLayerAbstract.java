@@ -845,7 +845,9 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @return decay factor for L2 regularization.
 	 */
 	static double decay(double learningRate, int recordCount) {
+		assert (learningRate > 0 && learningRate < 1 && recordCount > 0);
 		double lambda = LAMBDA; //Regularization strength.
+		recordCount = recordCount < 1 ? 1 : recordCount;
 		return 1.0 - (learningRate * (lambda/recordCount));
 	}
 	

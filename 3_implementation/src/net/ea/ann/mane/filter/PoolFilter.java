@@ -149,15 +149,10 @@ public abstract class PoolFilter extends FilterAbstract {
 
 		NeuronValue zero = prevInputLayers.get().get(0, 0).zero();
 		Matrix[] dPrevValues = new Matrix[this.depth()];
-		int[][][] dPrevValuesCount = new int[this.depth()][][];
 		for (int i = 0; i < dPrevValues.length; i++) {
 			int rows = prevInputLayers.rows(), columns = prevInputLayers.columns();
 			dPrevValues[i] = prevInputLayers.get().create(new Size(columns, rows));
 			MatrixUtil.fill(dPrevValues[i], zero);
-			dPrevValuesCount[i] = new int[rows][columns];
-			for (int j = 0; j < rows; j++) {
-				for (int k = 0; k < columns; k++) dPrevValuesCount[i][j][k] = 0;
-			}
 		}
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
@@ -189,27 +184,12 @@ public abstract class PoolFilter extends FilterAbstract {
 							int prevColumn = prevX + k;
 							NeuronValue dv = dPrevValues[i].get(prevRow, prevColumn).add(dPrevValue.get(j, k));
 							dPrevValues[i].set(prevRow, prevColumn, dv);
-							dPrevValuesCount[i][prevRow][prevColumn] = dPrevValuesCount[i][prevRow][prevColumn] + 1; 
 						}
 					}
 				} //End dValues.
 			}
 		}
 		
-//		//Calculating mean of values.
-//		if (CALC_ERROR_MEAN) {
-//			for (int i = 0; i < dPrevValues.length; i++) {
-//				int rows = dPrevValues[i].rows(), columns = dPrevValues[i].columns();
-//				for (int row = 0; row < rows; row++) {
-//					for (int column = 0; column < columns; column++) {
-//						int count = dPrevValuesCount[i][row][column];
-//						if (count <= 0) continue;
-//						NeuronValue mean = dPrevValues[i].get(row, column).divide(count);
-//						dPrevValues[i].set(row, column, mean);
-//					}
-//				}
-//			}
-//		}
 		return new MatrixStack(dPrevValues);
 	}
 

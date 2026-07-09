@@ -150,6 +150,15 @@ public class WeightImplDeprecated implements Weight, TextParsable {
 			return this;
 		}
 		
+		/**
+		 * Making L2 regularization.
+		 * @param decay decay factor.
+		 * @return this kernel.
+		 */
+		public WKernel L2(double decay) {
+			return multiply(decay);
+		}
+		
 	}
 	
 
@@ -245,7 +254,7 @@ public class WeightImplDeprecated implements Weight, TextParsable {
 		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = (WKernel)this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
+		this.kernel = (WKernel)this.kernel.L2(decay).add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 

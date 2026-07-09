@@ -58,7 +58,7 @@ public interface Weight extends Cloneable, Serializable {
 	 * Accumulating kernel for L2 regularization.
 	 * @param dKernel kernel bias.
 	 * @param factor factor.
-	 * @param decay decay.
+	 * @param decay decay which is factor of L2 regularization.
 	 * @return this weight.
 	 */
 	default Weight accumKernel(Kernel dKernel, double factor, double decay) {

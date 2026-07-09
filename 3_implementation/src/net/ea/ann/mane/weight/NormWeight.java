@@ -61,6 +61,11 @@ public class NormWeight implements Weight, TextParsable {
 		protected MatrixStack W = null;
 		
 		/**
+		 * Linear bias.
+		 */
+		protected MatrixStack bias = null;
+		
+		/**
 		 * Optimizer.
 		 */
 		private Optimizer optimizer = null;
@@ -68,10 +73,12 @@ public class NormWeight implements Weight, TextParsable {
 		/**
 		 * Constructor with the linear weight.
 		 * @param W the linear weight.
+		 * @param bias the linear bias.
 		 */
-		public WKernel(MatrixStack W) {
-			if (!checkValid(W)) throw new IllegalArgumentException();
+		public WKernel(MatrixStack W, MatrixStack bias) {
+			if (!checkValid(W, bias)) throw new IllegalArgumentException();
 			this.W = W;
+			this.bias = bias;
 		}
 
 		/**
@@ -79,33 +86,33 @@ public class NormWeight implements Weight, TextParsable {
 		 * @param W the linear weight.
 		 * @return true if the linear weight is valid.
 		 */
-		private static boolean checkValid(MatrixStack W) {
-			if (W == null /*|| W.columns() != 1*/) return false;
+		private static boolean checkValid(MatrixStack W, MatrixStack bias) {
+			if (W == null) return false;
+			if (bias != null) {
+				if (bias.rows() != W.rows() || bias.columns() != W.columns() || MatrixUtil.depth(bias) != W.depth()) return false;
+			}
 			return true;
 		}
 
 		@Override
 		public WKernel add(Kernel kernel) {
-			MatrixStack W0 = (MatrixStack)this.W.add(((WKernel)kernel).W);
-			WKernel result = new WKernel(W0);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W = (MatrixStack)this.W.add(((WKernel)kernel).W);
+			this.bias = (MatrixStack)this.bias.add(((WKernel)kernel).bias);
+			return this;
 		}
 
 		@Override
 		public WKernel multiply(double value) {
-			MatrixStack W0 = (MatrixStack)this.W.multiply0(value);
-			WKernel result = new WKernel(W0);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W = (MatrixStack)this.W.multiply0(value);
+			this.bias = (MatrixStack)this.bias.multiply0(value);
+			return this;
 		}
 
 		@Override
 		public WKernel divide(double value) {
-			MatrixStack W0 = (MatrixStack)this.W.divide0(value);
-			WKernel result = new WKernel(W0);
-			if (result.getOptimizer() == null) result.setOptimizer(this.getOptimizer());
-			return result;
+			this.W = (MatrixStack)this.W.divide0(value);
+			this.bias = (MatrixStack)this.bias.divide0(value);
+			return this;
 		}
 
 		@Override
@@ -115,10 +122,10 @@ public class NormWeight implements Weight, TextParsable {
 		public void setOptimizer(Optimizer optimizer) {this.optimizer = optimizer;}
 		
 		@Override
-		public Kernel optimize() {
+		public WKernel optimize() {
 			if (this.optimizer == null) System.out.println("WARNING: norm weight has no optimizer");
-			if ((this.optimizer == null) || !(this.optimizer instanceof AdamOptimizer)) return Kernel.super.optimize();
-			if (this.W == null) return Kernel.super.optimize();
+			if ((this.optimizer == null) || !(this.optimizer instanceof AdamOptimizer)) return (WKernel)Kernel.super.optimize();
+			if (this.W == null) return (WKernel)Kernel.super.optimize();
 			
 			AdamOptimizer adam = (AdamOptimizer)this.optimizer;
 			int time = adam.incTime();
@@ -129,6 +136,18 @@ public class NormWeight implements Weight, TextParsable {
 			
 			return this;
 		}
+		
+		
+		/**
+		 * Making L2 regularization.
+		 * @param decay decay factor.
+		 * @return this kernel.
+		 */
+		public WKernel L2(double decay) {
+			this.W = (MatrixStack)this.W.multiply0(decay);
+			return this;
+		}
+		
 		
 	}
 
@@ -156,6 +175,12 @@ public class NormWeight implements Weight, TextParsable {
 	private MatrixStack W() {return kernel != null ? kernel.W : null;}
 
 	
+	/**
+	 * Getting bias.
+	 * @return bias.
+	 */
+	private MatrixStack bias() {return kernel != null ? kernel.bias : null;}
+	
 	@Override
 	public WKernel kernel() {return this.kernel;}
 
@@ -165,7 +190,7 @@ public class NormWeight implements Weight, TextParsable {
 		assert (factor > 0 && factor < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = (WKernel)this.kernel.add(dKernel.optimize().multiply(factor));
+		this.kernel = this.kernel.add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 
@@ -175,7 +200,7 @@ public class NormWeight implements Weight, TextParsable {
 		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = (WKernel)this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
+		this.kernel = this.kernel.L2(decay).add(dKernel.optimize().multiply(factor));
 		return this;
 	}
 
@@ -186,6 +211,10 @@ public class NormWeight implements Weight, TextParsable {
 		if (bias != null) {
 			if (bias.rows() != W().rows() || bias.columns() != W().columns() || MatrixUtil.depth(bias) != W().depth()) throw new IllegalArgumentException();
 		}
+		if (this.bias() != null) {
+			if (this.bias().rows() != W().rows() || this.bias().columns() != W().columns() || MatrixUtil.depth(this.bias()) != W().depth()) throw new IllegalArgumentException();
+		}
+		if (this.bias() != null && bias != null) {assert (this.bias() != bias);}
 
 		int rows = input.rows(), columns = input.columns(), depth = W().depth();
 		MatrixStack inputs = input instanceof MatrixStack ? (MatrixStack)input : new MatrixStack(input);
@@ -208,8 +237,9 @@ public class NormWeight implements Weight, TextParsable {
 		}
 		
 		Matrix output = outputs.length == 1 ? outputs[0] : new MatrixStack(outputs);
-		if (bias != null) output = output.add(bias);
-		return output;
+		if (this.bias() == null) return output;
+		Matrix bias0 = this.bias().depth() > 1 ? this.bias() : this.bias().get(0);
+		return output.add(bias0);
 	}
 
 	
@@ -290,44 +320,55 @@ public class NormWeight implements Weight, TextParsable {
 	public Kernel dKernel(Matrix prevOutput, Matrix thisError) {
 		if (prevOutput.rows() != W().rows() || prevOutput.columns() != W().columns() || MatrixUtil.depth(prevOutput) != W().depth()) throw new IllegalArgumentException();
 		if (thisError.rows() != W().rows() || thisError.columns() != W().columns() || MatrixUtil.depth(thisError) != W().depth()) throw new IllegalArgumentException();
+		if (this.bias() != null) {
+			if (this.bias().rows() != W().rows() || this.bias().columns() != W().columns() || MatrixUtil.depth(this.bias()) != W().depth()) throw new IllegalArgumentException();
+		}
 
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
-		WKernel dKernel = new WKernel((MatrixStack)prevOutputs.multiplyWise(thisErrors));
-		if (this.kernel() != null && this.kernel().getOptimizer() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
+		Matrix dW = prevOutputs.multiplyWise(thisErrors);
+		Matrix dBias = thisErrors;
+		assert (this.bias() != null);
+		
+		WKernel dKernel = new WKernel(dW instanceof MatrixStack ? (MatrixStack)dW : new MatrixStack(dW),
+			this.bias() != null ? (dBias instanceof MatrixStack ? (MatrixStack)dBias : new MatrixStack(dBias)) : null);
+		if (this.kernel() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
 		return dKernel;
 	}
 
 	
 	@Override
 	public void initParams(double v) {
-		MatrixStack W = W();
+		MatrixStack W = W(), bias = bias();
 		if (W != null) MatrixUtil.fill(W, v);
+		if (bias != null) MatrixUtil.fill(bias, v);
 	}
 	
 
 	@Override
 	public void initParams(Random rnd) {
-		MatrixStack W = W();
+		MatrixStack W = W(), bias = bias();
 		if (W != null) MatrixUtil.fill(W, rnd, 1);
+		if (bias != null) MatrixUtil.fill(bias, rnd);
 	}
 
 
 	@Override
 	public int sizeOfParams() {
-		MatrixStack W = W();
-		return W != null ? MatrixUtil.capacity(W) : 0;
+		MatrixStack W = W(), bias = bias();
+		return (W != null ? MatrixUtil.capacity(W) : 0) + (bias != null ? MatrixUtil.capacity(bias) : 0);
 	}
 	
 
 	@Override
 	public String toText() {
-		MatrixStack W = W();
-		if (W == null) return "{}";
+		MatrixStack W = W(), bias = bias();
+		if (W == null && bias == null) return "{}";
 		
 		StringBuffer buffer = new StringBuffer();
 		buffer.append("{");
-		buffer.append("W = " + W.toText() + "");
+		buffer.append("W = " + (W!=null?W.toText():"") + "");
+		buffer.append("bias = " + (bias!=null?bias.toText():"") + "");
 		buffer.append("}");
 		return buffer.toString();
 	}
@@ -342,8 +383,10 @@ public class NormWeight implements Weight, TextParsable {
 	 */
 	public static NormWeight create(Size prevSize, Size size, NeuronValue hint) {
 		if (prevSize.width != size.width || prevSize.height != size.height || prevSize.depth != size.depth) throw new IllegalArgumentException();
-		Matrix W = MatrixUtil.create(new Size(size.width, size.height, size.depth, 1), hint); 
-		WKernel kernel = new WKernel(W instanceof MatrixStack ? (MatrixStack)W : new MatrixStack(W));
+		Matrix W = MatrixUtil.create(new Size(size.width, size.height, size.depth, 1), hint);
+		Matrix bias = MatrixUtil.create(new Size(size.width, size.height, size.depth, 1), hint);
+		WKernel kernel = new WKernel(W instanceof MatrixStack ? (MatrixStack)W : new MatrixStack(W),
+			bias instanceof MatrixStack ? (MatrixStack)bias : new MatrixStack(bias));
 		return new NormWeight(kernel);
 	}
 	
