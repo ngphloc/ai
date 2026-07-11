@@ -836,7 +836,9 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param matrix specified matrix.
 	 * @return values of matrix as vector.
 	 */
-	static NeuronValue[][] extractData(Matrix matrix) {
+	@SuppressWarnings("unused")
+	@Deprecated
+	private static NeuronValue[][] extractData(Matrix matrix) {
 		NeuronValue[][] data = new NeuronValue[matrix.rows()][matrix.columns()];
 		for (int row = 0; row < matrix.rows(); row++) {
 			for (int column = 0; column < matrix.columns(); column++) data[row][column] = matrix.get(row, column);

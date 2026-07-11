@@ -187,7 +187,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 		//
 		NeuronValueVector prevOutputV = (NeuronValueVector)prevOutputLayer.get(thisY, thisX);
 		int maxIndex = index(prevOutputV);
-		NeuronValue derivative = thisActivateRef != null ? thisActivateRef.derivative(value(prevOutputV)) : null;
+		NeuronValue derivative = thisActivateRef != null ? value(prevOutputV).derivativeWiseBy(thisActivateRef) : null;
 		for (int i = 0; i < kernelDepth; i++) {
 			dValues[i] = prevInputLayers.get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
@@ -198,7 +198,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 					}
 					NeuronValue kernelValue = kernel[time].get(i).get(j, k);
 					NeuronValue prevError = kernelValue.multiply(thisError);
-					if (derivative != null) prevError = prevError.multiply(derivative);
+					if (derivative != null) prevError = derivative.multiplyWise(prevError);
 					dValues[i].set(j, k, prevError.multiply(this.weight));
 				}
 			}
@@ -242,7 +242,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 		//
 		NeuronValueVector prevOutputV = (NeuronValueVector)prevOutputLayer.get(thisY, thisX);
 		int maxIndex = index(prevOutputV);
-		NeuronValue derivative = thisActivateRef != null ? thisActivateRef.derivative(value(prevOutputV)) : null;
+		NeuronValue derivative = thisActivateRef != null ? value(prevOutputV).derivativeWiseBy(thisActivateRef) : null;
 		for (int i = 0; i < kernelDepth; i++) {
 			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
@@ -254,7 +254,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(thisY+j, thisX+k) :
 						prevInputLayers.get(time).get(thisY+j, thisX+k); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
-					if (derivative != null) dKernel = dKernel.multiply(derivative);
+					if (derivative != null) dKernel = derivative.multiplyWise(dKernel);
 					dKernels[i].set(j, k, dKernel.multiply(this.weight));
 				}
 			}

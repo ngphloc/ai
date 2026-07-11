@@ -738,6 +738,7 @@ class Attention0 implements Cloneable, Serializable {
 	void reset() {
 		X = T1 = Y = WQ = WK = WV = A = null;
 		M = null;
+		resetOptimizers();
 	}
 	
 	

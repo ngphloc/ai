@@ -176,6 +176,12 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 
 
 	@Override
+	public NeuronValue multiplyWise(NeuronValue value) {
+		return multiply(value);
+	}
+
+
+	@Override
 	public NeuronValue multiply(WeightValue value) {
 		if (value instanceof WeightValueV) {
 			NeuronValueV vector = (NeuronValueV)((WeightValueV)value).toValue();
@@ -198,7 +204,7 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 	
 	@Override
 	public NeuronValue multiplyDerivative(NeuronValue derivative) {
-		return multiply(derivative);
+		return derivative.multiplyWise(this);
 	}
 
 	
@@ -361,6 +367,12 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 	@Override
 	public NeuronValue derivative(Function f) {
 		return f.derivative(this);
+	}
+
+
+	@Override
+	public NeuronValue derivativeWiseBy(Function f) {
+		return derivative(f);
 	}
 
 

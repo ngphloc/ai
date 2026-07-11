@@ -8,6 +8,7 @@
 package net.ea.ann.raster;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
@@ -15,6 +16,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 import net.ea.ann.core.Util;
+import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.NeuronValue;
 
 /**
  * This class is associator of image.
@@ -37,6 +40,12 @@ public class ImageAssoc implements Cloneable, Serializable {
 	 */
 	public final static String CIFAR = "cifar";
 	
+	
+	/**
+	 * UCI optical digits name.
+	 */
+	public final static String UCI_OPT_DIGITS = "uciod";
+
 	
 	/**
 	 * Number of CIFAR10 images.
@@ -159,6 +168,46 @@ public class ImageAssoc implements Cloneable, Serializable {
 	 */
 	public static List<LabeledImage> loadCIFAR10(Path path) {
 		return loadCIFAR10(path, -1);
+	}
+	
+	
+	/**
+	 * Loading UCI optical digits dataset.
+	 * @param path path of UCI optical digits dataset.
+	 * @return list of loaded images.
+	 */
+	public static List<LabeledImage> loadUCIOptDigits(Path path) {
+		List<LabeledImage> labeledImages = Util.newList(0);
+		if (path == null) return labeledImages;
+
+		try (BufferedReader reader = Files.newBufferedReader(path)) {
+		    String line = null;
+		    while ((line = reader.readLine()) != null) {
+				line = line.trim();
+				if (line.isEmpty()) continue;
+				String[] tokens = line.split(",");
+				if (tokens.length < 65) continue; //Each row is image vector of 64 = 8x8 pixels plus 1 label.
+				
+				ImageMatrix image = new ImageMatrix(new Size(8, 8), 1);
+				Matrix matrix = image.get();
+				NeuronValue zero = matrix.get(0, 0).zero();
+				
+				//Parse the first 64 values into an 8x8 spatial grid. Max value in UCI is 16, divide by 16.0 to normalize [0, 1].
+				for (int i = 0; i < 64; i++) {
+					int row = i / 8;
+					int col = i % 8;
+					try {
+						NeuronValue value = zero.valueOf(Double.parseDouble(tokens[i]) / 16.0);
+						matrix.set(row, col, value);
+					} catch (Throwable e) {Util.trace(e);}
+				}
+				    
+				int label = Integer.parseInt(tokens[64]); //The last token is the label (0-9).
+				labeledImages.add(new LabeledImage(image, label));
+		    }
+		} catch (Throwable e) {Util.trace(e);}
+		
+		return labeledImages;
 	}
 	
 	

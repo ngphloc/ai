@@ -16,7 +16,7 @@ import net.ea.ann.mane.Filter;
  * @version 1.0
  *
  */
-abstract class FilterAbstract implements Filter {
+public abstract class FilterAbstract implements Filter {
 
 
 	/**

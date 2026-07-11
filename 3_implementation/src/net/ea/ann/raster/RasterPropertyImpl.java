@@ -34,6 +34,12 @@ public class RasterPropertyImpl implements RasterProperty {
 	
 	
 	/**
+	 * Singular mode.
+	 */
+	protected boolean singular = false;
+	
+	
+	/**
 	 * Default constructor.
 	 */
 	public RasterPropertyImpl() {
@@ -159,6 +165,14 @@ public class RasterPropertyImpl implements RasterProperty {
 		this.labels.clear();
 		this.labels.add(new Label());
 	}
+
+
+	@Override
+	public boolean isSingular() {return this.singular;}
+
+
+	@Override
+	public void setSingular(boolean singular) {this.singular = singular;}
 
 
 	@Override

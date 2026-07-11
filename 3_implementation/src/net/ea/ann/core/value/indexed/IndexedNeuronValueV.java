@@ -179,6 +179,12 @@ public class IndexedNeuronValueV implements IndexedNeuronValue {
 
 	
 	@Override
+	public NeuronValue multiplyWise(NeuronValue value) {
+		return multiply(value);
+	}
+
+	
+	@Override
 	public NeuronValue multiply(WeightValue value) {
 		if (value == null || !(value instanceof IndexedWeightValue)) return null;
 		return re(v().multiply(((IndexedWeightValue)value).v()));
@@ -327,6 +333,12 @@ public class IndexedNeuronValueV implements IndexedNeuronValue {
 	}
 
 	
+	@Override
+	public NeuronValue derivativeWiseBy(Function f) {
+		return derivative(f);
+	}
+
+
 	@Override
 	public NeuronValue evaluateInverse(FunctionInvertible f) {
 		return re(f.evaluateInverse(v()));

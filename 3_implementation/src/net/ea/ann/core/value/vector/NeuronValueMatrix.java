@@ -166,6 +166,12 @@ public class NeuronValueMatrix extends MatrixImpl implements NeuronValue {
 
 	
 	@Override
+	public NeuronValue multiplyWise(NeuronValue value) {
+		return multiply(value);
+	}
+
+	
+	@Override
 	public NeuronValue multiply(WeightValue value) {
 		throw new RuntimeException("Not implemented yet");
 	}
@@ -309,6 +315,12 @@ public class NeuronValueMatrix extends MatrixImpl implements NeuronValue {
 	}
 
 	
+	@Override
+	public NeuronValue derivativeWiseBy(Function f) {
+		return derivative(f);
+	}
+
+
 	@Override
 	public NeuronValue evaluateInverse(FunctionInvertible f) {
 		throw new RuntimeException("Not implemented yet");

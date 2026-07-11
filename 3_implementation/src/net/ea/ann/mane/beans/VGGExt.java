@@ -767,11 +767,15 @@ class VGGExt extends VGG {
 	 */
 	public boolean initialize(Iterable<Raster> sample, Size middleSize, Size outputSize, Size nCoreClasses) {
 		//Getting minimum count of labels.
-		int labelCount = -1;
+		int recordCount = 0, labelCount = -1;
 		List<Raster> train = Util.newList(0);
+		boolean singular = true;
 		for (Raster raster : sample) {
 			if (raster == null) continue;
+			recordCount++;
 			RasterProperty rp = raster.getProperty();
+			singular = singular && (rp == null ? false : rp.isSingular());
+			
 			if (rp == null || rp.getLabelId() < 0) continue;
 			int lc = rp.getLabelCount();
 			if (lc <= 0) continue;
@@ -782,8 +786,14 @@ class VGGExt extends VGG {
 			else
 				labelCount = labelCount > lc ? lc : labelCount; //Label count is the minimum.
 		}
+		
+		if (singular && recordCount > 0) {
+			if (getNeuronChannel() != 1) throw new IllegalArgumentException();
+			paramSetRasterChannel(1);
+		}
+
 		if (train.size() == 0 || labelCount <= 0) {
-			Size averageSize = RasterAssoc.getAverageSize(train);
+			Size averageSize = RasterAssoc.getAverageSize(sample);
 			return initialize(averageSize, middleSize, outputSize, nCoreClasses != null ? nCoreClasses : paramGetDefaultClassSize());
 		}
 
@@ -1273,6 +1283,11 @@ class VGGExt extends VGG {
 	public boolean initializeByCoreClasses(Iterable<Raster> sample, Size middleSize) {
 		RasterSampleInfo rsi = RasterSampleInfo.extract(sample);
 		if (rsi == null) return false;
+		
+		if (rsi.singular) {
+			if (getNeuronChannel() != 1) throw new IllegalArgumentException();
+			paramSetRasterChannel(1);
+		}
 		return initializeByCoreClasses(rsi.averageSize, middleSize, rsi.labelGroups);
 	}
 	
@@ -1340,7 +1355,13 @@ class RasterSampleInfo implements Cloneable, Serializable {
 	/**
 	 * List of label groups.
 	 */
-	List<List<Label>> labelGroups = Util.newList(0);
+	public List<List<Label>> labelGroups = Util.newList(0);
+	
+	
+	/**
+	 * Singular mode.
+	 */
+	public boolean singular = false;
 	
 	
 	/**
@@ -1358,9 +1379,12 @@ class RasterSampleInfo implements Cloneable, Serializable {
 		//Getting minimum count of labels.
 		int labelCount = -1;
 		List<Raster> train = Util.newList(0);
+		boolean singular = true;
 		for (Raster raster : sample) {
 			if (raster == null) continue;
 			RasterProperty rp = raster.getProperty();
+			singular = singular && (rp == null ? false : rp.isSingular());
+			
 			if (rp == null || rp.getLabelId() < 0) continue;
 			int lc = rp.getLabelCount();
 			if (lc <= 0) continue;
@@ -1427,6 +1451,7 @@ class RasterSampleInfo implements Cloneable, Serializable {
 		RasterSampleInfo rsi = new RasterSampleInfo();
 		rsi.labelGroups = labelGroups;
 		rsi.averageSize = averageSize;
+		rsi.singular = singular;
 		return rsi;
 	}
 	

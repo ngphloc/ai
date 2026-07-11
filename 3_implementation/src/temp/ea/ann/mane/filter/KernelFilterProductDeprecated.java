@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.filter;
+package temp.ea.ann.mane.filter;
 
 import java.awt.Dimension;
 import java.util.Random;
@@ -28,7 +28,7 @@ import net.ea.ann.raster.Size;
  *
  */
 @Deprecated
-public class KernelFilterProductDeprecated extends KernelFilterDeprecated implements TextParsable {
+class KernelFilterProductDeprecated extends KernelFilterDeprecated implements TextParsable {
 
 
 	/**
@@ -179,19 +179,23 @@ public class KernelFilterProductDeprecated extends KernelFilterDeprecated implem
 	@Override
 	public KernelFilterProductDeprecated accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = this.kernel.add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 	
 	
 	@Override
 	public KernelFilterProductDeprecated accumKernel(Kernel dKernel, double factor, double decay) {
-		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
+		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = this.kernel.multiply(decay).add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = this.kernel.L2(decay).add(dKernel.multiply(factor));
 		return this;
 	}
 

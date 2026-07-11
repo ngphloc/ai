@@ -79,6 +79,8 @@ public class Raster3DImpl extends RasterAbstract implements Raster3D {
 		Image image = imageList.get(0);
 		if (image != null && image instanceof ImageWrapper)
 			return ((ImageWrapper)image).getImage();
+		else if (image instanceof ImageMatrix)
+			return ((ImageMatrix)image).getImage();
 		else
 			return null;
 	}

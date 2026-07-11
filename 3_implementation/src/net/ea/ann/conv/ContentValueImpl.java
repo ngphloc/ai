@@ -404,6 +404,12 @@ public class ContentValueImpl extends ContentImpl implements ContentValue, NormS
 
 	
 	@Override
+	public NeuronValue multiplyWise(NeuronValue value) {
+		return multiply(value);
+	}
+
+	
+	@Override
 	public NeuronValue multiply(WeightValue value) {
 		return (NeuronValue)super.multiply0(value);
 	}
@@ -692,6 +698,12 @@ public class ContentValueImpl extends ContentImpl implements ContentValue, NormS
 	@Override
 	public NeuronValue derivative(Function f) {
 		return (NeuronValue)super.derivative0(f);
+	}
+
+
+	@Override
+	public NeuronValue derivativeWiseBy(Function f) {
+		return derivative(f);
 	}
 
 

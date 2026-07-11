@@ -447,7 +447,7 @@ class VGGCore extends ResidualNetwork {
 	 * Default value for initial number of filters. It is also the initial depth of layer.
 	 * It can be zero for automatic calculation.
 	 */
-	public final static int FILTERS_NUMBER_INIT_DEFAULT = BASE*BASE; //= BASE*BASE, = BASE
+	public final static int FILTERS_NUMBER_INIT_DEFAULT = 0; //= BASE*BASE, = BASE
 
 	
 	/**
@@ -885,51 +885,35 @@ class VGGCore extends ResidualNetwork {
 		heights = tempHeights;
 		widths = tempWidths;
 
-		/*
-		int factor = 2; //base <= 2 && paramGetLayersNumber() >= 2 ? 1 : 2; //The factor should be 2 because the factor 2 implies the basic 2-dimension matrix is decreased base*base each time.
-		if (filtersNumberInitPerLayer < 1) {
-			List<Size> blockSizes = Util.newList(0);
-			for (int i = 0; i < heights.length; i++) {
-				if (blockSizes.size() == 0) {
-					blockSizes.add(new Size(widths[i], heights[i]));
-					continue;
-				}
-				
-				int prevWidth = blockSizes.get(blockSizes.size()-1).width;
-				int prevHeight = blockSizes.get(blockSizes.size()-1).height;
-				if (widths[i] != prevWidth || heights[i] != prevHeight) blockSizes.add(new Size(widths[i], heights[i]));
-			}
-			
-			int rasterChannel = paramGetRasterChannel();
-			boolean flatten = MatrixUtil.isFlatten(inputSize.depth, this.neuronChannel, rasterChannel);
-			int LENGTH = inputSize.height*inputSize.width*(flatten?rasterChannel:1);
-			int length = blockSizes.get(blockSizes.size()-1).height*blockSizes.get(blockSizes.size()-1).width;
-			filtersNumberInitPerLayer = (int) ((double)LENGTH / (paramIsGAP()?1:length) / Math.pow(base, factor*(blockSizes.size()-1)) + 0.5);
-		}
-		*/
-		int factor = 1;
 		if (filtersNumberInitPerLayer < 1) {
 			boolean flatten = MatrixUtil.isFlatten(inputSize.depth, this.neuronChannel, paramGetRasterChannel());
 			filtersNumberInitPerLayer = flatten ? paramGetRasterChannel() : 1;
 		}
 		
-		List<Size> blockSizes = Util.newList(0);
-		int power = 0;
+		List<Size> tempBlockSizes = Util.newList(0);
 		for (int i = 0; i < heights.length; i++) {
-			int filterNumber = paramIsFiltersNumberIncrease() ? (int)(filtersNumberInitPerLayer*Math.pow(base, factor*power)) : filtersNumberInitPerLayer;
-			if (paramGetFiltersNumberMax() > 0) filterNumber = Math.min(filterNumber, paramGetFiltersNumberMax());
-			if (blockSizes.size() == 0) {
-				blockSizes.add(new Size(widths[i], heights[i], filterNumber));
-				power++;
+			if (tempBlockSizes.size() == 0) {
+				tempBlockSizes.add(new Size(widths[i], heights[i]));
 				continue;
 			}
-			
-			int prevWidth = blockSizes.get(blockSizes.size()-1).width;
-			int prevHeight = blockSizes.get(blockSizes.size()-1).height;
-			if (widths[i] != prevWidth || heights[i] != prevHeight) {
-				blockSizes.add(new Size(widths[i], heights[i], filterNumber));
-				power++;
+			int prevWidth = tempBlockSizes.get(tempBlockSizes.size()-1).width;
+			int prevHeight = tempBlockSizes.get(tempBlockSizes.size()-1).height;
+			if (widths[i] != prevWidth || heights[i] != prevHeight) tempBlockSizes.add(new Size(widths[i], heights[i]));
+		}
+
+		List<Size> blockSizes = Util.newList(0);
+		int power = 0, factor = 1;
+		int blocks = Math.max(tempBlockSizes.size(), blocksNumber);
+		for (int i = 0; i < blocks; i++) {
+			Size size = i < tempBlockSizes.size() ? tempBlockSizes.get(i) : blockSizes.get(blockSizes.size()-1);
+			if (blockSizes.size() > 0) {
+				Size prevSize = blockSizes.get(blockSizes.size()-1);
+				if (size.width != prevSize.width || size.height != prevSize.height) power++;
 			}
+
+			int filterNumber = paramIsFiltersNumberIncrease() ? (int)(filtersNumberInitPerLayer*Math.pow(base, factor*power)) : filtersNumberInitPerLayer;
+			if (paramGetFiltersNumberMax() > 0) filterNumber = Math.min(filterNumber, paramGetFiltersNumberMax());
+			blockSizes.add(new Size(widths[i], heights[i], filterNumber));
 		}
 		return blockSizes;
 	}

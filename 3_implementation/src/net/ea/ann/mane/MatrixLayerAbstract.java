@@ -330,6 +330,17 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		return FilterSpec.newFilter(filterSize, newNeuronValue(), layerSpec, this.neuronChannel);
 	}
 	
+	/**
+	 * Resetting optimizers.
+	 */
+	void resetOptimizers() {
+		Weight weight = getWeight();
+		if (weight != null && weight.kernel() != null && weight.kernel().getOptimizer() != null) weight.kernel().getOptimizer().reset();
+		
+		Filter filter = getFilter();
+		if (filter != null && filter.kernel() != null && filter.kernel().getOptimizer() != null) filter.kernel().getOptimizer().reset();
+	}
+
 	
 	@Override
 	public MatrixLayerAbstract getPrevLayer() {return this.prevLayer;}

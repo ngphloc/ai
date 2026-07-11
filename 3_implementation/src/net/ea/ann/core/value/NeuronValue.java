@@ -158,6 +158,14 @@ public interface NeuronValue extends Value {
 
 	
 	/**
+	 * Wise-multiply with other neuron value.
+	 * @param value other neuron value.
+	 * @return multiplied value.
+	 */
+	NeuronValue multiplyWise(NeuronValue value);
+
+	
+	/**
 	 * Multiply with other weight value.
 	 * @param value other weight value.
 	 * @return multiplied value.
@@ -345,6 +353,14 @@ public interface NeuronValue extends Value {
 	 */
 	NeuronValue derivative(Function f);
 	
+	
+	/**
+	 * Taking wise-derivative of specified function at this neuron value.
+	 * @param f specified function.
+	 * @return derivative of specified function at this neuron value.
+	 */
+	NeuronValue derivativeWiseBy(Function f);
+
 	
 	/**
 	 * Inverse evaluating this neuron value given specified function.

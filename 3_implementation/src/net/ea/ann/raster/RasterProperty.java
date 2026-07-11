@@ -224,6 +224,20 @@ public interface RasterProperty extends Serializable, Cloneable {
 
 	
 	/**
+	 * Checking whether raster has singular (mono) channel.
+	 * @return whether raster has singular (mono) channel.
+	 */
+	default boolean isSingular() {return false;}
+	
+	
+	/**
+	 * Setting whether raster has singular (mono) channel.
+	 * @param singular whether raster has singular (mono) channel.
+	 */
+	default void setSingular(boolean singular) {}
+	
+	
+	/**
 	 * Shallow duplicating.
 	 * @return duplicated property.
 	 */

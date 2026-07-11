@@ -19,7 +19,7 @@ import net.ea.ann.core.value.NeuronValue;
  * @version 1.0
  *
  */
-public class Raster2DImpl extends RasterAbstract implements Raster2D {
+public class Raster2DImpl extends RasterAbstract implements Raster2D, RasterMatrix {
 
 
 	/**
@@ -62,11 +62,19 @@ public class Raster2DImpl extends RasterAbstract implements Raster2D {
 			return null;
 		else if (image instanceof ImageWrapper)
 			return ((ImageWrapper)image).getImage();
+		else if (image instanceof ImageMatrix)
+			return ((ImageMatrix)image).getImage();
 		else
 			return null;
 	}
 
 	
+	@Override
+	public ImageMatrix getImageMatrix() {
+		return image != null && image instanceof ImageMatrix ? (ImageMatrix)image : null;
+	}
+
+
 	@Override
 	public String getDefaultFormat() {
 		return Image.getDefaultFormat();

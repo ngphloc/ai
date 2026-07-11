@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.filter;
+package temp.ea.ann.mane.filter;
 
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
@@ -13,6 +13,7 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.filter.FilterAbstract;
 import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
 import net.ea.ann.raster.Size;
@@ -25,7 +26,7 @@ import net.ea.ann.raster.Size;
  *
  */
 @Deprecated
-public abstract class KernelFilterDeprecated extends FilterAbstract {
+abstract class KernelFilterDeprecated extends FilterAbstract {
 
 
 	/**
@@ -175,6 +176,16 @@ public abstract class KernelFilterDeprecated extends FilterAbstract {
 			}
 			
 			return this;
+		}
+		
+		/**
+		 * Making L2 regularization.
+		 * @param decay decay factor.
+		 * @return this kernel.
+		 */
+		public FKernel L2(double decay) {
+			assert (decay > 0 && decay < 1);
+			return multiply(decay);
 		}
 	}
 

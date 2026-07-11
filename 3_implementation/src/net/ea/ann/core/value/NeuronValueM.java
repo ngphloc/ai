@@ -11,6 +11,7 @@ import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.FunctionInvertible;
+import net.ea.ann.core.function.VectorFunction;
 import net.ea.ann.raster.Size;
 
 /**
@@ -186,6 +187,12 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, WeightVa
 
 	
 	@Override
+	public NeuronValue multiplyWise(NeuronValue value) {
+		return (NeuronValue)multiplyWise((Matrix)value);
+	}
+
+	
+	@Override
 	public NeuronValue multiply(WeightValue value) {
 		throw new RuntimeException("Not implemented yet");
 	}
@@ -199,7 +206,7 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, WeightVa
 	
 	@Override
 	public NeuronValue multiplyDerivative(NeuronValue derivative) {
-		throw new RuntimeException("Not implemented yet");
+		return derivative.multiplyWise(this);
 	}
 
 	
@@ -325,10 +332,16 @@ public class NeuronValueM extends NeuronValueM0 implements NeuronValue, WeightVa
 	
 	@Override
 	public NeuronValue derivative(Function f) {
-		throw new RuntimeException("Not implemented yet");
+		return (NeuronValueM)derivativeWise(f);
 	}
 
 	
+	@Override
+	public NeuronValue derivativeWiseBy(Function f) {
+		return (NeuronValueM)derivativeWise(f);
+	}
+
+
 	@Override
 	public NeuronValue evaluateInverse(FunctionInvertible f) {
 		throw new RuntimeException("Not implemented yet");
@@ -639,13 +652,17 @@ abstract class NeuronValueM0 implements Matrix, TextParsable {
 	
 	@Override
 	public Matrix derivativeWise(Function f) {
-		Matrix result = create(new Size(this.columns(), this.rows()));
-		for (int i = 0; i < this.rows(); i++) {
-			for (int j = 0; j < this.columns(); j++) {
-				result.set(i, j, this.get(i, j).derivative(f));
+		if (!(f instanceof VectorFunction)) {
+			Matrix result = create(new Size(this.columns(), this.rows()));
+			for (int i = 0; i < this.rows(); i++) {
+				for (int j = 0; j < this.columns(); j++) {
+					result.set(i, j, this.get(i, j).derivative(f));
+				}
 			}
+			return result;
 		}
-		return result;
+		
+		throw new RuntimeException("Not implemented yet");
 	}
 
 	

@@ -309,6 +309,39 @@ public class RasterAssoc implements Serializable, Cloneable {
 	
 	
 	/**
+	 * Load UCI optical digits rasters from directory or file.
+	 * @param dirOrFile source directory or file.
+	 * @return list of rasters loaded from directory or file.
+	 */
+	public static List<Raster> loadUCIOptDigits(Path dirOrFile) {
+		List<Raster> rasters = Util.newList(0);
+		if (dirOrFile == null) return rasters;
+		File[] files = null;
+		if (Files.isDirectory(dirOrFile))
+			files = dirOrFile.toFile().listFiles();
+		else
+			files = new File[] {dirOrFile.toFile()};
+		if (files == null || files.length == 0) return rasters;
+
+		for (File file : files) {
+			if (!file.isFile()) continue;
+			try {
+				Path path = file.toPath();
+				List<LabeledImage> images = ImageAssoc.loadUCIOptDigits(path);
+				for (LabeledImage image : images) {
+					Raster raster = image.toRaster();
+					if (raster != null) {
+						raster.getProperty().setSingular(true);
+						rasters.add(raster);
+					}
+				}
+			} catch (Exception e) {Util.trace(e);}
+		}
+		return rasters;
+	}
+
+	
+	/**
 	 * Load rasters by folders from directory.
 	 * @param dir source directory.
 	 * @param load3D flag to 3D loading.

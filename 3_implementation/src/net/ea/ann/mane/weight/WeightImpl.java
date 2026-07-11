@@ -150,6 +150,7 @@ public class WeightImpl implements Weight, TextParsable {
 		 * @return this kernel.
 		 */
 		public WKernel L2(double decay) {
+			assert (decay > 0 && decay < 1);
 			return multiply(decay);
 		}
 		
@@ -261,19 +262,23 @@ public class WeightImpl implements Weight, TextParsable {
 	@Override
 	public WeightImpl accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = (WKernel)this.kernel.add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = (WKernel)this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 
 	
 	@Override
 	public WeightImpl accumKernel(Kernel dKernel, double factor, double decay) {
-		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
+		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = (WKernel)this.kernel.L2(decay).add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = (WKernel)this.kernel.L2(decay).add(dKernel.multiply(factor));
 		return this;
 	}
 

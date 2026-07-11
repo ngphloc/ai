@@ -13,7 +13,6 @@ import net.ea.ann.core.value.NeuronValue;
 
 /**
  * This interface represents function.
- * 
  * @author Loc Nguyen
  * @version 1.0
  *

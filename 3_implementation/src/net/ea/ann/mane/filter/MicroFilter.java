@@ -75,19 +75,23 @@ public abstract class MicroFilter extends KernelFilter {
 	@Override
 	public MicroFilter accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = this.kernel.add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 	
 	
 	@Override
 	public Filter accumKernel(Kernel dKernel, double factor, double decay) {
-		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
+		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = this.kernel.L2(decay).add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = this.kernel.L2(decay).add(dKernel.multiply(factor));
 		return this;
 	}
 

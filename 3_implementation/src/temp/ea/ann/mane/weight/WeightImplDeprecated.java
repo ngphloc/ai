@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.weight;
+package temp.ea.ann.mane.weight;
 
 import java.io.Serializable;
 import java.util.Random;
@@ -30,7 +30,8 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class WeightImplDeprecated implements Weight, TextParsable {
+@Deprecated
+class WeightImplDeprecated implements Weight, TextParsable {
 
 
 	/**
@@ -156,6 +157,7 @@ public class WeightImplDeprecated implements Weight, TextParsable {
 		 * @return this kernel.
 		 */
 		public WKernel L2(double decay) {
+			assert (decay > 0 && decay < 1);
 			return multiply(decay);
 		}
 		
@@ -242,19 +244,23 @@ public class WeightImplDeprecated implements Weight, TextParsable {
 	@Override
 	public WeightImplDeprecated accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = (WKernel)this.kernel.add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = (WKernel)this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 
 	
 	@Override
 	public WeightImplDeprecated accumKernel(Kernel dKernel, double factor, double decay) {
-		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
+		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = (WKernel)this.kernel.L2(decay).add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = (WKernel)this.kernel.L2(decay).add(dKernel.multiply(factor));
 		return this;
 	}
 

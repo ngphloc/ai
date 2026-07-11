@@ -1,0 +1,26 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
+package net.ea.ann.raster;
+
+/**
+ * This class represents matrix image whose pixels range in interval [0, 1]. 
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+public interface RasterMatrix extends Raster {
+
+	
+	/**
+	 * Getting image matrix.
+	 * @return image matrix.
+	 */
+	ImageMatrix getImageMatrix();
+	
+	
+}

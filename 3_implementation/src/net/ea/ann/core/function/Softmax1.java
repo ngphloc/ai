@@ -18,7 +18,7 @@ import net.ea.ann.core.value.NeuronValue;
  * @version 1.0
  *
  */
-public class Softmax1 implements Softmax {
+class Softmax1 implements Softmax {
 
 
 	/**

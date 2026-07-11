@@ -10,6 +10,7 @@ package net.ea.ann.core.value;
 import net.ea.ann.conv.Content;
 import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.core.function.VectorFunction;
 import net.ea.ann.raster.Size;
 
 /**
@@ -261,13 +262,17 @@ public class MatrixImpl implements Matrix, TextParsable {
 
 	@Override
 	public Matrix derivativeWise(Function f) {
-		Matrix result = create(new Size(this.columns(), this.rows()));
-		for (int i = 0; i < this.rows(); i++) {
-			for (int j = 0; j < this.columns(); j++) {
-				result.set(i, j, this.get(i, j).derivative(f));
+		if (!(f instanceof VectorFunction)) {
+			Matrix result = create(new Size(this.columns(), this.rows()));
+			for (int i = 0; i < this.rows(); i++) {
+				for (int j = 0; j < this.columns(); j++) {
+					result.set(i, j, this.get(i, j).derivative(f));
+				}
 			}
+			return result;
 		}
-		return result;
+		
+		throw new RuntimeException("Not implemented yet");
 	}
 
 

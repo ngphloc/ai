@@ -287,6 +287,12 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 
 	
 	@Override
+	public NeuronValue multiplyWise(NeuronValue value) {
+		return multiply(value);
+	}
+
+	
+	@Override
 	public NeuronValue multiply(WeightValue value) {
 		WeightValueVectorImpl other = (WeightValueVectorImpl)value;
 		int n = other.length();
@@ -327,7 +333,7 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 	
 	@Override
 	public NeuronValue multiplyDerivative(NeuronValue derivative) {
-		return multiply(derivative);
+		return derivative.multiplyWise(this);
 	}
 
 	
@@ -653,6 +659,12 @@ public class NeuronValueVectorImpl implements NeuronValueVector {
 		NeuronValueVectorImpl result = new NeuronValueVectorImpl(this.v.length, this.zeroValue);
 		for (int i = 0; i < this.v.length; i++) result.v[i] = this.v[i].derivative(f);
 		return result;
+	}
+
+
+	@Override
+	public NeuronValue derivativeWiseBy(Function f) {
+		return derivative(f);
 	}
 
 

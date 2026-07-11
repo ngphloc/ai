@@ -178,19 +178,23 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	@Override
 	public KernelFilterProduct accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = this.kernel.add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 	
 	
 	@Override
 	public KernelFilterProduct accumKernel(Kernel dKernel, double factor, double decay) {
-		assert (factor > 0 && factor < 1 && decay > 0 && decay < 1);
+		assert (factor > 0 && factor < 1);
+		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() != null) {assert (dKernel.getOptimizer() == this.kernel.getOptimizer());}
-		this.kernel = this.kernel.L2(decay).add(dKernel.optimize().multiply(factor));
+		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
+		
+		this.kernel = this.kernel.L2(decay).add(dKernel.multiply(factor));
 		return this;
 	}
 
@@ -274,6 +278,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 		Matrix[] dValues = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
+		NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
 		MatrixStack[] kernel = this.kernel.W;
 		for (int i = 0; i < kernelDepth; i++) {
 			dValues[i] = prevInputLayers.get().create(new Size(kernelWidth, kernelHeight));
@@ -281,10 +286,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 				for (int k = 0; k < kernelWidth; k++) {
 					NeuronValue kernelValue = kernel[time].get(i).get(j, k);
 					NeuronValue prevError = kernelValue.multiply(thisError);
-					if (thisActivateRef != null) {
-						NeuronValue prevOutput = prevOutputLayer.get(thisY, thisX);
-						prevError = prevError.multiply(thisActivateRef.derivative(prevOutput));
-					}
+					if (derivative != null) prevError = derivative.multiplyWise(prevError);
 					dValues[i].set(j, k, prevError.multiply(this.weight));
 				}
 			}
@@ -323,6 +325,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 		Matrix[] dKernels = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
+		NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
 		MatrixStack[] kernel = this.kernel.W;
 		for (int i = 0; i < kernelDepth; i++) {
 			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
@@ -331,10 +334,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(thisY+j, thisX+k) :
 						prevInputLayers.get(time).get(thisY+j, thisX+k); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
-					if (thisActivateRef != null) {
-						NeuronValue prevOutput = prevOutputLayer.get(thisY, thisX);
-						dKernel = dKernel.multiply(thisActivateRef.derivative(prevOutput));
-					}
+					if (derivative != null) dKernel = derivative.multiplyWise(dKernel);
 					dKernels[i].set(j, k, dKernel.multiply(this.weight));
 				}
 			}

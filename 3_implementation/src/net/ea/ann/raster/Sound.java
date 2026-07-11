@@ -57,9 +57,7 @@ public interface Sound extends Cloneable, Serializable {
 	 * Getting default format of image.
 	 * @return default format of image.
 	 */
-	static String getDefaultFormat() {
-		return SOUND_FORMAT_DEFAULT;
-	}
+	static String getDefaultFormat() {return SOUND_FORMAT_DEFAULT;}
 
 
 }

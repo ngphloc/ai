@@ -13,10 +13,12 @@ import java.util.List;
 import java.util.Random;
 
 import net.ea.ann.core.Util;
+import net.ea.ann.raster.ImageMatrix;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Raster2DImpl;
 import net.ea.ann.raster.Raster3DImpl;
 import net.ea.ann.raster.Raster4DImpl;
+import net.ea.ann.raster.RasterMatrix;
 import net.ea.ann.raster.Size;
 import net.hudup.core.logistic.NextUpdate;
 
@@ -313,6 +315,18 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	 * @return matrix.
 	 */
 	public static Matrix toMatrix(Size size, Raster raster, int neuronChannel, int rasterChannel, boolean isNorm, Matrix ref) {
+		if (raster instanceof RasterMatrix && ((RasterMatrix)raster).getImageMatrix() != null) {
+			ImageMatrix im = ((RasterMatrix)raster).getImageMatrix();
+			if (im.getNeuronChannel() == neuronChannel && im.getNeuronChannel() == rasterChannel && isNorm &&
+					im.getWidth() == size.getWidth() && im.getHeight() == size.height &&
+					im.getWidth() == raster.getWidth() && im.getHeight() == raster.getHeight() && im.getDepth() == raster.getDepth()) {
+				return im.get();
+			}
+			else {
+				assert (false);
+			}
+		}
+		
 		int depth = raster.getDepth() < 1 ? 1 : raster.getDepth();
 		NeuronValue[] values = null;
 		boolean flatten = isFlatten(depth, neuronChannel, rasterChannel);

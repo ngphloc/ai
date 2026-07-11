@@ -264,7 +264,13 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Flag to add rasters from CIFAR file.
 	 */
-	protected final static String ADD_RASTERS_CIFAR = "cifar";
+	protected final static String ADD_RASTERS_CIFAR = ImageAssoc.CIFAR;
+
+	
+	/**
+	 * Flag to add rasters from CIFAR file.
+	 */
+	protected final static String ADD_RASTERS_UCI_OPT_DIGITS = ImageAssoc.UCI_OPT_DIGITS;
 
 	
 	/**
@@ -276,7 +282,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Flag array to add rasters.
 	 */
-	protected static String[] ADD_RASTERS = new String[] {ADD_RASTERS_CIFAR, ADD_RASTERS_FOLDERS, ADD_RASTERS_NORMAL};
+	protected static String[] ADD_RASTERS = new String[] {ADD_RASTERS_CIFAR, ADD_RASTERS_FOLDERS, ADD_RASTERS_NORMAL, ADD_RASTERS_UCI_OPT_DIGITS};
 	
 	
 	/**
@@ -2289,6 +2295,19 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 
 	
 	/**
+	 * Loading UCI optical digits rasters.
+	 * @param dirOrFile directory or file.
+	 * @return list of rasters.
+	 */
+	private List<Raster> loadRastersUCIOptDigits(Path dirOrFile) {
+		if (chkLoad3D.isSelected())
+			return Util.newList(0);
+		else
+			return RasterAssoc.loadUCIOptDigits(dirOrFile);
+	}
+
+	
+	/**
 	 * Loading rasters by folders.
 	 * @param dir directory.
 	 * @return list of rasters by folders.
@@ -2408,6 +2427,43 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	
 	
 	/**
+	 * Adding CIFAR rasters.
+	 * @param imageList image list.
+	 * @param curDir current directory.
+	 */
+	private void addRastersUCIOptDigits(ImagePathListExt imageList, Path curDir) {
+		JFileChooser fc = new JFileChooser(curDir != null ? curDir.toFile() : new File("."));
+		fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		fc.setMultiSelectionEnabled(true);
+		fc.showOpenDialog(this);
+		
+		File[] baseFiles = fc.getSelectedFiles();
+		if (baseFiles == null || baseFiles.length == 0) {
+			JOptionPane.showMessageDialog(this, "No selected UCI opticial digits files", "No selected UCI opticial digits files", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		boolean added = false;
+		for (File baseFile : baseFiles) {
+			try {
+				List<Raster> rasters = loadRastersUCIOptDigits(baseFile.toPath());
+				for (int i = 0; i < rasters.size(); i++) {
+					Raster raster = rasters.get(i);
+					String name = RasterAssoc.genDefaultName(ImageAssoc.UCI_OPT_DIGITS, raster.getDefaultFormat(), i+1);
+					ImageListItem<Path> item = imageList.addItem(name, raster.getRepImage(), imageListIconSize);
+					if (item != null) {
+						imageList.setItemRaster(item, raster);
+						added = true;
+					}
+				}
+			} catch (Throwable e) {Util.trace(e);}
+		}
+		
+		if (added) JOptionPane.showMessageDialog(this, "Finish to add UCI opticial digits rasters", "Finish to add UCI opticial digits rasters", JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	
+	/**
 	 * Adding rasters by folders.
 	 * @param imageList image list.
 	 * @param curDir current directory.
@@ -2462,6 +2518,18 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 
 	
 	/**
+	 * Adding base UCI optical digits rasters.
+	 */
+	private void addBaseRastersUCIOptDigits() {
+		if (chkLoad3D.isSelected()) {
+			JOptionPane.showMessageDialog(this, "Loading 3D not allowed", "Loading 3D not allowed", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if (chkAllowAdd.isSelected()) addRastersUCIOptDigits(baseRasters, getBaseDir());
+	}
+
+	
+	/**
 	 * Adding base rasters by folders.
 	 */
 	private void addBaseRastersFolders() {
@@ -2492,6 +2560,9 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 					break;
 				case ADD_RASTERS_CIFAR:
 					addBaseRastersCIFAR();
+					break;
+				case ADD_RASTERS_UCI_OPT_DIGITS:
+					addBaseRastersUCIOptDigits();
 					break;
 				case ADD_RASTERS_FOLDERS:
 					addBaseRastersFolders();
@@ -2592,6 +2663,18 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 
 	
 	/**
+	 * Adding recovering UCI optical digits rasters.
+	 */
+	private void addRecoverRastersUCIOptDigits() {
+		if (chkLoad3D.isSelected()) {
+			JOptionPane.showMessageDialog(this, "Loading 3D not allowed", "Loading 3D not allowed", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if (chkRecover.isSelected() && chkAllowAdd.isSelected()) addRastersUCIOptDigits(recoverRasters, getRecoverDir());
+	}
+
+	
+	/**
 	 * Adding recovering rasters by folders.
 	 */
 	private void addRecoverRastersFolders() {
@@ -2622,6 +2705,9 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 					break;
 				case ADD_RASTERS_CIFAR:
 					addRecoverRastersCIFAR();
+					break;
+				case ADD_RASTERS_UCI_OPT_DIGITS:
+					addRecoverRastersUCIOptDigits();
 					break;
 				case ADD_RASTERS_FOLDERS:
 					addRecoverRastersFolders();
