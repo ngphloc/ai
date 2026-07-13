@@ -150,8 +150,8 @@ public class WeightImpl implements Weight, TextParsable {
 		 * @return this kernel.
 		 */
 		public WKernel L2(double decay) {
-			assert (decay > 0 && decay < 1);
-			return multiply(decay);
+			assert (decay > 0 && decay <= 1);
+			return REGULAR ? multiply(decay) : this;
 		}
 		
 	}
@@ -513,7 +513,7 @@ public class WeightImpl implements Weight, TextParsable {
 		MatrixStack[] dW1 = dW1(prevOutputs, thisErrors);
 		MatrixStack[] dW2 = dW2(prevOutputs, thisErrors);
 		WKernel dKernel = new WKernel(dW1, dW2);
-		if (this.kernel() != null && this.kernel().getOptimizer() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
+		if (this.kernel() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
 		return dKernel;
 	}
 

@@ -160,7 +160,7 @@ public abstract class KernelFilter extends FilterAbstract {
 		
 		@Override
 		public Kernel optimize() {
-			if (this.optimizer == null) System.out.println("WARNING: kernel filter has no optimizer");
+			if (this.optimizer == null) System.out.println("WARNING: filter has no optimizer");
 			if ((this.optimizer == null) || !(this.optimizer instanceof AdamOptimizer)) return Kernel.super.optimize();
 			if (this.W == null) return Kernel.super.optimize();
 			
@@ -182,8 +182,8 @@ public abstract class KernelFilter extends FilterAbstract {
 		 * @return this kernel.
 		 */
 		public FKernel L2(double decay) {
-			assert (decay > 0 && decay < 1);
-			return multiply(decay);
+			assert (decay > 0 && decay <= 1);
+			return REGULAR ? multiply(decay) : this;
 		}
 		
 	}

@@ -276,6 +276,7 @@ public class GenUIClassifier extends GenUI {
 			public T[] getDefaultGMs() {
 				T[] defaultGMs = Util.newArray(gmClass, 6);
 				defaultGMs[0] = (T)new VGG();
+				defaultGMs[0] = (T)new VGGExt();
 				defaultGMs[1] = (T)new NiN();
 				defaultGMs[2] = (T)new MatrixClassifier();
 				defaultGMs[3] = (T)new TransformerClassifier();

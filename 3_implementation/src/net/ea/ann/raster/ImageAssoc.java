@@ -193,16 +193,19 @@ public class ImageAssoc implements Cloneable, Serializable {
 				NeuronValue zero = matrix.get(0, 0).zero();
 				
 				//Parse the first 64 values into an 8x8 spatial grid. Max value in UCI is 16, divide by 16.0 to normalize [0, 1].
+//				int totalIntensity = 0;
 				for (int i = 0; i < 64; i++) {
 					int row = i / 8;
 					int col = i % 8;
 					try {
-						NeuronValue value = zero.valueOf(Double.parseDouble(tokens[i]) / 16.0);
-						matrix.set(row, col, value);
+						double value = Double.parseDouble(tokens[i]) / 16.0;
+						matrix.set(row, col, zero.valueOf(value));
+//						if (value > 0.5) totalIntensity++;
 					} catch (Throwable e) {Util.trace(e);}
 				}
 				    
 				int label = Integer.parseInt(tokens[64]); //The last token is the label (0-9).
+//				label = (totalIntensity > 15) ? label : label + 10;
 				labeledImages.add(new LabeledImage(image, label));
 		    }
 		} catch (Throwable e) {Util.trace(e);}

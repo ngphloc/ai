@@ -24,6 +24,12 @@ public interface Kernel extends Cloneable, Serializable {
 	/**
 	 * Optimizer flag.
 	 */
+	final static boolean REGULAR = true;
+
+	
+	/**
+	 * Optimizer flag.
+	 */
 	final static boolean OPTIMIZER = true;
 	
 	

@@ -644,9 +644,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			//Validating errors. It is possible to remove this assertion.
 			Matrix actualOutput = actualErrOutput != null ? actualErrOutput : queryOutput();
 			assert (errors[i].rows() == actualOutput.rows() && errors[i].columns() == actualOutput.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(actualOutput));
-			if (this.bias != null) {
-				assert (errors[i].rows() == this.bias.rows() && errors[i].columns() == this.bias.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(this.bias));
-			}
+			if (this.bias != null) {assert (errors[i].rows() == this.bias.rows() && errors[i].columns() == this.bias.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(this.bias));}
 			
 			//CALCULATING WEIGHT GRADIENT.
 			if (this.weight != null) {
@@ -666,6 +664,8 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 					if (this.weight instanceof NetworkWeight) {
 						errors[i] = ((NetworkWeight)this.weight).dValue(prevInput0, prevOutput0, errors[i], this.getWeightActivateRef(), learning, learningRate);
 						dWKernels[i] = null;
+						//Validating errors again after inside weight transformation. It is possible to remove this assertion.
+						assert (errors[i].rows() == actualOutput.rows() && errors[i].columns() == actualOutput.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(actualOutput));
 					}
 					else {
 						errors[i] = this.weight.dValue(prevInput0, prevOutput0, errors[i], this.getWeightActivateRef());
@@ -682,24 +682,24 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				Matrix prevInput0 = errPrevInput != null ? errPrevInput : getPrevInput();
 				Matrix prevOutput0 = errPrevOutput != null ? errPrevOutput : getPrevOutput();
 				assert (prevInput0 != null && prevOutput0 != null);
-				boolean applyActivate = true;
+				boolean applyFilterActivate = true;
 				if (this.weight != null && this.weight.backwardErrorMode()) {
 					//Calculating value errors at this layer.
 					errors[i] = this.weight.dValue(prevInput0, prevOutput0, errors[i], this.getWeightActivateRef());
 					//Validating errors again after inside weight transformation. It is possible to remove this assertion.
 					assert (errors[i].rows() == actualOutput.rows() && errors[i].columns() == actualOutput.columns() && MatrixUtil.depth(errors[i]) == MatrixUtil.depth(actualOutput));
-					applyActivate = false;
+					applyFilterActivate = false;
 				}
 				else if (this.weight == null && isNextWeightBackWard) {
-					applyActivate = false;
+					applyFilterActivate = false;
 				}
 				
-				Function thisFilterActivateRef = applyActivate && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ? this.getFilterActivateRef() : null; //Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
-				dFKernels[i] = dFilterKernel(errors[i], outputErrors[i], applyActivate ? thisFilterActivateRef : null);
+				Function thisFilterActivateRef = applyFilterActivate && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ? this.getFilterActivateRef() : null; //Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
+				dFKernels[i] = dFilterKernel(errors[i], outputErrors[i], applyFilterActivate ? thisFilterActivateRef : null);
 				//Please pay attention to this code line to back-warding value errors. Only this case that the filter is not null, this errors are transformed into the errors of previous layer. 
-				outputErrors[i].errorSet(dFilterValue(errors[i], learning, learningRate, outputErrors[i], applyActivate ? thisFilterActivateRef : null));
+				outputErrors[i].errorSet(dFilterValue(errors[i], learning, learningRate, outputErrors[i], applyFilterActivate ? thisFilterActivateRef : null));
 				//Adjusting errors again if possible.
-				if (applyActivate && prevOutput0 != null && thisFilterActivateRef != null) {
+				if (applyFilterActivate && prevOutput0 != null && thisFilterActivateRef != null) {
 					errors[i] = prevOutput0.derivativeWise(thisFilterActivateRef).multiplyWise(errors[i]);
 				}
 				dFBiases[i] = MatrixUtil.valueSum(errors[i]); //Filter errors. Please pay attention to this code line.

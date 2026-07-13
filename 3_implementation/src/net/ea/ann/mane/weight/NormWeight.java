@@ -96,22 +96,22 @@ public class NormWeight implements Weight, TextParsable {
 
 		@Override
 		public WKernel add(Kernel kernel) {
-			this.W = (MatrixStack)this.W.add(((WKernel)kernel).W);
-			this.bias = (MatrixStack)this.bias.add(((WKernel)kernel).bias);
+			this.W = this.W != null ? (MatrixStack)this.W.add(((WKernel)kernel).W) : null;
+			this.bias = this.bias != null ? (MatrixStack)this.bias.add(((WKernel)kernel).bias) : null;
 			return this;
 		}
 
 		@Override
 		public WKernel multiply(double value) {
-			this.W = (MatrixStack)this.W.multiply0(value);
-			this.bias = (MatrixStack)this.bias.multiply0(value);
+			this.W = this.W != null ? (MatrixStack)this.W.multiply0(value) : null;
+			this.bias = this.bias != null ? (MatrixStack)this.bias.multiply0(value) : null;
 			return this;
 		}
 
 		@Override
 		public WKernel divide(double value) {
-			this.W = (MatrixStack)this.W.divide0(value);
-			this.bias = (MatrixStack)this.bias.divide0(value);
+			this.W = this.W != null ? (MatrixStack)this.W.divide0(value) : null;
+			this.bias = this.bias != null ? (MatrixStack)this.bias.divide0(value) : null;
 			return this;
 		}
 
@@ -144,8 +144,8 @@ public class NormWeight implements Weight, TextParsable {
 		 * @return this kernel.
 		 */
 		public WKernel L2(double decay) {
-			assert (decay > 0 && decay < 1);
-			this.W = (MatrixStack)this.W.multiply0(decay);
+			assert (decay > 0 && decay <= 1);
+			if (REGULAR) this.W = this.W != null ? (MatrixStack)this.W.multiply0(decay) : null;
 			return this;
 		}
 		

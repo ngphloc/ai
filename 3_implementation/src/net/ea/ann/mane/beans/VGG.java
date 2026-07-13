@@ -227,8 +227,8 @@ public class VGG extends VGGCore {
 			ffnSize = gapSize;
 		}
 		else if (paramIsFFNFlatten()) {
+			Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 			if (paramIsVectorized()) {
-				Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 				ffnSize = new Size(1, lastSize.width*lastSize.height*lastSize.depth, 1);
 				
 				//Adding flatten layer.
@@ -238,7 +238,6 @@ public class VGG extends VGGCore {
 				layerSpecs.add(flattenLayerSpec);
 			}
 			else {
-				Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 				ffnSize = new Size(middleSize.width, lastSize.depth*middleSize.height, 1);
 				
 				//Adding flatten layer.
@@ -291,7 +290,7 @@ public class VGG extends VGGCore {
 		
 		//Setting output FFN layer (classifier layer as usual).
 		VGG.LayerSpec outputLayerSpec = new VGG.LayerSpec(outputSize);
-		outputLayerSpec.prevSize = ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size; //Setting previous size not important.
+		outputLayerSpec.prevSize = ffnLayerSpecs.size() > 0 ? ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size : layerSpecs.get(layerSpecs.size()-1).size; //Setting previous size not important.
 		ffnLayerSpecs.add(outputLayerSpec);
 		
 		//Adding residual layer if the output size is the same to the FFN size.

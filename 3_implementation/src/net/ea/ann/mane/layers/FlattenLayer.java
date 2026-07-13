@@ -14,7 +14,6 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
-import net.ea.ann.mane.Error.LayerInput;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.raster.Size;
@@ -101,6 +100,7 @@ public class FlattenLayer extends MatrixLayerImpl {
 		resetBackwardInfo();
 
 		this.output = this.input = newMatrix(new Size(1, length, 1));
+		this.bias = newMatrix(new Size(1, length, 1));
 		return true;
 	}
 
@@ -134,31 +134,24 @@ public class FlattenLayer extends MatrixLayerImpl {
 
 	@Override
 	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
+		outputErrors = super.backward(outputErrors, focus, learning, learningRate);
+		
 		if (outputErrors == null || outputErrors.length == 0) return null;
-		if (this.output != this.input || this.prevLayer == null) throw new IllegalArgumentException(); //Flatten layer cannot be input layer.
+		if (this.output != this.input || this.prevLayer == null || this.weight != null || this.filter != null) throw new IllegalArgumentException(); //Flatten layer cannot be input layer.
 		Matrix prevLayerOutput = this.prevLayer.queryOutput();
 		if (MatrixUtil.capacity(prevLayerOutput) != MatrixUtil.capacity(this.output)) throw new IllegalArgumentException();
 		
 		for (int i = 0; i < outputErrors.length; i++) {
-			Matrix error = outputErrors[i].error(); 
-
-			//Adding residual backward errors.
-			if (getEndLayer() != null) {
-				LayerInput layerInput = outputErrors[i].layerOInput(getEndLayer());
-				Matrix endError = layerInput != null && layerInput.backwardError != null ? layerInput.backwardError.error() : null;
-				if (endError != null) error = error.add(endError);
-			}
-			//Adjusting errors.
-			error = adjustError(error, outputErrors[i]);
-			assert (error.rows() == this.output.rows() && error.columns() == this.output.columns() && MatrixUtil.depth(error) == MatrixUtil.depth(this.output));
-
+			Matrix error = outputErrors[i].error();
+			
 			Matrix backwardError = prevLayerOutput.create(new Size(prevLayerOutput.columns(), prevLayerOutput.rows()));
 			int rows = backwardError.rows(), columns = backwardError.columns();
 			if (backwardError instanceof MatrixStack) {
 				MatrixStack backwardErrors = (MatrixStack)backwardError;
 				int depth = backwardErrors.depth();
+				int depthLength = rows*columns;
 				for (int d = 0; d < depth; d++) {
-					int depthIndex = d*rows*columns;
+					int depthIndex = d*depthLength;
 					for (int row = 0; row < rows; row++) {
 						int rowIndex = depthIndex + row*columns;
 						for (int column = 0; column < columns; column++) {
@@ -183,12 +176,6 @@ public class FlattenLayer extends MatrixLayerImpl {
 		}
 
 		return outputErrors;
-	}
-
-
-	@Override
-	protected void updateParametersFromBackwardInfo(int recordCount, double learningRate) {
-		//Do nothing.
 	}
 
 
