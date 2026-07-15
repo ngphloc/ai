@@ -5,10 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.filter;
-
-import java.io.Serializable;
-import java.util.Random;
+package net.ea.ann.mane.filter.deprecated;
 
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
@@ -16,6 +13,7 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.filter.FilterAbstract;
 import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
 import net.ea.ann.raster.Size;
@@ -27,6 +25,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
+@Deprecated
 public abstract class KernelFilter extends FilterAbstract {
 
 
@@ -35,67 +34,6 @@ public abstract class KernelFilter extends FilterAbstract {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	
-	/**
-	 * This class represents biased weight.
-	 * @author Loc Nguyen
-	 * @version 1.0
-	 *
-	 */
-	static class BiasWeight implements Cloneable, Serializable {
-		
-		/**
-		 * Serial version UID for serializable class.
-		 */
-		private static final long serialVersionUID = 1L;
-
-		/**
-		 * Weight.
-		 */
-		protected MatrixStack W = null;
-		
-		/**
-		 * Large bias.
-		 */
-		protected Matrix Bias = null;
-		
-		/**
-		 * Bias.
-		 */
-		protected NeuronValue bias = null;
-		
-		/**
-		 * Constructor with weight and bias.
-		 * @param W weight.
-		 * @param Bias large bias.
-		 * @param bias bias.
-		 */
-		public BiasWeight(MatrixStack W, Matrix Bias, NeuronValue bias) {
-			this.W = W;
-			this.Bias = Bias;
-			this.bias = bias;
-		}
-		
-		/**
-		 * Creating kernel.
-		 * @param bws array of bias weights.
-		 * @return kernel.
-		 */
-		public static FKernel createKernel(BiasWeight...bws) {
-			if (bws == null || bws.length == 0) return null;
-			MatrixStack[] W = new MatrixStack[bws.length];
-			Matrix[] Bias = new Matrix[bws.length];
-			NeuronValue[] bias = new NeuronValue[bws.length];
-			for (int i = 0; i < bws.length; i++) {
-				W[i] = bws[i].W;
-				Bias[i] = bws[i].Bias;
-				bias[i] = bws[i].bias;
-			}
-			return new FKernel(W, Bias[0] != null ? Bias : null, bias[0] != null ? bias : null);
-		}
-		
-	}
-	
 	
 	/**
 	 * This class represents filter kernel.
@@ -116,16 +54,6 @@ public abstract class KernelFilter extends FilterAbstract {
 		protected MatrixStack[] W = null;
 		
 		/**
-		 * Large bias.
-		 */
-		protected Matrix[] Bias = null;
-		
-		/**
-		 * The bias.
-		 */
-		protected NeuronValue[] bias = null;
-		
-		/**
 		 * Optimizer.
 		 */
 		private Optimizer optimizer = null;
@@ -133,38 +61,19 @@ public abstract class KernelFilter extends FilterAbstract {
 		/**
 		 * Constructor with weight.
 		 * @param W weight.
-		 * @param Bias large bias.
-		 * @param bias bias.
 		 */
-		public FKernel(MatrixStack[] W, Matrix[] Bias, NeuronValue[] bias) {
-			if (!checkValid(W, Bias, bias)) throw new IllegalArgumentException();
+		public FKernel(MatrixStack[] W) {
+			if (!checkValid(W)) throw new IllegalArgumentException();
 			this.W = W;
-			this.Bias = Bias;
-			this.bias = bias;
 		}
 
 		/**
-		 * Checking the weight and bias.
+		 * Checking the weight.
 		 * @param W the weight.
-		 * @param Bias large bias.
-		 * @param bias bias.
 		 * @return true if the weight is valid.
 		 */
-		private static boolean checkValid(MatrixStack[] W, Matrix[] Bias, NeuronValue[] bias) {
-			if (W == null || W.length == 0) return false;
-			if (Bias != null) {
-				if (Bias.length == 0 || Bias.length != W.length) return false;
-				for (Matrix m : Bias) {
-					if (m == null) return false;
-				}
-			}
-			if (bias != null) {
-				if (bias.length == 0 || bias.length != W.length) return false;
-				for (NeuronValue v : bias) {
-					if (v == null) return false;
-				}
-			}
-			return true;
+		private static boolean checkValid(MatrixStack[] W) {
+			return W != null && W.length > 0;
 		}
 
 		/**
@@ -206,24 +115,18 @@ public abstract class KernelFilter extends FilterAbstract {
 		@Override
 		public FKernel add(Kernel kernel) {
 			this.W = this.W != null ? MatrixStack.sum2(this.W, ((FKernel)kernel).W) : null;
-			this.Bias = this.Bias != null ? Matrix.sum2(this.Bias, ((FKernel)kernel).Bias) : null;
-			this.bias = this.bias != null ? NeuronValue.add(this.bias, ((FKernel)kernel).bias) : null;
 			return this;
 		}
 
 		@Override
 		public FKernel multiply(double value) {
 			this.W = this.W != null ? MatrixStack.multiply(this.W, value) : null;
-			this.Bias = this.Bias != null ? Matrix.multiply(this.Bias, value) : null;
-			this.bias = this.bias != null ? NeuronValue.multiply(this.bias, value) : null;
 			return this;
 		}
 
 		@Override
 		public FKernel divide(double value) {
 			this.W = this.W != null ? MatrixStack.divide(this.W, value) : null;
-			this.Bias = this.Bias != null ? Matrix.divide(this.Bias, value) : null;
-			this.bias = this.bias != null ? NeuronValue.divide(this.bias, value) : null;
 			return this;
 		}
 
@@ -272,18 +175,6 @@ public abstract class KernelFilter extends FilterAbstract {
 				}
 			}
 			
-			if (this.Bias != null) {
-				for (int i = 0; i < this.Bias.length; i++) {
-					this.Bias[i] = adam.recalcGradient(this.Bias[i], time);
-				}
-			}
-			
-			if (this.bias != null) {
-				for (int i = 0; i < this.bias.length; i++) {
-					this.bias[i] = adam.recalcGradient(this.bias[i], time);
-				}
-			}
-
 			return this;
 		}
 		
@@ -294,10 +185,7 @@ public abstract class KernelFilter extends FilterAbstract {
 		 */
 		public FKernel L2(double decay) {
 			assert (decay > 0 && decay <= 1);
-			if (REGULAR) {
-				this.W = this.W != null ? MatrixStack.multiply(this.W, decay) : null;
-			}
-			return this;
+			return REGULAR ? multiply(decay) : this;
 		}
 		
 	}
@@ -334,30 +222,6 @@ public abstract class KernelFilter extends FilterAbstract {
 	@Override
 	public abstract FKernel kernel();
 
-	
-	/**
-	 * Getting bias.
-	 * @param time time
-	 * @return bias.
-	 */
-	private NeuronValue bias(int time) {
-		FKernel kernel = kernel();
-		return kernel != null && kernel.bias != null ? kernel.bias[time] : null;
-	}
-	
-	
-	/**
-	 * Getting bias.
-	 * @param time time.
-	 * @param y y.
-	 * @param x x.
-	 * @return bias
-	 */
-	NeuronValue bias(int time, int y, int x) {
-		FKernel kernel = kernel();
-		return kernel != null && kernel.Bias != null ? kernel.Bias[time].get(y, x) : bias(time);
-	}
-	
 	
 	/**
 	 * Applying this filter to specific layers. Please attention to this important method.
@@ -402,12 +266,7 @@ public abstract class KernelFilter extends FilterAbstract {
 				//Filtering
 				NeuronValue filteredValue = this.apply(time, prevY, prevX, prevLayers);
 				if (filteredValue == null) continue;
-				NeuronValue thisBias = this.bias(time, thisY, thisX);
-				if (thisBias != null)
-					filteredValue = filteredValue.add(thisBias);
-				if (bias != null) {
-					if (thisBias == null || Kernel.GLOBAL_BIAS) filteredValue = filteredValue.add(bias);
-				}
+				if (bias != null) filteredValue = filteredValue.add(bias);
 				if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, filteredValue);
 				if (thisActivateRef != null) filteredValue = filteredValue.evaluate(thisActivateRef);
 				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
@@ -584,7 +443,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @param thisActivateRef activation function of current layers.
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
-	abstract BiasWeight dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
+	abstract MatrixStack dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 
 		
 	/**
@@ -596,7 +455,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @param thisActivateRef activation function of current layer.
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
-	BiasWeight dKernel(int time, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+	MatrixStack dKernel(int time, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		MatrixStack[] kernel = this.kernel().W;
 		NeuronValue zero = kernel[time].get().get(0, 0).zero();
 		Matrix[] dKernelArray = new Matrix[this.depth()];
@@ -605,8 +464,6 @@ public abstract class KernelFilter extends FilterAbstract {
 			MatrixUtil.fill(dKernelArray[i], zero);
 		}
 		MatrixStack dKernels = new MatrixStack(dKernelArray);
-		Matrix dBiases = this.kernel().Bias != null ? thisErrorLayer.create(new Size(thisErrorLayer.columns(), thisErrorLayer.rows())) : null;
-		NeuronValue dbiases = this.kernel().bias != null ? zero : null;
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
@@ -624,19 +481,14 @@ public abstract class KernelFilter extends FilterAbstract {
 				if (prevX >= prevWidth) continue;
 				
 				//Calculating gradient.
-				BiasWeight dBiasWeight = this.dKernel(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
-				if (dBiasWeight == null) continue;
-				MatrixStack dKernel = dBiasWeight.W;
+				MatrixStack dKernel = this.dKernel(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
+				if (dKernel == null) continue;
 				assert (dKernel.width() == width() && dKernel.height() == height() && dKernel.depth() == depth());
 				dKernels = (MatrixStack)dKernels.add(dKernel);
-				
-				assert (dBiasWeight.bias != null);
-				if (dBiases != null) dBiases.set(thisY, thisX, dBiasWeight.bias);
-				if (dbiases != null) dbiases = dbiases.add(dBiasWeight.bias);
 			}
 		}
 		
-		return new BiasWeight(dKernels, dBiases, dbiases);
+		return dKernels;
 	}
 	
 	
@@ -649,7 +501,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @param thisActivateRef activation function of current layers.
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
-	private BiasWeight[] dKernel(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
+	private MatrixStack[] dKernel(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
 		if (prevInputLayers.depth() != prevOutputLayers.depth()) {
 			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
 			if (!summode) throw new IllegalArgumentException();
@@ -660,10 +512,10 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
-		BiasWeight[] dKernels = new BiasWeight[time()];
+		MatrixStack[] dKernels = new MatrixStack[time()];
 		for (int t = 0; t < time(); t++) {
 			dKernels[t] = dKernel(t, prevInputLayers, prevOutputLayers.get(t), thisErrorLayers.get(t), thisActivateRef);
-			assert (dKernels[t].W.depth() == depth());
+			assert (dKernels[t].depth() == depth());
 		}
 		return dKernels;
 	}
@@ -674,61 +526,10 @@ public abstract class KernelFilter extends FilterAbstract {
 		MatrixStack prevInputLayers = prevInputLayer instanceof MatrixStack ? (MatrixStack)prevInputLayer : new MatrixStack(prevInputLayer);
 		MatrixStack prevOutputLayers = prevOutputLayer instanceof MatrixStack ? (MatrixStack)prevOutputLayer : new MatrixStack(prevOutputLayer);
 		MatrixStack thisErrorLayers = thisErrorLayer instanceof MatrixStack ? (MatrixStack)thisErrorLayer : new MatrixStack(thisErrorLayer);
-		FKernel dKernel = BiasWeight.createKernel(dKernel(prevInputLayers, prevOutputLayers, thisErrorLayers, thisActivateRef));
+		FKernel dKernel = new FKernel(dKernel(prevInputLayers, prevOutputLayers, thisErrorLayers, thisActivateRef));
 		if (this.kernel() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
 		return dKernel;
 	}
 	
 	
-	@Override
-	public void initParams(double v) {
-		MatrixStack[] kernel = this.kernel().W;
-		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, v);
-		
-		if (this.kernel().Bias != null) {
-			Matrix[] Biases = this.kernel().Bias;
-			for (int i = 0; i < Biases.length; i++) MatrixUtil.fill(Biases[i], v);
-		}
-
-		if (this.kernel().bias != null) {
-			NeuronValue[] biases = this.kernel().bias;
-			for (int i = 0; i < biases.length; i++) biases[i] = biases[i].valueOf(v);
-		}
-	}
-
-
-	@Override
-	public void initParams(Random rnd) {
-		MatrixStack[] kernel = this.kernel().W;
-		int fanIn = kernel[0].width()*kernel[0].height();
-		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, rnd, fanIn);
-		
-		if (this.kernel().Bias != null) {
-			Matrix[] Biases = this.kernel().Bias;
-			for (int i = 0; i < Biases.length; i++) MatrixUtil.fill(Biases[i], rnd);
-		}
-
-		if (this.kernel().bias != null) {
-			NeuronValue[] biases = this.kernel().bias;
-			for (int i = 0; i < biases.length; i++) biases[i] = biases[i].valueOf(NeuronValue.r(rnd));
-		}
-	}
-
-	
-	@Override
-	public int sizeOfParams() {
-		int size = 0;
-		MatrixStack[] kernel = this.kernel().W;
-		for (MatrixStack ker : kernel) size += MatrixUtil.capacity(ker);
-		
-		if (this.kernel().Bias != null) {
-			Matrix[] Biases = this.kernel().Bias;
-			for (int i = 0; i < Biases.length; i++) size += MatrixUtil.capacity(Biases[i]);
-		}
-		
-		if (this.kernel().bias != null) size += this.kernel().bias.length;
-		return size;
-	}
-
-
 }

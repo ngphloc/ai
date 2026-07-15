@@ -593,6 +593,38 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
+	 * Multiplying stacks by value.
+	 * @param matrices stacks.
+	 * @param value value.
+	 * @return divided stacks.
+	 */
+	public static Matrix[] multiply(Matrix[] matrices, double value) {
+		if (matrices == null || matrices.length == 0) return null;
+		Matrix[] result = new Matrix[matrices.length];
+		for (int i = 0; i < result.length; i++) {
+			result[i] = matrices[i].multiply0(value);
+		}
+		return result;
+	}
+
+	
+	/**
+	 * Dividing stacks by value.
+	 * @param matrices matrices.
+	 * @param value value.
+	 * @return divided stacks.
+	 */
+	public static Matrix[] divide(Matrix[] matrices, double value) {
+		if (matrices == null || matrices.length == 0) return null;
+		Matrix[] result = new Matrix[matrices.length];
+		for (int i = 0; i < result.length; i++) {
+			result[i] = matrices[i].divide0(value);
+		}
+		return result;
+	}
+
+	
+	/**
 	 * Calculating mean absolute value of two matrices.
 	 * @param matrix1 matrix 1.
 	 * @param matrix2 matrix 2.

@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.filter;
+package net.ea.ann.mane.filter.deprecated;
 
 import java.awt.Dimension;
 import java.util.Random;
@@ -27,6 +27,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
+@Deprecated
 public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 
@@ -65,7 +66,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param kernel specific kernel.
 	 * @param weight specific weight.
 	 */
-	private KernelFilterProduct(FKernel kernel, NeuronValue weight) {
+	protected KernelFilterProduct(FKernel kernel, NeuronValue weight) {
 		super();
 		if (!checkValid(kernel)) throw new IllegalArgumentException();
 		this.kernel = kernel;
@@ -76,15 +77,6 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(this.kernel.createOptimizer());
 	}
 
-	
-	/**
-	 * Constructor with kernel.
-	 * @param kernel kernel.
-	 */
-	protected KernelFilterProduct(FKernel kernel) {
-		this(kernel, null);
-	}
-	
 	
 	/**
 	 * Checking kernel.
@@ -224,6 +216,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 	@Override
 	NeuronValue apply(int time, int y, int x, MatrixStack layers) {
+		assert (this.weight == null || this.weight == this.weight.unit()); //Please remove this code line in the next version.
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		NeuronValue zero = layers.get().get(0, 0).zero();
 		int width = layers.columns(), height = layers.rows();
@@ -257,6 +250,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 	@Override
 	MatrixStack dValue(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+		assert (this.weight == null || this.weight == this.weight.unit()); //Please remove this code line in the next version.
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
@@ -286,7 +280,6 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		Matrix[] dValues = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
-		if (derivative != null) thisError = derivative.multiplyWise(thisError);
 		MatrixStack[] kernel = this.kernel.W;
 		for (int i = 0; i < kernelDepth; i++) {
 			dValues[i] = prevInputLayers.get().create(new Size(kernelWidth, kernelHeight));
@@ -294,6 +287,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 				for (int k = 0; k < kernelWidth; k++) {
 					NeuronValue kernelValue = kernel[time].get(i).get(j, k);
 					NeuronValue prevError = kernelValue.multiply(thisError);
+					if (derivative != null) prevError = derivative.multiplyWise(prevError);
 					dValues[i].set(j, k, this.weight != null ? prevError.multiply(this.weight) : prevError);
 				}
 			}
@@ -303,10 +297,8 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 
 	@Override
-	BiasWeight dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
-		assert (this.kernel.Bias == null && this.kernel.bias != null);
-		assert (this.kernel.bias.length == time());
-		
+	MatrixStack dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+		assert (this.weight == null || this.weight == this.weight.unit()); //Please remove this code line in the next version.
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
@@ -333,12 +325,10 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 			}
 		}
 
+		Matrix[] dKernels = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
-		if (derivative != null) thisError = derivative.multiplyWise(thisError);
-		Matrix[] dKernels = new Matrix[kernelDepth];
 		MatrixStack[] kernel = this.kernel.W;
-		NeuronValue dBiases = thisError.zero();
 		for (int i = 0; i < kernelDepth; i++) {
 			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
@@ -346,29 +336,41 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(prevY+j, prevX+k) :
 						prevInputLayers.get(time).get(prevY+j, prevX+k); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
+					if (derivative != null) dKernel = derivative.multiplyWise(dKernel);
 					dKernels[i].set(j, k, this.weight != null ? dKernel.multiply(this.weight) : dKernel);
-					dBiases = dBiases.add(thisError);
 				}
 			}
 		}
-		return new BiasWeight(new MatrixStack(dKernels), null, dBiases);
+		return new MatrixStack(dKernels);
 	}
 	
 
 	@Override
 	public void initParams(double v) {
-		super.initParams(v);
+		MatrixStack[] kernel = this.kernel.W;
+		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, v);
 		this.weight = this.weight != null ? this.weight.unit() : null;
 	}
 
 
 	@Override
 	public void initParams(Random rnd) {
-		super.initParams(rnd);
+		MatrixStack[] kernel = this.kernel.W;
+		int fanIn = kernel[0].width()*kernel[0].height();
+		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, rnd, fanIn);
 		this.weight = this.weight != null ? this.weight.unit() : null;
 	}
 
 	
+	@Override
+	public int sizeOfParams() {
+		int size = 0;
+		MatrixStack[] kernel = this.kernel.W;
+		for (MatrixStack ker : kernel) size += MatrixUtil.capacity(ker);
+		return size;
+	}
+
+
 	@Override
 	public String toText() {
 		if (this.kernel == null) return "{}";
@@ -421,16 +423,13 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		if (Kernel.BILINEAR) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
 		
 		MatrixStack[] W = new MatrixStack[size.time];
-		NeuronValue[] bias = new NeuronValue[size.time];
 		NeuronValue value = hint.valueOf(kernelValue);
-		NeuronValue zero = hint.zero();
 		for (int t = 0; t < size.time; t++) {
 			Matrix matrix = MatrixUtil.create(new Size(size.width, size.height, depth, 1), hint); 
 			W[t] = matrix instanceof MatrixStack ? (MatrixStack)matrix : new MatrixStack(matrix);
 			MatrixUtil.fill(W[t], value);
-			bias[t] = zero;
 		}
-		return new FKernel(W, null, bias);
+		return new FKernel(W);
 	}
 	
 	
@@ -442,7 +441,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @return product filter created from kernel value.
 	 */
 	public static KernelFilterProduct create(double kernelValue, Size size, NeuronValue hint) {
-		KernelFilterProduct filter = new KernelFilterProduct(createKernel(kernelValue, size, hint));
+		KernelFilterProduct filter = new KernelFilterProduct(createKernel(kernelValue, size, hint), hint.unit());
 		size = adjustSize(size);
 		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
 		return filter;

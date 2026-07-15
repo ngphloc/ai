@@ -10,6 +10,7 @@ package net.ea.ann.mane.weight;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
+import net.ea.ann.mane.Kernel;
 
 /**
  * This class implements partially parametric weight based on transformer.
@@ -73,6 +74,14 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 	
 	
 	/**
+	 * Getting bias at specified time.
+	 * @param time specified time.
+	 * @return bias at specified time.
+	 */
+	private Matrix bias(int time) {return null;}
+
+	
+	/**
 	 * Evaluating inputs.
 	 * @param time time.
 	 * @param inputs inputs.
@@ -102,7 +111,15 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 		int time = time();
 		Matrix[] values = new Matrix[time];
 		for (int t = 0; t < time; t++) {
-			values[t] = evaluate(t, inputs, biases!=null?biases.get(t):null);
+			Matrix bias0 = null;
+			if (this.bias(t) != null && biases != null)
+				bias0 = Kernel.GLOBAL_BIAS ? this.bias(t).add(biases.get(t)) : this.bias(t);
+			else if (this.bias(t) != null)
+				bias0 = this.bias(t);
+			else if (biases != null)
+				bias0 = biases.get(t);
+
+			values[t] = evaluate(t, inputs, bias0);
 		}
 		return new MatrixStack(values);
 	}
@@ -110,6 +127,7 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
+		assert (bias == null); //Please remove this code line in the next version.
 		MatrixStack inputs = input instanceof MatrixStack ? (MatrixStack)input : new MatrixStack(input);
 		MatrixStack biases = bias != null ? (bias instanceof MatrixStack ? (MatrixStack)bias : new MatrixStack(bias)) : null;
 		MatrixStack values = evaluate(inputs, biases);

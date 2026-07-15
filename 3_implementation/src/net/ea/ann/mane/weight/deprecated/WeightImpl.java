@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.weight;
+package net.ea.ann.mane.weight.deprecated;
 
 import java.io.Serializable;
 import java.util.Random;
@@ -30,6 +30,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
+@Deprecated
 public class WeightImpl implements Weight, TextParsable {
 
 
@@ -63,11 +64,6 @@ public class WeightImpl implements Weight, TextParsable {
 		protected MatrixStack[] W2 = null;
 		
 		/**
-		 * Bias.
-		 */
-		protected Matrix[] bias = null;
-		
-		/**
 		 * Optimizer.
 		 */
 		private Optimizer optimizer = null;
@@ -76,34 +72,24 @@ public class WeightImpl implements Weight, TextParsable {
 		 * Constructor with the first weight and the second weight.
 		 * @param W1 the first weight.
 		 * @param W2 the second weight.
-		 * @param bias bias.
 		 */
-		public WKernel(MatrixStack[] W1, MatrixStack[] W2, Matrix[] bias) {
-			if (!checkValid(W1, W2, bias)) throw new IllegalArgumentException();
+		public WKernel(MatrixStack[] W1, MatrixStack[] W2) {
+			if (!checkValid(W1, W2)) throw new IllegalArgumentException();
 			this.W1 = W1;
 			this.W2 = W2;
-			this.bias = bias;
 		}
 
 		/**
 		 * Checking the first weight and the second weight.
 		 * @param W1 the first weight.
 		 * @param W2 the second weight.
-		 * @param bias bias.
 		 * @return true if the two weights are mutually valid.
 		 */
-		private static boolean checkValid(MatrixStack[] W1, MatrixStack[] W2, Matrix[] bias) {
+		private static boolean checkValid(MatrixStack[] W1, MatrixStack[] W2) {
 			if (W1 == null && W2 == null) return false;
 			MatrixStack[] W = W1 != null ? W1 : W2;
 			if (W.length == 0) return false;
-			if (W1 != null && W2 != null) {
-				if (W1.length != W2.length || W1[0].depth() != W2[0].depth()) return false;
-			}
-			if (bias != null) {
-				if (bias.length == 0) return false;
-				if (W1 != null && W1.length != bias.length) return false;
-				if (W2 != null && W2.length != bias.length) return false;
-			}
+			if (W1 != null && W2 != null) return W1.length == W2.length && W1[0].depth() == W2[0].depth();
 			return true;
 		}
 
@@ -111,7 +97,6 @@ public class WeightImpl implements Weight, TextParsable {
 		public WKernel add(Kernel kernel) {
 			this.W1 = this.W1 != null ? MatrixStack.sum2(this.W1, ((WKernel)kernel).W1) : null;
 			this.W2 = this.W2 != null ? MatrixStack.sum2(this.W2, ((WKernel)kernel).W2) : null;
-			this.bias = this.bias != null ? Matrix.sum2(this.bias, ((WKernel)kernel).bias) : null;
 			return this;
 		}
 
@@ -119,7 +104,6 @@ public class WeightImpl implements Weight, TextParsable {
 		public WKernel multiply(double value) {
 			this.W1 = this.W1 != null ? MatrixStack.multiply(this.W1, value) : null;
 			this.W2 = this.W2 != null ? MatrixStack.multiply(this.W2, value) : null;
-			this.bias = this.bias != null ? Matrix.multiply(this.bias, value) : null;
 			return this;
 		}
 
@@ -127,7 +111,6 @@ public class WeightImpl implements Weight, TextParsable {
 		public WKernel divide(double value) {
 			this.W1 = this.W1 != null ? MatrixStack.divide(this.W1, value) : null;
 			this.W2 = this.W2 != null ? MatrixStack.divide(this.W2, value) : null;
-			this.bias = this.bias != null ? Matrix.divide(this.bias, value) : null;
 			return this;
 		}
 
@@ -159,12 +142,6 @@ public class WeightImpl implements Weight, TextParsable {
 				}
 			}
 
-			if (this.bias != null) {
-				for (int i = 0; i < this.bias.length; i++) {
-					this.bias[i] = adam.recalcGradient(this.bias[i], time);
-				}
-			}
-
 			return this;
 		}
 		
@@ -175,11 +152,7 @@ public class WeightImpl implements Weight, TextParsable {
 		 */
 		public WKernel L2(double decay) {
 			assert (decay > 0 && decay <= 1);
-			if (REGULAR) {
-				this.W1 = this.W1 != null ? MatrixStack.multiply(this.W1, decay) : null;
-				this.W2 = this.W2 != null ? MatrixStack.multiply(this.W2, decay) : null;
-			}
-			return this;
+			return REGULAR ? multiply(decay) : this;
 		}
 		
 	}
@@ -219,21 +192,6 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return the second weight.
 	 */
 	private MatrixStack[] W2() {return kernel.W2;}
-
-	
-	/**
-	 * Getting bias.
-	 * @return bias.
-	 */
-	private Matrix[] bias() {return kernel.bias;}
-	
-	
-	/**
-	 * Getting bias at specified time.
-	 * @param time specified time.
-	 * @return bias at specified time.
-	 */
-	private Matrix bias(int time) {return kernel != null && kernel.bias != null ? kernel.bias[time] : null;}
 
 	
 	/**
@@ -341,7 +299,6 @@ public class WeightImpl implements Weight, TextParsable {
 				evaluate(summode ? inputs.get(d) : inputs.get(time), null); //Please pay attention to this code line.
 			sum = sum != null ? sum.add(value) : value;
 		}
-		assert (bias == this.bias(time));
 		return bias != null ? sum.add(bias) : sum;
 	}
 	
@@ -365,15 +322,7 @@ public class WeightImpl implements Weight, TextParsable {
 		int time = time();
 		Matrix[] values = new Matrix[time];
 		for (int t = 0; t < time; t++) {
-			Matrix bias0 = null;
-			if (this.bias(t) != null && biases != null)
-				bias0 = Kernel.GLOBAL_BIAS ? this.bias(t).add(biases.get(t)) : this.bias(t);
-			else if (this.bias(t) != null)
-				bias0 = this.bias(t);
-			else if (biases != null)
-				bias0 = biases.get(t);
-			
-			values[t] = evaluate(t, inputs, bias0);
+			values[t] = evaluate(t, inputs, biases!=null?biases.get(t):null);
 		}
 		return new MatrixStack(values);
 
@@ -382,6 +331,8 @@ public class WeightImpl implements Weight, TextParsable {
 
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
+		assert (bias == null); //Please remove this code line in the next version.
+
 		MatrixStack inputs = input instanceof MatrixStack ? (MatrixStack)input : new MatrixStack(input);
 		MatrixStack biases = bias != null ? (bias instanceof MatrixStack ? (MatrixStack)bias : new MatrixStack(bias)) : null;
 		MatrixStack values = evaluate(inputs, biases);
@@ -564,11 +515,7 @@ public class WeightImpl implements Weight, TextParsable {
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
 		MatrixStack[] dW1 = dW1(prevOutputs, thisErrors);
 		MatrixStack[] dW2 = dW2(prevOutputs, thisErrors);
-		
-		if (dW1 != null) {assert (thisErrors.depth() == dW1.length);}
-		if (dW2 != null) {assert (thisErrors.depth() == dW2.length);}
-		
-		WKernel dKernel = new WKernel(dW1, dW2, MatrixUtil.split(thisErrors));
+		WKernel dKernel = new WKernel(dW1, dW2);
 		if (this.kernel() != null) dKernel.setOptimizer(this.kernel().getOptimizer());
 		return dKernel;
 	}
@@ -578,15 +525,11 @@ public class WeightImpl implements Weight, TextParsable {
 	public void initParams(double v) {
 		MatrixStack[] W1 = W1();
 		MatrixStack[] W2 = W2();
-		Matrix[] biases = bias();
 		if (W1 != null) {
 			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, v);
 		}
 		if (W2 != null) {
 			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, v);
-		}
-		if (biases != null) {
-			for (Matrix bias : biases) MatrixUtil.fill(bias, v);
 		}
 	}
 	
@@ -595,15 +538,11 @@ public class WeightImpl implements Weight, TextParsable {
 	public void initParams(Random rnd) {
 		MatrixStack[] W1 = W1();
 		MatrixStack[] W2 = W2();
-		Matrix[] biases = bias();
 		if (W1 != null) {
 			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, rnd, w1.columns());
 		}
 		if (W2 != null) {
 			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, rnd, w2.rows());
-		}
-		if (biases != null) {
-			for (Matrix bias : biases) MatrixUtil.fill(bias, rnd);
 		}
 	}
 
@@ -613,15 +552,11 @@ public class WeightImpl implements Weight, TextParsable {
 		int size = 0;
 		MatrixStack[] W1 = W1();
 		MatrixStack[] W2 = W2();
-		Matrix[] biases = bias();
 		if (W1 != null) {
 			for (MatrixStack w1 : W1) size += MatrixUtil.capacity(w1);
 		}
 		if (W2 != null) {
 			for (MatrixStack w2 : W2) size += MatrixUtil.capacity(w2);
-		}
-		if (biases != null) {
-			for (Matrix bias : biases) size += MatrixUtil.capacity(bias);
 		}
 		return size;
 	}
@@ -640,11 +575,6 @@ public class WeightImpl implements Weight, TextParsable {
 		if (W2 != null) {
 			if (W1 != null) buffer.append(", ");
 			buffer.append("W2 = " + Util.toText(W2, ",") + "");
-		}
-		Matrix[] biases = bias();
-		if (biases != null) {
-			if (W1 != null || W2 != null) buffer.append(", ");
-			buffer.append("bias = " + Util.toText(biases, ",") + "");
 		}
 		
 		buffer.append("}");
@@ -696,35 +626,16 @@ public class WeightImpl implements Weight, TextParsable {
 	
 	
 	/**
-	 * Creating bias.
-	 * @param size size.
-	 * @param hint hinting value.
-	 * @return bias
-	 */
-	private static Matrix[] createBias(Size size, NeuronValue hint) {
-		if (size.width < 1 || size.height < 1 || hint == null) return null;
-		size = adjustSize(size);
-		
-		Matrix[] bias = new Matrix[size.time];
-		for (int t = 0; t < size.time; t++) {
-			bias[t] = MatrixUtil.create(new Size(size.width, size.height, 1, 1), hint); 
-		}
-		return bias;
-	}
-	
-	
-	/**
 	 * Creating weight.
 	 * @param sizeW1 hint of first weight.
 	 * @param sizeW2 hint of second weight.
 	 * @param hint hint.
 	 * @return weight.
 	 */
-	private static WeightImpl create0(Size sizeW1, Size sizeW2, Size biasSize, NeuronValue hint) {
+	private static WeightImpl create0(Size sizeW1, Size sizeW2, NeuronValue hint) {
 		MatrixStack[] W1 = sizeW1 != null ? createW(sizeW1, hint) : null;
 		MatrixStack[] W2 = sizeW2 != null ? createW(sizeW2, hint) : null;
-		Matrix[] bias = biasSize != null ? createBias(biasSize, hint) : null;
-		WeightImpl weight = new WeightImpl(new WKernel(W1, W2, bias));
+		WeightImpl weight = new WeightImpl(new WKernel(W1, W2));
 		
 		if (sizeW1 != null) sizeW1 = adjustSize(sizeW1);
 		if (sizeW2 != null) sizeW2 = adjustSize(sizeW2);
@@ -761,7 +672,7 @@ public class WeightImpl implements Weight, TextParsable {
 			sizeW2 = new Size(size.width, prevSize.width, prevSize.depth, size.depth);
 		}
 
-		return create0(sizeW1, sizeW2, new Size(size.width, size.height, prevSize.depth, size.depth), hint);
+		return create0(sizeW1, sizeW2, hint);
 	}
 	
 	

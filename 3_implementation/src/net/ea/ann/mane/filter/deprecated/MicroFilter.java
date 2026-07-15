@@ -5,9 +5,10 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.filter;
+package net.ea.ann.mane.filter.deprecated;
 
 import java.awt.Dimension;
+import java.util.Random;
 
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
@@ -24,6 +25,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
+@Deprecated
 public class MicroFilter extends KernelFilter {
 
 
@@ -140,12 +142,7 @@ public class MicroFilter extends KernelFilter {
 						prevLayers.get(time).get(prevY, prevX); //Please pay attention to this code line.
 					filteredValue = filteredValue.add(value.multiply(kernel[time].get(i).get(prevY, prevX)));
 				}
-				NeuronValue thisBias = this.bias(time, thisY, thisX);
-				if (thisBias != null)
-					filteredValue = filteredValue.add(thisBias);
-				if (bias != null) {
-					if (thisBias == null || Kernel.GLOBAL_BIAS) filteredValue = filteredValue.add(bias);
-				}
+				if (bias != null) filteredValue = filteredValue.add(bias);
 				if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, filteredValue);
 				if (thisActivateRef != null) filteredValue = filteredValue.evaluate(thisActivateRef);
 				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
@@ -194,11 +191,11 @@ public class MicroFilter extends KernelFilter {
 				//Calculating gradient.
 				NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 				NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
-				if (derivative != null) thisError = derivative.multiplyWise(thisError);
 				MatrixStack[] kernel = this.kernel.W;
 				for (int i = 0; i < depth(); i++) {
 					NeuronValue kernelValue = kernel[time].get(i).get(thisY, thisX);
 					NeuronValue prevError = kernelValue.multiply(thisError);
+					if (derivative != null) prevError = derivative.multiplyWise(prevError);
 					dPrevValues[i].set(prevY, prevX, prevError);
 				}
 			}
@@ -209,19 +206,16 @@ public class MicroFilter extends KernelFilter {
 
 	
 	@Override
-	BiasWeight dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+	MatrixStack dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		throw new RuntimeException("This method is discarded");
 	}
 
 
 	@Override
-	BiasWeight dKernel(int time, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+	MatrixStack dKernel(int time, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		assert (prevInputLayers.rows() == this.height() && prevInputLayers.columns() == this.width());
 		assert (prevOutputLayer.rows() == this.height() && prevOutputLayer.columns() == this.width());
 		assert (thisErrorLayer.rows() == this.height() && thisErrorLayer.columns() == this.width());
-		assert (this.kernel.Bias != null && this.kernel.bias == null);
-		assert (this.kernel.Bias.length == time());
-		assert (this.kernel.Bias[0].rows() == this.height() && this.kernel.Bias[0].columns() == this.width());
 
 		MatrixStack[] kernel = this.kernel().W;
 		NeuronValue zero = kernel[time].get().get(0, 0).zero();
@@ -230,8 +224,6 @@ public class MicroFilter extends KernelFilter {
 			dKernels[i] = kernel[time].get().create(new Size(width(), height()));
 			MatrixUtil.fill(dKernels[i], zero);
 		}
-		Matrix dBiases = this.kernel().Bias != null ? thisErrorLayer.create(new Size(thisErrorLayer.columns(), thisErrorLayer.rows())) : null;
-		NeuronValue dbiases = this.kernel().bias != null ? zero : null;
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
@@ -253,53 +245,44 @@ public class MicroFilter extends KernelFilter {
 				//Calculating gradient.
 				NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 				NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
-				if (derivative != null) thisError = derivative.multiplyWise(thisError);
 				for (int i = 0; i < depth(); i++) {
 					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(prevY, prevX) :
 						prevInputLayers.get(time).get(prevY, prevX); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
+					if (derivative != null) dKernel = derivative.multiplyWise(dKernel);
 					dKernels[i].set(thisY, thisX, dKernel);
-					
-					if (dBiases != null) dBiases.set(thisY, thisX, thisError);
-					if (dbiases != null) dbiases = dbiases.add(thisError);
 				}
 			}
 		}
 		
-		return new BiasWeight(new MatrixStack(dKernels), dBiases, dbiases);
+		return new MatrixStack(dKernels);
 	}
 
 	
-	/**
-	 * Creating kernel with kernel value.
-	 * @param kernelValue kernel value.
-	 * @param size size of kernel.
-	 * @param hint hint value.
-	 * @return kernel created from kernel value.
-	 */
-	static FKernel createKernel(double kernelValue, Size size, NeuronValue hint) {
-		if (size.width < 1 || size.height < 1 || hint == null) return null;
-		size = KernelFilterProduct.adjustSize(size);
-		
-		int depth = size.depth;
-		if (Kernel.BILINEAR) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
-		
-		MatrixStack[] W = new MatrixStack[size.time];
-		Matrix[] bias = new Matrix[size.time];
-		NeuronValue value = hint.valueOf(kernelValue);
-		NeuronValue zero = hint.zero();
-		for (int t = 0; t < size.time; t++) {
-			Matrix matrix = MatrixUtil.create(new Size(size.width, size.height, depth, 1), hint); 
-			W[t] = matrix instanceof MatrixStack ? (MatrixStack)matrix : new MatrixStack(matrix);
-			MatrixUtil.fill(W[t], value);
-			
-			bias[t] = MatrixUtil.create(new Size(size.width, size.height, 1, 1), hint); 
-			MatrixUtil.fill(bias[t], zero);
-		}
-		return new FKernel(W, bias, null);
+	@Override
+	public void initParams(double v) {
+		MatrixStack[] kernel = this.kernel.W;
+		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, v);
 	}
 
-	
+
+	@Override
+	public void initParams(Random rnd) {
+		MatrixStack[] kernel = this.kernel.W;
+		int fanIn = kernel[0].width()*kernel[0].height();
+		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, rnd, fanIn);
+	}
+
+
+	@Override
+	public int sizeOfParams() {
+		int size = 0;
+		MatrixStack[] kernel = this.kernel.W;
+		for (MatrixStack ker : kernel) size += MatrixUtil.capacity(ker);
+		return size;
+	}
+
+
 	/**
 	 * Creating micro filter with kernel value.
 	 * @param kernelValue kernel value.
@@ -308,7 +291,7 @@ public class MicroFilter extends KernelFilter {
 	 * @return product filter created from kernel value.
 	 */
 	public static MicroFilter create(double kernelValue, Size size, NeuronValue hint) {
-		MicroFilter filter = new MicroFilter(createKernel(kernelValue, size, hint));
+		MicroFilter filter = new MicroFilter(KernelFilterProduct.createKernel(kernelValue, size, hint));
 		size = KernelFilterProduct.adjustSize(size);
 		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
 		return filter;

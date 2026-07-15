@@ -504,7 +504,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		Matrix thisPrevInputConv = matrixToConvLayer(this.prevInput);
 		Matrix thisPrevOutputConv = matrixToConvLayer(this.prevOutput);
 		
-		this.filter.forward(prevLayerOutputConv, thisPrevInputConv, thisPrevOutputConv, this.filterBias, this.getFilterActivateRef());
+		this.filter.forward(prevLayerOutputConv, thisPrevInputConv, thisPrevOutputConv, Kernel.GLOBAL_BIAS ? this.filterBias : null, this.getFilterActivateRef());
 		this.prevInput = convLayerToMatrix(thisPrevInputConv);
 		return this.prevOutput = convLayerToMatrix(thisPrevOutputConv);
 	}
@@ -522,7 +522,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		
 		this.input = prevOutput0 != null ? prevOutput0 : this.prevLayer.queryOutput();
-		this.input = this.weight.evaluate(this.input, this.bias);
+		this.input = this.weight.evaluate(this.input, Kernel.GLOBAL_BIAS ? this.bias : null);
 		this.output = (this.getWeightActivateRef() != null) && !(this.weight instanceof NullWeight) ?
 			this.input.evaluate0(this.getWeightActivateRef()) : this.input;
 		
@@ -702,7 +702,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				if (applyFilterActivate && prevOutput0 != null && thisFilterActivateRef != null) {
 					errors[i] = prevOutput0.derivativeWise(thisFilterActivateRef).multiplyWise(errors[i]);
 				}
-				dFBiases[i] = MatrixUtil.valueSum(errors[i]); //Filter errors. Please pay attention to this code line.
+				if (Kernel.GLOBAL_BIAS) dFBiases[i] = MatrixUtil.valueSum(errors[i]); //Filter errors. Please pay attention to this code line.
 			}
 			else {
 				//Please pay attention to this code line to back-warding value errors.
@@ -734,13 +734,15 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		
 		//Update filter and filter bias.
 		if (this.filter != null && isLearnFilter()) {
-			NeuronValue dFilterBiasMean0 = NeuronValue.valueMean(dFBiases);
-			if (learning) {
-				NeuronValue filterBias0 = this.filterBias.add(dFilterBiasMean0.multiply(learningRate));
-				setFilterBias(filterBias0);
+			if (dFBiases[0] != null) {
+				NeuronValue dFilterBiasMean0 = NeuronValue.valueMean(dFBiases);
+				if (learning) {
+					NeuronValue filterBias0 = this.filterBias.add(dFilterBiasMean0.multiply(learningRate));
+					setFilterBias(filterBias0);
+				}
+				else
+					this.dFBiasAccum = this.dFBiasAccum != null ? this.dFBiasAccum.add(dFilterBiasMean0) : dFilterBiasMean0;
 			}
-			else
-				this.dFBiasAccum = this.dFBiasAccum != null ? this.dFBiasAccum.add(dFilterBiasMean0) : dFilterBiasMean0;
 			
 			if (dFKernels[0] != null) {
 				Kernel dFilterKernelMean0 = Kernel.mean(dFKernels);
@@ -774,15 +776,19 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 */
 	protected Matrix adjustError(Matrix error, Error ERROR) {
 		if (CLIP_GRAD) { //Gradient Clipping is a useful technique to improve training neural network.
-			NeuronValue min = error.get(0, 0).valueOf(-5.0);
-			NeuronValue max = error.get(0, 0).valueOf(5.0);
-			for (int row = 0; row < error.rows(); row++) {
-				for (int column = 0; column < error.columns(); column++) {
-					NeuronValue value = error.get(row, column);
-					value = value.max(min).min(max);
-					error.set(row, column, value);
+			Matrix[] matrices = MatrixUtil.split(error);
+			NeuronValue min = matrices[0].get(0, 0).valueOf(-5.0);
+			NeuronValue max = matrices[0].get(0, 0).valueOf(5.0);
+			for (int d = 0; d < matrices.length; d++) {
+				for (int row = 0; row < error.rows(); row++) {
+					for (int column = 0; column < error.columns(); column++) {
+						NeuronValue value =  matrices[d].get(row, column);
+						value = value.max(min).min(max);
+						matrices[d].set(row, column, value);
+					}
 				}
 			}
+			error = MatrixUtil.join(matrices);
 		}
 		return error;
 	}

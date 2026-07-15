@@ -40,6 +40,12 @@ public interface Kernel extends Cloneable, Serializable {
 	
 	
 	/**
+	 * Global bias.
+	 */
+	final static boolean GLOBAL_BIAS = false;
+	
+	
+	/**
 	 * This class represents null kernel.
 	 * @author Loc Nguyen
 	 * @version 1.0

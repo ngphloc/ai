@@ -4,8 +4,8 @@ import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Error;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.MatrixLayerImpl;
-import net.ea.ann.mane.filter.KernelFilterProduct;
 import net.ea.ann.mane.weight.NullWeight;
 
 /**
@@ -80,13 +80,13 @@ public class ResidualLayer extends MatrixLayerImpl  {
 		if (this.filter == null || this.prevLayer == null) return super.evaluateByFilter();
 		if (!this.filter.doesApplyActivate() || this.filter.isIndexMode()) return super.evaluateByFilter();
 		if (getStartLayer() == null) return super.evaluateByFilter();
-		assert (this.filter instanceof KernelFilterProduct);
+//		assert (this.filter instanceof KernelFilterProduct);
 		
 		Matrix prevLayerOutputConv = this.prevLayer.matrixToConvLayer(this.prevLayer.queryOutput());
 		Matrix thisPrevInputConv = matrixToConvLayer(this.prevInput);
 		Matrix thisPrevOutputConv = matrixToConvLayer(this.prevOutput);
 		
-		this.filter.forward(prevLayerOutputConv, thisPrevInputConv, thisPrevOutputConv, this.filterBias, null/*this.getFilterActivateRef()*/); //Please pay attention to this code line.
+		this.filter.forward(prevLayerOutputConv, thisPrevInputConv, thisPrevOutputConv, Kernel.GLOBAL_BIAS ? this.filterBias : null, null/*this.getFilterActivateRef()*/); //Please pay attention to this code line.
 		this.prevInput = convLayerToMatrix(thisPrevInputConv);
 		this.prevInput = this.prevInput.add(getStartLayer().queryInput()); //This code line is important for residual network.
 		return this.prevOutput = this.prevInput.evaluate0(this.getFilterActivateRef());
@@ -108,7 +108,7 @@ public class ResidualLayer extends MatrixLayerImpl  {
 		}
 		
 		this.input = prevOutput0 != null ? prevOutput0 : this.prevLayer.queryOutput();
-		this.input = this.weight.evaluate(this.input, this.bias);
+		this.input = this.weight.evaluate(this.input, Kernel.GLOBAL_BIAS ? this.bias : null);
 		this.input = this.input.add(this.getStartLayer().queryOutput()); //This code line is important for residual network.
 		this.output = (this.getWeightActivateRef() != null) && !(this.weight instanceof NullWeight) ?
 			this.input.evaluate0(this.getWeightActivateRef()) : this.input;

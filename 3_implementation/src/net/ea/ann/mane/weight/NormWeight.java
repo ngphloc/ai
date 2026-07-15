@@ -133,6 +133,10 @@ public class NormWeight implements Weight, TextParsable {
 				Matrix W0 = adam.recalcGradient(this.W, time);
 				this.W = W0 instanceof MatrixStack ? (MatrixStack)W0 : new MatrixStack(W0);
 			}
+			if (this.bias != null) {
+				Matrix bias0 = adam.recalcGradient(this.bias, time);
+				this.bias = bias0 instanceof MatrixStack ? (MatrixStack)bias0 : new MatrixStack(bias0);
+			}
 			
 			return this;
 		}
@@ -328,12 +332,12 @@ public class NormWeight implements Weight, TextParsable {
 		if (this.bias() != null) {
 			if (this.bias().rows() != W().rows() || this.bias().columns() != W().columns() || MatrixUtil.depth(this.bias()) != W().depth()) throw new IllegalArgumentException();
 		}
+		assert (this.bias() != null);
 
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
 		Matrix dW = prevOutputs.multiplyWise(thisErrors);
 		Matrix dBias = thisErrors;
-		assert (this.bias() != null);
 		
 		WKernel dKernel = new WKernel(dW instanceof MatrixStack ? (MatrixStack)dW : new MatrixStack(dW),
 			this.bias() != null ? (dBias instanceof MatrixStack ? (MatrixStack)dBias : new MatrixStack(dBias)) : null);
@@ -344,7 +348,7 @@ public class NormWeight implements Weight, TextParsable {
 	
 	@Override
 	public void initParams(double v) {
-		MatrixStack W = W(), bias = bias();
+		MatrixStack W = this.W(), bias = this.bias();
 		if (W != null) MatrixUtil.fill(W, v);
 		if (bias != null) MatrixUtil.fill(bias, v);
 	}
@@ -352,7 +356,7 @@ public class NormWeight implements Weight, TextParsable {
 
 	@Override
 	public void initParams(Random rnd) {
-		MatrixStack W = W(), bias = bias();
+		MatrixStack W = this.W(), bias = this.bias();
 		if (W != null) MatrixUtil.fill(W, rnd, 1);
 		if (bias != null) MatrixUtil.fill(bias, rnd);
 	}
@@ -360,14 +364,14 @@ public class NormWeight implements Weight, TextParsable {
 
 	@Override
 	public int sizeOfParams() {
-		MatrixStack W = W(), bias = bias();
+		MatrixStack W = this.W(), bias = this.bias();
 		return (W != null ? MatrixUtil.capacity(W) : 0) + (bias != null ? MatrixUtil.capacity(bias) : 0);
 	}
 	
 
 	@Override
 	public String toText() {
-		MatrixStack W = W(), bias = bias();
+		MatrixStack W = this.W(), bias = this.bias();
 		if (W == null && bias == null) return "{}";
 		
 		StringBuffer buffer = new StringBuffer();

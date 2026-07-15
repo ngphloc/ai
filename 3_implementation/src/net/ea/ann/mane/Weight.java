@@ -101,12 +101,24 @@ public interface Weight extends Cloneable, Serializable {
 	
 	/**
 	 * Calculating gradient of the current weight.
-	 * @param time time.
-	 * @param prevOutputs previous outputs.
-	 * @param thisErrors current errors.
-	 * @return gradient of the current weight (at this errors).
+	 * @param prevOutput previous output. Previous output and this error are in the same current layer.
+	 * @param thisError current error.
+	 * @return gradient of the current weight (at this error).
 	 */
 	Kernel dKernel(Matrix prevOutput, Matrix thisError);
+	
+	
+	/**
+	 * Calculating gradient of the current weight.
+	 * @param time time.
+	 * @param prevOutput previous output. Previous output and this error are in the same current layer.
+	 * @param thisError current error.
+	 * @param thisActivateRef this activation function.
+	 * @return gradient of the current weight (at this error).
+	 */
+	default Kernel dKernel(Matrix prevOutput, Matrix thisError, Function thisActivateRef) {
+		return dKernel(prevOutput, thisError);
+	}
 
 	
 	/**

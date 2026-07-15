@@ -94,6 +94,7 @@ abstract class WeightNetwork extends MatrixNetworkImpl implements NetworkWeight 
 	
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
+		assert (bias == null); //Please remove this code line in the next version.
 		return super.evaluate0(input, new Object[] {});
 	}
 

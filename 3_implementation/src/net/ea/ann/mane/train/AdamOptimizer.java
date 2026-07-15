@@ -170,6 +170,18 @@ public class AdamOptimizer implements Optimizer {
 	/**
 	 * Re-calculating gradient.
 	 * @param grad gradient.
+	 * @param time time.
+	 * @return recalculated gradient.
+	 */
+	public NeuronValue recalcGradient(NeuronValue grad, int time) {
+		Matrix gradM = MatrixUtil.create(Size.unit(), grad);
+		return recalcGradient(gradM, time).get(0, 0);
+	}
+	
+	
+	/**
+	 * Re-calculating gradient.
+	 * @param grad gradient.
 	 * @return recalculated gradient.
 	 */
 	public Matrix recalcGradient(Matrix grad) {return recalcGradient(grad, incTime());}
@@ -182,5 +194,14 @@ public class AdamOptimizer implements Optimizer {
 	 */
 	public Matrix recalcGradient(MatrixStack grad) {return recalcGradient(grad, incTime());}
 
+
+	/**
+	 * Re-calculating gradient.
+	 * @param grad gradient.
+	 * @param time time.
+	 * @return recalculated gradient.
+	 */
+	public NeuronValue recalcGradient(NeuronValue grad) {return recalcGradient(grad, incTime());}
+	
 
 }

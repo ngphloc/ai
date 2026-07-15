@@ -867,6 +867,20 @@ public interface NeuronValue extends Value {
 
 	
 	/**
+	 * Multiplying vector and value.
+	 * @param vector specific vector.
+	 * @param value specific value.
+	 * @return multiplied vector.
+	 */
+	static NeuronValue[] divide(NeuronValue[] vector, NeuronValue value) {
+		if (vector == null || value == null) return null;
+		NeuronValue[] result = new NeuronValue[vector.length];
+		for (int i = 0; i < vector.length; i++) result[i] = vector[i].divide(value);
+		return result;
+	}
+
+	
+	/**
 	 * Dividing matrix and value.
 	 * @param matrix specific matrix.
 	 * @param value specific value.
@@ -875,6 +889,18 @@ public interface NeuronValue extends Value {
 	static NeuronValue[][] divide(NeuronValue[][] matrix, double value) {
 		if (matrix == null || matrix.length == 0 || matrix[0] == null || matrix.length == 0) return null;
 		return divide(matrix, matrix[0][0].valueOf(value));
+	}
+
+	
+	/**
+	 * Multiplying vector and value.
+	 * @param vector specific vector.
+	 * @param value specific value.
+	 * @return multiplied vector.
+	 */
+	static NeuronValue[] divide(NeuronValue[] vector, double value) {
+		if (vector == null || vector.length == 0) return null;
+		return divide(vector, vector[0].valueOf(value));
 	}
 
 	

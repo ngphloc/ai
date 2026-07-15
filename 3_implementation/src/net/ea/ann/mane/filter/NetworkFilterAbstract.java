@@ -197,7 +197,7 @@ abstract class NetworkFilterAbstract extends KernelFilter implements NetworkFilt
 
 	
 	@Override
-	MatrixStack dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
+	BiasWeight dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		throw new RuntimeException("Network-based filter does not calculate gradient of kernel");
 	}
 

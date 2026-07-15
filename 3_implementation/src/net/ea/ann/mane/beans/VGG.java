@@ -139,6 +139,10 @@ public class VGG extends VGGCore {
 					if (filterType == Type.kernel) {
 						layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, filterType);
 						layerSpec.filterSpec.kernelType = paramGetFilterKernelType();
+						if ((layerSpec.filterSpec.kernelType == KernelType.micro)
+								&& (layerSpec.size.width != layerSpec.prevSize.width || layerSpec.size.height != layerSpec.prevSize.height)) {
+							layerSpec.filterSpec.kernelType = KernelType.product;
+						}
 					}
 					else if (filterType == Type.pool) {
 						if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
@@ -192,12 +196,16 @@ public class VGG extends VGGCore {
 			if (paramIsFilterEndPoolMode() && block < blockSizes.size()-1) {
 				Size poolSize = new Size(blockSizes.get(block+1).width, blockSizes.get(block+1).height, blockSize.depth, 1);
 				VGG.LayerSpec layerSpec = new VGG.LayerSpec(poolSize);
-				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size; //Setting previous size not important.
+				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 				
 				if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
 					layerSpec.filterSpec.poolType = paramGetFilterPoolType();
-					layerSpec.filterSpec.moveStride = true; //It means zooming out to be smaller.
+					if (!flatten) layerSpec.filterSpec.poolType = PoolType.average;
+					if (layerSpec.prevSize.width >= base*layerSpec.size.width && layerSpec.prevSize.height >= base*layerSpec.size.height)
+						layerSpec.filterSpec.moveStride = true; //It means zooming out to be smaller.
+					else
+						layerSpec.filterSpec.moveStride = false;
 					layerSpec.filterSpec.coweight = false; //This code line is not necessary because weight specification is not specified but confirming that by default pooling filter is not associated with weight matrix because of reduced layer size (width and height).
 					layerSpecs.add(layerSpec);
 				}
@@ -530,7 +538,7 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Default value for filter kernel type.
 	 */
-	public final static KernelType FILTER_KERNEL_TYPE_DEFAULT = KernelType.product;
+	public final static KernelType FILTER_KERNEL_TYPE_DEFAULT = KernelType.micro;
 
 	
 	/**
@@ -1052,8 +1060,8 @@ class VGGCore extends ResidualNetwork {
 			ffnSize = gapSize;
 		}
 		else if (paramIsFFNFlatten()) {
+			Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 			if (paramIsVectorized()) {
-				Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 				ffnSize = new Size(1, lastSize.width*lastSize.height*lastSize.depth, 1);
 				
 				//Adding flatten layer.
@@ -1063,7 +1071,6 @@ class VGGCore extends ResidualNetwork {
 				layerSpecs.add(flattenLayerSpec);
 			}
 			else {
-				Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 				ffnSize = new Size(middleSize.width, lastSize.depth*middleSize.height, 1);
 				
 				//Adding flatten layer.
@@ -1116,7 +1123,7 @@ class VGGCore extends ResidualNetwork {
 		
 		//Setting output FFN layer (classifier layer as usual).
 		VGG.LayerSpec outputLayerSpec = new VGG.LayerSpec(outputSize);
-		outputLayerSpec.prevSize = ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size; //Setting previous size not important.
+		outputLayerSpec.prevSize = ffnLayerSpecs.size() > 0 ? ffnLayerSpecs.get(ffnLayerSpecs.size()-1).size : layerSpecs.get(layerSpecs.size()-1).size; //Setting previous size not important.
 		ffnLayerSpecs.add(outputLayerSpec);
 		
 		//Adding residual layer if the output size is the same to the FFN size.

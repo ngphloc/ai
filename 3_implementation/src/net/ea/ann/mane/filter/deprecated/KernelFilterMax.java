@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.filter;
+package net.ea.ann.mane.filter.deprecated;
 
 import java.awt.Dimension;
 
@@ -26,6 +26,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
+@Deprecated
 public class KernelFilterMax extends KernelFilterProduct {
 
 
@@ -36,11 +37,12 @@ public class KernelFilterMax extends KernelFilterProduct {
 
 	
 	/**
-	 * Constructor with kernel.
+	 * Constructor with kernel and weight.
 	 * @param kernel specific kernel.
+	 * @param weight specific weight.
 	 */
-	protected KernelFilterMax(FKernel kernel) {
-		super(kernel);
+	protected KernelFilterMax(FKernel kernel, NeuronValue weight) {
+		super(kernel, weight);
 	}
 
 
@@ -143,12 +145,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 				}
 				NeuronValue filteredValueMax = filteredValue.get(maxIndex);
 				if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, indexValue(maxIndex, filteredValueMax));
-				NeuronValue thisBias = this.bias(time, thisY, thisX);
-				if (thisBias != null)
-					filteredValueMax = filteredValueMax.add(thisBias);
-				if (bias != null) {
-					if (thisBias == null || Kernel.GLOBAL_BIAS) filteredValueMax = filteredValueMax.add(bias);
-				}
+				if (bias != null) filteredValueMax = filteredValueMax.add(bias);
 				if (thisActivateRef != null) filteredValueMax = filteredValueMax.evaluate(thisActivateRef);
 				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValueMax);
 			}
@@ -192,7 +189,6 @@ public class KernelFilterMax extends KernelFilterProduct {
 		NeuronValueVector prevOutputV = (NeuronValueVector)prevOutputLayer.get(thisY, thisX);
 		int maxIndex = index(prevOutputV);
 		NeuronValue derivative = thisActivateRef != null ? value(prevOutputV).derivativeWiseBy(thisActivateRef) : null;
-		if (derivative != null) thisError = derivative.multiplyWise(thisError);
 		for (int i = 0; i < kernelDepth; i++) {
 			dValues[i] = prevInputLayers.get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
@@ -203,6 +199,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 					}
 					NeuronValue kernelValue = kernel[time].get(i).get(j, k);
 					NeuronValue prevError = kernelValue.multiply(thisError);
+					if (derivative != null) prevError = derivative.multiplyWise(prevError);
 					dValues[i].set(j, k, this.weight != null ? prevError.multiply(this.weight) : prevError);
 				}
 			}
@@ -212,10 +209,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 
 
 	@Override
-	BiasWeight dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
-		assert (this.kernel.Bias == null && this.kernel.bias != null);
-		assert (this.kernel.bias.length == time());
-
+	MatrixStack dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
@@ -246,12 +240,10 @@ public class KernelFilterMax extends KernelFilterProduct {
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		MatrixStack[] kernel = this.kernel.W;
 		NeuronValue zero = thisError.zero();
-		NeuronValue dbiases = zero;
 		//
 		NeuronValueVector prevOutputV = (NeuronValueVector)prevOutputLayer.get(thisY, thisX);
 		int maxIndex = index(prevOutputV);
 		NeuronValue derivative = thisActivateRef != null ? value(prevOutputV).derivativeWiseBy(thisActivateRef) : null;
-		if (derivative != null) thisError = derivative.multiplyWise(thisError);
 		for (int i = 0; i < kernelDepth; i++) {
 			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
@@ -263,13 +255,12 @@ public class KernelFilterMax extends KernelFilterProduct {
 					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(prevY+j, prevX+k) :
 						prevInputLayers.get(time).get(prevY+j, prevX+k); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
+					if (derivative != null) dKernel = derivative.multiplyWise(dKernel);
 					dKernels[i].set(j, k, this.weight != null ? dKernel.multiply(this.weight) : dKernel);
-					
-					dbiases = dbiases.add(thisError);
 				}
 			}
 		}
-		return new BiasWeight(new MatrixStack(dKernels), null, dbiases);
+		return new MatrixStack(dKernels);
 	}
 
 
@@ -281,7 +272,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 	 * @return product filter created from kernel value.
 	 */
 	public static KernelFilterMax create(double kernelValue, Size size, NeuronValue hint) {
-		KernelFilterMax filter = new KernelFilterMax(createKernel(kernelValue, size, hint));
+		KernelFilterMax filter = new KernelFilterMax(createKernel(kernelValue, size, hint), hint.unit());
 		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
 		return filter;
 	}
