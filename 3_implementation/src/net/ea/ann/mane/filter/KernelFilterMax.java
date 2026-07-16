@@ -264,7 +264,6 @@ public class KernelFilterMax extends KernelFilterProduct {
 						prevInputLayers.get(time).get(prevY+j, prevX+k); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
 					dKernels[i].set(j, k, this.weight != null ? dKernel.multiply(this.weight) : dKernel);
-					
 					dbiases = dbiases.add(thisError);
 				}
 			}

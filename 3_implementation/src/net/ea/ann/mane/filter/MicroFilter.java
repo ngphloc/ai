@@ -259,7 +259,6 @@ public class MicroFilter extends KernelFilter {
 						prevInputLayers.get(time).get(prevY, prevX); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
 					dKernels[i].set(thisY, thisX, dKernel);
-					
 					if (dBiases != null) dBiases.set(thisY, thisX, thisError);
 					if (dbiases != null) dbiases = dbiases.add(thisError);
 				}

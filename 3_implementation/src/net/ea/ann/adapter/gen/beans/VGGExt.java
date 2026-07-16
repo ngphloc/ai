@@ -48,7 +48,7 @@ public class VGGExt extends ClassifierModelAbstract {
 	@Override
 	protected Classifier createGenModel() {
 		try {
-			return new net.ea.ann.classifier.VGGExt(getNeuronChannel());
+			return new net.ea.ann.classifier.VGGExt(getNeuronChannel(), getRasterChannel());
 		} catch (Throwable e) {Util.trace(e);}
 		return null;
 	}

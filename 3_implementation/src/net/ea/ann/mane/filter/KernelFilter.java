@@ -634,9 +634,10 @@ public abstract class KernelFilter extends FilterAbstract {
 				assert (dKernel.width() == width() && dKernel.height() == height() && dKernel.depth() == depth());
 				dKernels = (MatrixStack)dKernels.add(dKernel);
 				
-				assert (dBiasWeight.bias != null);
-				if (dBiases != null) dBiases.set(thisY, thisX, dBiasWeight.bias);
-				if (dbiases != null) dbiases = dbiases.add(dBiasWeight.bias);
+				//Improving following code lines later with matrix bias.
+				assert (dBiasWeight.bias != null && dBiasWeight.Bias == null);
+				if (dBiases != null && dBiasWeight.bias != null) dBiases.set(thisY, thisX, dBiasWeight.bias);
+				if (dbiases != null && dBiasWeight.bias != null) dbiases = dbiases.add(dBiasWeight.bias);
 			}
 		}
 		

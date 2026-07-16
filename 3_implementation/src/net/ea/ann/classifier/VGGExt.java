@@ -42,12 +42,15 @@ public class VGGExt extends NetworkAbstract implements Classifier {
 	/**
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
+	 * @param rasterChannel raster channel.
 	 */
-	public VGGExt(int neuronChannel) {
+	public VGGExt(int neuronChannel, int rasterChannel) {
 		super();
 		
 		//Removing following lines after debugging.
 		this.classifier = new VGGClassifier(neuronChannel);
+		this.classifier.paramSetRasterChannel(rasterChannel);
+		
 //		this.classifier.paramSetDropoutMode(false);
 //		this.classifier.paramSetResidualMode(false);
 //		this.classifier.paramSetGAP(false);

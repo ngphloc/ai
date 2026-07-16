@@ -972,6 +972,10 @@ class VGGCore extends ResidualNetwork {
 					if (filterType == Type.kernel) {
 						layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, filterType);
 						layerSpec.filterSpec.kernelType = paramGetFilterKernelType();
+						if ((layerSpec.filterSpec.kernelType == KernelType.micro)
+								&& (layerSpec.size.width != layerSpec.prevSize.width || layerSpec.size.height != layerSpec.prevSize.height)) {
+							layerSpec.filterSpec.kernelType = KernelType.product;
+						}
 					}
 					else if (filterType == Type.pool) {
 						if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
@@ -1025,12 +1029,16 @@ class VGGCore extends ResidualNetwork {
 			if (paramIsFilterEndPoolMode() && block < blockSizes.size()-1) {
 				Size poolSize = new Size(blockSizes.get(block+1).width, blockSizes.get(block+1).height, blockSize.depth, 1);
 				VGG.LayerSpec layerSpec = new VGG.LayerSpec(poolSize);
-				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size; //Setting previous size not important.
+				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 				
 				if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
 					layerSpec.filterSpec.poolType = paramGetFilterPoolType();
-					layerSpec.filterSpec.moveStride = true; //It means zooming out to be smaller.
+					if (!flatten) layerSpec.filterSpec.poolType = PoolType.average;
+					if (layerSpec.prevSize.width >= base*layerSpec.size.width && layerSpec.prevSize.height >= base*layerSpec.size.height)
+						layerSpec.filterSpec.moveStride = true; //It means zooming out to be smaller.
+					else
+						layerSpec.filterSpec.moveStride = false;
 					layerSpec.filterSpec.coweight = false; //This code line is not necessary because weight specification is not specified but confirming that by default pooling filter is not associated with weight matrix because of reduced layer size (width and height).
 					layerSpecs.add(layerSpec);
 				}
@@ -1297,7 +1305,7 @@ class VGGCore extends ResidualNetwork {
 	 * Checking filter mode. If false, filtering is not applied.
 	 * @return filter mode.
 	 */
-	boolean paramIsFilterMode() {
+	public boolean paramIsFilterMode() {
 		if (config.containsKey(FILTER_MODE_FIELD))
 			return config.getAsBoolean(FILTER_MODE_FIELD);
 		else
@@ -1310,7 +1318,7 @@ class VGGCore extends ResidualNetwork {
 	 * @param filterMode filter mode. If false, filtering is not applied.
 	 * @return this VGG.
 	 */
-	VGGCore paramSetFilterMode(boolean filterMode) {
+	public VGGCore paramSetFilterMode(boolean filterMode) {
 		config.put(FILTER_MODE_FIELD, filterMode);
 		return this;
 	}
@@ -1464,7 +1472,7 @@ class VGGCore extends ResidualNetwork {
 	 * Getting filter size.
 	 * @return filter size.
 	 */
-	int paramGetFilterSize() {
+	public int paramGetFilterSize() {
 		int filterSize = config.getAsInt(FILTER_SIZE_FIELD);
 		return filterSize < 1 ? FILTER_SIZE_DEFAULT : filterSize;
 	}
@@ -1475,7 +1483,7 @@ class VGGCore extends ResidualNetwork {
 	 * @param filterSize filter size.
 	 * @return this classifier.
 	 */
-	VGGCore paramSetFilterSize(int filterSize) {
+	public VGGCore paramSetFilterSize(int filterSize) {
 		filterSize = filterSize < 1 ? FILTER_SIZE_DEFAULT : filterSize;
 		config.put(FILTER_SIZE_FIELD, filterSize);
 		return this;
@@ -1486,7 +1494,7 @@ class VGGCore extends ResidualNetwork {
 	 * Getting length of feed-forward network.
 	 * @return length of feed-forward network.
 	 */
-	int paramGetFFNLength() {
+	public int paramGetFFNLength() {
 		if (config.containsKey(FFN_LENGTH_FIELD))
 			return config.getAsInt(FFN_LENGTH_FIELD);
 		else
@@ -1499,7 +1507,7 @@ class VGGCore extends ResidualNetwork {
 	 * @param ffnLength length of feed-forward network.
 	 * @return this VGG.
 	 */
-	VGGCore paramSetFFNLength(int ffnLength) {
+	public VGGCore paramSetFFNLength(int ffnLength) {
 		ffnLength = ffnLength < 1 ? FFN_LENGTH_DEFAULT : ffnLength;
 		config.put(FFN_LENGTH_FIELD, ffnLength);
 		return this;
@@ -1602,7 +1610,7 @@ class VGGCore extends ResidualNetwork {
 	 * Checking filter pooling type.
 	 * @return filter pooling type.
 	 */
-	PoolType paramGetFilterPoolType() {
+	public PoolType paramGetFilterPoolType() {
 		if (config.containsKey(FILTER_POOL_TYPE_FIELD))
 			return FilterSpec.intToPoolType(config.getAsInt(FILTER_POOL_TYPE_FIELD));
 		else
@@ -1615,7 +1623,7 @@ class VGGCore extends ResidualNetwork {
 	 * @param poolType filter pooling type.
 	 * @return this model.
 	 */
-	VGGCore paramSetFilterPoolType(PoolType poolType) {
+	public VGGCore paramSetFilterPoolType(PoolType poolType) {
 		config.put(FILTER_POOL_TYPE_FIELD, FilterSpec.poolTypeToInt(poolType));
 		return this;
 	}
@@ -1683,7 +1691,7 @@ class VGGCore extends ResidualNetwork {
 	 * Checking weight kernel type.
 	 * @return weight kernel type.
 	 */
-	net.ea.ann.mane.WeightSpec.KernelType paramGetWeightKernelType() {
+	public net.ea.ann.mane.WeightSpec.KernelType paramGetWeightKernelType() {
 		if (config.containsKey(WEIGHT_KERNEL_TYPE_FIELD))
 			return WeightSpec.intToKernelType(config.getAsInt(WEIGHT_KERNEL_TYPE_FIELD));
 		else
@@ -1696,7 +1704,7 @@ class VGGCore extends ResidualNetwork {
 	 * @param kernelType weight kernel type.
 	 * @return this model.
 	 */
-	VGGCore paramSetWeightKernelType(net.ea.ann.mane.WeightSpec.KernelType kernelType) {
+	public VGGCore paramSetWeightKernelType(net.ea.ann.mane.WeightSpec.KernelType kernelType) {
 		config.put(WEIGHT_KERNEL_TYPE_FIELD, WeightSpec.kernelTypeToInt(kernelType));
 		return this;
 	}

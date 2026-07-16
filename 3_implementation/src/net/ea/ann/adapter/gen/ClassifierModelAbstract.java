@@ -18,6 +18,7 @@ import net.ea.ann.adapter.gen.beans.MatrixClassifier;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
 import net.ea.ann.adapter.gen.beans.TransformerClassifier;
 import net.ea.ann.adapter.gen.beans.VGG;
+import net.ea.ann.adapter.gen.beans.VGGExt;
 import net.ea.ann.adapter.gen.ui.GenUIClassifier;
 import net.ea.ann.classifier.Classifier;
 import net.ea.ann.classifier.ClassifierBuilder.ClassifierModel;
@@ -308,6 +309,8 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 	public static ClassifierModel extractClassifierModel(GenModelRemote gm) {
 		if (gm instanceof VGG)
 			return ClassifierModel.vgg;
+		else if (gm instanceof VGGExt)
+			return ClassifierModel.vggext;
 		else if (gm instanceof MatrixClassifier)
 			return ClassifierModel.mac;
 		else if (gm instanceof TransformerClassifier)

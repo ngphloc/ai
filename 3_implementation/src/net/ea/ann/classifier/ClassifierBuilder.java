@@ -21,6 +21,7 @@ import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.WeightSpec;
 import net.ea.ann.mane.WeightSpec.KernelType;
+import net.ea.ann.mane.beans.VGGClassifier;
 import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.Size;
 
@@ -58,6 +59,11 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		 */
 		vgg,
 
+		/**
+		 * Extensive VGG model.
+		 */
+		vggext,
+		
 		/**
 		 * NiN (network-in-network) classifier.
 		 */
@@ -284,18 +290,21 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			model = ClassifierModel.vgg;
 			break;
 		case 1:
-			model = ClassifierModel.nin;
+			model = ClassifierModel.vggext;
 			break;
 		case 2:
-			model = ClassifierModel.mac;
+			model = ClassifierModel.nin;
 			break;
 		case 3:
-			model = ClassifierModel.tramac;
+			model = ClassifierModel.mac;
 			break;
 		case 4:
-			model = ClassifierModel.forest;
+			model = ClassifierModel.tramac;
 			break;
 		case 5:
+			model = ClassifierModel.forest;
+			break;
+		case 6:
 			model = ClassifierModel.stack;
 			break;
 		default:
@@ -316,6 +325,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		switch (modelText.toLowerCase()) {
 		case "vgg":
 			model = ClassifierModel.vgg;
+			break;
+		case "vggext":
+			model = ClassifierModel.vggext;
 			break;
 		case "nin":
 			model = ClassifierModel.nin;
@@ -351,20 +363,23 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		case vgg:
 			modelIndex = 0; 
 			break;
-		case nin:
+		case vggext:
 			modelIndex = 1; 
 			break;
-		case mac:
+		case nin:
 			modelIndex = 2; 
 			break;
-		case tramac:
+		case mac:
 			modelIndex = 3; 
 			break;
-		case forest:
+		case tramac:
 			modelIndex = 4; 
 			break;
-		case stack:
+		case forest:
 			modelIndex = 5; 
+			break;
+		case stack:
+			modelIndex = 6; 
 			break;
 		default:
 			break;
@@ -383,6 +398,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		switch (model) {
 		case vgg:
 			modelText = "vgg";
+			break;
+		case vggext:
+			modelText = "vggext";
 			break;
 		case nin:
 			modelText = "nin";
@@ -762,6 +780,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		case vgg:
 			classifier = VGG.create(neuronChannel, rasterChannel, true); 
 			break;
+		case vggext:
+			classifier = new VGGExt(neuronChannel, rasterChannel);
+			break;
 		case nin:
 			classifier = NiN.create(neuronChannel, rasterChannel, true); 
 			break;
@@ -804,6 +825,22 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			vgg.paramSetFiltersNumber(filtersNumber);
 			vgg.paramSetVGGMiddleSize(middleSize);
 			vgg.paramSetFFNLength(ffnLength);
+		}
+		else if (classifier instanceof VGGExt) {
+			VGGClassifier vggext =((VGGExt)classifier).classifier;
+			vggext.paramSetLearningRate(learningRate);
+			vggext.paramSetBatches(batches);
+			vggext.paramSetFilterMode(filterMode);
+			vggext.paramSetFilterSize(filterSize);
+			vggext.paramSetFilterPoolType(poolType);
+			vggext.paramSetWeightKernelType(weightType);
+			vggext.paramSetVectorized(vectorized);
+
+			vggext.paramSetBlocksNumber(blocks);
+			vggext.paramSetLayersNumber(depth);
+			vggext.paramSetFiltersNumberInit(filtersNumber);
+			vggext.paramSetVGGMiddleSize(middleSize);
+			vggext.paramSetFFNLength(ffnLength);
 		}
 		else if (classifier instanceof NiN) {
 			NiN nin = (NiN)classifier;
@@ -857,7 +894,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		
 		int defaultModelIndex = toModelIndex(ClassifierModel.vgg);
 		int modelIndex = defaultModelIndex;
-		printer.print("Model (0-vgg, 1-nin, 2-mac, 3-tramac, 4-forest, 5-stack) (default " + defaultModelIndex + " is " + toModel(defaultModelIndex) + "):");
+		printer.print("Model (0-vgg, 1-vggext, 2-nin, 3-mac, 4-tramac, 5-forest, 6-stack) (default " + defaultModelIndex + " is " + toModel(defaultModelIndex) + "):");
 		try {
 			String line = scanner.nextLine().trim();
 			if (!line.isBlank() && !line.isEmpty()) modelIndex = Integer.parseInt(line);
@@ -1020,7 +1057,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setDepth(depth);
 		builder.setEntropyTrainer(entropyTrainer);
 
-		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.nin) {
+		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.vggext || builder.getModel() == ClassifierModel.nin) {
 			int defaultMiddleSize = net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT.width;
 			int middleSize = defaultMiddleSize;
 			printer.print("Middle size (default (" + defaultMiddleSize + ", " + defaultMiddleSize + ") ):");
@@ -1058,7 +1095,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			builder.setFFNLength(ffnLength);
 		}
 		
-		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.nin || builder.getModel() == ClassifierModel.tramac) {
+		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.vggext || builder.getModel() == ClassifierModel.nin || builder.getModel() == ClassifierModel.tramac) {
 			int defaultBlocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 			int blocks = defaultBlocks;
 			printer.print("Blocks (default " + defaultBlocks + "):");
@@ -1068,7 +1105,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			} catch (Throwable e) {}
 			if (Double.isNaN(blocks)) blocks = defaultBlocks;
 			if (blocks <= 0) blocks = defaultBlocks;
-			printer.println("Blocks are " + blocks + "\n");
+			printer.println("The number of blocks is " + blocks + "\n");
 			builder.setBlocks(blocks);
 		}
 		
