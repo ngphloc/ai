@@ -121,15 +121,15 @@ public abstract class PoolFilter extends FilterAbstract {
 	/**
 	 * Calculating derivative of previous layer given current layer as bias layer at specified coordinator.
 	 * @param time time.
-	 * @param thisX current X coordinator.
 	 * @param thisY current Y coordinator.
+	 * @param thisX current X coordinator.
 	 * @param prevInputLayer previous input layers.
 	 * @param prevOutputLayer previous output layer.
 	 * @param thisErrorLayer current layer as bias layer.
 	 * @param thisActivateRef activation function of current layer.
 	 * @return derivative of previous layer given current layer as bias layers.
 	 */
-	abstract Matrix dValue(int thisX, int thisY, Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer);
+	abstract Matrix dValue(int thisY, int thisX, Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer);
 
 		
 	/**
@@ -144,7 +144,7 @@ public abstract class PoolFilter extends FilterAbstract {
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers) {
-		if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != depth()) throw new IllegalArgumentException();
+		if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != depth() || thisErrorLayers.depth() != depth()) throw new IllegalArgumentException();
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 
 		NeuronValue zero = prevInputLayers.get().get(0, 0).zero();
@@ -172,11 +172,14 @@ public abstract class PoolFilter extends FilterAbstract {
 				
 				//Calculating gradient.
 				for (int i = 0; i < this.depth(); i++) {
+					/*
 					Matrix dPrevValue = null;
 					for (int count = 0; count < thisErrorLayers.depth(); count++) {
-						Matrix dValue = this.dValue(thisX, thisY, prevInputLayers.get(i), prevOutputLayers.get(i), thisErrorLayers.get(count));
+						Matrix dValue = this.dValue(thisY, thisX, prevInputLayers.get(i), prevOutputLayers.get(i), thisErrorLayers.get(count));
 						dPrevValue = dPrevValue != null ? dPrevValue.add(dValue) : dValue; 
 					}
+					*/
+					Matrix dPrevValue = this.dValue(thisY, thisX, prevInputLayers.get(i), prevOutputLayers.get(i), thisErrorLayers.get(i));
 					if (dPrevValue == null) continue;
 					for (int j = 0; j < dPrevValue.rows(); j++) {
 						int prevRow = prevY + j;

@@ -426,7 +426,9 @@ public class WeightImpl implements Weight, TextParsable {
 		}
 		else {
 			if (prevInputs.depth() != time() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (summode || depth() != 1) throw new IllegalArgumentException();
+			if (summode || depth() != 1) {
+				if (Kernel.BILINEAR) throw new IllegalArgumentException();
+			}
 		}
 		
 		int time = time();
@@ -496,8 +498,9 @@ public class WeightImpl implements Weight, TextParsable {
 		}
 		else {
 			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (summode) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
+			if (summode || depth() != 1) {
+				if (Kernel.BILINEAR) throw new IllegalArgumentException();
+			}
 		}
 		
 		if (this.W1() == null) return null;
@@ -544,7 +547,9 @@ public class WeightImpl implements Weight, TextParsable {
 		}
 		else {
 			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (summode || depth() != 1) throw new IllegalArgumentException();
+			if (summode || depth() != 1) {
+				if (Kernel.BILINEAR) throw new IllegalArgumentException();
+			}
 		}
 		
 		if (this.W2() == null) return null;

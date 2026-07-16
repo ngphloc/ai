@@ -36,7 +36,7 @@ public interface Kernel extends Cloneable, Serializable {
 	/**
 	 * Always summing flag.
 	 */
-	final static boolean BILINEAR = true;
+	static boolean BILINEAR = true;
 	
 	
 	/**

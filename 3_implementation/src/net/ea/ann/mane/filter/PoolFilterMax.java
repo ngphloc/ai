@@ -128,7 +128,7 @@ public class PoolFilterMax extends PoolFilter {
 
 
 	@Override
-	Matrix dValue(int thisX, int thisY, Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer) {
+	Matrix dValue(int thisY, int thisX, Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer) {
 		int kernelWidth = width(), kernelHeight = height();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayer.columns(), prevHeight = prevInputLayer.rows();
@@ -157,13 +157,14 @@ public class PoolFilterMax extends PoolFilter {
 
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		NeuronValueV thisErrorIndex = (NeuronValueV)prevOutputLayer.get(thisY, thisX);
+		int maxRow = (int)thisErrorIndex.get(0), maxColumn = (int)thisErrorIndex.get(1);
 		NeuronValue zero = thisError.zero();
 		Matrix dPrevValue = prevInputLayer.create(new Size(kernelWidth, kernelHeight));
 		for (int j = 0; j < kernelHeight; j++) {
 			int prevRow = prevY + j;
 			for (int k = 0; k < kernelWidth; k++) {
 				int prevColumn = prevX + k;
-				if (thisErrorIndex.get(0) == prevRow && thisErrorIndex.get(1) == prevColumn)
+				if (prevRow == maxRow && prevColumn == maxColumn)
 					dPrevValue.set(j, k, thisError);
 				else
 					dPrevValue.set(j, k, zero);
