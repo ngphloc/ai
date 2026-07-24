@@ -43,6 +43,18 @@ public class ResidualLayer extends MatrixLayerImpl  {
 
 	
 	/**
+	 * Field of layer batch normalization.
+	 */
+	public final static String RESIDUAL_BATCH_FIELD = "mane_layer_residual_batch";
+	
+	
+	/**
+	 * Default value for field of layer batch normalization.
+	 */
+	public final static boolean RESIDUAL_BATCH_DEFAULT = false;
+
+	
+	/**
 	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.

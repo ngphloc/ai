@@ -7,8 +7,6 @@
  */
 package net.ea.ann.mane;
 
-import java.util.Random;
-
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
@@ -86,12 +84,6 @@ public class CustomLayer extends MatrixLayerImpl {
 		return super.backward(outputErrors, focus, learning, learningRate);
 	}
 
-
-	/**
-	 * Custom initializing parameters.
-	 * @param rnd randomizer.
-	 */
-	public void initParamsCustom(Random rnd) {}
 
 }
 

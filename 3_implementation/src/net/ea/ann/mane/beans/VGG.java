@@ -30,6 +30,7 @@ import net.ea.ann.mane.layers.FlattenLayer2;
 import net.ea.ann.mane.layers.NullLayer;
 import net.ea.ann.mane.layers.ResidualLayer;
 import net.ea.ann.mane.layers.ResidualNetwork;
+import net.ea.ann.mane.weight.NormWeight;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerBasic;
 import net.hudup.core.parser.TextParserUtil;
@@ -191,7 +192,10 @@ public class VGG extends VGGCore {
 				
 				//Adding residual layer.
 				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= depthDefault) {
-					addResidualBatch(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
+					if (paramIsResidualBatch())
+						addResidualBatch(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
+					else
+						addResidual(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
 				}
 			}
 			
@@ -452,12 +456,14 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Field for initial number of filters.
 	 * It can be zero for automatic calculation.
+	 * The larger this parameter is, the more the model is accurate. Some effective model establishes initial 64 filters.
 	 */
 	public final static String FILTERS_NUMBER_INIT_FIELD = "vgg_filter_number_init";
 	
 	
 	/**
 	 * Default value for initial number of filters. It is also the initial depth of layer.
+	 * The larger this parameter is, the more the model is accurate. Some effective model establishes initial 64 filters.
 	 * It can be zero for automatic calculation.
 	 */
 	public final static int FILTERS_NUMBER_INIT_DEFAULT = 0; //= BASE*BASE, = BASE
@@ -1224,7 +1230,7 @@ class VGGCore extends ResidualNetwork {
 			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
 			normLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.norm_depth : net.ea.ann.mane.WeightSpec.KernelType.norm;
-			if (normLayerSpec.size.depth >= 8 || normLayerSpec.size.width*normLayerSpec.size.height >= 64)
+			if (normLayerSpec.size.depth >= NormWeight.LARGE_DEPTH || normLayerSpec.size.width*normLayerSpec.size.height >= NormWeight.LARGE_DEPTH)
 				layerSpecs.add(normLayerSpec);
 		}
 	}
@@ -1445,8 +1451,9 @@ class VGGCore extends ResidualNetwork {
 
 	
 	/**
-	 * Getting initial number of filters per layer which is also the initial depth of layer, which is 4 by default.
+	 * Getting initial number of filters per layer which is also the initial depth of layer, which is 3 by default.
 	 * Moreover it can be zero for automatic calculation.
+	 * The larger this parameter is, the more the model is accurate. Some effective model establishes initial 64 filters.
 	 * @return initial number of filters per layer.
 	 */
 	public int paramGetFiltersNumberInit() {
@@ -1459,7 +1466,8 @@ class VGGCore extends ResidualNetwork {
 	
 	/**
 	 * Setting initial number of filters per layer.
-	 * @param filtersNumberInit initial number of filters per layer which is also the initial depth of layer, which is 4 by default.
+	 * The larger this parameter is, the more the model is accurate. Some effective model establishes initial 64 filters.
+	 * @param filtersNumberInit initial number of filters per layer which is also the initial depth of layer, which is 3 by default.
 	 * Moreover it can be zero for automatic calculation.
 	 * @return this VGG.
 	 */

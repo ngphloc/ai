@@ -122,12 +122,14 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	
 	/**
 	 * Name of batch-size field.
+	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 */
 	public final static String BATCH_SIZE_FILED = "net_batch_size";
 	
 	
 	/**
 	 * Default value of batch-size field.
+	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 */
 	public final static int BATCH_SIZE_DEFAULT = 20;
 
@@ -405,6 +407,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	
 	/**
 	 * Getting batch size.
+	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 * @return batch size.
 	 */
 	public int paramGetBatchSize() {
@@ -416,6 +419,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	
 	/**
 	 * Setting batch size.
+	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 * @param batchSize batch size.
 	 * @return this network.
 	 */
@@ -429,6 +433,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	
 	/**
 	 * Calculating count of batches.
+	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 * @param <T> record type.
 	 * @param sample sample.
 	 * @return count of batches.

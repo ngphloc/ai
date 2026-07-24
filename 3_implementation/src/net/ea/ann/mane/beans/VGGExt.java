@@ -104,12 +104,14 @@ class VGGExt extends VGG {
 	
 	/**
 	 * Field of maximum class probability.
+	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 */
 	public final static String MAX_CLASS_PROB_FIELD = "vgg_class_max_prob";
 
 	
 	/**
 	 * Default value for field of maximum class probability.
+	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 */
 	private final static double MAX_CLASS_PROB_DEFAULT = 0.99; //0.9
 	
@@ -1158,6 +1160,7 @@ class VGGExt extends VGG {
 	
 	/**
 	 * Getting maximum class probability.
+	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 * @return maximum class probability.
 	 */
 	double paramGetMaxClassProb() {
@@ -1172,6 +1175,7 @@ class VGGExt extends VGG {
 	
 	/**
 	 * Setting maximum class probability.
+	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 * @param maxProb maximum class probability.
 	 * @return this model.
 	 */

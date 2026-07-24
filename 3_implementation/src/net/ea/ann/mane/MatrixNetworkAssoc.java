@@ -22,7 +22,6 @@ import java.util.Scanner;
 import net.ea.ann.core.Network;
 import net.ea.ann.core.NetworkAbstract;
 import net.ea.ann.core.Util;
-import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Raster3DImpl;
 import net.ea.ann.raster.RasterAssoc;
@@ -76,9 +75,7 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 	/**
 	 * Initializing parameters.
 	 */
-	public void initParams() {
-		initParams(new Random());
-	}
+	public void initParams() {initParams(new Random());}
 	
 	
 	/**
@@ -89,12 +86,7 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 		int size = 0;
 		for (int i = 0; i < mane.layers.length; i++) {
 			if (!(mane.layers[i] instanceof MatrixLayerImpl)) continue;
-			MatrixLayerImpl layer = (MatrixLayerImpl)mane.layers[i];
-			if (layer.weight != null) size += layer.weight.sizeOfParams();
-			if (layer.bias != null) size += MatrixUtil.capacity(layer.bias);
-			
-			if (layer.filter != null) size += layer.filter.sizeOfParams();;
-			if (layer.filterBias != null) size++;
+			size += ((MatrixLayerImpl)mane.layers[i]).sizeOfParams();
 		}
 		return size;
 	}

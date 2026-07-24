@@ -95,6 +95,7 @@ public class DropoutNetwork extends MatrixNetworkImpl {
 
 	/**
 	 * Getting dropout rate. The dropout rate should be from 0.2 to 0.5.
+	 * The larger this parameter is, the less the model is overfitting, the less the model is accurate.
 	 * @return dropout rate.
 	 */
 	double paramGetDropoutRate() {
@@ -107,6 +108,7 @@ public class DropoutNetwork extends MatrixNetworkImpl {
 	
 	/**
 	 * Setting dropout rate. The dropout rate should be from 0.2 to 0.5.
+	 * The larger this parameter is, the less the model is overfitting, the less the model is accurate.
 	 * @param dropoutRate dropout rate.
 	 * @return network.
 	 */

@@ -161,6 +161,15 @@ public class BatchNormLayer extends CustomLayer {
 	public BatchNormLayer(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 
+	@Override
+	public int sizeOfParams() {
+		int size = super.sizeOfParams();
+		MatrixStack W = kerW(), bias = kerBias();
+		size += (W != null ? MatrixUtil.capacity(W) : 0) + (bias != null ? MatrixUtil.capacity(bias) : 0);
+		return size;
+	}
+
+
 	/**
 	 * Getting the kernel weight.
 	 * @return the kernel weight.

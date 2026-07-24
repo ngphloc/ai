@@ -8,6 +8,7 @@
 package net.ea.ann.mane;
 
 import java.util.List;
+import java.util.Random;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Network;
@@ -298,6 +299,34 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		return true;
 	}
 	
+	
+	/**
+	 * Initializing parameters.
+	 * @param rnd randomizer.
+	 */
+	public void initParams(Random rnd) {
+		if (this.weight != null) this.weight.initParams(rnd);
+		if (this.bias != null) MatrixUtil.fill(this.bias, 0);
+		
+		if (this.filter != null) this.filter.initParams(rnd);
+		if (this.filterBias != null) this.filterBias = this.filterBias.zero();
+	}
+
+	
+	/**
+	 * Getting size of parameters.
+	 * @return size of parameters.
+	 */
+	public int sizeOfParams() {
+		int size = 0;
+		if (this.weight != null) size += this.weight.sizeOfParams();
+		if (this.bias != null) size += MatrixUtil.capacity(this.bias);
+		
+		if (this.filter != null) size += this.filter.sizeOfParams();;
+		if (this.filterBias != null) size++;
+		return size;
+	}
+
 	
 	@Override
 	public Matrix getPrevInput() {return this.prevInput;}

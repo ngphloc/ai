@@ -39,12 +39,14 @@ public class DropoutLayer extends MatrixLayerImpl {
 	
 	/**
 	 * Field for dropout mode.
+	 * The larger this parameter is, the less the model is overfitting, the less the model is accurate.
 	 */
 	public final static String DROPOUT_MODE_FIELD = "mane_layer_dropout";
 	
 	
 	/**
 	 * Default value for dropout mode.
+	 * The larger this parameter is, the less the model is overfitting, the less the model is accurate.
 	 */
 	public final static boolean DROPOUT_MODE_DEFAULT = true;
 
@@ -157,6 +159,7 @@ public class DropoutLayer extends MatrixLayerImpl {
 	
 	/**
 	 * Getting dropout rate. The dropout rate should be from 0.2 to 0.5.
+	 * The larger this parameter is, the less the model is overfitting, the less the model is accurate.
 	 * @return dropout rate.
 	 */
 	private double getDropoutRate() {

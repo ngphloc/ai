@@ -35,6 +35,12 @@ public class NormWeight implements Weight, TextParsable {
 
 	
 	/**
+	 * Medium depth.
+	 */
+	public final static int LARGE_DEPTH = 32;
+	
+	
+	/**
 	 * Epsilon.
 	 */
 	public final static double EPSILON = 1E-5;
@@ -289,7 +295,7 @@ public class NormWeight implements Weight, TextParsable {
 	 * Checking across depth mode.
 	 * @return across depth mode.
 	 */
-	private boolean acrossDepth() {return depthMode && W().depth() >= 8;}
+	private boolean acrossDepth() {return depthMode && W().depth() >= LARGE_DEPTH;}
 
 	
 	/**

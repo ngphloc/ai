@@ -43,6 +43,7 @@ public class ResidualNetwork extends DropoutNetwork {
 	public ResidualNetwork(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 		config.put(ResidualLayer.RESIDUAL_MODE_FIELD, ResidualLayer.RESIDUAL_MODE_DEFAULT);
+		config.put(ResidualLayer.RESIDUAL_BATCH_FIELD, ResidualLayer.RESIDUAL_BATCH_DEFAULT);
 	}
 
 	
@@ -266,10 +267,33 @@ public class ResidualNetwork extends DropoutNetwork {
 	 * @param residual residual mode.
 	 * @return this network.
 	 */
-	protected DropoutNetwork paramSetResidualMode(boolean residual) {
+	protected ResidualNetwork paramSetResidualMode(boolean residual) {
 		config.put(ResidualLayer.RESIDUAL_MODE_FIELD, residual);
 		return this;
 	}
 
 
+	/**
+	 * Checking residual batch mode.
+	 * @return residual batch mode.
+	 */
+	protected boolean paramIsResidualBatch() {
+		if (config.containsKey(ResidualLayer.RESIDUAL_BATCH_FIELD))
+			return config.getAsBoolean(ResidualLayer.RESIDUAL_BATCH_FIELD);
+		else
+			return ResidualLayer.RESIDUAL_BATCH_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting residual batch mode.
+	 * @param residualBatch residual batch mode.
+	 * @return this VGG.
+	 */
+	protected ResidualNetwork paramSetResidualBatch(boolean residualBatch) {
+		config.put(ResidualLayer.RESIDUAL_BATCH_FIELD, residualBatch);
+		return this;
+	}
+
+	
 }

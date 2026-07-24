@@ -14,7 +14,6 @@ import net.ea.ann.conv.ConvLayer2DImpl;
 import net.ea.ann.conv.ConvLayerSingle2D;
 import net.ea.ann.conv.ConvNeuron;
 import net.ea.ann.core.value.Matrix;
-import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.Size;
 
@@ -78,15 +77,7 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 	 * Initializing parameters.
 	 * @param rnd randomizer.
 	 */
-	public void initParams(Random rnd) {
-		if (layer.weight != null) layer.weight.initParams(rnd);
-		if (layer.bias != null) MatrixUtil.fill(layer.bias, 0);
-		
-		if (layer.filter != null) layer.filter.initParams(rnd);
-		if (layer.filterBias != null) layer.filterBias = layer.filterBias.zero();
-		
-		if (layer instanceof CustomLayer) ((CustomLayer)layer).initParamsCustom(rnd);
-	}
+	public void initParams(Random rnd) {layer.initParams(rnd);}
 
 	
 	/**
