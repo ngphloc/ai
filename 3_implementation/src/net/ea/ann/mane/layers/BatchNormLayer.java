@@ -468,17 +468,12 @@ public class BatchNormLayer extends CustomLayer {
 		if (prevLayerOutput.rows() != this.output.rows() || prevLayerOutput.columns() != this.output.columns() || MatrixUtil.depth(prevLayerOutput) != MatrixUtil.depth(this.output)) throw new IllegalArgumentException();
 
 		if (Error.extractTrainingFlag(params)) {
-			this.prevOutput = null;
-			this.output = this.input = prevLayerOutput;
-			
 			//Storing batch.
-			this.batchOutputs.add(this.output);
-			
-			Error.addLayerOInput2(this, params);
-			return output;
+			this.batchOutputs.add(prevLayerOutput);
 		}
-		
-		if (this.batchOutputs.size() > 0 || this.batchErrors.size() > 0) throw new IllegalArgumentException();
+		else {
+			if (this.batchOutputs.size() > 0 || this.batchErrors.size() > 0) throw new IllegalArgumentException();
+		}
 		
 		//Setting input and output.
 		Matrix[] norms = norms(prevLayerOutput, this.runningMean, this.runningStd);
@@ -504,6 +499,8 @@ public class BatchNormLayer extends CustomLayer {
 	 * @return evaluated output.
 	 */
 	private Matrix evaluateTrainingEach(Matrix each, Matrix mean, Matrix std) {
+		if (this.batchOutputs.size() == 0 || this.batchErrors.size() == 0 || this.batchOutputs.size() != this.batchErrors.size()) throw new IllegalArgumentException();
+
 		//Setting input and output.
 		Matrix[] norms = norms(each, mean, std);
 		this.prevOutput = norms[0]; //Norm.
