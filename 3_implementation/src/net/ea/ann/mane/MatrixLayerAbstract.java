@@ -19,6 +19,7 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
+import net.ea.ann.mane.weight.NormWeight;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
@@ -316,7 +317,9 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param layerSpec layer specification, which can be null.
 	 */
 	protected Weight newWeight(Size prevSize, Size size, LayerSpec layerSpec) {
-		return WeightSpec.newWeight(prevSize, size, newNeuronValue(), layerSpec, this.neuronChannel);
+		Weight weight = WeightSpec.newWeight(prevSize, size, newNeuronValue(), layerSpec, this.neuronChannel);
+		if (weight instanceof NormWeight) ((NormWeight)weight).setLayer(this);
+		return weight;
 	}
 
 	
@@ -544,7 +547,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Setting previous output value, which is for filtering by default.
 	 * @param prevOutput previous output value.
 	 */
-	protected abstract void setPrevOutput(Matrix prevOutput);
+	public abstract void setPrevOutput(Matrix prevOutput);
 
 	
 	/**
@@ -855,12 +858,20 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @param recordCount record count.
 	 * @return decay factor for L2 regularization.
 	 */
-	static double decay(double learningRate, int recordCount) {
+	protected static double decay(double learningRate, int recordCount) {
 		assert (learningRate > 0 && learningRate < 1 && recordCount > 0);
 		double lambda = LAMBDA; //Regularization strength.
 		recordCount = recordCount < 1 ? 1 : recordCount;
 		return 1.0 - (learningRate * (lambda/recordCount));
 	}
+	
+	
+	/**
+	 * Post back-warding this layer.
+	 * @param outputErrors output errors.
+	 * @param learningRate learning rate.
+	 */
+	protected void backwardPost(Error[] outputErrors, double learningRate) {}
 	
 	
 	@Override

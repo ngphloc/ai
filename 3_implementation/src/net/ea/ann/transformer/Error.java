@@ -271,7 +271,7 @@ public class Error implements Cloneable, Serializable {
 	 * @param params parameters.
 	 * @return true if adding is successful.
 	 */
-	public static void addLayerOInputParams(Object layer, Matrix oinput, Object[] params) {
+	public static void addLayerOInput(Object layer, Matrix oinput, Object[] params) {
 		if (params == null || params.length == 0) return;
 		for (Object param : params) {
 			if (param == null) continue;
@@ -286,7 +286,7 @@ public class Error implements Cloneable, Serializable {
 	 * @param params additional parameters.
 	 * @return true if adding is successful.
 	 */
-	public static void addLayerOInputParams(MatrixLayerExt layer, Object[] params) {
+	public static void addLayerOInput(MatrixLayerExt layer, Object[] params) {
 		if (params == null || params.length == 0) return;
 		for (Object param : params) {
 			if (param == null) continue;
@@ -586,6 +586,38 @@ class Error0 implements Cloneable, Serializable {
 		if (outputLayer == null) return false;
 		Matrix oinput = outputLayer.queryInput();
 		LayerInput layerInput = new LayerInput(layer, oinput);
+		
+		if (outputLayer.getPrevLayer() != null) layerInput.oinputPrevPrev = outputLayer.getPrevLayer().queryOutput();
+		layerInput.oinputPrev = outputLayer.getPrevInput();
+		layerInput.ooutputPrev = outputLayer.getPrevOutput();
+		layerInput.oinput = outputLayer.getInput();
+		layerInput.ooutput = outputLayer.getOutput();
+		if (layer instanceof DropoutLayer) layerInput.dropoutMask = ((DropoutLayer)layer).getDropoutMask();
+
+		if (layerInput.oinput != null) {assert (oinput == layerInput.oinput);}
+		if (layerInput.oinput == null) {assert (oinput == layerInput.oinputPrev);}
+		return addLayerOInput(layerInput);
+	}
+
+	
+	/**
+	 * Adding layer input.
+	 * @param layer layer.
+	 * @return true if adding is successful.
+	 */
+	public boolean addLayerOInput2(MatrixLayerExt layer) {
+		if (layer == null) return false;
+		MatrixLayerAbstract outputLayer = LayerInput.getOutputLayer(layer);
+		if (outputLayer == null) return false;
+		Matrix oinput = outputLayer.queryInput();
+		LayerInput layerInput = layerInput(layer);
+		if (layerInput == null) {
+			layerInput = new LayerInput(layer, oinput);
+			if (!addLayerOInput(layerInput)) return false;
+		}
+		else {
+			layerInput.oinputActual = oinput;
+		}
 		
 		if (outputLayer.getPrevLayer() != null) layerInput.oinputPrevPrev = outputLayer.getPrevLayer().queryOutput();
 		layerInput.oinputPrev = outputLayer.getPrevInput();

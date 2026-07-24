@@ -90,14 +90,28 @@ public interface Weight extends Cloneable, Serializable {
 	
 	/**
 	 * Calculate gradient of previous layers.
+	 * @param prevOutput previous outputs.
+	 * @param thisError current errors.
+	 * @param prevActivateRef previous activation function.
+	 * @return gradient of previous layers (at previous outputs).
+	 */
+	Matrix dValue(Matrix prevOutput, Matrix thisError);
+
+	
+	/**
+	 * Calculate gradient of previous layers.
 	 * @param prevInput previous inputs.
 	 * @param prevOutput previous outputs.
 	 * @param thisError current errors.
 	 * @param prevActivateRef previous activation function.
 	 * @return gradient of previous layers (at previous outputs).
 	 */
-	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef);
-
+	default Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
+		Matrix dValue = dValue(prevOutput, thisError);
+		Matrix derivative = prevInput != null && prevActivateRef != null ? prevInput.derivativeWise(prevActivateRef) : null;
+		return derivative != null ? derivative.multiplyWise(dValue) : dValue;
+	}
+	
 	
 	/**
 	 * Calculating gradient of the current weight.
@@ -108,25 +122,12 @@ public interface Weight extends Cloneable, Serializable {
 	Kernel dKernel(Matrix prevOutput, Matrix thisError);
 	
 	
-	/**
-	 * Calculating gradient of the current weight.
-	 * @param time time.
-	 * @param prevOutput previous output. Previous output and this error are in the same current layer.
-	 * @param thisError current error.
-	 * @param thisActivateRef this activation function.
-	 * @return gradient of the current weight (at this error).
-	 */
-	default Kernel dKernel(Matrix prevOutput, Matrix thisError, Function thisActivateRef) {
-		return dKernel(prevOutput, thisError);
-	}
+//	/**
+//	 * Initializing weight with specified value.
+//	 * @param v specified value.
+//	 */
+//	default void initParams(double v) {}
 
-	
-	/**
-	 * Initializing weight with specified value.
-	 * @param v specified value.
-	 */
-	default void initParams(double v) {}
-	
 	
 	/**
 	 * Filling weight with randomizer.

@@ -341,7 +341,7 @@ public class WeightImpl implements Weight, TextParsable {
 				evaluate(summode ? inputs.get(d) : inputs.get(time), null); //Please pay attention to this code line.
 			sum = sum != null ? sum.add(value) : value;
 		}
-		assert (bias == this.bias(time));
+		if (!Kernel.GLOBAL_BIAS) {assert (bias == null || bias == this.bias(time));}
 		return bias != null ? sum.add(bias) : sum;
 	}
 	
@@ -366,8 +366,11 @@ public class WeightImpl implements Weight, TextParsable {
 		Matrix[] values = new Matrix[time];
 		for (int t = 0; t < time; t++) {
 			Matrix bias0 = null;
-			if (this.bias(t) != null && biases != null)
-				bias0 = Kernel.GLOBAL_BIAS ? this.bias(t).add(biases.get(t)) : this.bias(t);
+			if (this.bias(t) != null && biases != null) {
+				Matrix biasSum = biases.depth() > 1 ? MatrixUtil.sum(MatrixUtil.split(biases)) : null;
+				boolean globalBias = Kernel.GLOBAL_BIAS;
+				bias0 = globalBias && biasSum != null ? this.bias(t).add(biasSum) : this.bias(t);
+			}
 			else if (this.bias(t) != null)
 				bias0 = this.bias(t);
 			else if (biases != null)
@@ -392,20 +395,16 @@ public class WeightImpl implements Weight, TextParsable {
 	/**
 	 * Calculate gradient of previous layers.
 	 * @param time time.
-	 * @param prevInputs previous inputs.
 	 * @param prevOutputs previous outputs.
 	 * @param thisError current error.
-	 * @param prevActivateRef previous activation function.
 	 * @return gradient of previous layers.
 	 */
-	private MatrixStack dValue(int time, MatrixStack prevInputs, MatrixStack prevOutputs, Matrix thisError, Function prevActivateRef) {
+	private MatrixStack dValue(int time, MatrixStack prevOutputs, Matrix thisError) {
 		int depth = depth();
 		Matrix[] dValues = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
-			Matrix prevInput = summode ? prevInputs.get(d) : prevInputs.get(time); //Please pay attention to this code line.
 			Matrix prevOutput = summode ? prevOutputs.get(d) : prevOutputs.get(time); //Please pay attention to this code line.
-			dValues[d] = newCore(W1(time, d), W2(time, d)).
-				dValue(prevInput, prevOutput, thisError, prevActivateRef);
+			dValues[d] = newCore(W1(time, d), W2(time, d)).dValue(prevOutput, thisError);
 		}
 		return new MatrixStack(dValues);
 	}
@@ -413,19 +412,17 @@ public class WeightImpl implements Weight, TextParsable {
 	
 	/**
 	 * Calculate gradient of previous layers.
-	 * @param prevInputs previous inputs.
 	 * @param prevOutputs previous outputs.
 	 * @param thisErrors current errors.
-	 * @param prevActivateRef previous activation function.
 	 * @return gradient of previous layers.
 	 */
-	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef) {
+	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors) {
 		if (prevOutputs.depth() != thisErrors.depth()) {
-			if (prevInputs.depth() != depth() || prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+			if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 			if (!summode) throw new IllegalArgumentException();
 		}
 		else {
-			if (prevInputs.depth() != time() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 			if (summode || depth() != 1) {
 				if (Kernel.BILINEAR) throw new IllegalArgumentException();
 			}
@@ -435,7 +432,7 @@ public class WeightImpl implements Weight, TextParsable {
 		MatrixStack dValueSum = null;
 		if (summode) { //Please pay attention to this code line.
 			for (int t = 0; t < time; t++) {
-				MatrixStack dValue = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef);
+				MatrixStack dValue = dValue(t, prevOutputs, thisErrors.get(t));
 				dValueSum = dValueSum != null ? (MatrixStack)dValueSum.add(dValue) : dValue;
 				assert (dValueSum.depth() == depth());
 			}
@@ -443,24 +440,22 @@ public class WeightImpl implements Weight, TextParsable {
 		else {
 			Matrix[] dValues = new Matrix[time()];
 			for (int t = 0; t < time(); t++) {
-				MatrixStack ds = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef);
+				MatrixStack ds = dValue(t, prevOutputs, thisErrors.get(t));
 				dValues[t] = ds.get(0);
 				assert (ds.depth() == depth());
 			}
 			dValueSum = new MatrixStack(dValues);
 		}
 		assert (dValueSum.depth() == prevOutputs.depth());
-		assert (dValueSum.depth() == prevInputs.depth());
 		return dValueSum;
 	}
 
 
 	@Override
-	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
-		MatrixStack prevInputs = prevInput instanceof MatrixStack ? (MatrixStack)prevInput : new MatrixStack(prevInput);
+	public Matrix dValue(Matrix prevOutput, Matrix thisError) {
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
-		MatrixStack dValue = dValue(prevInputs, prevOutputs, thisErrors, prevActivateRef);
+		MatrixStack dValue = dValue(prevOutputs, thisErrors);
 		return dValue.depth() == 1 ? dValue.get() : dValue;
 	}
 	
@@ -580,23 +575,6 @@ public class WeightImpl implements Weight, TextParsable {
 
 
 	@Override
-	public void initParams(double v) {
-		MatrixStack[] W1 = W1();
-		MatrixStack[] W2 = W2();
-		Matrix[] biases = bias();
-		if (W1 != null) {
-			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, v);
-		}
-		if (W2 != null) {
-			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, v);
-		}
-		if (biases != null) {
-			for (Matrix bias : biases) MatrixUtil.fill(bias, v);
-		}
-	}
-	
-
-	@Override
 	public void initParams(Random rnd) {
 		MatrixStack[] W1 = W1();
 		MatrixStack[] W2 = W2();
@@ -608,7 +586,8 @@ public class WeightImpl implements Weight, TextParsable {
 			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, rnd, w2.rows());
 		}
 		if (biases != null) {
-			for (Matrix bias : biases) MatrixUtil.fill(bias, rnd);
+			NeuronValue zero = biases[0].get(0, 0).zero();
+			for (Matrix bias : biases) MatrixUtil.fill(bias, zero);
 		}
 	}
 
@@ -839,15 +818,11 @@ class WCore implements Cloneable, Serializable {
 	/**
 	 * Calculate gradient of previous layer.
 	 * The three gradient methods {@link #dW1(Matrix, Matrix)}, {@link #dW2(Matrix, Matrix)}, and {@link #dValue(Matrix, Matrix, Matrix, Function)} are the most important in training matrix neural network.
-	 * @param prevInput previous input.
 	 * @param prevOutput previous output.
 	 * @param thisError current error.
-	 * @param prevActivateRef previous activation function.
 	 * @return gradient of previous layer.
 	 */
-	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
-		Matrix derivative = prevInput != null && prevActivateRef != null ? prevInput.derivativeWise(prevActivateRef) : null;
-
+	Matrix dValue(Matrix prevOutput, Matrix thisError) {
 		//Updating errors based on weights.
 		Matrix nextW1T = this.W1;
 		Matrix nextW2 = this.W2;
@@ -860,8 +835,7 @@ class WCore implements Cloneable, Serializable {
 			//errorArray[row] = Matrix.kroneckerProductMutilply(nextW2, nextW1T, row, vecNextError); //Lower but consuming less memory.
 			errorArray[row] = nextW2.kroneckerProductRowOf(nextW1T, row).multiply(vecNextError); //Faster.
 		}
-		Matrix prevError = Matrix.concatV(errorArray);
-		return derivative != null ? derivative.multiplyWise(prevError) : prevError;
+		return Matrix.concatV(errorArray);
 	}
 	
 	
@@ -941,10 +915,8 @@ class WCore1 extends WCore {
 
 
 	@Override
-	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
-		Matrix derivative = prevInput != null && prevActivateRef != null ? prevInput.derivativeWise(prevActivateRef) : null;
-		Matrix prevError = this.W1.transpose().multiply(thisError);
-		return derivative != null ? derivative.multiplyWise(prevError) : prevError;
+	Matrix dValue(Matrix prevOutput, Matrix thisError) {
+		return this.W1.transpose().multiply(thisError);
 	}
 
 
@@ -984,10 +956,8 @@ class WCore2 extends WCore {
 
 
 	@Override
-	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
-		Matrix derivative = prevInput != null && prevActivateRef != null ? prevInput.derivativeWise(prevActivateRef) : null;
-		Matrix prevError = thisError.multiply(this.W2.transpose());
-		return derivative != null ? derivative.multiplyWise(prevError) : prevError;
+	Matrix dValue(Matrix prevOutput, Matrix thisError) {
+		return thisError.multiply(this.W2.transpose());
 	}
 
 

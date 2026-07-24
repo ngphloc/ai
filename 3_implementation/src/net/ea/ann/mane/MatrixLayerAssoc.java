@@ -49,29 +49,43 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 	}
 
 	
-	/**
-	 * Initializing parameters by specified value.
-	 * @param v value.
-	 */
-	public void initParams(double v) {
-		if (layer.weight != null) layer.weight.initParams(v);
-		if (layer.bias != null) MatrixUtil.fill(layer.bias, v);
-		
-		if (layer.filter != null) layer.filter.initParams(v);
-		if (layer.filterBias != null) layer.filterBias = layer.filterBias.valueOf(v);
-	}
+//	/**
+//	 * Initializing parameters by specified value.
+//	 * @param v value.
+//	 */
+//	public void initParams(double v) {
+//		if (layer.weight != null) layer.weight.initParams(v);
+//		if (layer.bias != null) MatrixUtil.fill(layer.bias, v);
+//		
+//		if (layer.filter != null) layer.filter.initParams(v);
+//		if (layer.filterBias != null) layer.filterBias = layer.filterBias.valueOf(v);
+//		
+//		if (layer instanceof BatchNormLayer) {
+//			BatchNormLayer bnl = (BatchNormLayer)layer;
+//			if (bnl.kerW() != null) {
+//				NeuronValue unit = bnl.kerW().get().get(0, 0).unit();
+//				MatrixUtil.fill(bnl.kerW(), unit);
+//			}
+//			if (bnl.kerBias() != null) {
+//				NeuronValue zero = bnl.kerBias().get().get(0, 0).zero();
+//				MatrixUtil.fill(bnl.kerBias(), zero);
+//			}
+//		}
+//	}
 
-
+	
 	/**
 	 * Initializing parameters.
 	 * @param rnd randomizer.
 	 */
 	public void initParams(Random rnd) {
 		if (layer.weight != null) layer.weight.initParams(rnd);
-		if (layer.bias != null) MatrixUtil.fill(layer.bias, rnd);
+		if (layer.bias != null) MatrixUtil.fill(layer.bias, 0);
 		
 		if (layer.filter != null) layer.filter.initParams(rnd);
-		if (layer.filterBias != null) layer.filterBias = layer.filterBias.valueOf(NeuronValue.r(rnd));
+		if (layer.filterBias != null) layer.filterBias = layer.filterBias.zero();
+		
+		if (layer instanceof CustomLayer) ((CustomLayer)layer).initParamsCustom(rnd);
 	}
 
 	

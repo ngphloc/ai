@@ -5,21 +5,22 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.layers;
+package net.ea.ann.mane;
+
+import java.util.Random;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
-import net.ea.ann.mane.Error;
-import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.raster.Size;
 
 /**
- * This class represents custom matrix neural network.
+ * This class implements custom layer.
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-public class CustomNetwork extends MatrixNetworkImpl {
+public class CustomLayer extends MatrixLayerImpl {
 
 
 	/**
@@ -35,18 +36,18 @@ public class CustomNetwork extends MatrixNetworkImpl {
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
 	 */
-	public CustomNetwork(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+	public CustomLayer(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 	}
 
-
+	
 	/**
 	 * Constructor with neuron channel, activation function, and convolutional activation function.
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 */
-	public CustomNetwork(int neuronChannel, Function activateRef, Function convActivateRef) {
+	public CustomLayer(int neuronChannel, Function activateRef, Function convActivateRef) {
 		this(neuronChannel, activateRef, convActivateRef, null);
 	}
 
@@ -56,7 +57,7 @@ public class CustomNetwork extends MatrixNetworkImpl {
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public CustomNetwork(int neuronChannel, Function activateRef) {
+	public CustomLayer(int neuronChannel, Function activateRef) {
 		this(neuronChannel, activateRef, null, null);
 	}
 
@@ -65,19 +66,32 @@ public class CustomNetwork extends MatrixNetworkImpl {
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public CustomNetwork(int neuronChannel) {this(neuronChannel, null, null, null);}
+	public CustomLayer(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 
 	@Override
-	public Matrix evaluate0(Matrix input, Object... params) {
-		return super.evaluate0(input, params);
+	public boolean initialize(Size size, Size prevSize, LayerSpec layerSpec) {
+		return super.initialize(size, prevSize, layerSpec);
 	}
 
 
 	@Override
-	protected Error[] backward(Error[] outputErrors, boolean learning, double learningRate) {
-		return super.backward(outputErrors, learning, learningRate);
+	public Matrix evaluate(Object... params) {
+		return super.evaluate(params);
 	}
-	
-	
+
+
+	@Override
+	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
+		return super.backward(outputErrors, focus, learning, learningRate);
+	}
+
+
+	/**
+	 * Custom initializing parameters.
+	 * @param rnd randomizer.
+	 */
+	public void initParamsCustom(Random rnd) {}
+
 }
+

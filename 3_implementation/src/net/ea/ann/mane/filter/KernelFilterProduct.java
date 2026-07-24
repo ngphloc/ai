@@ -338,7 +338,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		if (derivative != null) thisError = derivative.multiplyWise(thisError);
 		Matrix[] dKernels = new Matrix[kernelDepth];
 		MatrixStack[] kernel = this.kernel.W;
-		NeuronValue dBiases = thisError.zero();
+		NeuronValue dbiases = thisError.zero();
 		for (int i = 0; i < kernelDepth; i++) {
 			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
 			for (int j = 0; j < kernelHeight; j++) {
@@ -347,20 +347,13 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 						prevInputLayers.get(time).get(prevY+j, prevX+k); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
 					dKernels[i].set(j, k, this.weight != null ? dKernel.multiply(this.weight) : dKernel);
-					dBiases = dBiases.add(thisError);
+					dbiases = dbiases.add(thisError);
 				}
 			}
 		}
-		return new BiasWeight(new MatrixStack(dKernels), null, dBiases);
+		return new BiasWeight(new MatrixStack(dKernels), null, dbiases);
 	}
 	
-
-	@Override
-	public void initParams(double v) {
-		super.initParams(v);
-		this.weight = this.weight != null ? this.weight.unit() : null;
-	}
-
 
 	@Override
 	public void initParams(Random rnd) {

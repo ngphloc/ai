@@ -9,6 +9,7 @@ package net.ea.ann.mane.layers;
 
 import java.util.Random;
 
+import net.ea.ann.classifier.VGG;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
@@ -199,6 +200,21 @@ public class DropoutLayer extends MatrixLayerImpl {
 	public Matrix getDropoutMask() {return dropoutMask;}
 	
 	
+	/**
+	 * Checking filter mode. If false, filtering is not applied.
+	 * @return filter mode.
+	 */
+	private boolean isFilterMode() {
+		MatrixNetworkAbstract network = getNetwork();
+		if (network == null) return VGG.FILTER_MODE_DEFAULT;
+		
+		try {
+			if (network.getConfig().containsKey(VGG.FILTER_MODE_FIELD)) return network.getConfig().getAsBoolean(VGG.FILTER_MODE_FIELD);
+		} catch (Throwable e) {Util.trace(e);}
+		return VGG.FILTER_MODE_DEFAULT;
+	}
+	
+	
 	@Override
 	public boolean initialize(Size size, Size prevSize, LayerSpec layerSpec) {
 		this.dropoutMask = null;
@@ -223,34 +239,34 @@ public class DropoutLayer extends MatrixLayerImpl {
 		}
 		if (this.dropoutMask == null) return;
 		
-//		//Spatial dropout with only rows.
-//		boolean training = extractTrainingFlag(params);
-//		double keepProb = 1.0 - getDropoutRate();
-//		double scale = isDropoutInverted() ? 1.0/keepProb : (training ? 1.0 : keepProb);
-//		Random rnd = new Random();
-//		for (int row = 0; row < this.dropoutMask.rows(); row++) {
-//			boolean keep = rnd.nextDouble() < keepProb;
-//			for (int column = 0; column < this.dropoutMask.columns(); column++) {
-//				if (keep)
-//					setValue(this.dropoutMask, row, column, scale);
-//				else
-//					setValue(this.dropoutMask, row, column, 0);
-//			}
-//		}
-
 		boolean training = Error.extractTrainingFlag(params);
 		double keepProb = 1.0 - getDropoutRate();
 		double scale = isDropoutInverted() ? 1.0/keepProb : (training ? 1.0 : keepProb);
 		Random rnd = new Random();
-		for (int row = 0; row < this.dropoutMask.rows(); row++) {
-			for (int column = 0; column < this.dropoutMask.columns(); column++) {
-				if (rnd.nextDouble() < keepProb)
-					setValue(this.dropoutMask, row, column, scale);
-				else
-					setValue(this.dropoutMask, row, column, 0);
+		
+		if (isFilterMode()) {
+			//Spatial dropout.
+			for (int row = 0; row < this.dropoutMask.rows(); row++) {
+				boolean keep = rnd.nextDouble() < keepProb;
+				for (int column = 0; column < this.dropoutMask.columns(); column++) {
+					if (keep)
+						setValue(this.dropoutMask, row, column, scale);
+					else
+						setValue(this.dropoutMask, row, column, 0);
+				}
 			}
 		}
-		
+		else {
+			//Individual dropout.
+			for (int row = 0; row < this.dropoutMask.rows(); row++) {
+				for (int column = 0; column < this.dropoutMask.columns(); column++) {
+					if (rnd.nextDouble() < keepProb)
+						setValue(this.dropoutMask, row, column, scale);
+					else
+						setValue(this.dropoutMask, row, column, 0);
+				}
+			}
+		}
 	}
 
 	

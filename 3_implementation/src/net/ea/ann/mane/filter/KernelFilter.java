@@ -627,13 +627,14 @@ public abstract class KernelFilter extends FilterAbstract {
 				int prevX = xBlock*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
-				//Calculating gradient.
+				//Calculating weight gradient.
 				BiasWeight dBiasWeight = this.dKernel(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
 				if (dBiasWeight == null) continue;
 				MatrixStack dKernel = dBiasWeight.W;
 				assert (dKernel.width() == width() && dKernel.height() == height() && dKernel.depth() == depth());
 				dKernels = (MatrixStack)dKernels.add(dKernel);
 				
+				//Calculating bias gradient.
 				//Improving following code lines later with matrix bias.
 				assert (dBiasWeight.bias != null && dBiasWeight.Bias == null);
 				if (dBiases != null && dBiasWeight.bias != null) dBiases.set(thisY, thisX, dBiasWeight.bias);
@@ -688,23 +689,6 @@ public abstract class KernelFilter extends FilterAbstract {
 	
 	
 	@Override
-	public void initParams(double v) {
-		MatrixStack[] kernel = this.kernel().W;
-		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, v);
-		
-		if (this.kernel().Bias != null) {
-			Matrix[] Biases = this.kernel().Bias;
-			for (int i = 0; i < Biases.length; i++) MatrixUtil.fill(Biases[i], v);
-		}
-
-		if (this.kernel().bias != null) {
-			NeuronValue[] biases = this.kernel().bias;
-			for (int i = 0; i < biases.length; i++) biases[i] = biases[i].valueOf(v);
-		}
-	}
-
-
-	@Override
 	public void initParams(Random rnd) {
 		MatrixStack[] kernel = this.kernel().W;
 		int fanIn = kernel[0].width()*kernel[0].height();
@@ -712,12 +696,14 @@ public abstract class KernelFilter extends FilterAbstract {
 		
 		if (this.kernel().Bias != null) {
 			Matrix[] Biases = this.kernel().Bias;
-			for (int i = 0; i < Biases.length; i++) MatrixUtil.fill(Biases[i], rnd);
+			NeuronValue zero = Biases[0].get(0, 0).zero();
+			for (int i = 0; i < Biases.length; i++) MatrixUtil.fill(Biases[i], zero);
 		}
 
 		if (this.kernel().bias != null) {
 			NeuronValue[] biases = this.kernel().bias;
-			for (int i = 0; i < biases.length; i++) biases[i] = biases[i].valueOf(NeuronValue.r(rnd));
+			NeuronValue zero = biases[0].zero();
+			for (int i = 0; i < biases.length; i++) biases[i] = zero;
 		}
 	}
 

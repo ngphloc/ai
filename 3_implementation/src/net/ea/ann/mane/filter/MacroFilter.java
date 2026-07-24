@@ -19,12 +19,12 @@ import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
 /**
- * This class implements micro filter developed by Min Lin, Qiang Chen, Shuicheng Yan.
+ * This class implements macro filter derived from micro filter developed by Min Lin, Qiang Chen, Shuicheng Yan.
  * @author Min Lin, Qiang Chen, Shuicheng Yan, implemented by Loc Nguyen
  * @version 1.0
  *
  */
-public class MicroFilter extends KernelFilter {
+public class MacroFilter extends KernelFilter {
 
 
 	/**
@@ -43,7 +43,7 @@ public class MicroFilter extends KernelFilter {
 	 * Constructor with kernel and weight.
 	 * @param kernel specific kernel.
 	 */
-	protected MicroFilter(FKernel kernel) {
+	protected MacroFilter(FKernel kernel) {
 		super();
 		if (!checkValid(kernel)) throw new IllegalArgumentException();
 		this.kernel = kernel;
@@ -81,7 +81,7 @@ public class MicroFilter extends KernelFilter {
 
 	
 	@Override
-	public MicroFilter accumKernel(Kernel dKernel, double factor) {
+	public MacroFilter accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
 		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
@@ -250,7 +250,7 @@ public class MicroFilter extends KernelFilter {
 				if (prevX >= prevWidth) continue;
 				assert (prevX == thisX);
 				
-				//Calculating gradient.
+				//Calculating weight gradient.
 				NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 				NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
 				if (derivative != null) thisError = derivative.multiplyWise(thisError);
@@ -259,9 +259,11 @@ public class MicroFilter extends KernelFilter {
 						prevInputLayers.get(time).get(prevY, prevX); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
 					dKernels[i].set(thisY, thisX, dKernel);
-					if (dBiases != null) dBiases.set(thisY, thisX, thisError);
-					if (dbiases != null) dbiases = dbiases.add(thisError);
 				}
+				
+				//Calculating bias gradient.
+				if (dBiases != null) dBiases.set(thisY, thisX, thisError);
+				if (dbiases != null) dbiases = dbiases.add(thisError);
 			}
 		}
 		
@@ -306,8 +308,8 @@ public class MicroFilter extends KernelFilter {
 	 * @param hint hint value.
 	 * @return product filter created from kernel value.
 	 */
-	public static MicroFilter create(double kernelValue, Size size, NeuronValue hint) {
-		MicroFilter filter = new MicroFilter(createKernel(kernelValue, size, hint));
+	public static MacroFilter create(double kernelValue, Size size, NeuronValue hint) {
+		MacroFilter filter = new MacroFilter(createKernel(kernelValue, size, hint));
 		size = KernelFilterProduct.adjustSize(size);
 		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
 		return filter;
@@ -322,7 +324,7 @@ public class MicroFilter extends KernelFilter {
 	 * @param hint hint value.
 	 * @return micro filter created from kernel value.
 	 */
-	public static MicroFilter create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
+	public static MacroFilter create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
 		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint);
 	}
 
@@ -334,7 +336,7 @@ public class MicroFilter extends KernelFilter {
 	 * @param hint hint value.
 	 * @return micro filter created from kernel value.
 	 */
-	public static MicroFilter create(double kernelValue, Dimension size, NeuronValue hint) {
+	public static MacroFilter create(double kernelValue, Dimension size, NeuronValue hint) {
 		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint);
 	}
 

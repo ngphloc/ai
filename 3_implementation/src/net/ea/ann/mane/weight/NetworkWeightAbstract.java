@@ -7,9 +7,9 @@
  */
 package net.ea.ann.mane.weight;
 
-import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.Kernel;
 
 /**
@@ -112,8 +112,11 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 		Matrix[] values = new Matrix[time];
 		for (int t = 0; t < time; t++) {
 			Matrix bias0 = null;
-			if (this.bias(t) != null && biases != null)
-				bias0 = Kernel.GLOBAL_BIAS ? this.bias(t).add(biases.get(t)) : this.bias(t);
+			if (this.bias(t) != null && biases != null) {
+				Matrix biasSum = biases.depth() > 1 ? MatrixUtil.sum(MatrixUtil.split(biases)) : null;
+				boolean globalBias = Kernel.GLOBAL_BIAS;
+				bias0 = globalBias && biasSum != null ? this.bias(t).add(biasSum) : this.bias(t);
+			}
 			else if (this.bias(t) != null)
 				bias0 = this.bias(t);
 			else if (biases != null)
@@ -150,21 +153,17 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 	/**
 	 * Calculate gradient of previous layers.
 	 * @param time time.
-	 * @param prevInputs previous inputs.
 	 * @param prevOutput previous output.
 	 * @param thisError current error.
-	 * @param prevActivateRef previous activation function.
 	 * @param learning learning mode.
 	 * @param learningRate learning rate.
 	 * @return gradient of previous layers.
 	 */
-	private Matrix dValue(int time, MatrixStack prevInputs, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
+	private Matrix dValue(int time, Matrix prevOutput, Matrix thisError, boolean learning, double learningRate) {
 		int depth = depth();
 		Matrix sum = null;
-		Matrix derivative = prevOutput != null && prevActivateRef != null ? prevOutput.derivativeWise(prevActivateRef) : null;
 		for (int d = 0; d < depth; d++) {
 			Matrix dValue = dValue(time, d, thisError, learning, learningRate);
-			if (derivative != null) dValue = derivative.multiplyWise(dValue);
 			sum = sum != null ? sum.add(dValue) : dValue;
 		}
 		return sum;
@@ -173,33 +172,30 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 		
 	/**
 	 * Calculate gradient of previous layers.
-	 * @param prevInputs previous inputs.
 	 * @param prevOutputs previous outputs.
 	 * @param thisErrors current errors.
-	 * @param prevActivateRef previous activation function.
 	 * @param learning learning mode.
 	 * @param learningRate learning rate.
 	 * @return gradient of previous layers.
 	 */
-	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef, boolean learning, double learningRate) {
-		if (prevInputs.depth() != depth() || prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors, boolean learning, double learningRate) {
+		if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 		if (prevOutputs.rows() != thisErrors.rows() || prevOutputs.columns() != thisErrors.columns()) throw new IllegalArgumentException();
 		
 		int time = time();
 		Matrix[] dValues = new Matrix[time];
 		for (int t = 0; t < time; t++) {
-			dValues[t] = dValue(t, prevInputs, prevOutputs.get(t), thisErrors.get(t), prevActivateRef, learning, learningRate);
+			dValues[t] = dValue(t, prevOutputs.get(t), thisErrors.get(t), learning, learningRate);
 		}
 		return new MatrixStack(dValues);
 	}
 
 	
 	@Override
-	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
-		MatrixStack prevInputs = prevInput instanceof MatrixStack ? (MatrixStack)prevInput : new MatrixStack(prevInput);
+	public Matrix dValue(Matrix prevOutput, Matrix thisError, boolean learning, double learningRate) {
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
-		MatrixStack dValue = dValue(prevInputs, prevOutputs, thisErrors, prevActivateRef, learning, learningRate);
+		MatrixStack dValue = dValue(prevOutputs, thisErrors, learning, learningRate);
 		return dValue.depth() == 1 ? dValue.get() : dValue;
 	}
 	

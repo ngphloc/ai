@@ -108,12 +108,12 @@ public interface Filter extends Serializable, Cloneable {
 	default boolean isIndexMode() {return false;}
 	
 	
-	/**
-	 * Initializing parameters by specified value.
-	 * @param v value.
-	 */
-	default void initParams(double v) {}
-	
+//	/**
+//	 * Initializing parameters by specified value.
+//	 * @param v value.
+//	 */
+//	default void initParams(double v) {}
+
 	
 	/**
 	 * Initializing parameters.
@@ -174,13 +174,13 @@ public interface Filter extends Serializable, Cloneable {
 
 	
 	/**
-	 * Calculating derivative of kernel of previous layers given current layers as bias layers.
+	 * Calculating derivative of kernel of current layers given current layers as bias layers.
 	 * @param time time.
 	 * @param prevInputLayer previous input layer.
 	 * @param prevOutputLayer previous output layer.
 	 * @param thisErrorLayer current layer as bias layer.
 	 * @param thisActivateRef activation function of current layer.
-	 * @return derivative of kernel of previous layers (at previous output layer) given current layers as bias layers.
+	 * @return derivative of kernel of current layers (at current output layer) given current layers as bias layers.
 	 */
 	Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 

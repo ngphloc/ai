@@ -127,7 +127,7 @@ public class FlattenLayer extends MatrixLayerImpl {
 		
 		if (this.output != this.input) throw new IllegalArgumentException();
 		if (index != MatrixUtil.capacity(this.output)) throw new IllegalArgumentException();
-		Error.addLayerOInput(this, params);
+		Error.addLayerOInput2(this, params);
 		return (this.output = this.input);
 	}
 

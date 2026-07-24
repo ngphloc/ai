@@ -579,7 +579,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 				output = blocks[i].evaluate(Y, null, null, params);
 		}
 		
-		Error.addLayerOInputParams(this, params);
+		Error.addLayerOInput(this, params);
 		return output;
 	}
 	
@@ -749,10 +749,13 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 	@Override
 	public Error[][] learn(Iterable<Record> sample) throws RemoteException {
-		int maxIteration = paramGetMaxIteration();
+		int maxIteration = calcBatchCount(sample);
 		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
 		int epochs = paramGetPseudoEpochs();
+
+		//Resetting optimizer.
+		resetOptimizers();
 
 		Error[][] outputErrors = null;
 		Iterable<Record> newsample = sample;
@@ -782,7 +785,6 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
 		resetBackwardInfo();
-		resetOptimizers();
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;

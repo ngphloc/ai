@@ -22,29 +22,35 @@ public interface Kernel extends Cloneable, Serializable {
 	
 	
 	/**
-	 * Optimizer flag.
+	 * L2 regularization flag.
 	 */
-	final static boolean REGULAR = true;
+	final static boolean REGULAR = true; //false;
 
 	
 	/**
-	 * Optimizer flag.
+	 * Optimization flag.
 	 */
-	final static boolean OPTIMIZER = true;
+	final static boolean OPTIMIZER = true; //false;
 	
 	
 	/**
-	 * Always summing flag.
+	 * Bilinear layers flag.
 	 */
-	static boolean BILINEAR = true;
+	final static boolean BILINEAR = true;
 	
 	
 	/**
 	 * Global bias.
 	 */
-	final static boolean GLOBAL_BIAS = false;
+	final static boolean GLOBAL_BIAS = false; //true;
 	
 	
+	/**
+	 * Matrix normalization flag.
+	 */
+	final static boolean MATRIX_NORM = true; //false;
+
+
 	/**
 	 * This class represents null kernel.
 	 * @author Loc Nguyen
@@ -67,12 +73,6 @@ public interface Kernel extends Cloneable, Serializable {
 		@Override
 		public Kernel divide(double value) {return this;}
 
-		@Override
-		public Optimizer getOptimizer() {return null;}
-
-		@Override
-		public void setOptimizer(Optimizer optimizer) {}
-		
 	}
 
 
@@ -111,14 +111,14 @@ public interface Kernel extends Cloneable, Serializable {
 	 * Getting optimizer.
 	 * @return optimizer.
 	 */
-	Optimizer getOptimizer();
+	default Optimizer getOptimizer() {return null;}
 	
 	
 	/**
 	 * Setting optimizer.
 	 * @param optimizer optimizer.
 	 */
-	void setOptimizer(Optimizer optimizer);
+	default void setOptimizer(Optimizer optimizer) {}
 	
 	
 	/**

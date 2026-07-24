@@ -7,7 +7,6 @@
  */
 package net.ea.ann.mane.weight;
 
-import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.Kernel;
@@ -49,9 +48,9 @@ public class NullWeight implements Weight {
 
 	
 	@Override
-	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
-		if (MatrixUtil.depth(prevInput) != MatrixUtil.depth(prevOutput) || MatrixUtil.depth(prevInput) != MatrixUtil.depth(thisError)) throw new IllegalArgumentException();
-		if (prevInput.rows() != prevOutput.rows() || prevInput.rows() != thisError.rows() || prevInput.columns() != prevOutput.columns() || prevInput.columns() != thisError.columns()) throw new IllegalArgumentException();
+	public Matrix dValue(Matrix prevOutput, Matrix thisError) {
+		if (MatrixUtil.depth(prevOutput) != MatrixUtil.depth(thisError)) throw new IllegalArgumentException();
+		if (prevOutput.rows() != thisError.rows() || prevOutput.columns() != thisError.columns()) throw new IllegalArgumentException();
 		return thisError;
 	}
 

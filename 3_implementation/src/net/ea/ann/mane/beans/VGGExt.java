@@ -99,7 +99,7 @@ class VGGExt extends VGG {
 	 * Default value for field of label smoothing.
 	 * If true, label smoothing is applied so that one-hot class vector become class probability in which the probability of certain class is large enough but smaller than 1, for example {@link #MAX_CLASS_PROB_DEFAULT}.
 	 */
-	public final static boolean LABEL_SMOOTH_DEFAULT = true;
+	public final static boolean LABEL_SMOOTH_DEFAULT = true; //false
 
 	
 	/**
@@ -111,7 +111,7 @@ class VGGExt extends VGG {
 	/**
 	 * Default value for field of maximum class probability.
 	 */
-	private final static double MAX_CLASS_PROB_DEFAULT = 0.9;
+	private final static double MAX_CLASS_PROB_DEFAULT = 0.99; //0.9
 	
 	
 	/**
@@ -916,11 +916,14 @@ class VGGExt extends VGG {
 	 * @return learning errors.
 	 */
 	public Error[] learnRaster(Iterable<Raster> sample) {
-		int maxIteration = paramGetMaxIteration();
+		int maxIteration = calcBatchCount(sample);
 		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
 		int epochs = paramGetPseudoEpochs();
 
+		//Resetting optimizer.
+		resetOptimizers();
+		
 		Error[] outputErrors = null;
 		Iterable<Raster> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
@@ -948,7 +951,6 @@ class VGGExt extends VGG {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
 		resetBackwardInfo();
-		resetOptimizers();
 		
 		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
@@ -1028,7 +1030,7 @@ class VGGExt extends VGG {
 			outputErrors = outputErrorList.toArray(new Error[] {});
 			if (outputErrors.length > 0) {
 				updateParametersFromBackwardInfo(outputErrors.length, learningRate);
-				outputErrors = backwardAgain(outputErrors, this, true, learningRate);
+				outputErrors = backwardPost(outputErrors, this, true, learningRate);
 			}
 //			outputErrors = backward(outputErrorList.toArray(new Error[] {}), this, true, learningRate);
 			assert (outputErrors != null && outputErrors.length > 0);

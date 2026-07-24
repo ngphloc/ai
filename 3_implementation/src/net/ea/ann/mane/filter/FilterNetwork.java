@@ -127,10 +127,6 @@ abstract class FilterNetwork extends MatrixNetworkImpl implements NetworkFilter 
 
 
 	@Override
-	public void initParams(double v) {new MatrixNetworkAssoc(this).initParams(v);}
-
-
-	@Override
 	public void initParams(Random rnd) {new MatrixNetworkAssoc(this).initParams(rnd);}
 
 

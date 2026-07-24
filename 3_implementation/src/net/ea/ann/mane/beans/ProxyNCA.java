@@ -1335,7 +1335,7 @@ public class ProxyNCA extends VGGExt {
 		
 		Error[] outputErrors = outputErrorList.toArray(new Error[] {});
 		if (outputErrors.length > 0) updateParametersFromBackwardInfo(outputErrors.length, learningRate);
-		if (outputErrors.length > 0) outputErrors = backwardAgain(outputErrors, this, true, learningRate);
+		if (outputErrors.length > 0) outputErrors = backwardPost(outputErrors, this, true, learningRate);
 		return outputErrors.length > 0 ? outputErrors : null;
 	}
 
@@ -1356,7 +1356,7 @@ public class ProxyNCA extends VGGExt {
 		
 		if (errors != null && errors[1] != null) {
 			Error error1 = new Error(errors[1]); //One representative error.
-			Object[] params = defineOutputErrorParams(error1, new TrainingFlag() {}); //Adding training flag for back-warding.
+			Object[] params = defineOutputErrorParams(error1, TrainingFlag.create()); //Adding training flag for back-warding.
 			
 			int index = new Random().nextInt(piece.size()); //Randomized representative anchor in the piece.
 			evaluate(piece.get(index), params); //Please pay attention to this code line so as to set inputs and outputs to error at the random raster in the piece.

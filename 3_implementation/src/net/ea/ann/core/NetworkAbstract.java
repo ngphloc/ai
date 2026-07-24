@@ -121,6 +121,18 @@ public abstract class NetworkAbstract implements Network, Serializable {
 
 	
 	/**
+	 * Name of batch-size field.
+	 */
+	public final static String BATCH_SIZE_FILED = "net_batch_size";
+	
+	
+	/**
+	 * Default value of batch-size field.
+	 */
+	public final static int BATCH_SIZE_DEFAULT = 20;
+
+	
+	/**
 	 * Default value of zoom-out.
 	 */
 	public final static int ZOOMOUT_DEFAULT = 2;
@@ -199,6 +211,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 		config.put(RESAMPLE_RATE_FILED, RESAMPLE_RATE_DEFAULT);
 		config.put(LEARN_RATE_FIXED_FIELD, LEARN_RATE_FIXED_DEFAULT);
 		config.put(EPOCHS_PSEUDO_FILED, EPOCHS_PSEUDO_DEFAULT);
+		config.put(BATCH_SIZE_FILED, BATCH_SIZE_DEFAULT);
 
 		if (idRef != null) this.idRef = idRef;
 	}
@@ -237,8 +250,8 @@ public abstract class NetworkAbstract implements Network, Serializable {
 		iteration = iteration < 0 ? 0 : iteration;
 		iteration = iteration >= maxIteration ? maxIteration-1 : iteration;
 		int index = iteration*batchSize;
-		int length = index + batchSize;
-		length = length >= sample.size() ? sample.size() : length;
+		int length = iteration < maxIteration-1 ? index+batchSize : sample.size();
+		length = length > sample.size() ? sample.size() : length;
 		return sample.subList(index, length);
 	}
 	
@@ -387,6 +400,51 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	 */
 	public NetworkAbstract paramSetBatches(int batches) {
 		return paramSetMaxIteration(batches);
+	}
+	
+	
+	/**
+	 * Getting batch size.
+	 * @return batch size.
+	 */
+	public int paramGetBatchSize() {
+		int batchSize = config.containsKey(BATCH_SIZE_FILED) ? config.getAsInt(BATCH_SIZE_FILED) : BATCH_SIZE_DEFAULT;
+		batchSize = batchSize > 0 ? batchSize : BATCH_SIZE_DEFAULT;
+		return Math.max(1, batchSize);
+	}
+
+	
+	/**
+	 * Setting batch size.
+	 * @param batchSize batch size.
+	 * @return this network.
+	 */
+	public NetworkAbstract paramSetBatchSize(int batchSize) {
+		batchSize = batchSize > 0 ? batchSize : BATCH_SIZE_DEFAULT;
+		batchSize = Math.max(1, batchSize);
+		config.put(BATCH_SIZE_FILED, batchSize);
+		return this;
+	}
+
+	
+	/**
+	 * Calculating count of batches.
+	 * @param <T> record type.
+	 * @param sample sample.
+	 * @return count of batches.
+	 */
+	public <T> int calcBatchCount(Iterable<T> sample) {
+		int maxIteration = paramGetMaxIteration();
+		int sampleSize = Record.sizeOf(sample);
+		int batchSize = paramGetBatchSize();
+		if (sampleSize <= 0) return 0;
+		if (batchSize <= 0) return maxIteration > sampleSize ? 1 : Math.max(1, maxIteration);
+		
+		int batchCount = sampleSize / batchSize;
+		if (batchCount <= 0)
+			return Math.max(1, maxIteration);
+		else
+			return Math.max(batchCount, maxIteration);
 	}
 	
 	

@@ -346,14 +346,6 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	
 
 	@Override
-	public void initParams(double v) {
-		MatrixStack[] kernel = this.kernel.W;
-		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, v);
-		this.weight = this.weight != null ? this.weight.unit() : null;
-	}
-
-
-	@Override
 	public void initParams(Random rnd) {
 		MatrixStack[] kernel = this.kernel.W;
 		int fanIn = kernel[0].width()*kernel[0].height();

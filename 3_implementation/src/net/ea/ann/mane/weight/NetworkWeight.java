@@ -28,6 +28,17 @@ public interface NetworkWeight extends Weight {
 
 	/**
 	 * Calculate gradient of previous layers.
+	 * @param prevOutput previous outputs.
+	 * @param thisError current errors.
+	 * @param learning learning mode.
+	 * @param learningRate learning rate.
+	 * @return gradient of previous layers.
+	 */
+	Matrix dValue(Matrix prevOutput, Matrix thisError, boolean learning, double learningRate);
+
+
+	/**
+	 * Calculate gradient of previous layers.
 	 * @param prevInput previous inputs.
 	 * @param prevOutput previous outputs.
 	 * @param thisError current errors.
@@ -36,12 +47,16 @@ public interface NetworkWeight extends Weight {
 	 * @param learningRate learning rate.
 	 * @return gradient of previous layers.
 	 */
-	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate);
+	default Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
+		Matrix dValue = dValue(prevOutput, thisError, learning, learningRate);
+		Matrix derivative = prevInput != null && prevActivateRef != null ? prevInput.derivativeWise(prevActivateRef) : null;
+		return derivative != null ? derivative.multiplyWise(dValue) : dValue;
+	}
 
-
+	
 	@Override
-	default Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
-		return dValue(prevInput, prevOutput, thisError, prevActivateRef, true, Network.LEARN_RATE_DEFAULT);
+	default Matrix dValue(Matrix prevOutput, Matrix thisError) {
+		return dValue(prevOutput, thisError, true, Network.LEARN_RATE_DEFAULT);
 	}
 
 

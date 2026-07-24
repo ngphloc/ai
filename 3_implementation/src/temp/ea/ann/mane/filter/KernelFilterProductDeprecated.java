@@ -347,14 +347,6 @@ class KernelFilterProductDeprecated extends KernelFilterDeprecated implements Te
 	
 
 	@Override
-	public void initParams(double v) {
-		MatrixStack[] kernel = this.kernel.W;
-		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, v);
-		this.weight = this.weight.unit();
-	}
-
-
-	@Override
 	public void initParams(Random rnd) {
 		MatrixStack[] kernel = this.kernel.W;
 		int fanIn = kernel[0].width()*kernel[0].height();

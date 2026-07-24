@@ -100,13 +100,9 @@ abstract class WeightNetwork extends MatrixNetworkImpl implements NetworkWeight 
 
 
 	@Override
-	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef, boolean learning, double learningRate) {
+	public Matrix dValue(Matrix prevOutput, Matrix thisError, boolean learning, double learningRate) {
 		return backward(new Error[] {new Error(thisError)}, null, learning, learningRate)[0].error();
 	}
-
-
-	@Override
-	public void initParams(double v) {new MatrixNetworkAssoc(this).initParams(v);}
 
 
 	@Override

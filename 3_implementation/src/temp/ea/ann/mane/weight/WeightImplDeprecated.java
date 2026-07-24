@@ -314,18 +314,16 @@ class WeightImplDeprecated implements Weight, TextParsable {
 	/**
 	 * Calculate gradient of previous layers.
 	 * @param time time.
-	 * @param prevInputs previous inputs.
 	 * @param prevOutputs previous outputs.
 	 * @param thisError current error.
-	 * @param prevActivateRef previous activation function.
 	 * @return gradient of previous layers.
 	 */
-	private MatrixStack dValue(int time, MatrixStack prevInputs, MatrixStack prevOutputs, Matrix thisError, Function prevActivateRef) {
+	private MatrixStack dValue(int time, MatrixStack prevOutputs, Matrix thisError) {
 		int depth = depth();
 		Matrix[] dValues = new Matrix[depth];
 		for (int d = 0; d < depth; d++) {
 			dValues[d] = new WCoreDeprecated(W1(time, d), W2(time, d)).
-				dValue(prevInputs.get(d), prevOutputs.get(d), thisError, prevActivateRef);
+				dValue(prevOutputs.get(d), thisError);
 		}
 		return new MatrixStack(dValues);
 	}
@@ -333,18 +331,16 @@ class WeightImplDeprecated implements Weight, TextParsable {
 	
 	/**
 	 * Calculate gradient of previous layers.
-	 * @param prevInputs previous inputs.
 	 * @param prevOutputs previous outputs.
 	 * @param thisErrors current errors.
-	 * @param prevActivateRef previous activation function.
 	 * @return gradient of previous layers.
 	 */
-	private MatrixStack dValue(MatrixStack prevInputs, MatrixStack prevOutputs, MatrixStack thisErrors, Function prevActivateRef) {
-		if (prevInputs.depth() != depth() || prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors) {
+		if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 		int time = time();
 		MatrixStack sum = null;
 		for (int t = 0; t < time; t++) {
-			MatrixStack dValue = dValue(t, prevInputs, prevOutputs, thisErrors.get(t), prevActivateRef);
+			MatrixStack dValue = dValue(t, prevOutputs, thisErrors.get(t));
 			sum = sum != null ? (MatrixStack)sum.add(dValue) : dValue;
 		}
 		return sum;
@@ -352,11 +348,10 @@ class WeightImplDeprecated implements Weight, TextParsable {
 
 
 	@Override
-	public Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
-		MatrixStack prevInputs = prevInput instanceof MatrixStack ? (MatrixStack)prevInput : new MatrixStack(prevInput);
+	public Matrix dValue(Matrix prevOutput, Matrix thisError) {
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
-		MatrixStack dValue = dValue(prevInputs, prevOutputs, thisErrors, prevActivateRef);
+		MatrixStack dValue = dValue(prevOutputs, thisErrors);
 		return dValue.depth() == 1 ? dValue.get() : dValue;
 	}
 	
@@ -447,19 +442,6 @@ class WeightImplDeprecated implements Weight, TextParsable {
 		return dKernel;
 	}
 
-
-	@Override
-	public void initParams(double v) {
-		MatrixStack[] W1 = W1();
-		MatrixStack[] W2 = W2();
-		if (W1 != null) {
-			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, v);
-		}
-		if (W2 != null) {
-			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, v);
-		}
-	}
-	
 
 	@Override
 	public void initParams(Random rnd) {
@@ -653,9 +635,7 @@ class WCoreDeprecated implements Cloneable, Serializable {
 	 * @param prevActivateRef previous activation function.
 	 * @return gradient of previous layer.
 	 */
-	Matrix dValue(Matrix prevInput, Matrix prevOutput, Matrix thisError, Function prevActivateRef) {
-		Matrix derivative = prevInput != null && prevActivateRef != null ? prevInput.derivativeWise(prevActivateRef) : null;
-
+	Matrix dValue(Matrix prevOutput, Matrix thisError) {
 		//Updating errors based on weights.
 		Matrix nextW1T = this.W1;
 		Matrix nextW2 = this.W2;
@@ -668,8 +648,7 @@ class WCoreDeprecated implements Cloneable, Serializable {
 			//errorArray[row] = Matrix.kroneckerProductMutilply(nextW2, nextW1T, row, vecNextError); //Lower but consuming less memory.
 			errorArray[row] = nextW2.kroneckerProductRowOf(nextW1T, row).multiply(vecNextError); //Faster.
 		}
-		Matrix prevError = Matrix.concatV(errorArray);
-		return derivative != null ? derivative.multiplyWise(prevError) : prevError;
+		return Matrix.concatV(errorArray);
 	}
 	
 	

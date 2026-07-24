@@ -305,6 +305,7 @@ public class Error implements Cloneable, Serializable {
 		 * @param layer layer.
 		 * @return true if adding is successful.
 		 */
+		@Deprecated
 		public boolean addLayerOInput(MatrixLayerExt layer) {
 			if (layer == null) return false;
 			MatrixLayerAbstract outputLayer = LayerInput.getOutputLayer(layer);
@@ -322,6 +323,37 @@ public class Error implements Cloneable, Serializable {
 			if (layerInput.oinput != null) {assert (oinput == layerInput.oinput);}
 			if (layerInput.oinput == null) {assert (oinput == layerInput.oinputPrev);}
 			return addLayerOInput(layerInput);
+		}
+
+		/**
+		 * Adding layer input.
+		 * @param layer layer.
+		 * @return true if adding is successful.
+		 */
+		public boolean addLayerOInput2(MatrixLayerExt layer) {
+			if (layer == null) return false;
+			MatrixLayerAbstract outputLayer = LayerInput.getOutputLayer(layer);
+			if (outputLayer == null) return false;
+			Matrix oinput = outputLayer.queryInput();
+			LayerInput layerInput = layerInput(layer);
+			if (layerInput == null) {
+				layerInput = new LayerInput(layer, oinput);
+				if (!addLayerOInput(layerInput)) return false;
+			}
+			else {
+				layerInput.oinputActual = oinput;
+			}
+			
+			if (outputLayer.getPrevLayer() != null) layerInput.oinputPrevPrev = outputLayer.getPrevLayer().queryOutput();
+			layerInput.oinputPrev = outputLayer.getPrevInput();
+			layerInput.ooutputPrev = outputLayer.getPrevOutput();
+			layerInput.oinput = outputLayer.getInput();
+			layerInput.ooutput = outputLayer.getOutput();
+			if (layer instanceof DropoutLayer) layerInput.dropoutMask = ((DropoutLayer)layer).getDropoutMask();
+			
+			if (layerInput.oinput != null) {assert (oinput == layerInput.oinput);}
+			if (layerInput.oinput == null) {assert (oinput == layerInput.oinputPrev);}
+			return true;
 		}
 
 		/**
@@ -838,6 +870,7 @@ public class Error implements Cloneable, Serializable {
 	 * @param layer layer.
 	 * @return true if adding is successful.
 	 */
+	@Deprecated
 	public boolean addLayerOInput(MatrixLayerExt layer) {
 		Error0 error0 = get();
 		return error0 != null ? error0.addLayerOInput(layer) : false;
@@ -849,11 +882,37 @@ public class Error implements Cloneable, Serializable {
 	 * @param layer layer.
 	 * @return true if adding is successful.
 	 */
+	public boolean addLayerOInput2(MatrixLayerExt layer) {
+		Error0 error0 = get();
+		return error0 != null ? error0.addLayerOInput2(layer) : false;
+	}
+
+	
+	/**
+	 * Adding layer input.
+	 * @param layer layer.
+	 * @return true if adding is successful.
+	 */
+	@Deprecated
 	public static void addLayerOInput(MatrixLayerExt layer, Object[] params) {
 		if (params == null || params.length == 0) return;
 		for (Object param : params) {
 			if (param == null) continue;
 			if (param instanceof Error) ((Error)param).addLayerOInput(layer);
+		}
+	}
+
+	
+	/**
+	 * Adding layer input.
+	 * @param layer layer.
+	 * @return true if adding is successful.
+	 */
+	public static void addLayerOInput2(MatrixLayerExt layer, Object[] params) {
+		if (params == null || params.length == 0) return;
+		for (Object param : params) {
+			if (param == null) continue;
+			if (param instanceof Error) ((Error)param).addLayerOInput2(layer);
 		}
 	}
 

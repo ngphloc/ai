@@ -1,3 +1,10 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
 package net.ea.ann.mane.layers;
 
 import net.ea.ann.core.Id;
@@ -90,7 +97,7 @@ public class NullLayer extends MatrixLayerImpl {
 		Matrix prevLayerOutput = this.prevLayer.queryOutput();
 		if (this.output.rows() != prevLayerOutput.rows() || this.output.columns() != prevLayerOutput.columns() || MatrixUtil.depth(this.output) != MatrixUtil.depth(prevLayerOutput)) throw new IllegalArgumentException();
 		
-		Error.addLayerOInput(this, params);
+		Error.addLayerOInput2(this, params);
 		return (this.output = this.input = prevLayerOutput);
 	}
 

@@ -1,3 +1,10 @@
+/**
+ * AI: Artificial Intelligent Project
+ * (C) Copyright by Loc Nguyen's Academic Network
+ * Project homepage: ai.locnguyen.net
+ * Email: ng_phloc@yahoo.com
+ * Phone: +84-975250362
+ */
 package net.ea.ann.mane.layers;
 
 import net.ea.ann.core.Id;
@@ -102,7 +109,7 @@ public class ResidualLayer extends MatrixLayerImpl  {
 		if (this.prevLayer == null) return null;
 		Matrix prevOutput0 = this.filter != null ? evaluateByFilter() : null;
 		if (this.weight == null) {
-			Error.addLayerOInput(this, params);
+			Error.addLayerOInput2(this, params);
 			assert (prevOutput0 != null && prevOutput0 == this.prevOutput);
 			return prevOutput0;
 		}
@@ -113,7 +120,7 @@ public class ResidualLayer extends MatrixLayerImpl  {
 		this.output = (this.getWeightActivateRef() != null) && !(this.weight instanceof NullWeight) ?
 			this.input.evaluate0(this.getWeightActivateRef()) : this.input;
 		
-		Error.addLayerOInput(this, params);
+		Error.addLayerOInput2(this, params);
 		return this.output;
 	}
 

@@ -80,6 +80,11 @@ public class WeightSpec implements Cloneable, Serializable {
 		norm,
 		
 		/**
+		 * Depth normalization kernel.
+		 */
+		norm_depth,
+
+		/**
 		 * Filter activation type which is like null type but having filter activation function.
 		 */
 		filter_activate,
@@ -208,12 +213,15 @@ public class WeightSpec implements Cloneable, Serializable {
 			kernelType = KernelType.norm;
 			break;
 		case 3:
-			kernelType = KernelType.filter_activate;
+			kernelType = KernelType.norm_depth;
 			break;
 		case 4:
-			kernelType = KernelType.weight_activate;
+			kernelType = KernelType.filter_activate;
 			break;
 		case 5:
+			kernelType = KernelType.weight_activate;
+			break;
+		case 6:
 			kernelType = KernelType.nil;
 			break;
 		default:
@@ -303,6 +311,10 @@ public class WeightSpec implements Cloneable, Serializable {
 				break;
 			case norm:
 				weight = NormWeight.create(prevSize, size, hint);
+				break;
+			case norm_depth:
+				weight = NormWeight.create(prevSize, size, hint);
+				((NormWeight)weight).setDepthMode(true);
 				break;
 			case filter_activate:
 				weight = new ActivateFWeight();
@@ -414,6 +426,10 @@ public class WeightSpec implements Cloneable, Serializable {
 				break;
 			case norm:
 				weight = NormWeight.create(prevSize, size, hint);
+				break;
+			case norm_depth:
+				weight = NormWeight.create(prevSize, size, hint);
+				((NormWeight)weight).setDepthMode(true);
 				break;
 			case filter_activate:
 				weight = new ActivateFWeight();

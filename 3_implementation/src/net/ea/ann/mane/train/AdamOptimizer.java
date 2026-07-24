@@ -44,7 +44,7 @@ public class AdamOptimizer implements Optimizer {
 	/**
 	 * Minimum value.
 	 */
-	final static double EPSILON = Float.MIN_VALUE;
+	final static double EPSILON = 1E-8;
 	
 	
 	/**

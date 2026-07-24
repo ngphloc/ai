@@ -19,15 +19,17 @@ import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.FilterSpec.NetworkType;
 import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.FilterSpec.Type;
+import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.MatrixNetworkInitializer;
+import net.ea.ann.mane.WeightSpec;
+import net.ea.ann.mane.layers.BatchNormLayer;
 import net.ea.ann.mane.layers.DropoutLayer;
 import net.ea.ann.mane.layers.FlattenLayer;
 import net.ea.ann.mane.layers.FlattenLayer2;
 import net.ea.ann.mane.layers.NullLayer;
 import net.ea.ann.mane.layers.ResidualLayer;
 import net.ea.ann.mane.layers.ResidualNetwork;
-import net.ea.ann.mane.MatrixLayerAbstract;
-import net.ea.ann.mane.MatrixNetworkInitializer;
-import net.ea.ann.mane.WeightSpec;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerBasic;
 import net.hudup.core.parser.TextParserUtil;
@@ -139,7 +141,7 @@ public class VGG extends VGGCore {
 					if (filterType == Type.kernel) {
 						layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, filterType);
 						layerSpec.filterSpec.kernelType = paramGetFilterKernelType();
-						if ((layerSpec.filterSpec.kernelType == KernelType.micro)
+						if ((layerSpec.filterSpec.kernelType == KernelType.macro)
 								&& (layerSpec.size.width != layerSpec.prevSize.width || layerSpec.size.height != layerSpec.prevSize.height)) {
 							layerSpec.filterSpec.kernelType = KernelType.product;
 						}
@@ -157,6 +159,7 @@ public class VGG extends VGGCore {
 						layerSpec.fifthLength = Math.max(paramGetSubNetworkLength(), 1); //The fifth length of layer specification is now the depth (length) of network filter.
 					}
 					
+					//Setting moving stride flag and co-weight flag.
 					if (layerSpec.filterSpec != null) {
 						layerSpec.filterSpec.moveStride = false;
 						layerSpec.filterSpec.coweight = paramIsCoweight();
@@ -188,17 +191,18 @@ public class VGG extends VGGCore {
 				
 				//Adding residual layer.
 				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= depthDefault) {
-					addResidual(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
+					addResidualBatch(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
 				}
 			}
 			
-			//Adding ending pool layer.
-			if (paramIsFilterEndPoolMode() && block < blockSizes.size()-1) {
+			//Adding ending pool layer or ending stride layer.
+			if (block < blockSizes.size()-1) {
 				Size poolSize = new Size(blockSizes.get(block+1).width, blockSizes.get(block+1).height, blockSize.depth, 1);
 				VGG.LayerSpec layerSpec = new VGG.LayerSpec(poolSize);
 				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 				
-				if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
+				//Adding ending pool layer.
+				if (paramIsFilterEndPoolMode() && paramIsFilterMode() && layerSpec.prevSize.depth == layerSpec.size.depth) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
 					layerSpec.filterSpec.poolType = paramGetFilterPoolType();
 					if (!flatten) layerSpec.filterSpec.poolType = PoolType.average;
@@ -209,11 +213,19 @@ public class VGG extends VGGCore {
 					layerSpec.filterSpec.coweight = false; //This code line is not necessary because weight specification is not specified but confirming that by default pooling filter is not associated with weight matrix because of reduced layer size (width and height).
 					layerSpecs.add(layerSpec);
 				}
+				//Adding ending stride layer.
+				else if (paramIsFilterMode() && layerSpec.prevSize.width >= base*layerSpec.size.width && layerSpec.prevSize.height >= base*layerSpec.size.height) {
+					layerSpec.filterSpec = new FilterSpec(base, base, Type.kernel);
+					layerSpec.filterSpec.kernelType = KernelType.product; //It means zooming out to be smaller.
+					layerSpec.filterSpec.moveStride = true;
+					layerSpec.filterSpec.coweight = false; //This code line is not necessary because weight specification is not specified but confirming that by default pooling filter is not associated with weight matrix because of reduced layer size (width and height).
+					layerSpecs.add(layerSpec);
+				}
 			}
 			
 			//Adding dropout layer.
 			if (paramIsDropoutMode() && (block < blockSizes.size()-1 || ffnLength > 0)) {
-				addDropout(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs);
+				if (paramIsCoweight() || !paramIsFilterMode()) addDropout(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs);
 			}
 		}
 		
@@ -369,12 +381,6 @@ class VGGCore extends ResidualNetwork {
 	 * Default base.
 	 */
 	final static int BASE = ZOOMOUT_DEFAULT;
-	
-	
-	/**
-	 * Matrix normalization flag.
-	 */
-	final static boolean MATRIX_NORM = false;
 	
 	
 	/**
@@ -538,7 +544,7 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Default value for filter kernel type.
 	 */
-	public final static KernelType FILTER_KERNEL_TYPE_DEFAULT = KernelType.micro;
+	public final static KernelType FILTER_KERNEL_TYPE_DEFAULT = KernelType.product;
 
 	
 	/**
@@ -684,6 +690,11 @@ class VGGCore extends ResidualNetwork {
 			 * Residual layer.
 			 */
 			residual,
+			
+			/**
+			 * Normalization layer.
+			 */
+			norm,
 			
 			/**
 			 * Flattening layer.
@@ -841,6 +852,9 @@ class VGGCore extends ResidualNetwork {
 		case residual:
 			layer = new ResidualLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 			break;
+		case norm:
+			layer = new BatchNormLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
+			break;
 		case flatten:
 			layer = new FlattenLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 			break;
@@ -972,7 +986,7 @@ class VGGCore extends ResidualNetwork {
 					if (filterType == Type.kernel) {
 						layerSpec.filterSpec = new FilterSpec(filterSize, filterSize, filterType);
 						layerSpec.filterSpec.kernelType = paramGetFilterKernelType();
-						if ((layerSpec.filterSpec.kernelType == KernelType.micro)
+						if ((layerSpec.filterSpec.kernelType == KernelType.macro)
 								&& (layerSpec.size.width != layerSpec.prevSize.width || layerSpec.size.height != layerSpec.prevSize.height)) {
 							layerSpec.filterSpec.kernelType = KernelType.product;
 						}
@@ -990,6 +1004,7 @@ class VGGCore extends ResidualNetwork {
 						layerSpec.fifthLength = Math.max(paramGetSubNetworkLength(), 1); //The fifth length of layer specification is now the depth (length) of network filter.
 					}
 					
+					//Setting moving stride flag and co-weight flag.
 					if (layerSpec.filterSpec != null) {
 						layerSpec.filterSpec.moveStride = false;
 						layerSpec.filterSpec.coweight = paramIsCoweight();
@@ -1021,17 +1036,18 @@ class VGGCore extends ResidualNetwork {
 				
 				//Adding residual layer.
 				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= depthDefault) {
-					addResidual(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
+					addResidualBatch(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
 				}
 			}
 			
-			//Adding ending pool layer.
-			if (paramIsFilterEndPoolMode() && block < blockSizes.size()-1) {
+			//Adding ending pool layer or ending stride layer.
+			if (block < blockSizes.size()-1) {
 				Size poolSize = new Size(blockSizes.get(block+1).width, blockSizes.get(block+1).height, blockSize.depth, 1);
 				VGG.LayerSpec layerSpec = new VGG.LayerSpec(poolSize);
 				layerSpec.prevSize = layerSpecs.get(layerSpecs.size()-1).size;
 				
-				if (layerSpec.prevSize != null && layerSpec.prevSize.depth == layerSpec.size.depth) {
+				//Adding ending pool layer.
+				if (paramIsFilterEndPoolMode() && paramIsFilterMode() && layerSpec.prevSize.depth == layerSpec.size.depth) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
 					layerSpec.filterSpec.poolType = paramGetFilterPoolType();
 					if (!flatten) layerSpec.filterSpec.poolType = PoolType.average;
@@ -1042,11 +1058,19 @@ class VGGCore extends ResidualNetwork {
 					layerSpec.filterSpec.coweight = false; //This code line is not necessary because weight specification is not specified but confirming that by default pooling filter is not associated with weight matrix because of reduced layer size (width and height).
 					layerSpecs.add(layerSpec);
 				}
+				//Adding ending stride layer.
+				else if (paramIsFilterMode() && layerSpec.prevSize.width >= base*layerSpec.size.width && layerSpec.prevSize.height >= base*layerSpec.size.height) {
+					layerSpec.filterSpec = new FilterSpec(base, base, Type.kernel);
+					layerSpec.filterSpec.kernelType = KernelType.product; //It means zooming out to be smaller.
+					layerSpec.filterSpec.moveStride = true;
+					layerSpec.filterSpec.coweight = false; //This code line is not necessary because weight specification is not specified but confirming that by default pooling filter is not associated with weight matrix because of reduced layer size (width and height).
+					layerSpecs.add(layerSpec);
+				}
 			}
 			
 			//Adding dropout layer.
 			if (paramIsDropoutMode() && (block < blockSizes.size()-1 || ffnLength > 0)) {
-				addDropout(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs);
+				if (paramIsCoweight() || !paramIsFilterMode()) addDropout(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs);
 			}
 		}
 		
@@ -1190,25 +1214,50 @@ class VGGCore extends ResidualNetwork {
 		VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(size, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 		resLayerSpec.prevSize = resLayerSpec.size; //Setting previous size not important.
 		resLayerSpec.type = VGG.LayerSpec.Type.residual;
-		resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
-		if (filterMode)
-			resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.filter_activate;
-		else
-			resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
+		resLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.filter_activate : net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
 		residualIndices.add(beginIndex + layerSpecs.size());
 		layerSpecs.add(resLayerSpec);
 		
 		//Adding norm layer.
 		Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
-		if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || MATRIX_NORM)) {
+		if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || Kernel.MATRIX_NORM)) {
 			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
-			normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
-			layerSpecs.add(normLayerSpec);
+			normLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.norm_depth : net.ea.ann.mane.WeightSpec.KernelType.norm;
+			if (normLayerSpec.size.depth >= 8 || normLayerSpec.size.width*normLayerSpec.size.height >= 64)
+				layerSpecs.add(normLayerSpec);
 		}
 	}
 	
 
+	/**
+	 * Adding residual layer and batch normalization layer.
+	 * @param size size.
+	 * @param layerSpecs list of layer specification.
+	 * @param residualIndices list of residual indices.
+	 * @param beginIndex begin index for residual layers.
+	 * @param filterMode filter mode.
+	 */
+	void addResidualBatch(Size size, List<MatrixLayerAbstract.LayerSpec> layerSpecs, List<Integer> residualIndices, int beginIndex, boolean filterMode) {
+		VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(size, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
+		resLayerSpec.prevSize = resLayerSpec.size; //Setting previous size not important.
+		resLayerSpec.type = VGG.LayerSpec.Type.residual;
+		resLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.filter_activate : net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
+		residualIndices.add(beginIndex + layerSpecs.size());
+		layerSpecs.add(resLayerSpec);
+		
+		//Adding norm layer.
+		Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
+		if (paramIsLayerNorm()) {
+			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
+			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
+			normLayerSpec.type = VGG.LayerSpec.Type.norm;
+			resLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.filter_activate : net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
+			layerSpecs.add(normLayerSpec);
+		}
+	}
+
+	
 	/**
 	 * Adding dropout layer.
 	 * @param size layer size.

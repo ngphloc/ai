@@ -406,7 +406,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 		Matrix eval = WO != null ? Matrix.concatV(aList).multiply(WO) : Matrix.concatV(aList);
 		MatrixUtil.copy(eval, A);
 		
-		Error.addLayerOInputParams(this, A, params);
+		Error.addLayerOInput(this, A, params);
 		return A;
 	}
 
@@ -578,7 +578,7 @@ public class Attention implements AddNorm, Cloneable, Serializable {
 				if (head != null) Attention0.initParams(head, rnd);
 			}
 		}
-		if (attention.WO != null) MatrixUtil.fill(attention.WO, rnd);
+		if (attention.WO != null) MatrixUtil.fill(attention.WO, rnd/*, attention.WO.rows()*/);
 	}
 
 
@@ -1363,11 +1363,11 @@ class Attention0 implements Cloneable, Serializable {
 	 * @param rnd randomizer.
 	 */
 	static void initParams(Attention0 attention, Random rnd) {
-		if (attention.T1 != null) MatrixUtil.fill(attention.T1, rnd);
-		if (attention.T2 != null) MatrixUtil.fill(attention.T2, rnd);
-		if (attention.WQ != null) MatrixUtil.fill(attention.WQ, rnd);
-		if (attention.WK != null) MatrixUtil.fill(attention.WK, rnd);
-		if (attention.WV != null) MatrixUtil.fill(attention.WV, rnd);
+		if (attention.T1 != null) MatrixUtil.fill(attention.T1, rnd/*, attention.T1.columns()*/);
+		if (attention.T2 != null) MatrixUtil.fill(attention.T2, rnd/*, attention.T2.rows()*/);
+		if (attention.WQ != null) MatrixUtil.fill(attention.WQ, rnd/*, attention.WQ.rows()*/);
+		if (attention.WK != null) MatrixUtil.fill(attention.WK, rnd/*, attention.WK.rows()*/);
+		if (attention.WV != null) MatrixUtil.fill(attention.WV, rnd/*, attention.WV.rows()*/);
 	}
 	
 	
