@@ -163,7 +163,6 @@ class NiNAbstract extends ClassifierAbstract {
 	/**
 	 * Classifier nut.
 	 */
-	@SuppressWarnings("deprecation")
 	protected net.ea.ann.mane.beans.NiN nut = null;
 
 
@@ -174,7 +173,6 @@ class NiNAbstract extends ClassifierAbstract {
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
 	 */
-	@SuppressWarnings("deprecation")
 	public NiNAbstract(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, idRef);
 		

@@ -105,7 +105,7 @@ public class FilterNetworkImpl extends FilterNetwork {
 	 * @return true if initialization is successful.
 	 */
 	@Deprecated
-	boolean initialize(Size inputSize, Size kernelSize, int length, KernelType kernelType) {
+	private boolean initialize(Size inputSize, Size kernelSize, int length, KernelType kernelType) {
 		if (inputSize == null) return false;
 		
 		LayerSpec layerSpec0 = new MatrixLayerAbstract.LayerSpec(inputSize);
@@ -131,8 +131,9 @@ public class FilterNetworkImpl extends FilterNetwork {
 	 * @param length length (number) of filter layers (network depth).
 	 * @return true if initialization is successful.
 	 */
+	@SuppressWarnings("unused")
 	@Deprecated
-	boolean initialize(Size inputSize, Size kernelSize, int length) {
+	private boolean initialize(Size inputSize, Size kernelSize, int length) {
 		return initialize(inputSize, kernelSize, length, paramGetKernelType());
 	}
 
@@ -147,7 +148,7 @@ public class FilterNetworkImpl extends FilterNetwork {
 	 * @return true if initialization is successful.
 	 */
 	@Deprecated
-	boolean initialize(Size inputSize, Size kernelSize, int outputDepth, int length, KernelType kernelType) {
+	private boolean initialize(Size inputSize, Size kernelSize, int outputDepth, int length, KernelType kernelType) {
 		return initialize(inputSize, new Size(kernelSize.width, kernelSize.height, outputDepth), length, kernelType);
 	}
 	
@@ -161,8 +162,9 @@ public class FilterNetworkImpl extends FilterNetwork {
 	 * @param kernelType kernel type.
 	 * @return true if initialization is successful.
 	 */
+	@SuppressWarnings("unused")
 	@Deprecated
-	boolean initialize(Size inputSize, Size kernelSize, int outputDepth, int length) {
+	private boolean initialize(Size inputSize, Size kernelSize, int outputDepth, int length) {
 		return initialize(inputSize, kernelSize, outputDepth, length, paramGetKernelType());
 	}
 
@@ -232,7 +234,7 @@ public class FilterNetworkImpl extends FilterNetwork {
 	 * @return network as filter.
 	 */
 	@Deprecated
-	static FilterNetworkImpl create(Size inputSize, Size kernelSize, int neuronChannel, KernelType kernelType) {
+	private static FilterNetworkImpl create(Size inputSize, Size kernelSize, int neuronChannel, KernelType kernelType) {
 		int length = kernelSize.time < 1 ? 1 : kernelSize.time;
 		FilterNetworkImpl filter = new FilterNetworkImpl(neuronChannel);
 		if (!filter.initialize(inputSize, kernelSize, length, kernelType)) return null;
@@ -248,8 +250,9 @@ public class FilterNetworkImpl extends FilterNetwork {
 	 * @param neuronChannel neuronChannel.
 	 * @return network as filter.
 	 */
+	@SuppressWarnings("unused")
 	@Deprecated
-	static FilterNetworkImpl create(Size inputSize, Size kernelSize, int neuronChannel) {
+	private static FilterNetworkImpl create(Size inputSize, Size kernelSize, int neuronChannel) {
 		return create(inputSize, kernelSize, neuronChannel, KernelType.product);
 	}
 
@@ -265,7 +268,7 @@ public class FilterNetworkImpl extends FilterNetwork {
 	 * @return network as filter.
 	 */
 	@Deprecated
-	static FilterNetworkImpl create(Dimension inputSize, Dimension kernelSize, int kernelDepth, int length, int neuronChannel, KernelType kernelType) {
+	private static FilterNetworkImpl create(Dimension inputSize, Dimension kernelSize, int kernelDepth, int length, int neuronChannel, KernelType kernelType) {
 		return create(
 			new Size(inputSize.width, inputSize.height, kernelDepth),
 			new Size(kernelSize.width, kernelSize.height, kernelDepth, length), 
@@ -283,8 +286,9 @@ public class FilterNetworkImpl extends FilterNetwork {
 	 * @param neuronChannel neuronChannel.
 	 * @return network as filter.
 	 */
+	@SuppressWarnings("unused")
 	@Deprecated
-	static FilterNetworkImpl create(Dimension inputSize, Dimension kernelSize, int kernelDepth, int length, int neuronChannel) {
+	private static FilterNetworkImpl create(Dimension inputSize, Dimension kernelSize, int kernelDepth, int length, int neuronChannel) {
 		return create(inputSize, kernelSize, kernelDepth, length, neuronChannel, KernelType.product);
 	}
 	

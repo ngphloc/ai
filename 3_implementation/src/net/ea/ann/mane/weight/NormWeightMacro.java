@@ -5,7 +5,7 @@
  * Email: ng_phloc@yahoo.com
  * Phone: +84-975250362
  */
-package net.ea.ann.mane.weight.deprecated;
+package net.ea.ann.mane.weight;
 
 import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.value.Matrix;
@@ -20,13 +20,12 @@ import net.ea.ann.mane.train.Optimizer;
 import net.ea.ann.raster.Size;
 
 /**
- * This class implements normalization weight.
+ * This class implements macro normalization weight.
  * @author Loc Nguyen
  * @version 1.0
  *
  */
-@Deprecated
-public class NormWeight implements Weight, TextParsable {
+public class NormWeightMacro implements Weight, TextParsable {
 
 
 	/**
@@ -34,12 +33,6 @@ public class NormWeight implements Weight, TextParsable {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	
-	/**
-	 * Epsilon.
-	 */
-	public final static double EPSILON = 1E-5;
-	
 	
 	/**
 	 * This kernel consists of the linear weight.
@@ -153,7 +146,6 @@ public class NormWeight implements Weight, TextParsable {
 			return this;
 		}
 		
-		
 	}
 
 	
@@ -179,7 +171,7 @@ public class NormWeight implements Weight, TextParsable {
 	 * Constructor with the kernel.
 	 * @param kernel the kernel.
 	 */
-	public NormWeight(WKernel kernel) {
+	public NormWeightMacro(WKernel kernel) {
 		assert (kernel != null);
 		this.kernel = kernel;
 		if (kernel.W != null) {
@@ -241,7 +233,7 @@ public class NormWeight implements Weight, TextParsable {
 
 
 	@Override
-	public NormWeight accumKernel(Kernel dKernel, double factor) {
+	public NormWeightMacro accumKernel(Kernel dKernel, double factor) {
 		assert (factor > 0 && factor < 1);
 		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
@@ -253,7 +245,7 @@ public class NormWeight implements Weight, TextParsable {
 
 	
 	@Override
-	public NormWeight accumKernel(Kernel dKernel, double factor, double decay) {
+	public NormWeightMacro accumKernel(Kernel dKernel, double factor, double decay) {
 		assert (factor > 0 && factor < 1);
 		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
@@ -265,40 +257,10 @@ public class NormWeight implements Weight, TextParsable {
 
 	
 	/**
-	 * Calculating means and standard deviations.
-	 * @param outputs outputs.
-	 * @return array of means, standard deviations, and norms.
+	 * Checking across depth mode.
+	 * @return across depth mode.
 	 */
-	public static Matrix[] meanStds(Matrix[] outputs) {
-		int rows = outputs[0].rows(), columns = outputs[0].columns(), depth = outputs.length;
-		NeuronValue zero = outputs[0].get(0, 0).zero();
-		NeuronValue epsilon = zero.valueOf(EPSILON);
-		Matrix means = outputs[0].create(new Size(columns, rows));
-		Matrix stds = outputs[0].create(new Size(columns, rows));
-		MatrixUtil.fill(means, zero);
-		MatrixUtil.fill(stds, zero);
-
-		for (int row = 0; row < rows; row++) {
-			for (int column = 0; column < columns; column++) {
-				NeuronValue mean = zero;
-				for (int d = 0; d < depth; d++) mean = mean.add(outputs[d].get(row, column));
-				means.set(row, column, mean.divide(depth));
-			}
-		}
-		
-		for (int row = 0; row < rows; row++) {
-			for (int column = 0; column < columns; column++) {
-				NeuronValue std = zero, mean = means.get(row, column);
-				for (int d = 0; d < depth; d++) {
-					NeuronValue dev = outputs[d].get(row, column).subtract(mean);
-					std = std.add(dev.multiply(dev));
-				}
-				stds.set(row, column, std.divide(depth).add(epsilon).sqrt());
-			}
-		}
-		
-		return new Matrix[] {means, stds};
-	}
+	private boolean acrossDepth() {return depthMode && W().depth() >= 2*Kernel.LARGE_DEPTH;}
 
 	
 	@Override
@@ -315,18 +277,18 @@ public class NormWeight implements Weight, TextParsable {
 		int rows = input.rows(), columns = input.columns(), depth = W().depth();
 		MatrixStack inputs = input instanceof MatrixStack ? (MatrixStack)input : new MatrixStack(input);
 		NeuronValue zero = inputs.get(0).get(0, 0).zero();
-		boolean acrossDepth = depthMode && depth > 1;
+		boolean acrossDepth = acrossDepth();
 
 		//Calculating means and standard deviations.
 		Matrix means = null, stds = null;
 		NeuronValue[] mean0 = null, std0 = null;
 		if (acrossDepth) {
-			Matrix[] meanStds = meanStds(MatrixUtil.split(inputs));
+			Matrix[] meanStds = NormWeight.meanStds(MatrixUtil.split(inputs));
 			means = meanStds[0];
 			stds = meanStds[1];
 		}
 		else {
-			NeuronValue epsilon = zero.valueOf(EPSILON);
+			NeuronValue epsilon = zero.valueOf(NormWeight.EPSILON);
 			mean0 = new NeuronValue[depth];
 			std0 = new NeuronValue[depth];
 			for (int d = 0; d < depth; d++) {
@@ -377,21 +339,21 @@ public class NormWeight implements Weight, TextParsable {
 	 * @param W current weight matrices.
 	 * @return gradient of previous layers.
 	 */
-	private static MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors, MatrixStack W, boolean filterMode) {
+	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors, MatrixStack W, boolean filterMode) {
 		int rows = prevOutputs.rows(), columns = prevOutputs.columns(), depth = W.depth();
 		NeuronValue zero = prevOutputs.get(0).get(0, 0).zero();
-		boolean acrossDepth = filterMode && depth > 1;
+		boolean acrossDepth = acrossDepth();
 
 		//Calculating means and standard deviations.
 		Matrix means = null, stds = null;
 		NeuronValue[] mean0 = null, std0 = null;
 		if (acrossDepth) {
-			Matrix[] meanStds = meanStds(MatrixUtil.split(prevOutputs));
+			Matrix[] meanStds = NormWeight.meanStds(MatrixUtil.split(prevOutputs));
 			means = meanStds[0];
 			stds = meanStds[1];
 		}
 		else {
-			NeuronValue epsilon = zero.valueOf(EPSILON);
+			NeuronValue epsilon = zero.valueOf(NormWeight.EPSILON);
 			mean0 = new NeuronValue[depth];
 			std0 = new NeuronValue[depth];
 			for (int d = 0; d < depth; d++) {
@@ -492,14 +454,6 @@ public class NormWeight implements Weight, TextParsable {
 
 	
 //	@Override
-//	public void initParams(double v) {
-//		MatrixStack W = this.W(), bias = this.bias();
-//		if (W != null) MatrixUtil.fill(W, v);
-//		if (bias != null) MatrixUtil.fill(bias, v);
-//	}
-//	
-//
-//	@Override
 //	public void initParams(Random rnd) {
 //		MatrixStack W = this.W(), bias = this.bias();
 //		if (W != null) MatrixUtil.fill(W, rnd, 1);
@@ -535,13 +489,13 @@ public class NormWeight implements Weight, TextParsable {
 	 * @param hint hint value.
 	 * @return weight.
 	 */
-	public static NormWeight create(Size prevSize, Size size, NeuronValue hint) {
+	public static NormWeightMacro create(Size prevSize, Size size, NeuronValue hint) {
 		if (prevSize.width != size.width || prevSize.height != size.height || prevSize.depth != size.depth) throw new IllegalArgumentException();
 		Matrix W = MatrixUtil.create(new Size(size.width, size.height, size.depth, 1), hint.unit());
 		Matrix bias = MatrixUtil.create(new Size(size.width, size.height, size.depth, 1), hint.zero());
 		WKernel kernel = new WKernel(W instanceof MatrixStack ? (MatrixStack)W : new MatrixStack(W),
 			bias instanceof MatrixStack ? (MatrixStack)bias : new MatrixStack(bias));
-		return new NormWeight(kernel);
+		return new NormWeightMacro(kernel);
 	}
 	
 	

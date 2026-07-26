@@ -17,7 +17,7 @@ import net.ea.ann.mane.filter.FilterNetworkImpl;
 import net.ea.ann.mane.filter.GAP;
 import net.ea.ann.mane.filter.KernelFilterMax;
 import net.ea.ann.mane.filter.KernelFilterProduct;
-import net.ea.ann.mane.filter.MicroFilter;
+import net.ea.ann.mane.filter.MacroFilter;
 import net.ea.ann.mane.filter.NullFilter;
 import net.ea.ann.mane.filter.PoolFilterAverage;
 import net.ea.ann.mane.filter.PoolFilterMax;
@@ -88,9 +88,10 @@ public class FilterSpec implements Cloneable, Serializable {
 		product_max,
 		
 		/**
-		 * Micro filter type.
+		 * Macro filter type.
+		 * Macro filter aims to improve accuracy due to diversity and so it is less stable.
 		 */
-		micro,
+		macro,
 		
 		/**
 		 * Null filter.
@@ -350,7 +351,7 @@ public class FilterSpec implements Cloneable, Serializable {
 			kernelType = KernelType.product_max;
 			break;
 		case 2:
-			kernelType = KernelType.micro;
+			kernelType = KernelType.macro;
 			break;
 		case 3:
 			kernelType = KernelType.nil;
@@ -487,9 +488,9 @@ public class FilterSpec implements Cloneable, Serializable {
 				case product_max:
 					filter = KernelFilterMax.create(factor, filterSize, hint);
 					break;
-				case micro:
+				case macro:
 					filterSize = new Size(layerSpec.size.width, layerSpec.size.height, filterSize.depth, filterSize.time);
-					filter = MicroFilter.create(factor, filterSize, hint);
+					filter = MacroFilter.create(factor, filterSize, hint);
 					break;
 				case nil:
 					filter = new NullFilter();
@@ -621,9 +622,9 @@ public class FilterSpec implements Cloneable, Serializable {
 				case product_max:
 					filter = KernelFilterMax.create(factor, filterSize, hint);
 					break;
-				case micro:
+				case macro:
 					filterSize = new Size(filterSpec.size.width, filterSpec.size.height, filterSize.depth, filterSize.time);
-					filter = MicroFilter.create(factor, filterSize, hint);
+					filter = MacroFilter.create(factor, filterSize, hint);
 					throw new RuntimeException("Not validation yet");
 				case nil:
 					filter = new NullFilter();

@@ -83,18 +83,18 @@ public class KernelFilterMax extends KernelFilterProduct {
 	NeuronValue apply(int time, int y, int x, MatrixStack layers) {
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		NeuronValue zero = layers.get().get(0, 0).zero();
-		int width = layers.columns(), height = layers.rows();
-		if (y + kernelHeight > height) {
+		int layerWidth = layers.columns(), layerHeight = layers.rows();
+		if (y + kernelHeight > layerHeight) {
 			if (isPadZero())
-				return y >= height ? null : null;
+				return y >= layerHeight ? null : null;
 			else
-				y = height - kernelHeight;
+				y = layerHeight - kernelHeight;
 		}
-		if (x + kernelWidth > width) {
+		if (x + kernelWidth > layerWidth) {
 			if (isPadZero())
-				return x >= width ? null : null;
+				return x >= layerWidth ? null : null;
 			else
-				x = width - kernelWidth;
+				x = layerWidth - kernelWidth;
 		}
 		
 		NeuronValue[] result = new NeuronValue[kernelDepth];
@@ -118,7 +118,6 @@ public class KernelFilterMax extends KernelFilterProduct {
 	void forward(int time, MatrixStack prevLayers, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
 		if (thisInputLayer != null) MatrixUtil.fill(thisInputLayer, thisInputLayer.get(0, 0).zero());
 		if (thisOutputLayer != null) MatrixUtil.fill(thisOutputLayer, thisOutputLayer.get(0, 0).zero());
-
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevLayers.columns(), prevHeight = prevLayers.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
@@ -183,7 +182,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 				thisX = prevX/strideWidth;
 			}
 		}
-
+		
 		Matrix[] dValues = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		MatrixStack[] kernel = this.kernel.W;
@@ -215,7 +214,6 @@ public class KernelFilterMax extends KernelFilterProduct {
 	BiasWeight dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		assert (this.kernel.Bias == null && this.kernel.bias != null);
 		assert (this.kernel.bias.length == time());
-
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
@@ -241,7 +239,7 @@ public class KernelFilterMax extends KernelFilterProduct {
 				thisX = prevX/strideWidth;
 			}
 		}
-
+		
 		Matrix[] dKernels = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		MatrixStack[] kernel = this.kernel.W;

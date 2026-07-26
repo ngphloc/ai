@@ -30,7 +30,6 @@ import net.ea.ann.mane.layers.FlattenLayer2;
 import net.ea.ann.mane.layers.NullLayer;
 import net.ea.ann.mane.layers.ResidualLayer;
 import net.ea.ann.mane.layers.ResidualNetwork;
-import net.ea.ann.mane.weight.NormWeight;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerBasic;
 import net.hudup.core.parser.TextParserUtil;
@@ -237,25 +236,25 @@ public class VGG extends VGGCore {
 		addMoreLayers(layerSpecs);
 		if (outputSize == null || ffnLength < 1) return initialize(layerSpecs.toArray(new LayerSpec[] {}), false);
 		
-		//Adding Global Average Pooling (GAP) layer.
+		//Getting last size.
+		Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
+
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if (gap) {
-			Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
-			Size gapSize = new Size(1, prevSize.depth, 1, 1);
-			VGG.LayerSpec gapLayerSpec = new VGG.LayerSpec(gapSize, new FilterSpec(Type.pool));
-			gapLayerSpec.prevSize = prevSize; //Setting previous size not important.
+		if (gap && lastSize.depth >= 2*Kernel.LARGE_DEPTH && lastSize.width*lastSize.height <= 2*Kernel.LARGE_DEPTH) {
+			ffnSize = new Size(1, lastSize.depth, 1, 1);
+			
+			//Adding Global Average Pooling (GAP) layer.
+			VGG.LayerSpec gapLayerSpec = new VGG.LayerSpec(ffnSize, new FilterSpec(Type.pool));
+			gapLayerSpec.prevSize = lastSize; //Setting previous size not important.
 			gapLayerSpec.filterSpec.poolType = PoolType.gap;
 			layerSpecs.add(gapLayerSpec);
-			
-			ffnSize = gapSize;
 		}
 		else if (paramIsFFNFlatten()) {
-			Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 			if (paramIsVectorized()) {
 				ffnSize = new Size(1, lastSize.width*lastSize.height*lastSize.depth, 1);
 				
-				//Adding flatten layer.
+				//Adding vectorized flatten layer.
 				VGG.LayerSpec flattenLayerSpec = new VGG.LayerSpec(ffnSize);
 				flattenLayerSpec.prevSize = lastSize; //Setting previous size not important.
 				flattenLayerSpec.type = VGG.LayerSpec.Type.flatten;
@@ -265,14 +264,15 @@ public class VGG extends VGGCore {
 				ffnSize = new Size(middleSize.width, lastSize.depth*middleSize.height, 1);
 				
 				//Adding flatten layer.
-				VGG.LayerSpec flattenLayerSpec = new VGG.LayerSpec(ffnSize);
-				flattenLayerSpec.prevSize = lastSize; //Setting previous size not important.
-				flattenLayerSpec.type = VGG.LayerSpec.Type.flatten2;
-				layerSpecs.add(flattenLayerSpec);
+				if (lastSize.width == middleSize.width && lastSize.height == middleSize.height) {
+					VGG.LayerSpec flattenLayerSpec = new VGG.LayerSpec(ffnSize);
+					flattenLayerSpec.prevSize = lastSize; //Setting previous size not important.
+					flattenLayerSpec.type = VGG.LayerSpec.Type.flatten2;
+					layerSpecs.add(flattenLayerSpec);
+				}
 			}
 		}
 		else {
-			Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 			ffnSize = new Size(middleSize.width, middleSize.height, lastSize.depth);
 		}
 		
@@ -1085,25 +1085,25 @@ class VGGCore extends ResidualNetwork {
 		addMoreLayers(layerSpecs);
 		if (outputSize == null || ffnLength < 1) return initialize(layerSpecs.toArray(new LayerSpec[] {}), false);
 		
-		//Adding Global Average Pooling (GAP) layer.
+		//Getting last size.
+		Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
+
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if (gap) {
-			Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
-			Size gapSize = new Size(1, prevSize.depth, 1, 1);
-			VGG.LayerSpec gapLayerSpec = new VGG.LayerSpec(gapSize, new FilterSpec(Type.pool));
-			gapLayerSpec.prevSize = prevSize; //Setting previous size not important.
+		if (gap && lastSize.depth >= 2*Kernel.LARGE_DEPTH && lastSize.width*lastSize.height <= 2*Kernel.LARGE_DEPTH) {
+			ffnSize = new Size(1, lastSize.depth, 1, 1);
+			
+			//Adding Global Average Pooling (GAP) layer.
+			VGG.LayerSpec gapLayerSpec = new VGG.LayerSpec(ffnSize, new FilterSpec(Type.pool));
+			gapLayerSpec.prevSize = lastSize; //Setting previous size not important.
 			gapLayerSpec.filterSpec.poolType = PoolType.gap;
 			layerSpecs.add(gapLayerSpec);
-			
-			ffnSize = gapSize;
 		}
 		else if (paramIsFFNFlatten()) {
-			Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 			if (paramIsVectorized()) {
 				ffnSize = new Size(1, lastSize.width*lastSize.height*lastSize.depth, 1);
 				
-				//Adding flatten layer.
+				//Adding vectorized flatten layer.
 				VGG.LayerSpec flattenLayerSpec = new VGG.LayerSpec(ffnSize);
 				flattenLayerSpec.prevSize = lastSize; //Setting previous size not important.
 				flattenLayerSpec.type = VGG.LayerSpec.Type.flatten;
@@ -1113,14 +1113,15 @@ class VGGCore extends ResidualNetwork {
 				ffnSize = new Size(middleSize.width, lastSize.depth*middleSize.height, 1);
 				
 				//Adding flatten layer.
-				VGG.LayerSpec flattenLayerSpec = new VGG.LayerSpec(ffnSize);
-				flattenLayerSpec.prevSize = lastSize; //Setting previous size not important.
-				flattenLayerSpec.type = VGG.LayerSpec.Type.flatten2;
-				layerSpecs.add(flattenLayerSpec);
+				if (lastSize.width == middleSize.width && lastSize.height == middleSize.height) {
+					VGG.LayerSpec flattenLayerSpec = new VGG.LayerSpec(ffnSize);
+					flattenLayerSpec.prevSize = lastSize; //Setting previous size not important.
+					flattenLayerSpec.type = VGG.LayerSpec.Type.flatten2;
+					layerSpecs.add(flattenLayerSpec);
+				}
 			}
 		}
 		else {
-			Size lastSize = layerSpecs.get(layerSpecs.size()-1).size;
 			ffnSize = new Size(middleSize.width, middleSize.height, lastSize.depth);
 		}
 		
@@ -1231,7 +1232,7 @@ class VGGCore extends ResidualNetwork {
 			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
 			normLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.norm_depth : net.ea.ann.mane.WeightSpec.KernelType.norm;
-			if (normLayerSpec.size.depth >= NormWeight.LARGE_DEPTH || normLayerSpec.size.width*normLayerSpec.size.height >= NormWeight.LARGE_DEPTH)
+			if (normLayerSpec.size.depth >= Kernel.LARGE_DEPTH || normLayerSpec.size.width*normLayerSpec.size.height >= Kernel.LARGE_DEPTH)
 				layerSpecs.add(normLayerSpec);
 		}
 	}

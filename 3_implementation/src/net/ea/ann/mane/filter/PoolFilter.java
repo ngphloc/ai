@@ -172,13 +172,6 @@ public abstract class PoolFilter extends FilterAbstract {
 				
 				//Calculating gradient.
 				for (int i = 0; i < this.depth(); i++) {
-					/*
-					Matrix dPrevValue = null;
-					for (int count = 0; count < thisErrorLayers.depth(); count++) {
-						Matrix dValue = this.dValue(thisY, thisX, prevInputLayers.get(i), prevOutputLayers.get(i), thisErrorLayers.get(count));
-						dPrevValue = dPrevValue != null ? dPrevValue.add(dValue) : dValue; 
-					}
-					*/
 					Matrix dPrevValue = this.dValue(thisY, thisX, prevInputLayers.get(i), prevOutputLayers.get(i), thisErrorLayers.get(i));
 					if (dPrevValue == null) continue;
 					for (int j = 0; j < dPrevValue.rows(); j++) {

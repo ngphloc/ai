@@ -20,6 +20,7 @@ import net.ea.ann.raster.Size;
 
 /**
  * This class implements macro filter derived from micro filter developed by Min Lin, Qiang Chen, Shuicheng Yan.
+ * Macro filter aims to improve accuracy due to diversity and so it is less stable.
  * @author Min Lin, Qiang Chen, Shuicheng Yan, implemented by Loc Nguyen
  * @version 1.0
  *
@@ -165,7 +166,6 @@ public class MacroFilter extends KernelFilter {
 		assert (prevInputLayers.rows() == this.height() && prevInputLayers.columns() == this.width());
 		assert (prevOutputLayer.rows() == this.height() && prevOutputLayer.columns() == this.width());
 		assert (thisErrorLayer.rows() == this.height() && thisErrorLayer.columns() == this.width());
-		
 		NeuronValue zero = prevInputLayers.get().get(0, 0).zero();
 		Matrix[] dPrevValues = new Matrix[this.depth()];
 		for (int i = 0; i < dPrevValues.length; i++) {
@@ -222,7 +222,6 @@ public class MacroFilter extends KernelFilter {
 		assert (this.kernel.Bias != null && this.kernel.bias == null);
 		assert (this.kernel.Bias.length == time());
 		assert (this.kernel.Bias[0].rows() == this.height() && this.kernel.Bias[0].columns() == this.width());
-
 		MatrixStack[] kernel = this.kernel().W;
 		NeuronValue zero = kernel[time].get().get(0, 0).zero();
 		Matrix[] dKernels = new Matrix[this.depth()];

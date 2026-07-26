@@ -15,6 +15,7 @@ import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.ActivateWWeight;
 import net.ea.ann.mane.weight.NormWeight;
+import net.ea.ann.mane.weight.NormWeightMacro;
 import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.mane.weight.TransformerWeight;
 import net.ea.ann.mane.weight.WeightImpl;
@@ -83,6 +84,16 @@ public class WeightSpec implements Cloneable, Serializable {
 		 * Depth normalization kernel.
 		 */
 		norm_depth,
+
+		/**
+		 * Macro normalization kernel.
+		 */
+		norm_macro,
+		
+		/**
+		 * Macro depth normalization kernel.
+		 */
+		norm_macro_depth,
 
 		/**
 		 * Filter activation type which is like null type but having filter activation function.
@@ -216,12 +227,18 @@ public class WeightSpec implements Cloneable, Serializable {
 			kernelType = KernelType.norm_depth;
 			break;
 		case 4:
-			kernelType = KernelType.filter_activate;
+			kernelType = KernelType.norm_macro;
 			break;
 		case 5:
-			kernelType = KernelType.weight_activate;
+			kernelType = KernelType.norm_macro_depth;
 			break;
 		case 6:
+			kernelType = KernelType.filter_activate;
+			break;
+		case 7:
+			kernelType = KernelType.weight_activate;
+			break;
+		case 8:
 			kernelType = KernelType.nil;
 			break;
 		default:
@@ -315,6 +332,13 @@ public class WeightSpec implements Cloneable, Serializable {
 			case norm_depth:
 				weight = NormWeight.create(prevSize, size, hint);
 				((NormWeight)weight).setDepthMode(true);
+				break;
+			case norm_macro:
+				weight = NormWeightMacro.create(prevSize, size, hint);
+				break;
+			case norm_macro_depth:
+				weight = NormWeightMacro.create(prevSize, size, hint);
+				((NormWeightMacro)weight).setDepthMode(true);
 				break;
 			case filter_activate:
 				weight = new ActivateFWeight();
@@ -430,6 +454,13 @@ public class WeightSpec implements Cloneable, Serializable {
 			case norm_depth:
 				weight = NormWeight.create(prevSize, size, hint);
 				((NormWeight)weight).setDepthMode(true);
+				break;
+			case norm_macro:
+				weight = NormWeightMacro.create(prevSize, size, hint);
+				break;
+			case norm_macro_depth:
+				weight = NormWeightMacro.create(prevSize, size, hint);
+				((NormWeightMacro)weight).setDepthMode(true);
 				break;
 			case filter_activate:
 				weight = new ActivateFWeight();

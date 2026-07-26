@@ -141,6 +141,7 @@ public class FlattenLayer extends MatrixLayerImpl {
 		Matrix prevLayerOutput = this.prevLayer.queryOutput();
 		if (MatrixUtil.capacity(prevLayerOutput) != MatrixUtil.capacity(this.output)) throw new IllegalArgumentException();
 		
+		int count = 0;
 		for (int i = 0; i < outputErrors.length; i++) {
 			Matrix error = outputErrors[i].error();
 			
@@ -157,6 +158,7 @@ public class FlattenLayer extends MatrixLayerImpl {
 						for (int column = 0; column < columns; column++) {
 							int index = rowIndex + column;
 							backwardErrors.get(d).set(row, column, error.get(index, 0));
+							count++;
 						}
 					}
 				}
@@ -167,9 +169,12 @@ public class FlattenLayer extends MatrixLayerImpl {
 					for (int column = 0; column < columns; column++) {
 						int index = rowIndex + column;
 						backwardError.set(row, column, error.get(index, 0));
+						count++;
 					}
 				}
 			}
+			
+			if (count != MatrixUtil.capacity(this.output) || count != MatrixUtil.capacity(backwardError)) throw new IllegalArgumentException();
 			
 			//Setting backward.
 			outputErrors[i].errorSet(backwardError);

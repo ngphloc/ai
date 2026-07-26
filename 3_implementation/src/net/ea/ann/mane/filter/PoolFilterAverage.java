@@ -59,22 +59,21 @@ public class PoolFilterAverage extends PoolFilter {
 	 * @return the index value resulted from this application.
 	 */
 	private NeuronValue apply(int y, int x, Matrix layer) {
-		int width = layer.columns();
-		int height = layer.rows();
 		NeuronValue zero = layer.get(0, 0).zero();
-		if (x + width() > width) {
+		int layerWidth = layer.columns(), layerHeight = layer.rows();
+		if (y + height() > layerHeight) {
 			if (isPadZero())
-				return x >= width ? null : null;
+				return y >= layerHeight ? null : null;
 			else
-				x = width - width();
+				y = layerHeight - height();
 		}
-		if (y + height() > height) {
+		if (x + width() > layerWidth) {
 			if (isPadZero())
-				return y >= height ? null : null;
+				return x >= layerWidth ? null : null;
 			else
-				y = height - height();
+				x = layerWidth - width();
 		}
-
+		
 		NeuronValue result = zero;
 		for (int i = 0; i < height(); i++) {
 			for (int j = 0; j < width(); j++) {
@@ -119,22 +118,12 @@ public class PoolFilterAverage extends PoolFilter {
 
 
 	@Override
-	Matrix dValue(int thisX, int thisY, Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer) {
+	Matrix dValue(int thisY, int thisX, Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer) {
 		int kernelWidth = width(), kernelHeight = height();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayer.columns(), prevHeight = prevInputLayer.rows();
 		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
 		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-		int prevX = xBlock*strideWidth;
-		if (prevX + kernelWidth > prevWidth) {
-			if (isPadZero())
-				return prevX >= prevWidth ? null : null;
-			else {
-				prevX = prevWidth - kernelWidth;
-				thisX = prevX/strideWidth;
-			}
-		}
 		int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
 		int prevY = yBlock*strideHeight;
 		if (prevY + kernelHeight > prevHeight) {
@@ -145,7 +134,17 @@ public class PoolFilterAverage extends PoolFilter {
 				thisY = prevY/strideHeight;
 			}
 		}
-
+		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
+		int prevX = xBlock*strideWidth;
+		if (prevX + kernelWidth > prevWidth) {
+			if (isPadZero())
+				return prevX >= prevWidth ? null : null;
+			else {
+				prevX = prevWidth - kernelWidth;
+				thisX = prevX/strideWidth;
+			}
+		}
+		
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX).divide(kernelWidth*kernelHeight);
 		Matrix dPrevValue = prevInputLayer.create(new Size(kernelWidth, kernelHeight));
 		for (int j = 0; j < kernelHeight; j++) {

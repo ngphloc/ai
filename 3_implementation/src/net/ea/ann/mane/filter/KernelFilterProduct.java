@@ -226,18 +226,18 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	NeuronValue apply(int time, int y, int x, MatrixStack layers) {
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		NeuronValue zero = layers.get().get(0, 0).zero();
-		int width = layers.columns(), height = layers.rows();
-		if (y + kernelHeight > height) {
+		int layerWidth = layers.columns(), layerHeight = layers.rows();
+		if (y + kernelHeight > layerHeight) {
 			if (isPadZero())
-				return y >= height ? null : zero;
+				return y >= layerHeight ? null : zero;
 			else
-				y = height - kernelHeight;
+				y = layerHeight - kernelHeight;
 		}
-		if (x + kernelWidth > width) {
+		if (x + kernelWidth > layerWidth) {
 			if (isPadZero())
-				return x >= width ? null : zero;
+				return x >= layerWidth ? null : zero;
 			else
-				x = width - kernelWidth;
+				x = layerWidth - kernelWidth;
 		}
 		
 		NeuronValue result = zero;
@@ -282,7 +282,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 				thisX = prevX/strideWidth;
 			}
 		}
-
+		
 		Matrix[] dValues = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
@@ -306,7 +306,6 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	BiasWeight dKernel(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		assert (this.kernel.Bias == null && this.kernel.bias != null);
 		assert (this.kernel.bias.length == time());
-		
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
@@ -332,7 +331,7 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 				thisX = prevX/strideWidth;
 			}
 		}
-
+		
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
 		if (derivative != null) thisError = derivative.multiplyWise(thisError);

@@ -735,7 +735,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			});
 		} catch (Exception e) {Util.trace(e);}
 	
-		classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
+		classify(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
 		printer.println("End task.");
 	}
 
@@ -940,7 +940,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 											//(", pool=" + pool) +
 											(", weight=" + weightType) +
 											(", model=" + model));
-										classifyCIFAR10(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
+										classify(builder, baseRastersList, testRastersList, testresultDir, maxIteration);
 										System.out.println("\n");
 								} //Model.
 							} //Transformer-based weight.
@@ -954,14 +954,14 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 
 	
 	/**
-	 * Test of classification with CIFAR-10 dataset.
+	 * Test of classification.
 	 * @param builder classifier builder.
 	 * @param baseRastersList list of base datasets.
 	 * @param testRastersList list of testing dataset.
 	 * @param testresultDir testing result directory.
 	 * @param maxIteration maximum iteration.
 	 */
-	private static void classifyCIFAR10(ClassifierBuilder builder, List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int maxIteration) {
+	private static void classify(ClassifierBuilder builder, List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int maxIteration) {
 		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
 		int minBaseSize = baseRastersList.get(0).size();
 		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());

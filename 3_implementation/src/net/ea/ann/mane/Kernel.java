@@ -24,31 +24,39 @@ public interface Kernel extends Cloneable, Serializable {
 	/**
 	 * L2 regularization flag.
 	 */
-	final static boolean REGULAR = true; //false;
+	final boolean REGULAR = true; //false;
 
 	
 	/**
 	 * Optimization flag.
 	 */
-	final static boolean OPTIMIZER = true; //false;
+	final boolean OPTIMIZER = true; //false;
 	
 	
 	/**
 	 * Bilinear layers flag.
+	 * If this flag is true, the accuracy is higher. If this flag is flag, sum is always, which make the accuracy stabler but lower.
+	 * The true flag is effective when the number of filters is large enough.
 	 */
-	final static boolean BILINEAR = true;
+	final boolean BILINEAR = true; //false;
 	
 	
 	/**
+	 * Large depth is defined for GAP and normalization.
+	 */
+	final int LARGE_DEPTH = 32; //64;
+
+
+	/**
 	 * Global bias.
 	 */
-	final static boolean GLOBAL_BIAS = false; //true;
+	final boolean GLOBAL_BIAS = false;
 	
 	
 	/**
 	 * Matrix normalization flag.
 	 */
-	final static boolean MATRIX_NORM = true; //false;
+	final boolean MATRIX_NORM = true;
 
 
 	/**

@@ -61,18 +61,18 @@ public class PoolFilterMax extends PoolFilter {
 	 * @return the index value resulted from this application.
 	 */
 	private Point apply(int y, int x, Matrix layer) {
-		int width = layer.columns(), height = layer.rows();
-		if (y + height() > height) {
+		int layerWidth = layer.columns(), layerHeight = layer.rows();
+		if (y + height() > layerHeight) {
 			if (isPadZero())
-				return y >= height ? null : null;
+				return y >= layerHeight ? null : null;
 			else
-				y = height - height();
+				y = layerHeight - height();
 		}
-		if (x + width() > width) {
+		if (x + width() > layerWidth) {
 			if (isPadZero())
-				return x >= width ? null : null;
+				return x >= layerWidth ? null : null;
 			else
-				x = width - width();
+				x = layerWidth - width();
 		}
 
 		int maxRow = 0, maxColumn = 0;
@@ -154,7 +154,7 @@ public class PoolFilterMax extends PoolFilter {
 				thisX = prevX/strideWidth;
 			}
 		}
-
+		
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		NeuronValueV thisErrorIndex = (NeuronValueV)prevOutputLayer.get(thisY, thisX);
 		int maxRow = (int)thisErrorIndex.get(0), maxColumn = (int)thisErrorIndex.get(1);
