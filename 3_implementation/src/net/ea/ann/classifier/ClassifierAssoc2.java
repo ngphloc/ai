@@ -18,7 +18,8 @@ import java.util.Scanner;
  * @version 1.0
  *
  */
-public class ClassifierAssoc2 extends ClassifierAssoc {
+@Deprecated
+class ClassifierAssoc2 extends ClassifierAssoc {
 
 	
 	/**

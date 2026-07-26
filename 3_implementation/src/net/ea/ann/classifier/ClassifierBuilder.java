@@ -843,6 +843,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			vggext.paramSetFiltersNumberInit(filtersNumber);
 			vggext.paramSetVGGMiddleSize(middleSize);
 			vggext.paramSetFFNLength(ffnLength);
+			vggext.paramSetFFNFlatten(true);
 			
 			try {
 				((VGGExt)classifier).getConfig().putAll(vggext.getConfig());
@@ -988,21 +989,31 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		}
 
 		boolean vectorized = MatrixNetworkAbstract.VECTORIZED_DEFAULT;
-		printer.print("Vectorization (" + vectorized + " is default):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) vectorized = Boolean.parseBoolean(line);
-		} catch (Throwable e) {}
-		printer.println("Vectorization is " + vectorized + "\n");
-	
-		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
-		if (!baseline) {
-			printer.print("Baseline (" + baseline + " is default):");
+		if (toModel(modelIndex) != ClassifierModel.vggext) {
+			printer.print("Vectorization (" + vectorized + " is default):");
 			try {
 				String line = scanner.nextLine().trim();
-				if (!line.isBlank() && !line.isEmpty()) baseline = Boolean.parseBoolean(line);
+				if (!line.isBlank() && !line.isEmpty()) vectorized = Boolean.parseBoolean(line);
 			} catch (Throwable e) {}
-			printer.println("Baseline is " + baseline + "\n");
+			printer.println("Vectorization is " + vectorized + "\n");
+		}
+		else {
+			vectorized = true;
+		}
+		
+		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
+		if (toModel(modelIndex) != ClassifierModel.vggext) {
+			if (!baseline) {
+				printer.print("Baseline (" + baseline + " is default):");
+				try {
+					String line = scanner.nextLine().trim();
+					if (!line.isBlank() && !line.isEmpty()) baseline = Boolean.parseBoolean(line);
+				} catch (Throwable e) {}
+				printer.println("Baseline is " + baseline + "\n");
+			}
+		}
+		else {
+			baseline = false;
 		}
 
 		boolean adjust = baseline ? ClassifierAbstract.ADJUST_DEFAULT : false;

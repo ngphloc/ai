@@ -1576,7 +1576,7 @@ class VGGCore extends ResidualNetwork {
 	 * Checking flattening feed-forward network mode.
 	 * @return flattening feed-forward network mode.
 	 */
-	boolean paramIsFFNFlatten() {
+	public boolean paramIsFFNFlatten() {
 		if (config.containsKey(FFN_FLATTEN_FIELD))
 			return config.getAsBoolean(FFN_FLATTEN_FIELD);
 		else
@@ -1589,7 +1589,7 @@ class VGGCore extends ResidualNetwork {
 	 * @param ffnFlatten flattening feed-forward network mode.
 	 * @return this classifier.
 	 */
-	VGGCore paramSetFFNFlatten(boolean ffnFlatten) {
+	public VGGCore paramSetFFNFlatten(boolean ffnFlatten) {
 		config.put(FFN_FLATTEN_FIELD, ffnFlatten);
 		return this;
 	}
