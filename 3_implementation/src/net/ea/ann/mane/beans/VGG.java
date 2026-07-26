@@ -773,8 +773,6 @@ class VGGCore extends ResidualNetwork {
 	 * @param config configuration.
 	 */
 	private static void config(NetworkConfig config) {
-		config.put(LEARN_RATE_FIELD, LEARN_RATE_SMALL); //Small learning rate for large training dataset.
-		
 		config.put(MIDDLE_SIZE_FIELD, MIDDLE_SIZE_DEFAULT_TEXT);
 		config.put(FILTER_MODE_FIELD, FILTER_MODE_DEFAULT);
 		config.put(FILTER_MODE_ENDPOOL_FIELD, FILTER_MODE_ENDPOOL_DEFAULT);
@@ -1042,7 +1040,10 @@ class VGGCore extends ResidualNetwork {
 				
 				//Adding residual layer.
 				if (paramIsResidualMode() && j == layersNumberPerBlock-1 && layersNumberPerBlock >= depthDefault) {
-					addResidualBatch(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
+					if (paramIsResidualBatch())
+						addResidualBatch(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
+					else
+						addResidual(layerSpecs.get(layerSpecs.size()-1).size, layerSpecs, residualIndices, 0, paramIsFilterMode());
 				}
 			}
 			

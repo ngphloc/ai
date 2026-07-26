@@ -128,6 +128,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	public MatrixNetworkAbstract(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(idRef);
 		this.config.put(LEARN_MAX_ITERATION_FIELD, LEARN_MAX_ITERATION_DEFAULT);
+		this.config.put(LEARN_RATE_FIELD, LEARN_RATE_SMALL); //Small learning rate for large training dataset.
 		this.config.put(RasterAbstract.RASTER_CHANNEL_FIELD, RasterAbstract.RASTER_CHANNEL_DEFAULT);
 		this.config.put(Raster.NORM_FIELD, Raster.NORM_DEFAULT);
 		this.config.put(Image.ALPHA_FIELD, Image.ALPHA_DEFAULT);

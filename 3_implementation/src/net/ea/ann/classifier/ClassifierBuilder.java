@@ -15,6 +15,8 @@ import java.util.Scanner;
 
 import net.ea.ann.classifier.ForestClassifier.TreeModel;
 import net.ea.ann.core.Network;
+import net.ea.ann.core.NetworkAbstract;
+import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.mane.FilterSpec;
 import net.ea.ann.mane.FilterSpec.PoolType;
@@ -827,7 +829,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			vgg.paramSetFFNLength(ffnLength);
 		}
 		else if (classifier instanceof VGGExt) {
-			VGGClassifier vggext =((VGGExt)classifier).classifier;
+			VGGClassifier vggext = ((VGGExt)classifier).classifier;
 			vggext.paramSetLearningRate(learningRate);
 			vggext.paramSetBatches(batches);
 			vggext.paramSetFilterMode(filterMode);
@@ -841,6 +843,10 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			vggext.paramSetFiltersNumberInit(filtersNumber);
 			vggext.paramSetVGGMiddleSize(middleSize);
 			vggext.paramSetFFNLength(ffnLength);
+			
+			try {
+				((VGGExt)classifier).getConfig().putAll(vggext.getConfig());
+			} catch (Throwable e) {Util.trace(e);}
 		}
 		else if (classifier instanceof NiN) {
 			NiN nin = (NiN)classifier;
@@ -892,7 +898,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		Scanner scanner = new Scanner(in);
 		PrintStream printer = new PrintStream(out);
 		
-		int defaultModelIndex = toModelIndex(ClassifierModel.vgg);
+		int defaultModelIndex = toModelIndex(ClassifierModel.vggext);
 		int modelIndex = defaultModelIndex;
 		printer.print("Model (0-vgg, 1-vggext, 2-nin, 3-mac, 4-tramac, 5-forest, 6-stack) (default " + defaultModelIndex + " is " + toModel(defaultModelIndex) + "):");
 		try {
@@ -914,7 +920,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		if (rasterChannel < defaultRasterChannel) rasterChannel = defaultRasterChannel;
 		printer.println("Raster channel is " + rasterChannel + "\n");
 	
-		double defaultlr = Network.LEARN_RATE_DEFAULT;
+		double defaultlr = NetworkAbstract.LEARN_RATE_SMALL;
 		double lr = defaultlr;
 		printer.print("Enter starting learning rate (default " + defaultlr + "):");
 		try {
@@ -1060,14 +1066,14 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.vggext || builder.getModel() == ClassifierModel.nin) {
 			int defaultMiddleSize = net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT.width;
 			int middleSize = defaultMiddleSize;
-			printer.print("Middle size (default (" + defaultMiddleSize + ", " + defaultMiddleSize + ") ):");
+			printer.print("Middle size (default (" + defaultMiddleSize + ", " + defaultMiddleSize + ")):");
 			try {
 				String line = scanner.nextLine().trim();
 				if (!line.isBlank() && !line.isEmpty()) middleSize = Integer.parseInt(line);
 			} catch (Throwable e) {}
 			if (Double.isNaN(middleSize)) middleSize = defaultMiddleSize;
 			if (middleSize <= 0) middleSize = defaultMiddleSize;
-			printer.println("Middle size is (" + middleSize + ", " + middleSize + ") )\n");
+			printer.println("Middle size is (" + middleSize + ", " + middleSize + ")\n");
 			builder.setMiddleSize(new Size(middleSize, middleSize));
 
 			int defaultFiltersNumber = net.ea.ann.mane.beans.VGG.FILTERS_NUMBER_INIT_DEFAULT;
