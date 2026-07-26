@@ -1231,7 +1231,7 @@ class VGGCore extends ResidualNetwork {
 		if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || Kernel.MATRIX_NORM)) {
 			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
-			normLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.norm_depth : net.ea.ann.mane.WeightSpec.KernelType.norm;
+			normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
 			if (normLayerSpec.size.depth >= Kernel.LARGE_DEPTH || normLayerSpec.size.width*normLayerSpec.size.height >= Kernel.LARGE_DEPTH)
 				layerSpecs.add(normLayerSpec);
 		}

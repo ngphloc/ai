@@ -169,12 +169,6 @@ public class NormWeight implements Weight, TextParsable {
 	
 	
 	/**
-	 * Filter mode.
-	 */
-	private boolean depthMode = false;
-	
-	
-	/**
 	 * Constructor with the kernel.
 	 * @param kernel the kernel.
 	 */
@@ -192,20 +186,6 @@ public class NormWeight implements Weight, TextParsable {
 		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(this.kernel.createOptimizer());
 	}
 
-	
-	/**
-	 * Getting depth mode.
-	 * @return depth mode.
-	 */
-	public boolean getDepthMode() {return depthMode;}
-	
-	
-	/**
-	 * Setting filter mode.
-	 * @param depthMode depth mode.
-	 */
-	public void setDepthMode(boolean depthMode) {this.depthMode = depthMode;}
-	
 	
 	/**
 	 * Getting layer.
@@ -287,9 +267,12 @@ public class NormWeight implements Weight, TextParsable {
 	
 	/**
 	 * Checking across depth mode.
+	 * @param input input.
 	 * @return across depth mode.
 	 */
-	private boolean acrossDepth() {return depthMode && W().depth() >= 2*Kernel.LARGE_DEPTH;}
+	private boolean acrossDepth(Matrix input) {
+		return MatrixUtil.depth(input) > input.rows()*input.columns();
+	}
 
 	
 	/**
@@ -362,7 +345,7 @@ public class NormWeight implements Weight, TextParsable {
 		int rows = input.rows(), columns = input.columns(), depth = W().depth();
 		MatrixStack inputs = input instanceof MatrixStack ? (MatrixStack)input : new MatrixStack(input);
 		NeuronValue zero = inputs.get(0).get(0, 0).zero();
-		boolean acrossDepth = acrossDepth();
+		boolean acrossDepth = acrossDepth(input);
 
 		//Calculating means and standard deviations.
 		Matrix means = null, stds = null;
@@ -428,7 +411,7 @@ public class NormWeight implements Weight, TextParsable {
 		assert (W().rows() == 1 && W().columns() == 1);
 		int rows = prevOutputs.rows(), columns = prevOutputs.columns(), depth = W().depth();
 		NeuronValue zero = prevOutputs.get(0).get(0, 0).zero();
-		boolean acrossDepth = acrossDepth();
+		boolean acrossDepth = acrossDepth(prevOutputs);
 
 		//Calculating means and standard deviations.
 		Matrix means = null, stds = null;

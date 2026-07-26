@@ -162,12 +162,6 @@ public class NormWeightMacro implements Weight, TextParsable {
 	
 	
 	/**
-	 * Filter mode.
-	 */
-	private boolean depthMode = false;
-	
-	
-	/**
 	 * Constructor with the kernel.
 	 * @param kernel the kernel.
 	 */
@@ -185,20 +179,6 @@ public class NormWeightMacro implements Weight, TextParsable {
 		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(this.kernel.createOptimizer());
 	}
 
-	
-	/**
-	 * Getting depth mode.
-	 * @return depth mode.
-	 */
-	public boolean getDepthMode() {return depthMode;}
-	
-	
-	/**
-	 * Setting filter mode.
-	 * @param depthMode depth mode.
-	 */
-	public void setDepthMode(boolean depthMode) {this.depthMode = depthMode;}
-	
 	
 	/**
 	 * Getting layer.
@@ -258,9 +238,12 @@ public class NormWeightMacro implements Weight, TextParsable {
 	
 	/**
 	 * Checking across depth mode.
+	 * @param input input.
 	 * @return across depth mode.
 	 */
-	private boolean acrossDepth() {return depthMode && W().depth() >= 2*Kernel.LARGE_DEPTH;}
+	private boolean acrossDepth(Matrix input) {
+		return MatrixUtil.depth(input) > input.rows()*input.columns();
+	}
 
 	
 	@Override
@@ -277,7 +260,7 @@ public class NormWeightMacro implements Weight, TextParsable {
 		int rows = input.rows(), columns = input.columns(), depth = W().depth();
 		MatrixStack inputs = input instanceof MatrixStack ? (MatrixStack)input : new MatrixStack(input);
 		NeuronValue zero = inputs.get(0).get(0, 0).zero();
-		boolean acrossDepth = acrossDepth();
+		boolean acrossDepth = acrossDepth(input);
 
 		//Calculating means and standard deviations.
 		Matrix means = null, stds = null;
@@ -339,10 +322,10 @@ public class NormWeightMacro implements Weight, TextParsable {
 	 * @param W current weight matrices.
 	 * @return gradient of previous layers.
 	 */
-	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors, MatrixStack W, boolean filterMode) {
+	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors, MatrixStack W) {
 		int rows = prevOutputs.rows(), columns = prevOutputs.columns(), depth = W.depth();
 		NeuronValue zero = prevOutputs.get(0).get(0, 0).zero();
-		boolean acrossDepth = acrossDepth();
+		boolean acrossDepth = acrossDepth(prevOutputs);
 
 		//Calculating means and standard deviations.
 		Matrix means = null, stds = null;
@@ -416,7 +399,7 @@ public class NormWeightMacro implements Weight, TextParsable {
 	 * @return gradient of previous layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors) {
-		return dValue(prevOutputs, thisErrors, W(), depthMode);
+		return dValue(prevOutputs, thisErrors, W());
 	}
 
 	
