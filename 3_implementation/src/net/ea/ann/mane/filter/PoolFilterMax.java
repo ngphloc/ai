@@ -62,31 +62,26 @@ public class PoolFilterMax extends PoolFilter {
 	 */
 	private Point apply(int y, int x, Matrix layer) {
 		int layerWidth = layer.columns(), layerHeight = layer.rows();
-		if (y + height() > layerHeight) {
-			if (isPadZero())
-				return y >= layerHeight ? null : null;
-			else
-				y = layerHeight - height();
-		}
-		if (x + width() > layerWidth) {
-			if (isPadZero())
-				return x >= layerWidth ? null : null;
-			else
-				x = layerWidth - width();
-		}
 
+		boolean exist = false;
 		int maxRow = 0, maxColumn = 0;
 		for (int i = 0; i < height(); i++) {
+			int Y = y + i;
+			if (Y >= layerHeight) continue;
 			for (int j = 0; j < width(); j++) {
+				int X = x + j;
+				if (X >= layerWidth) continue;
 				if (i == 0 && j == 0) continue;
-				double value = layer.get(y+i, x+j).mean();
+				double value = layer.get(Y, X).mean();
 				double maxValue = layer.get(y+maxRow, x+maxColumn).mean();
 				if (value > maxValue) {
 					maxRow = i;
 					maxColumn = j;
 				}
+				exist = true;
 			}
 		}
+		if (!exist) throw new IllegalArgumentException();
 		return new Point(x+maxColumn, y+maxRow);
 	}
 
@@ -100,17 +95,13 @@ public class PoolFilterMax extends PoolFilter {
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevLayer.columns(), prevHeight = prevLayer.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int thisWidth = thisOutputLayer.columns(), thisHeight = thisOutputLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-			int prevY = yBlock*strideHeight;
+			int prevY = thisY*strideHeight;
 			if (prevY >= prevHeight) continue;
 			
 			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-				int prevX = xBlock*strideWidth;
+				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
 				//Filtering
@@ -132,38 +123,21 @@ public class PoolFilterMax extends PoolFilter {
 		int kernelWidth = width(), kernelHeight = height();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayer.columns(), prevHeight = prevInputLayer.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-		int prevY = yBlock*strideHeight;
-		if (prevY + kernelHeight > prevHeight) {
-			if (isPadZero())
-				return prevY >= prevHeight ? null : null;
-			else {
-				prevY = prevHeight - kernelHeight;
-				thisY = prevY/strideHeight;
-			}
-		}
-		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-		int prevX = xBlock*strideWidth;
-		if (prevX + kernelWidth > prevWidth) {
-			if (isPadZero())
-				return prevX >= prevWidth ? null : null;
-			else {
-				prevX = prevWidth - kernelWidth;
-				thisX = prevX/strideWidth;
-			}
-		}
+		int prevY = thisY*strideHeight;
+		int prevX = thisX*strideWidth;
 		
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 		NeuronValueV thisErrorIndex = (NeuronValueV)prevOutputLayer.get(thisY, thisX);
 		int maxRow = (int)thisErrorIndex.get(0), maxColumn = (int)thisErrorIndex.get(1);
 		NeuronValue zero = thisError.zero();
 		Matrix dPrevValue = prevInputLayer.create(new Size(kernelWidth, kernelHeight));
+		MatrixUtil.fill(dPrevValue, zero);
 		for (int j = 0; j < kernelHeight; j++) {
 			int prevRow = prevY + j;
+			if (prevRow >= prevHeight) continue;
 			for (int k = 0; k < kernelWidth; k++) {
 				int prevColumn = prevX + k;
+				if (prevColumn >= prevWidth) continue;
 				if (prevRow == maxRow && prevColumn == maxColumn)
 					dPrevValue.set(j, k, thisError);
 				else

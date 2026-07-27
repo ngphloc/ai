@@ -102,17 +102,13 @@ abstract class NetworkFilterAbstract extends KernelFilter implements NetworkFilt
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayer.columns(), prevHeight = prevInputLayer.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-			int prevY = yBlock*strideHeight;
+			int prevY = thisY*strideHeight;
 			if (prevY >= prevHeight) continue;
 			
 			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-				int prevX = xBlock*strideWidth;
+				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
 				//Calculating gradient.
@@ -121,8 +117,10 @@ abstract class NetworkFilterAbstract extends KernelFilter implements NetworkFilt
 				
 				for (int j = 0; j < dPrevValue.rows(); j++) {
 					int prevRow = prevY + j;
+					if (prevRow >= prevHeight) continue;
 					for (int k = 0; k < dPrevValue.columns(); k++) {
 						int prevColumn = prevX + k;
+						if (prevColumn >= prevWidth) continue;
 						NeuronValue dv = dPrevValues.get(prevRow, prevColumn).add(dPrevValue.get(j, k));
 						dPrevValues.set(prevRow, prevColumn, dv);
 					}

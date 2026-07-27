@@ -28,7 +28,7 @@ public interface Filter extends Serializable, Cloneable {
 	/**
 	 * Moving stride mode.
 	 */
-	static boolean MOVE_STRIDE = false;
+	final boolean MOVE_STRIDE = false;
 	
 	
 	/**

@@ -84,27 +84,19 @@ public class KernelFilterMax extends KernelFilterProduct {
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		NeuronValue zero = layers.get().get(0, 0).zero();
 		int layerWidth = layers.columns(), layerHeight = layers.rows();
-		if (y + kernelHeight > layerHeight) {
-			if (isPadZero())
-				return y >= layerHeight ? null : null;
-			else
-				y = layerHeight - kernelHeight;
-		}
-		if (x + kernelWidth > layerWidth) {
-			if (isPadZero())
-				return x >= layerWidth ? null : null;
-			else
-				x = layerWidth - kernelWidth;
-		}
 		
 		NeuronValue[] result = new NeuronValue[kernelDepth];
 		MatrixStack[] kernel = this.kernel.W;
 		for (int i = 0; i < kernelDepth; i++) {
 			result[i] = zero;
 			for (int j = 0; j < kernelHeight; j++) {
+				int Y = y + j;
+				if (Y >= layerHeight) continue;
 				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValue value = summode ? layers.get(i).get(y+j, x+k) :
-						layers.get(time).get(y+j, x+k); //Please pay attention to this code line.
+					int X = x + k;
+					if (X >= layerWidth) continue;
+					NeuronValue value = summode ? layers.get(i).get(Y, X) :
+						layers.get(time).get(Y, X); //Please pay attention to this code line.
 					result[i] = result[i].add(value.multiply(kernel[time].get(i).get(j, k)));
 				}
 			}
@@ -118,19 +110,16 @@ public class KernelFilterMax extends KernelFilterProduct {
 	void forward(int time, MatrixStack prevLayers, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
 		if (thisInputLayer != null) MatrixUtil.fill(thisInputLayer, thisInputLayer.get(0, 0).zero());
 		if (thisOutputLayer != null) MatrixUtil.fill(thisOutputLayer, thisOutputLayer.get(0, 0).zero());
+		
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevLayers.columns(), prevHeight = prevLayers.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int thisWidth = thisOutputLayer.columns(), thisHeight = thisOutputLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-			int prevY = yBlock*strideHeight;
+			int prevY = thisY*strideHeight;
 			if (prevY >= prevHeight) continue;
 			
 			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-				int prevX = xBlock*strideWidth;
+				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
 				//Filtering
@@ -158,30 +147,6 @@ public class KernelFilterMax extends KernelFilterProduct {
 	@Override
 	MatrixStack dValue(int time, int thisY, int thisX, MatrixStack prevInputLayers, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
-		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
-		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-		int prevY = yBlock*strideHeight;
-		if (prevY + kernelHeight > prevHeight) {
-			if (isPadZero())
-				return prevY >= prevHeight ? null : null;
-			else {
-				prevY = prevHeight - kernelHeight;
-				thisY = prevY/strideHeight;
-			}
-		}
-		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-		int prevX = xBlock*strideWidth;
-		if (prevX + kernelWidth > prevWidth) {
-			if (isPadZero())
-				return prevX >= prevWidth ? null : null;
-			else {
-				prevX = prevWidth - kernelWidth;
-				thisX = prevX/strideWidth;
-			}
-		}
 		
 		Matrix[] dValues = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
@@ -217,28 +182,8 @@ public class KernelFilterMax extends KernelFilterProduct {
 		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
-		int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-		int prevY = yBlock*strideHeight;
-		if (prevY + kernelHeight > prevHeight) {
-			if (isPadZero())
-				return prevY >= prevHeight ? null : null;
-			else {
-				prevY = prevHeight - kernelHeight;
-				thisY = prevY/strideHeight;
-			}
-		}
-		int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-		int prevX = xBlock*strideWidth;
-		if (prevX + kernelWidth > prevWidth) {
-			if (isPadZero())
-				return prevX >= prevWidth ? null : null;
-			else {
-				prevX = prevWidth - kernelWidth;
-				thisX = prevX/strideWidth;
-			}
-		}
+		int prevY = thisY*strideHeight;
+		int prevX = thisX*strideWidth;
 		
 		Matrix[] dKernels = new Matrix[kernelDepth];
 		NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
@@ -252,14 +197,19 @@ public class KernelFilterMax extends KernelFilterProduct {
 		if (derivative != null) thisError = derivative.multiplyWise(thisError);
 		for (int i = 0; i < kernelDepth; i++) {
 			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
+			MatrixUtil.fill(dKernels[i], zero);
 			for (int j = 0; j < kernelHeight; j++) {
+				int PREVY = prevY + j;
+				if (PREVY >= prevHeight) continue;
 				for (int k = 0; k < kernelWidth; k++) {
+					int PREVX = prevX + k;
+					if (PREVX >= prevWidth) continue;
 					if (maxIndex != i) {
 						dKernels[i].set(j, k, zero);
 						continue;
 					}
-					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(prevY+j, prevX+k) :
-						prevInputLayers.get(time).get(prevY+j, prevX+k); //Please pay attention to this code line.
+					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(PREVY, PREVX) :
+						prevInputLayers.get(time).get(PREVY, PREVX); //Please pay attention to this code line.
 					NeuronValue dKernel = prevInput.multiply(thisError);
 					dKernels[i].set(j, k, this.weight != null ? dKernel.multiply(this.weight) : dKernel);
 					dbiases = dbiases.add(thisError);

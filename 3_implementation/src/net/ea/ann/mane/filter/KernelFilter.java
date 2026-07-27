@@ -386,17 +386,13 @@ public abstract class KernelFilter extends FilterAbstract {
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevLayers.columns(), prevHeight = prevLayers.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int thisWidth = thisOutputLayer.columns(), thisHeight = thisOutputLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-			int prevY = yBlock*strideHeight;
+			int prevY = thisY*strideHeight;
 			if (prevY >= prevHeight) continue;
 			
 			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-				int prevX = xBlock*strideWidth;
+				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
 				//Filtering
@@ -489,17 +485,13 @@ public abstract class KernelFilter extends FilterAbstract {
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-			int prevY = yBlock*strideHeight;
+			int prevY = thisY*strideHeight;
 			if (prevY >= prevHeight) continue;
 			
 			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-				int prevX = xBlock*strideWidth;
+				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
 				//Calculating gradient.
@@ -510,8 +502,10 @@ public abstract class KernelFilter extends FilterAbstract {
 				for (int i = 0; i < dPrevValue.depth(); i++) {
 					for (int j = 0; j < dPrevValue.get(i).rows(); j++) {
 						int prevRow = prevY + j;
+						if (prevRow >= prevHeight) continue;
 						for (int k = 0; k < dPrevValue.get(i).columns(); k++) {
 							int prevColumn = prevX + k;
+							if (prevColumn >= prevWidth) continue;
 							NeuronValue dv = dPrevValues[i].get(prevRow, prevColumn).add(dPrevValue.get(i).get(j, k));
 							dPrevValues[i].set(prevRow, prevColumn, dv);
 						}
@@ -614,17 +608,13 @@ public abstract class KernelFilter extends FilterAbstract {
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-			int prevY = yBlock*strideHeight;
+			int prevY = thisY*strideHeight;
 			if (prevY >= prevHeight) continue;
 			
 			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-				int prevX = xBlock*strideWidth;
+				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
 				//Calculating weight gradient.

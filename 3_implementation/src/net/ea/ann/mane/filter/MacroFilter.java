@@ -120,17 +120,13 @@ public class MacroFilter extends KernelFilter {
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevLayers.columns(), prevHeight = prevLayers.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int thisWidth = thisOutputLayer.columns(), thisHeight = thisOutputLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-			int prevY = yBlock*strideHeight;
+			int prevY = thisY*strideHeight;
 			if (prevY >= prevHeight) continue;
 			
 			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-				int prevX = xBlock*strideWidth;
+				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
 				//Filtering
@@ -176,18 +172,14 @@ public class MacroFilter extends KernelFilter {
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-			int prevY = yBlock*strideHeight;
+			int prevY = thisY*strideHeight;
 			if (prevY >= prevHeight) continue;
 			assert (prevY == thisY);
 			
 			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-				int prevX = xBlock*strideWidth;
+				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				assert (prevX == thisX);
 				
@@ -234,18 +226,14 @@ public class MacroFilter extends KernelFilter {
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
-		int prevBlockWidth = this.isMoveStride() ? prevWidth / strideWidth : prevWidth;
-		int prevBlockHeight = this.isMoveStride() ? prevHeight / strideHeight : prevHeight;
 		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
 		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int yBlock = this.isPadZero() ? thisY : (thisY < prevBlockHeight ? thisY : prevBlockHeight-1);
-			int prevY = yBlock*strideHeight;
+			int prevY = thisY*strideHeight;
 			if (prevY >= prevHeight) continue;
 			assert (prevY == thisY);
 			
 			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int xBlock = this.isPadZero() ? thisX : (thisX < prevBlockWidth ? thisX : prevBlockWidth-1);
-				int prevX = xBlock*strideWidth;
+				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				assert (prevX == thisX);
 				
