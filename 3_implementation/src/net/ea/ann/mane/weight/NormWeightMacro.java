@@ -238,11 +238,12 @@ public class NormWeightMacro implements Weight, TextParsable {
 	
 	/**
 	 * Checking across depth mode.
-	 * @param input input.
+	 * @param matrix matrix.
 	 * @return across depth mode.
 	 */
-	private boolean acrossDepth(Matrix input) {
-		return MatrixUtil.depth(input) > input.rows()*input.columns();
+	private static boolean acrossDepth(Matrix matrix) {
+		int depth = MatrixUtil.depth(matrix);
+		return depth > matrix.rows()*matrix.columns() || depth >= Kernel.LARGE_DEPTH;
 	}
 
 	

@@ -15,6 +15,7 @@ import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.ActivateWWeight;
 import net.ea.ann.mane.weight.NormWeight;
+import net.ea.ann.mane.weight.NormWeightGroup;
 import net.ea.ann.mane.weight.NormWeightMacro;
 import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.mane.weight.TransformerWeight;
@@ -80,6 +81,11 @@ public class WeightSpec implements Cloneable, Serializable {
 		 */
 		norm,
 		
+		/**
+		 * Group normalization kernel.
+		 */
+		norm_group,
+
 		/**
 		 * Macro normalization kernel.
 		 */
@@ -214,15 +220,18 @@ public class WeightSpec implements Cloneable, Serializable {
 			kernelType = KernelType.norm;
 			break;
 		case 3:
-			kernelType = KernelType.norm_macro;
+			kernelType = KernelType.norm_group;
 			break;
 		case 4:
-			kernelType = KernelType.filter_activate;
+			kernelType = KernelType.norm_macro;
 			break;
 		case 5:
-			kernelType = KernelType.weight_activate;
+			kernelType = KernelType.filter_activate;
 			break;
 		case 6:
+			kernelType = KernelType.weight_activate;
+			break;
+		case 7:
 			kernelType = KernelType.nil;
 			break;
 		default:
@@ -312,6 +321,9 @@ public class WeightSpec implements Cloneable, Serializable {
 				break;
 			case norm:
 				weight = NormWeight.create(prevSize, size, hint);
+				break;
+			case norm_group:
+				weight = NormWeightGroup.create(prevSize, size, hint);
 				break;
 			case norm_macro:
 				weight = NormWeightMacro.create(prevSize, size, hint);
@@ -426,6 +438,9 @@ public class WeightSpec implements Cloneable, Serializable {
 				break;
 			case norm:
 				weight = NormWeight.create(prevSize, size, hint);
+				break;
+			case norm_group:
+				weight = NormWeightGroup.create(prevSize, size, hint);
 				break;
 			case norm_macro:
 				weight = NormWeightMacro.create(prevSize, size, hint);

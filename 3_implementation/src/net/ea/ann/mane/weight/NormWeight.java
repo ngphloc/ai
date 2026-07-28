@@ -165,7 +165,7 @@ public class NormWeight implements Weight, TextParsable {
 	/**
 	 * Referred layer.
 	 */
-	private MatrixLayerAbstract layer = null;
+	protected MatrixLayerAbstract layer = null;
 	
 	
 	/**
@@ -205,7 +205,7 @@ public class NormWeight implements Weight, TextParsable {
 	 * Getting the weight.
 	 * @return the weight.
 	 */
-	private MatrixStack W() {return kernel != null ? kernel.W : null;}
+	MatrixStack W() {return kernel != null ? kernel.W : null;}
 	
 	
 	/**
@@ -213,7 +213,7 @@ public class NormWeight implements Weight, TextParsable {
 	 * @param depth depth.
 	 * @return weight at depth.
 	 */
-	private NeuronValue W(int depth) {
+	NeuronValue W(int depth) {
 		MatrixStack W = W();
 		return W != null ? W.get(depth).get(0, 0) : null;
 	}
@@ -223,18 +223,18 @@ public class NormWeight implements Weight, TextParsable {
 	 * Getting bias.
 	 * @return bias.
 	 */
-	private MatrixStack bias() {return kernel != null ? kernel.bias : null;}
+	MatrixStack bias() {return kernel != null ? kernel.bias : null;}
 	
 	
-//	/**
-//	 * Getting bias at depth.
-//	 * @param depth depth.
-//	 * @return bias at depth.
-//	 */
-//	private NeuronValue bias(int depth) {
-//		MatrixStack bias = bias();
-//		return bias != null ? bias.get(depth).get(0, 0) : null;
-//	}
+	/**
+	 * Getting bias at depth.
+	 * @param depth depth.
+	 * @return bias at depth.
+	 */
+	NeuronValue bias(int depth) {
+		MatrixStack bias = bias();
+		return bias != null ? bias.get(depth).get(0, 0) : null;
+	}
 
 	
 	@Override
@@ -267,32 +267,33 @@ public class NormWeight implements Weight, TextParsable {
 	
 	/**
 	 * Checking across depth mode.
-	 * @param input input.
+	 * @param matrix matrix.
 	 * @return across depth mode.
 	 */
-	private boolean acrossDepth(Matrix input) {
-		return MatrixUtil.depth(input) > input.rows()*input.columns();
+	private static boolean acrossDepth(Matrix matrix) {
+		int depth = MatrixUtil.depth(matrix);
+		return depth > matrix.rows()*matrix.columns() || depth >= Kernel.LARGE_DEPTH;
 	}
 
 	
 	/**
 	 * Calculating means and standard deviations.
-	 * @param outputs outputs.
-	 * @return array of means, standard deviations, and norms.
+	 * @param matrices matrices.
+	 * @return array of means and standard deviations.
 	 */
-	public static Matrix[] meanStds(Matrix[] outputs) {
-		int rows = outputs[0].rows(), columns = outputs[0].columns(), depth = outputs.length;
-		NeuronValue zero = outputs[0].get(0, 0).zero();
+	public static Matrix[] meanStds(Matrix[] matrices) {
+		int rows = matrices[0].rows(), columns = matrices[0].columns(), depth = matrices.length;
+		NeuronValue zero = matrices[0].get(0, 0).zero();
 		NeuronValue epsilon = zero.valueOf(EPSILON);
-		Matrix means = outputs[0].create(new Size(columns, rows));
-		Matrix stds = outputs[0].create(new Size(columns, rows));
+		Matrix means = matrices[0].create(new Size(columns, rows));
+		Matrix stds = matrices[0].create(new Size(columns, rows));
 		MatrixUtil.fill(means, zero);
 		MatrixUtil.fill(stds, zero);
 
 		for (int row = 0; row < rows; row++) {
 			for (int column = 0; column < columns; column++) {
 				NeuronValue mean = zero;
-				for (int d = 0; d < depth; d++) mean = mean.add(outputs[d].get(row, column));
+				for (int d = 0; d < depth; d++) mean = mean.add(matrices[d].get(row, column));
 				means.set(row, column, mean.divide(depth));
 			}
 		}
@@ -301,7 +302,7 @@ public class NormWeight implements Weight, TextParsable {
 			for (int column = 0; column < columns; column++) {
 				NeuronValue std = zero, mean = means.get(row, column);
 				for (int d = 0; d < depth; d++) {
-					NeuronValue dev = outputs[d].get(row, column).subtract(mean);
+					NeuronValue dev = matrices[d].get(row, column).subtract(mean);
 					std = std.add(dev.multiply(dev));
 				}
 				stds.set(row, column, std.divide(depth).add(epsilon).sqrt());
@@ -333,6 +334,7 @@ public class NormWeight implements Weight, TextParsable {
 	
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
+		assert (this.layer != null);
 		if (W().rows() != 1 || W().columns() != 1 || MatrixUtil.depth(input) != W().depth()) throw new IllegalArgumentException();
 		if (bias != null) {
 			if (bias.rows() != W().rows() || bias.columns() != W().columns() || MatrixUtil.depth(bias) != W().depth()) throw new IllegalArgumentException();
@@ -407,7 +409,7 @@ public class NormWeight implements Weight, TextParsable {
 	 * @param thisErrors current errors.
 	 * @return gradient of previous layers.
 	 */
-	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors) {
+	MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors) {
 		assert (W().rows() == 1 && W().columns() == 1);
 		int rows = prevOutputs.rows(), columns = prevOutputs.columns(), depth = W().depth();
 		NeuronValue zero = prevOutputs.get(0).get(0, 0).zero();
@@ -543,11 +545,11 @@ public class NormWeight implements Weight, TextParsable {
 
 
 	/**
-	 * Creating weight.
+	 * Creating norm weight.
 	 * @param prevSize previous size.
 	 * @param size current size.
 	 * @param hint hint value.
-	 * @return weight.
+	 * @return norm weight.
 	 */
 	public static NormWeight create(Size prevSize, Size size, NeuronValue hint) {
 		if (prevSize.width != size.width || prevSize.height != size.height || prevSize.depth != size.depth) throw new IllegalArgumentException();

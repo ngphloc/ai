@@ -614,6 +614,18 @@ class VGGCore extends ResidualNetwork {
 
 	
 	/**
+	 * Field for weight norm type.
+	 */
+	public final static String WEIGHT_NORM_TYPE_FIELD = "mane_weight_type_norm";
+	
+	
+	/**
+	 * Default value for weight norm type.
+	 */
+	public final static net.ea.ann.mane.WeightSpec.KernelType WEIGHT_NORM_TYPE_DEFAULT = net.ea.ann.mane.WeightSpec.KernelType.norm_group;
+
+	
+	/**
 	 * Field for length of filter network.
 	 */
 	public final static String SUB_NETWORK_LENGTH_FIELD = "mane_subnetwork_length";
@@ -792,6 +804,7 @@ class VGGCore extends ResidualNetwork {
 		config.put(WEIGHT_TYPE_FIELD, WeightSpec.typeToInt(WEIGHT_TYPE_DEFAULT));
 		config.put(WEIGHT_KERNEL_TYPE_FIELD, WeightSpec.kernelTypeToInt(WEIGHT_KERNEL_TYPE_DEFAULT));
 		config.put(WEIGHT_NETWORK_TYPE_FIELD, WeightSpec.networkTypeToInt(WEIGHT_NETWORK_TYPE_DEFAULT));
+		config.put(WEIGHT_NORM_TYPE_FIELD, WeightSpec.kernelTypeToInt(WEIGHT_NORM_TYPE_DEFAULT));
 		config.put(SUB_NETWORK_LENGTH_FIELD, SUB_NETWORK_LENGTH_DEFAULT);
 		config.put(GAP_FIELD, GAP_DEFAULT);
 		config.put(LAYER_NORM_FIELD, LAYER_NORM_DEFAULT);
@@ -1231,8 +1244,9 @@ class VGGCore extends ResidualNetwork {
 		if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || Kernel.MATRIX_NORM)) {
 			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
-			normLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.norm;
-			if (normLayerSpec.size.depth >= Kernel.LARGE_DEPTH || normLayerSpec.size.width*normLayerSpec.size.height >= Kernel.LARGE_DEPTH)
+			normLayerSpec.weightSpec.kernelType = paramGetWeightNormType();
+			int length = normLayerSpec.size.width*normLayerSpec.size.height;
+			if ((normLayerSpec.size.depth >= Kernel.LARGE_DEPTH || length >= Kernel.LARGE_DEPTH) && length <= Kernel.LARGE_SIZE*Kernel.LARGE_SIZE)
 				layerSpecs.add(normLayerSpec);
 		}
 	}
@@ -1788,6 +1802,29 @@ class VGGCore extends ResidualNetwork {
 	 */
 	VGGCore paramSetWeightNetworkType(net.ea.ann.mane.WeightSpec.NetworkType networkType) {
 		config.put(WEIGHT_NETWORK_TYPE_FIELD, WeightSpec.networkTypeToInt(networkType));
+		return this;
+	}
+
+	
+	/**
+	 * Checking weight norm type.
+	 * @return weight norm type.
+	 */
+	net.ea.ann.mane.WeightSpec.KernelType paramGetWeightNormType() {
+		if (config.containsKey(WEIGHT_NORM_TYPE_FIELD))
+			return WeightSpec.intToKernelType(config.getAsInt(WEIGHT_NORM_TYPE_FIELD));
+		else
+			return WEIGHT_NORM_TYPE_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting weight norm type.
+	 * @param normType weight norm type.
+	 * @return this model.
+	 */
+	VGGCore paramSetWeightNormType(net.ea.ann.mane.WeightSpec.KernelType normType) {
+		config.put(WEIGHT_NORM_TYPE_FIELD, WeightSpec.kernelTypeToInt(normType));
 		return this;
 	}
 

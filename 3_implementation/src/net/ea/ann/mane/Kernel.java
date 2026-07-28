@@ -44,9 +44,16 @@ public interface Kernel extends Cloneable, Serializable {
 	/**
 	 * Large depth is defined for GAP and normalization.
 	 */
-	final int LARGE_DEPTH = 32; //64;
+	final int LARGE_DEPTH = 64; //64;
 
 
+	/**
+	 * Large image size is defined for normalization.
+	 * The number 224 is industrial standard for high resolution threshold image.
+	 */
+	final int LARGE_SIZE = 224;
+	
+	
 	/**
 	 * Global bias.
 	 */

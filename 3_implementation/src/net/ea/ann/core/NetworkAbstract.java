@@ -131,7 +131,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	 * Default value of batch-size field.
 	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 */
-	public final static int BATCH_SIZE_DEFAULT = 20;
+	public final static int BATCH_SIZE_DEFAULT = 8; //16, 32.
 
 	
 	/**
