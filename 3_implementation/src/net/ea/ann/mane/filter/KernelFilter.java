@@ -428,9 +428,11 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		else {
 			if (prevLayers.depth() != time() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
+			/*
 			if (summode || depth() != 1) {
 				if (Kernel.BILINEAR) throw new IllegalArgumentException();
 			}
+			*/
 		}
 		if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
 		
@@ -534,9 +536,11 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		else {
 			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+			/*
 			if (summode || depth() != 1) {
 				if (Kernel.BILINEAR) throw new IllegalArgumentException();
 			}
+			*/
 		}
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
@@ -652,9 +656,10 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		else {
 			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+			/*
 			if (summode || depth() != 1) {
-				if (Kernel.BILINEAR) throw new IllegalArgumentException();
-			}
+				if (FilterSpec.BILINEAR) throw new IllegalArgumentException();
+			}*/
 		}
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		

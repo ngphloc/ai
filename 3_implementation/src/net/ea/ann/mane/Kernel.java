@@ -24,13 +24,13 @@ public interface Kernel extends Cloneable, Serializable {
 	/**
 	 * L2 regularization flag.
 	 */
-	final boolean REGULAR = true; //false;
+	final boolean REGULAR = true;
 
 	
 	/**
 	 * Optimization flag.
 	 */
-	final boolean OPTIMIZER = true; //false;
+	final boolean OPTIMIZER = true;
 	
 	
 	/**
@@ -48,7 +48,7 @@ public interface Kernel extends Cloneable, Serializable {
 
 
 	/**
-	 * Large image size is defined for normalization.
+	 * Large image size is defined for GAP and normalization. If image size is larger than this large size, layer is not normalized.
 	 * The number 224 is industrial standard for high resolution threshold image.
 	 */
 	final int LARGE_SIZE = 224;
@@ -60,10 +60,10 @@ public interface Kernel extends Cloneable, Serializable {
 	final boolean GLOBAL_BIAS = false;
 	
 	
-	/**
-	 * Matrix normalization flag.
-	 */
-	final boolean MATRIX_NORM = true;
+//	/**
+//	 * Matrix normalization flag.
+//	 */
+//	final boolean MATRIX_NORM = true;
 
 
 	/**

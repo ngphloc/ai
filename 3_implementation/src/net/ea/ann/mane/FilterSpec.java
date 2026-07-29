@@ -185,6 +185,14 @@ public class FilterSpec implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Bilinear layers flag.
+	 * If this flag is true, the accuracy is higher. If this flag is flag, sum is always, which make the accuracy stabler but lower.
+	 * The true flag is effective when the number of filters is large enough.
+	 */
+	public boolean bilinear = Kernel.BILINEAR;
+	
+	
+	/**
 	 * Constructor with size and type.
 	 * @param size size.
 	 * @param type type.
@@ -483,20 +491,20 @@ public class FilterSpec implements Cloneable, Serializable {
 			case kernel:
 				switch (filterSpec.kernelType) {
 				case product:
-					filter = KernelFilterProduct.create(factor, filterSize, hint);
+					filter = KernelFilterProduct.create(factor, filterSize, hint, filterSpec.bilinear);
 					break;
 				case product_max:
-					filter = KernelFilterMax.create(factor, filterSize, hint);
+					filter = KernelFilterMax.create(factor, filterSize, hint, filterSpec.bilinear);
 					break;
 				case macro:
 					filterSize = new Size(layerSpec.size.width, layerSpec.size.height, filterSize.depth, filterSize.time);
-					filter = MacroFilter.create(factor, filterSize, hint);
+					filter = MacroFilter.create(factor, filterSize, hint, filterSpec.bilinear);
 					break;
 				case nil:
 					filter = new NullFilter();
 					break;
 				default:
-					filter = KernelFilterProduct.create(factor, filterSize, hint);
+					filter = KernelFilterProduct.create(factor, filterSize, hint, filterSpec.bilinear);
 					break;
 				}
 				break;
@@ -531,7 +539,7 @@ public class FilterSpec implements Cloneable, Serializable {
 				}
 				break;
 			default:
-				filter = KernelFilterProduct.create(factor, filterSize, hint);
+				filter = KernelFilterProduct.create(factor, filterSize, hint, filterSpec.bilinear);
 				break;
 		}
 		
@@ -617,20 +625,20 @@ public class FilterSpec implements Cloneable, Serializable {
 			case kernel:
 				switch (filterSpec.kernelType) {
 				case product:
-					filter = KernelFilterProduct.create(factor, filterSize, hint);
+					filter = KernelFilterProduct.create(factor, filterSize, hint, filterSpec.bilinear);
 					break;
 				case product_max:
-					filter = KernelFilterMax.create(factor, filterSize, hint);
+					filter = KernelFilterMax.create(factor, filterSize, hint, filterSpec.bilinear);
 					break;
 				case macro:
 					filterSize = new Size(filterSpec.size.width, filterSpec.size.height, filterSize.depth, filterSize.time);
-					filter = MacroFilter.create(factor, filterSize, hint);
+					filter = MacroFilter.create(factor, filterSize, hint, filterSpec.bilinear);
 					throw new RuntimeException("Not validation yet");
 				case nil:
 					filter = new NullFilter();
 					break;
 				default:
-					filter = KernelFilterProduct.create(factor, filterSize, hint);
+					filter = KernelFilterProduct.create(factor, filterSize, hint, filterSpec.bilinear);
 					break;
 				}
 				break;
@@ -655,7 +663,7 @@ public class FilterSpec implements Cloneable, Serializable {
 			case network:
 				throw new IllegalArgumentException();
 			default:
-				filter = KernelFilterProduct.create(factor, filterSize, hint);
+				filter = KernelFilterProduct.create(factor, filterSize, hint, filterSpec.bilinear);
 				break;
 		}
 		

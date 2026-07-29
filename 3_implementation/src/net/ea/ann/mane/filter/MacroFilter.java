@@ -263,14 +263,15 @@ public class MacroFilter extends KernelFilter {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return kernel created from kernel value.
 	 */
-	static FKernel createKernel(double kernelValue, Size size, NeuronValue hint) {
+	static FKernel createKernel(double kernelValue, Size size, NeuronValue hint, boolean bilinear) {
 		if (size.width < 1 || size.height < 1 || hint == null) return null;
 		size = KernelFilterProduct.adjustSize(size);
 		
 		int depth = size.depth;
-		if (Kernel.BILINEAR) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
+		if (bilinear) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
 		
 		MatrixStack[] W = new MatrixStack[size.time];
 		Matrix[] bias = new Matrix[size.time];
@@ -289,42 +290,57 @@ public class MacroFilter extends KernelFilter {
 
 	
 	/**
-	 * Creating micro filter with kernel value.
+	 * Creating macro filter with kernel value.
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static MacroFilter create(double kernelValue, Size size, NeuronValue hint) {
-		MacroFilter filter = new MacroFilter(createKernel(kernelValue, size, hint));
+	public static MacroFilter create(double kernelValue, Size size, NeuronValue hint, boolean bilinear) {
+		MacroFilter filter = new MacroFilter(createKernel(kernelValue, size, hint, bilinear));
 		size = KernelFilterProduct.adjustSize(size);
-		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
+		filter.summode = size.depth != size.time || !bilinear;
 		return filter;
 	}
 	
 	
 	/**
-	 * Creating micro filter with kernel value.
+	 * Creating macro filter with kernel value.
+	 * @param kernelValue kernel value.
+	 * @param size size of kernel.
+	 * @param hint hint value.
+	 * @return product filter created from kernel value.
+	 */
+	static MacroFilter create(double kernelValue, Size size, NeuronValue hint) {
+		return create(kernelValue, size, hint, Kernel.BILINEAR);
+	}
+	
+	
+	/**
+	 * Creating macro filter with kernel value.
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param depth depth of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return micro filter created from kernel value.
 	 */
-	public static MacroFilter create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint);
+	static MacroFilter create(double kernelValue, Dimension size, int depth, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint, bilinear);
 	}
 
 	
 	/**
-	 * Creating micro filter with kernel value.
+	 * Creating macro filter with kernel value.
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return micro filter created from kernel value.
 	 */
-	public static MacroFilter create(double kernelValue, Dimension size, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint);
+	static MacroFilter create(double kernelValue, Dimension size, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint, bilinear);
 	}
 
 

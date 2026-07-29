@@ -405,14 +405,15 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return kernel created from kernel value.
 	 */
-	static FKernel createKernel(double kernelValue, Size size, NeuronValue hint) {
+	static FKernel createKernel(double kernelValue, Size size, NeuronValue hint, boolean bilinear) {
 		if (size.width < 1 || size.height < 1 || hint == null) return null;
 		size = adjustSize(size);
 		
 		int depth = size.depth;
-		if (Kernel.BILINEAR) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
+		if (bilinear) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
 		
 		MatrixStack[] W = new MatrixStack[size.time];
 		NeuronValue value = hint.valueOf(kernelValue);
@@ -430,12 +431,13 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterProduct create(double kernelValue, Size size, NeuronValue hint) {
-		KernelFilterProduct filter = new KernelFilterProduct(createKernel(kernelValue, size, hint), hint.unit());
+	public static KernelFilterProduct create(double kernelValue, Size size, NeuronValue hint, boolean bilinear) {
+		KernelFilterProduct filter = new KernelFilterProduct(createKernel(kernelValue, size, hint, bilinear), hint.unit());
 		size = adjustSize(size);
-		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
+		filter.summode = size.depth != size.time || !bilinear;
 		return filter;
 	}
 	
@@ -446,10 +448,11 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param size size of kernel.
 	 * @param depth depth of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterProduct create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint);
+	public static KernelFilterProduct create(double kernelValue, Dimension size, int depth, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint, bilinear);
 	}
 
 	
@@ -458,10 +461,11 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterProduct create(double kernelValue, Dimension size, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint);
+	public static KernelFilterProduct create(double kernelValue, Dimension size, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint, bilinear);
 	}
 
 

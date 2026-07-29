@@ -225,25 +225,39 @@ public class KernelFilterMax extends KernelFilterProduct {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterMax create(double kernelValue, Size size, NeuronValue hint) {
-		KernelFilterMax filter = new KernelFilterMax(createKernel(kernelValue, size, hint));
-		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
+	public static KernelFilterMax create(double kernelValue, Size size, NeuronValue hint, boolean bilinear) {
+		KernelFilterMax filter = new KernelFilterMax(createKernel(kernelValue, size, hint, bilinear));
+		filter.summode = size.depth != size.time || !bilinear;
 		return filter;
 	}
 
 
+	/**
+	 * Creating max-pooling kernel filter with kernel value.
+	 * @param kernelValue kernel value.
+	 * @param size size of kernel.
+	 * @param hint hint value.
+	 * @return product filter created from kernel value.
+	 */
+	static KernelFilterMax create(double kernelValue, Size size, NeuronValue hint) {
+		return create(kernelValue, size, hint, Kernel.BILINEAR);
+	}
+	
+	
 	/**
 	 * Creating product filter with kernel value.
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param depth depth of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterMax create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint);
+	static KernelFilterMax create(double kernelValue, Dimension size, int depth, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint, bilinear);
 	}
 
 	
@@ -252,10 +266,11 @@ public class KernelFilterMax extends KernelFilterProduct {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterMax create(double kernelValue, Dimension size, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint);
+	static KernelFilterMax create(double kernelValue, Dimension size, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint, bilinear);
 	}
 
 

@@ -587,14 +587,15 @@ public class WeightImpl implements Weight, TextParsable {
 	 * Creating weight.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return weight.
 	 */
-	private static MatrixStack[] createW(Size size, NeuronValue hint) {
+	private static MatrixStack[] createW(Size size, NeuronValue hint, boolean bilinear) {
 		if (size.width < 1 || size.height < 1 || hint == null) return null;
 		size = adjustSize(size);
 		
 		int depth = size.depth;
-		if (Kernel.BILINEAR) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
+		if (bilinear) if (size.depth == size.time) depth = 1; //Please pay attention to this code line.
 		
 		MatrixStack[] W = new MatrixStack[size.time];
 		for (int t = 0; t < size.time; t++) {
@@ -610,11 +611,12 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @param sizeW1 hint of first weight.
 	 * @param sizeW2 hint of second weight.
 	 * @param hint hint.
+	 * @param bilinear bilinear mode.
 	 * @return weight.
 	 */
-	private static WeightImpl create0(Size sizeW1, Size sizeW2, NeuronValue hint) {
-		MatrixStack[] W1 = sizeW1 != null ? createW(sizeW1, hint) : null;
-		MatrixStack[] W2 = sizeW2 != null ? createW(sizeW2, hint) : null;
+	private static WeightImpl create0(Size sizeW1, Size sizeW2, NeuronValue hint, boolean bilinear) {
+		MatrixStack[] W1 = sizeW1 != null ? createW(sizeW1, hint, bilinear) : null;
+		MatrixStack[] W2 = sizeW2 != null ? createW(sizeW2, hint, bilinear) : null;
 		WeightImpl weight = new WeightImpl(new WKernel(W1, W2));
 		
 		if (sizeW1 != null) sizeW1 = adjustSize(sizeW1);
@@ -623,7 +625,7 @@ public class WeightImpl implements Weight, TextParsable {
 			if (sizeW1.depth != sizeW2.depth || sizeW1.time != sizeW2.time) throw new IllegalArgumentException();
 		}
 		Size sizeW = sizeW1 != null ? sizeW1 : sizeW2;
-		weight.summode = sizeW.depth != sizeW.time || !Kernel.BILINEAR;
+		weight.summode = sizeW.depth != sizeW.time || !bilinear;
 		
 		return weight;
 	}
@@ -634,9 +636,10 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @param prevSize previous size.
 	 * @param size current size.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return weight.
 	 */
-	public static WeightImpl create(Size prevSize, Size size, NeuronValue hint) {
+	public static WeightImpl create(Size prevSize, Size size, NeuronValue hint, boolean bilinear) {
 		Size sizeW1 = null, sizeW2 = null;
 		if (prevSize.height == size.height && prevSize.width == size.width) {
 			sizeW1 = new Size(size.height, size.height, prevSize.depth, size.depth);
@@ -652,7 +655,7 @@ public class WeightImpl implements Weight, TextParsable {
 			sizeW2 = new Size(size.width, prevSize.width, prevSize.depth, size.depth);
 		}
 
-		return create0(sizeW1, sizeW2, hint);
+		return create0(sizeW1, sizeW2, hint, bilinear);
 	}
 	
 	

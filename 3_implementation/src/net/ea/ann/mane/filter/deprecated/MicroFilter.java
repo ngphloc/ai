@@ -281,12 +281,13 @@ public class MicroFilter extends KernelFilter {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static MicroFilter create(double kernelValue, Size size, NeuronValue hint) {
-		MicroFilter filter = new MicroFilter(KernelFilterProduct.createKernel(kernelValue, size, hint));
+	public static MicroFilter create(double kernelValue, Size size, NeuronValue hint, boolean bilinear) {
+		MicroFilter filter = new MicroFilter(KernelFilterProduct.createKernel(kernelValue, size, hint, bilinear));
 		size = KernelFilterProduct.adjustSize(size);
-		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
+		filter.summode = size.depth != size.time || !bilinear;
 		return filter;
 	}
 	
@@ -297,10 +298,11 @@ public class MicroFilter extends KernelFilter {
 	 * @param size size of kernel.
 	 * @param depth depth of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return micro filter created from kernel value.
 	 */
-	public static MicroFilter create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint);
+	public static MicroFilter create(double kernelValue, Dimension size, int depth, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint, bilinear);
 	}
 
 	
@@ -309,10 +311,11 @@ public class MicroFilter extends KernelFilter {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return micro filter created from kernel value.
 	 */
-	public static MicroFilter create(double kernelValue, Dimension size, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint);
+	public static MicroFilter create(double kernelValue, Dimension size, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint, bilinear);
 	}
 
 

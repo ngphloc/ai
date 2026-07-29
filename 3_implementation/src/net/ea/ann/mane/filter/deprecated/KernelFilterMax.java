@@ -17,7 +17,6 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.core.value.vector.NeuronValueVector;
 import net.ea.ann.core.value.vector.NeuronValueVectorImpl;
-import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
 /**
@@ -269,11 +268,12 @@ public class KernelFilterMax extends KernelFilterProduct {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterMax create(double kernelValue, Size size, NeuronValue hint) {
-		KernelFilterMax filter = new KernelFilterMax(createKernel(kernelValue, size, hint), hint.unit());
-		filter.summode = size.depth != size.time || !Kernel.BILINEAR;
+	public static KernelFilterMax create(double kernelValue, Size size, NeuronValue hint, boolean bilinear) {
+		KernelFilterMax filter = new KernelFilterMax(createKernel(kernelValue, size, hint, bilinear), hint.unit());
+		filter.summode = size.depth != size.time || !bilinear;
 		return filter;
 	}
 
@@ -284,10 +284,11 @@ public class KernelFilterMax extends KernelFilterProduct {
 	 * @param size size of kernel.
 	 * @param depth depth of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterMax create(double kernelValue, Dimension size, int depth, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint);
+	public static KernelFilterMax create(double kernelValue, Dimension size, int depth, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, depth, 1), hint, bilinear);
 	}
 
 	
@@ -296,10 +297,11 @@ public class KernelFilterMax extends KernelFilterProduct {
 	 * @param kernelValue kernel value.
 	 * @param size size of kernel.
 	 * @param hint hint value.
+	 * @param bilinear bilinear mode.
 	 * @return product filter created from kernel value.
 	 */
-	public static KernelFilterMax create(double kernelValue, Dimension size, NeuronValue hint) {
-		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint);
+	public static KernelFilterMax create(double kernelValue, Dimension size, NeuronValue hint, boolean bilinear) {
+		return create(kernelValue, new Size(size.width, size.height, 1, 1), hint, bilinear);
 	}
 
 

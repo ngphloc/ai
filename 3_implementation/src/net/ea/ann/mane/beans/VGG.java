@@ -159,10 +159,11 @@ public class VGG extends VGGCore {
 						layerSpec.fifthLength = Math.max(paramGetSubNetworkLength(), 1); //The fifth length of layer specification is now the depth (length) of network filter.
 					}
 					
-					//Setting moving stride flag and co-weight flag.
+					//Setting more filter specification.
 					if (layerSpec.filterSpec != null) {
 						layerSpec.filterSpec.moveStride = false;
 						layerSpec.filterSpec.coweight = paramIsCoweight();
+						layerSpec.filterSpec.bilinear = paramIsKernelBilinear();
 					}
 				} //End setting filter specification.
 				
@@ -185,6 +186,11 @@ public class VGG extends VGGCore {
 						layerSpec.fifthLength = paramGetSubNetworkLength(); //The fifth length of layer specification is now the depth (length) of network weight.
 					}
 				} //End setting weight specification.
+				
+				//Setting more weight specification.
+				if (layerSpec.weightSpec != null) {
+					layerSpec.weightSpec.bilinear = paramIsKernelBilinear();
+				}
 				
 				assert (layerSpec.filterSpec != null || layerSpec.weightSpec != null); //This assertion is not important, which can be removed.
 				layerSpecs.add(layerSpec);
@@ -209,7 +215,7 @@ public class VGG extends VGGCore {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
 					layerSpec.filterSpec.poolType = paramGetFilterPoolType();
 					if (!flatten) layerSpec.filterSpec.poolType = PoolType.average;
-					if (layerSpec.prevSize.width >= base*layerSpec.size.width && layerSpec.prevSize.height >= base*layerSpec.size.height)
+					if (layerSpec.prevSize.width*layerSpec.prevSize.height >= base*base*layerSpec.size.width*layerSpec.size.height)
 						layerSpec.filterSpec.moveStride = true; //It means zooming out to be smaller.
 					else
 						layerSpec.filterSpec.moveStride = false;
@@ -217,7 +223,7 @@ public class VGG extends VGGCore {
 					layerSpecs.add(layerSpec);
 				}
 				//Adding ending stride layer.
-				else if (paramIsFilterMode() && layerSpec.prevSize.width >= base*layerSpec.size.width && layerSpec.prevSize.height >= base*layerSpec.size.height) {
+				else if (paramIsFilterMode() && layerSpec.prevSize.width*layerSpec.prevSize.height >= base*base*layerSpec.size.width*layerSpec.size.height) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.kernel);
 					layerSpec.filterSpec.kernelType = KernelType.product; //It means zooming out to be smaller.
 					layerSpec.filterSpec.moveStride = true;
@@ -241,7 +247,7 @@ public class VGG extends VGGCore {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if (gap && lastSize.depth >= 2*Kernel.LARGE_DEPTH && lastSize.width*lastSize.height <= 2*Kernel.LARGE_DEPTH) {
+		if (gap && lastSize.depth >= Kernel.LARGE_SIZE && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -674,6 +680,18 @@ class VGGCore extends ResidualNetwork {
 
 	
 	/**
+	 * Field of kernel bilinear mode.
+	 */
+	public final static String KERNEL_BILINEAR_FIELD = "mane_kernel_bilinear";
+	
+	
+	/**
+	 * Default value for field of kernel bilinear mode.
+	 */
+	public final static boolean KERNEL_BILINEAR_DEFAULT = Kernel.BILINEAR;
+
+	
+	/**
 	 * This class represents layer specification.
 	 * @author Loc Nguyen
 	 * @version 1.0
@@ -809,6 +827,7 @@ class VGGCore extends ResidualNetwork {
 		config.put(GAP_FIELD, GAP_DEFAULT);
 		config.put(LAYER_NORM_FIELD, LAYER_NORM_DEFAULT);
 		config.put(OUTPUT_NORM_ALWAYS_FIELD, OUTPUT_NORM_ALWAYS_DEFAULT);
+		config.put(KERNEL_BILINEAR_FIELD, KERNEL_BILINEAR_DEFAULT);
 	}
 	
 	
@@ -1021,10 +1040,11 @@ class VGGCore extends ResidualNetwork {
 						layerSpec.fifthLength = Math.max(paramGetSubNetworkLength(), 1); //The fifth length of layer specification is now the depth (length) of network filter.
 					}
 					
-					//Setting moving stride flag and co-weight flag.
+					//Setting more filter specification.
 					if (layerSpec.filterSpec != null) {
 						layerSpec.filterSpec.moveStride = false;
 						layerSpec.filterSpec.coweight = paramIsCoweight();
+						layerSpec.filterSpec.bilinear = paramIsKernelBilinear();
 					}
 				} //End setting filter specification.
 				
@@ -1047,6 +1067,11 @@ class VGGCore extends ResidualNetwork {
 						layerSpec.fifthLength = paramGetSubNetworkLength(); //The fifth length of layer specification is now the depth (length) of network weight.
 					}
 				} //End setting weight specification.
+				
+				//Setting more weight specification.
+				if (layerSpec.weightSpec != null) {
+					layerSpec.weightSpec.bilinear = paramIsKernelBilinear();
+				}
 				
 				assert (layerSpec.filterSpec != null || layerSpec.weightSpec != null); //This assertion is not important, which can be removed.
 				layerSpecs.add(layerSpec);
@@ -1071,7 +1096,7 @@ class VGGCore extends ResidualNetwork {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
 					layerSpec.filterSpec.poolType = paramGetFilterPoolType();
 					if (!flatten) layerSpec.filterSpec.poolType = PoolType.average;
-					if (layerSpec.prevSize.width >= base*layerSpec.size.width && layerSpec.prevSize.height >= base*layerSpec.size.height)
+					if (layerSpec.prevSize.width*layerSpec.prevSize.height >= base*base*layerSpec.size.width*layerSpec.size.height)
 						layerSpec.filterSpec.moveStride = true; //It means zooming out to be smaller.
 					else
 						layerSpec.filterSpec.moveStride = false;
@@ -1079,7 +1104,7 @@ class VGGCore extends ResidualNetwork {
 					layerSpecs.add(layerSpec);
 				}
 				//Adding ending stride layer.
-				else if (paramIsFilterMode() && layerSpec.prevSize.width >= base*layerSpec.size.width && layerSpec.prevSize.height >= base*layerSpec.size.height) {
+				else if (paramIsFilterMode() && layerSpec.prevSize.width*layerSpec.prevSize.height >= base*base*layerSpec.size.width*layerSpec.size.height) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.kernel);
 					layerSpec.filterSpec.kernelType = KernelType.product; //It means zooming out to be smaller.
 					layerSpec.filterSpec.moveStride = true;
@@ -1103,7 +1128,7 @@ class VGGCore extends ResidualNetwork {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if (gap && lastSize.depth >= 2*Kernel.LARGE_DEPTH && lastSize.width*lastSize.height <= 2*Kernel.LARGE_DEPTH) {
+		if (gap && lastSize.depth >= Kernel.LARGE_SIZE && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -1241,12 +1266,12 @@ class VGGCore extends ResidualNetwork {
 		
 		//Adding norm layer.
 		Size prevSize = layerSpecs.get(layerSpecs.size()-1).size;
-		if (paramIsLayerNorm() && (prevSize.width == 1 || paramIsVectorized() || Kernel.MATRIX_NORM)) {
+		if (paramIsLayerNorm() /*&& (prevSize.width == 1 || paramIsVectorized() || Kernel.MATRIX_NORM)*/) {
 			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
 			normLayerSpec.weightSpec.kernelType = paramGetWeightNormType();
-			int length = normLayerSpec.size.width*normLayerSpec.size.height;
-			if ((normLayerSpec.size.depth >= Kernel.LARGE_DEPTH || length >= Kernel.LARGE_DEPTH) && length <= Kernel.LARGE_SIZE*Kernel.LARGE_SIZE)
+			int area = normLayerSpec.size.width*normLayerSpec.size.height;
+			if ((normLayerSpec.size.depth >= Kernel.LARGE_DEPTH || area >= Kernel.LARGE_DEPTH) && area <= Kernel.LARGE_SIZE*Kernel.LARGE_SIZE)
 				layerSpecs.add(normLayerSpec);
 		}
 	}
@@ -1910,4 +1935,27 @@ class VGGCore extends ResidualNetwork {
 	}
 
 	
+	/**
+	 * Checking kernel bilinear mode.
+	 * @return kernel bilinear mode.
+	 */
+	boolean paramIsKernelBilinear() {
+		if (config.containsKey(KERNEL_BILINEAR_FIELD))
+			return config.getAsBoolean(KERNEL_BILINEAR_FIELD);
+		else
+			return KERNEL_BILINEAR_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting kernel bilinear mode.
+	 * @param kernelBilinear kernel bilinear mode.
+	 * @return this VGG.
+	 */
+	VGGCore paramSetKernelBilinear(boolean kernelBilinear) {
+		config.put(KERNEL_BILINEAR_FIELD, kernelBilinear);
+		return this;
+	}
+
+
 }

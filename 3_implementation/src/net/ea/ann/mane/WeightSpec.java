@@ -143,6 +143,14 @@ public class WeightSpec implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Bilinear layers flag.
+	 * If this flag is true, the accuracy is higher. If this flag is flag, sum is always, which make the accuracy stabler but lower.
+	 * The true flag is effective when the number of filters is large enough.
+	 */
+	public boolean bilinear = Kernel.BILINEAR;
+
+	
+	/**
 	 * Default constructor.
 	 */
 	public WeightSpec(Type type) {
@@ -305,7 +313,7 @@ public class WeightSpec implements Cloneable, Serializable {
 		neuronChannel = neuronChannel < 1 ? 1 : neuronChannel;
 		hint = hint != null ? hint : NeuronValueCreator.newNeuronValue(neuronChannel);
 		if (prevSize != null && size != null && (layerSpec == null || layerSpec.weightSpec == null))
-			return WeightImpl.create(prevSize, size, hint);
+			return WeightImpl.create(prevSize, size, hint, Kernel.BILINEAR);
 		
 		if (prevSize == null || size == null || layerSpec == null || layerSpec.weightSpec == null) throw new IllegalArgumentException();
 		
@@ -314,7 +322,7 @@ public class WeightSpec implements Cloneable, Serializable {
 		case kernel:
 			switch (layerSpec.weightSpec.kernelType) {
 			case normal:
-				weight = WeightImpl.create(prevSize, size, hint);
+				weight = WeightImpl.create(prevSize, size, hint, layerSpec.weightSpec.bilinear);
 				break;
 			case transformer:
 				weight = TransformerWeight.create(neuronChannel, prevSize, size);
@@ -338,7 +346,7 @@ public class WeightSpec implements Cloneable, Serializable {
 				weight = new NullWeight();
 				break;
 			default:
-				weight = WeightImpl.create(prevSize, size, hint);
+				weight = WeightImpl.create(prevSize, size, hint, layerSpec.weightSpec.bilinear);
 				break;
 			}
 			break;
@@ -346,7 +354,7 @@ public class WeightSpec implements Cloneable, Serializable {
 			weight = WeightNetworkImpl.create(prevSize, size, Math.max(layerSpec.fifthLength, 1), layerSpec.weightSpec.kernelType, neuronChannel);
 			break;
 		default:
-			weight = WeightImpl.create(prevSize, size, hint);
+			weight = WeightImpl.create(prevSize, size, hint, layerSpec.weightSpec.bilinear);
 			break;
 		}
 		return weight;
@@ -422,7 +430,7 @@ public class WeightSpec implements Cloneable, Serializable {
 	public static Weight newWeight(Size prevSize, Size size, NeuronValue hint, WeightSpec weightSpec, int neuronChannel) {
 		if (prevSize == null && size == null && weightSpec == null) return new NullWeight();
 		if (prevSize != null && size != null && weightSpec == null)
-			return WeightImpl.create(prevSize, size, hint);
+			return WeightImpl.create(prevSize, size, hint, Kernel.BILINEAR);
 		
 		if (prevSize == null || size == null || weightSpec == null) throw new IllegalArgumentException();
 		
@@ -431,7 +439,7 @@ public class WeightSpec implements Cloneable, Serializable {
 		case kernel:
 			switch (weightSpec.kernelType) {
 			case normal:
-				weight = WeightImpl.create(prevSize, size, hint);
+				weight = WeightImpl.create(prevSize, size, hint, weightSpec.bilinear);
 				break;
 			case transformer:
 				weight = TransformerWeight.create(neuronChannel, prevSize, size);
@@ -455,14 +463,14 @@ public class WeightSpec implements Cloneable, Serializable {
 				weight = new NullWeight();
 				break;
 			default:
-				weight = WeightImpl.create(prevSize, size, hint);
+				weight = WeightImpl.create(prevSize, size, hint, weightSpec.bilinear);
 				break;
 			}
 			break;
 		case network:
 			throw new IllegalArgumentException();
 		default:
-			weight = WeightImpl.create(prevSize, size, hint);
+			weight = WeightImpl.create(prevSize, size, hint, weightSpec.bilinear);
 			break;
 		}
 		return weight;
