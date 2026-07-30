@@ -853,13 +853,32 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 
 	/**
+	 * Checking whether to make gradient clipping.
+	 * @return whether to make gradient clipping.
+	 */
+	boolean paramIsGradClipping() {
+		return network != null ? network.paramIsGradClipping() : false;
+	}
+	
+	
+	/**
+	 * Getting maximum gradient norm for gradient clipping.
+	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 * @return raster channel.
+	 */
+	int paramGetGradNormMax() {
+		return network != null ? network.paramGetGradNormMax() : 0;
+	}
+
+	
+	/**
 	 * Calculating decay factor for L2 regularization.
 	 * @param learningRate learning rate.
 	 * @param recordCount record count.
 	 * @return decay factor for L2 regularization.
 	 */
 	protected static double decay(double learningRate, int recordCount) {
-		assert (learningRate > 0 && learningRate < 1 && recordCount > 0);
+		assert (learningRate > 0 && learningRate <= 1 && recordCount > 0);
 		double lambda = LAMBDA; //Regularization strength.
 		recordCount = recordCount < 1 ? 1 : recordCount;
 		return 1.0 - (learningRate * (lambda/recordCount));

@@ -918,7 +918,7 @@ class VGGExt extends VGG {
 	 * @return learning errors.
 	 */
 	public Error[] learnRaster(Iterable<Raster> sample) {
-		int maxIteration = calcBatchCount(sample);
+		int batchCount = calcBatchCount(sample);
 		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
 		int epochs = paramGetPseudoEpochs();
@@ -929,12 +929,12 @@ class VGGExt extends VGG {
 		Error[] outputErrors = null;
 		Iterable<Raster> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
-			double lr = calcLearningRate(learningRate, epoch+1);
+			double lr = learningRate*Math.pow(LEARNING_RATE_DECAY, epoch); //calcLearningRate(learningRate, epoch+1);
 			if (epoch > 0) {
 				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
 				Collections.shuffle((List<?>)newsample);
 			}
-			outputErrors = learnRaster(newsample, lr, terminatedThreshold, maxIteration);
+			outputErrors = learnRaster(newsample, lr, terminatedThreshold, batchCount);
 		}
 		return outputErrors;
 	}
@@ -945,24 +945,24 @@ class VGGExt extends VGG {
 	 * @param sample sample.
 	 * @param learningRate learning rate.
 	 * @param terminatedThreshold terminated threshold.
-	 * @param maxIteration maximum iteration.
+	 * @param batchCount maximum iteration which is batch count here.
 	 * @return learning errors.
 	 */
-	private Error[] learnRaster(Iterable<Raster> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	private Error[] learnRaster(Iterable<Raster> sample, double learningRate, double terminatedThreshold, int batchCount) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
 		resetBackwardInfo();
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
+		batchCount = batchCount >= 0 ? batchCount :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
 		Error[] outputErrors = null;
 		int iteration = 0;
 		doStarted = true;
-		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			Iterable<Raster> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
+		while (doStarted && (batchCount <= 0 || iteration < batchCount)) {
+			Iterable<Raster> subsample = resample(sample, iteration, batchCount); //Getting batch.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
 			outputErrors = learnRaster(subsample, lr);
@@ -970,9 +970,9 @@ class VGGExt extends VGG {
 			iteration ++;
 			
 			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "vggext_backpropogate",
-				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
+				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, batchCount));
 
-			if (outputErrors == null || outputErrors.length == 0 || (iteration >= maxIteration && maxIteration == 1))
+			if (outputErrors == null || outputErrors.length == 0 || (iteration >= batchCount && batchCount == 1))
 				doStarted = false;
 			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = Matrix.normMean(Error.errors(outputErrors));
@@ -995,7 +995,7 @@ class VGGExt extends VGG {
 			doPaused = false;
 			
 			fireDoEvent(new NetworkDoEventImpl(this, Type.done, "vggext_backpropogate",
-				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
+				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, batchCount));
 			
 			notifyAll();
 		}

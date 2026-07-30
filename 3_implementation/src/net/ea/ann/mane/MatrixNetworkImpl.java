@@ -80,6 +80,12 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	public final static int MINSIZE = 16; //= 32 or = ImageListItem.ICON_MINSIZE/BASE_DEFAULT but it should be 32;
 
 	
+	/**
+	 * Learning rate decay.
+	 */
+	public final static double LEARNING_RATE_DECAY = 0.95;
+	
+	
 //	/**
 //	 * History size.
 //	 */
@@ -605,7 +611,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	
 	@Override
 	public Error[] learn(Iterable<Record> sample) throws RemoteException {
-		int maxIteration = calcBatchCount(sample);
+		int batchCount = calcBatchCount(sample);
 		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
 		int epochs = paramGetPseudoEpochs();
@@ -616,12 +622,12 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		Error[] outputErrors = null;
 		Iterable<Record> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
-			double lr = calcLearningRate(learningRate, epoch+1);
+			double lr = learningRate*Math.pow(LEARNING_RATE_DECAY, epoch); //calcLearningRate(learningRate, epoch+1); //This is the learning rate scheduler.
 			if (epoch > 0) {
 				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
 				Collections.shuffle((List<?>)newsample);
 			}
-			outputErrors = learn(newsample, lr, terminatedThreshold, maxIteration);
+			outputErrors = learn(newsample, lr, terminatedThreshold, batchCount);
 		}
 		return outputErrors;
 	}
@@ -658,24 +664,24 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	 * @param sample sample.
 	 * @param learningRate learning rate.
 	 * @param terminatedThreshold terminated threshold.
-	 * @param maxIteration maximum iteration.
+	 * @param batchCount maximum iteration which is batch count here.
 	 * @return learning errors.
 	 */
-	private Error[] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	private Error[] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int batchCount) {
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
 		resetBackwardInfo();
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
+		batchCount = batchCount >= 0 ? batchCount :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
 		Error[] outputErrors = null;
 		int iteration = 0;
 		doStarted = true;
-		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
+		while (doStarted && (batchCount <= 0 || iteration < batchCount)) {
+			Iterable<Record> subsample = resample(sample, iteration, batchCount); //Getting batch.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
 			outputErrors = learn(subsample, lr);
@@ -683,9 +689,9 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			iteration ++;
 			
 			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "mane_backpropogate",
-				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
+				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, batchCount));
 
-			if (outputErrors == null || outputErrors.length == 0 || (iteration >= maxIteration && maxIteration == 1))
+			if (outputErrors == null || outputErrors.length == 0 || (iteration >= batchCount && batchCount == 1))
 				doStarted = false;
 			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = Matrix.normMean(Error.errors(outputErrors));
@@ -708,7 +714,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 			doPaused = false;
 			
 			fireDoEvent(new NetworkDoEventImpl(this, Type.done, "mane_backpropogate",
-				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
+				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, batchCount));
 			
 			notifyAll();
 		}

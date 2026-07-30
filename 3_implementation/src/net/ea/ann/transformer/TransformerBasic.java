@@ -749,7 +749,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	
 	@Override
 	public Error[][] learn(Iterable<Record> sample) throws RemoteException {
-		int maxIteration = calcBatchCount(sample);
+		int batchCount = calcBatchCount(sample);
 		double terminatedThreshold = paramGetTerminatedThreshold();
 		double learningRate = paramGetLearningRate();
 		int epochs = paramGetPseudoEpochs();
@@ -760,12 +760,12 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		Error[][] outputErrors = null;
 		Iterable<Record> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
-			double lr = calcLearningRate(learningRate, epoch+1);
+			double lr = learningRate*Math.pow(MatrixNetworkImpl.LEARNING_RATE_DECAY, epoch); //calcLearningRate(learningRate, epoch+1);
 			if (epoch > 0) {
 				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
 				Collections.shuffle((List<?>)newsample);
 			}
-			outputErrors = learn(newsample, lr, terminatedThreshold, maxIteration);
+			outputErrors = learn(newsample, lr, terminatedThreshold, batchCount);
 		}
 		return outputErrors;
 	}
@@ -776,25 +776,25 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 	 * @param sample sample.
 	 * @param learningRate learning rate.
 	 * @param terminatedThreshold terminated threshold.
-	 * @param maxIteration maximum iteration.
+	 * @param batchCount maximum iteration which is batch count here.
 	 * @return learning errors. The first element is main error and the second element is attached error, etc.
 	 */
-	private Error[][] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int maxIteration) {
+	private Error[][] learn(Iterable<Record> sample, double learningRate, double terminatedThreshold, int batchCount) {
 		if (!validate()) return null;
 		try {
 			if (isDoStarted()) return null;
 		} catch (Throwable e) {Util.trace(e);}
 		resetBackwardInfo();
 		
-		maxIteration = maxIteration >= 0 ? maxIteration :  LEARN_MAX_ITERATION_MAX;
+		batchCount = batchCount >= 0 ? batchCount :  LEARN_MAX_ITERATION_MAX;
 		terminatedThreshold = Double.isNaN(terminatedThreshold) || terminatedThreshold < 0 ? LEARN_TERMINATED_THRESHOLD_DEFAULT : terminatedThreshold;
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? LEARN_RATE_DEFAULT : learningRate;
 		
 		Error[][] outputErrors = null;
 		int iteration = 0;
 		doStarted = true;
-		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
+		while (doStarted && (batchCount <= 0 || iteration < batchCount)) {
+			Iterable<Record> subsample = resample(sample, iteration, batchCount); //Getting batch.
 			double lr = calcLearningRate(learningRate, iteration+1);
 
 			outputErrors = learn(subsample, lr);
@@ -802,9 +802,9 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 			iteration ++;
 			
 			fireDoEvent(new NetworkDoEventImpl(this, Type.doing, "transformer_backpropogate",
-				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
+				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, batchCount));
 
-			if (outputErrors == null || outputErrors.length == 0 || (iteration >= maxIteration && maxIteration == 1))
+			if (outputErrors == null || outputErrors.length == 0 || (iteration >= batchCount && batchCount == 1))
 				doStarted = false;
 			else if (terminatedThreshold > 0 && config.getAsBoolean(LEARN_TERMINATE_ERROR_FIELD)) {
 				double errorMean = Matrix.normMean(Error.create(outputErrors[0]));
@@ -827,7 +827,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 			doPaused = false;
 			
 			fireDoEvent(new NetworkDoEventImpl(this, Type.done, "transformer_backpropogate",
-				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, maxIteration));
+				"At final iteration " + iteration + "\nThe learned result is:\n" + this, iteration, batchCount));
 			
 			notifyAll();
 		}

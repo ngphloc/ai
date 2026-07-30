@@ -44,12 +44,6 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 	
 	/**
-	 * Clipping gradient flag. Gradient Clipping is a useful technique to improve training neural network.
-	 */
-	private final static boolean CLIP_GRAD = false;
-	
-	
-	/**
 	 * Parametric weight.
 	 */
 	protected Weight weight = null;
@@ -816,20 +810,24 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @return adjusted error.
 	 */
 	protected Matrix adjustError(Matrix error, Error ERROR) {
-		if (CLIP_GRAD) { //Gradient Clipping is a useful technique to improve training neural network.
+		//Gradient Clipping is a useful technique to improve training neural network, which prevents gradient explosion.
+		if (paramIsGradClipping() && paramGetGradNormMax() > 0) {
+			double maxNorm = paramGetGradNormMax();
 			Matrix[] matrices = MatrixUtil.split(error);
-			NeuronValue min = matrices[0].get(0, 0).valueOf(-5.0);
-			NeuronValue max = matrices[0].get(0, 0).valueOf(5.0);
+			boolean clipped = false;
 			for (int d = 0; d < matrices.length; d++) {
 				for (int row = 0; row < error.rows(); row++) {
 					for (int column = 0; column < error.columns(); column++) {
 						NeuronValue value =  matrices[d].get(row, column);
-						value = value.max(min).min(max);
-						matrices[d].set(row, column, value);
+						double norm = value.norm();
+						if (norm > maxNorm) {
+							matrices[d].set(row, column, value.divide(norm));
+							clipped = true;
+						}
 					}
 				}
 			}
-			error = MatrixUtil.join(matrices);
+			if (clipped) error = MatrixUtil.join(matrices);
 		}
 		return error;
 	}

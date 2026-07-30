@@ -122,13 +122,6 @@ public interface Weight extends Cloneable, Serializable {
 	Kernel dKernel(Matrix prevOutput, Matrix thisError);
 	
 	
-//	/**
-//	 * Initializing weight with specified value.
-//	 * @param v specified value.
-//	 */
-//	default void initParams(double v) {}
-
-	
 	/**
 	 * Filling weight with randomizer.
 	 * @param rnd randomizer.
@@ -141,6 +134,13 @@ public interface Weight extends Cloneable, Serializable {
 	 * @return size of parameters.
 	 */
 	default int sizeOfParams() {return 0;}
+
+
+	/**
+	 * Copying from source weight.
+	 * @param source source weight.
+	 */
+	default void copyParameters(Weight source) {}
 
 
 }

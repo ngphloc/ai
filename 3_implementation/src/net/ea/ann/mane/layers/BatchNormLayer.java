@@ -203,7 +203,7 @@ public class BatchNormLayer extends CustomLayer {
 	 * @return this weight.
 	 */
 	public WKernel accumKernel(WKernel dKernel, double factor, double decay) {
-		assert (factor > 0 && factor < 1);
+		assert (factor > 0 && factor <= 1);
 		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = (WKernel)dKernel.optimize();

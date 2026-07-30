@@ -66,6 +66,24 @@ public class CustomNetwork extends MatrixNetworkImpl {
 	public CustomNetwork(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 
+	/**
+	 * Copying parameters from source network.
+	 * @param source source network.
+	 */
+	protected void copyParameters(MatrixNetworkImpl source) {
+		if (this.layers == null) return;
+		assert (source.layers != null && source.layers.length == this.layers.length);
+		for (int i = 0; i < this.layers.length; i++) {
+			if (!(this.layers[i] instanceof CustomLayer)) continue;
+			
+			assert (source.layers[i] instanceof CustomLayer);
+			CustomLayer thisLayer = (CustomLayer)this.layers[i];
+			CustomLayer sourceLayer = (CustomLayer)source.layers[i];
+			thisLayer.copyParameters(sourceLayer);
+		}
+	}
+	
+	
 	@Override
 	public Matrix evaluate0(Matrix input, Object... params) {
 		return super.evaluate0(input, params);

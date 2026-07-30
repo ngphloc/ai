@@ -8,6 +8,7 @@
 package net.ea.ann.core;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -319,6 +320,7 @@ public class Record implements Serializable, Cloneable {
 	 * @return size of collection.
 	 */
 	public static <T> int sizeOf(Iterable<T> collection) {
+		if (collection instanceof Collection<?>) return ((Collection<T>)collection).size();
 		int size = 0;
 		for (T element : collection) {
 			if (element != null) size++;

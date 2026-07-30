@@ -60,6 +60,13 @@ public interface Kernel extends Cloneable, Serializable {
 	final boolean GLOBAL_BIAS = false;
 	
 	
+	/**
+	 * Maximum gradient norm for gradient clipping which is a useful technique to improve training neural network.
+	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 */
+	final double GRAD_NORM_MAX_DEFAULT = 1.0;
+	
+			
 //	/**
 //	 * Matrix normalization flag.
 //	 */
@@ -142,6 +149,13 @@ public interface Kernel extends Cloneable, Serializable {
 	 */
 	default Optimizer createOptimizer() {return new AdamOptimizer();}
 	
+	
+	/**
+	 * Copying from source kernel.
+	 * @param source source kernel.
+	 */
+	default void copyParameters(Kernel source) {}
+
 	
 	/**
 	 * Calculating sum.

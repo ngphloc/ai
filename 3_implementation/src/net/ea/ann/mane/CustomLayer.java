@@ -10,6 +10,7 @@ package net.ea.ann.mane;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.raster.Size;
 
 /**
@@ -67,6 +68,19 @@ public class CustomLayer extends MatrixLayerImpl {
 	public CustomLayer(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 
+	/**
+	 * Copying parameters from source layer.
+	 * @param source source layer.
+	 */
+	protected void copyParameters(MatrixLayerImpl source) {
+		assert (source != null);
+		if (this.weight != null && source.weight != null) this.weight.copyParameters(source.weight);
+		if (this.bias != null && source.bias != null) MatrixUtil.copy(source.bias, this.bias);
+		if (this.filter != null && source.filter != null) this.filter.copyParameters(source.filter);
+		if (this.filterBias != null && source.filterBias != null) this.filterBias = source.filterBias/*.duplicate()*/;
+	}
+	
+	
 	@Override
 	public boolean initialize(Size size, Size prevSize, LayerSpec layerSpec) {
 		return super.initialize(size, prevSize, layerSpec);

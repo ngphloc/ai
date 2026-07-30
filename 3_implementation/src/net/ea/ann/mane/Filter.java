@@ -185,6 +185,13 @@ public interface Filter extends Serializable, Cloneable {
 	Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 
 	
+	/**
+	 * Copying from source filter.
+	 * @param source source filter.
+	 */
+	default void copyParameters(Filter source) {}
+	
+	
 }
 
 

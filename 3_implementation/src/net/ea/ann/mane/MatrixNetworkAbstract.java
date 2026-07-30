@@ -89,6 +89,20 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 
 	
 	/**
+	 * Field of maximum gradient norm for gradient clipping which is a useful technique to improve training neural network.
+	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 */
+	public final static String GRAD_NORM_MAX_FIELD = "mane_grad_norm_max";
+	
+	
+	/**
+	 * Default value for maximum gradient norm for gradient clipping which is a useful technique to improve training neural network.
+	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 */
+	public final static double GRAD_NORM_MAX_DEFAULT = Kernel.GRAD_NORM_MAX_DEFAULT;
+
+	
+	/**
 	 * Neuron channel.
 	 */
 	protected int neuronChannel = 1;
@@ -137,6 +151,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 		this.config.put(MatrixLayerAbstract.LEARN_FILTER_FIELD, MatrixLayerAbstract.LEARN_FILTER_DEFAULT);
 		this.config.put(MIDDLE_SIZE_DEFAULT_FIELD, MIDDLE_SIZE_DEFAULT_DEFAULT);
 		this.config.put(POS_ENCODE_FIELD, POS_ENCODE_DEFAULT);
+		this.config.put(GRAD_NORM_MAX_FIELD, GRAD_NORM_MAX_DEFAULT);
 
 		this.neuronChannel = neuronChannel = (neuronChannel < 1 ? 1 : neuronChannel);
 		this.activateRef = activateRef == null ? (activateRef = Raster.toActivationRef(this.neuronChannel, paramIsNorm())) : activateRef;
@@ -589,6 +604,40 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	}
 
 
+	/**
+	 * Checking whether to make gradient clipping.
+	 * @return whether to make gradient clipping.
+	 */
+	boolean paramIsGradClipping() {
+		return paramGetGradNormMax() > 0 && paramIsNorm();
+	}
+	
+	
+	/**
+	 * Getting maximum gradient norm for gradient clipping.
+	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 * @return raster channel.
+	 */
+	int paramGetGradNormMax() {
+		if (config.containsKey(GRAD_NORM_MAX_FIELD))
+			return config.getAsInt(GRAD_NORM_MAX_FIELD);
+		else
+			return 0;
+	}
+	
+	
+	/**
+	 * Getting maximum gradient norm for gradient clipping.
+	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 * @param gradNormMax maximum gradient norm.
+	 * @return this network.
+	 */
+	MatrixNetworkAbstract paramSetGradNormMax(double gradNormMax) {
+		config.put(GRAD_NORM_MAX_FIELD, gradNormMax);
+		return this;
+	}
+
+	
 	@Override
 	public String toText() {
 		StringBuffer buffer = new StringBuffer();

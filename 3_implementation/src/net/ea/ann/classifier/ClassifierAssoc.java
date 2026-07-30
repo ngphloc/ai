@@ -726,12 +726,22 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			final int size = trainSize;
 			Files.list(baseDir).filter(Files::isRegularFile).forEach((basePath) -> {
 				List<Raster> baseRasters = RasterAssoc.loadCIFAR(basePath, size);
-				if (baseRasters.size() > 0) baseRastersList.add(baseRasters);
+				if (baseRasters.size() > 0) {
+					if (baseRastersList.size() == 0)
+						baseRastersList.add(baseRasters);
+					else
+						baseRastersList.get(0).addAll(baseRasters);
+				}
 			});
 	
 			Files.list(testDir).filter(Files::isRegularFile).forEach((testPath) -> {
 				List<Raster> testRasters = RasterAssoc.loadCIFAR(testPath, size);
-				if (testRasters.size() > 0) testRastersList.add(testRasters);
+				if (testRasters.size() > 0) {
+					if (testRastersList.size() == 0)
+						testRastersList.add(testRasters);
+					else
+						testRastersList.get(0).addAll(testRasters);
+				}
 			});
 		} catch (Exception e) {Util.trace(e);}
 	

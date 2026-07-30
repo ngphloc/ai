@@ -37,9 +37,9 @@ public abstract class NetworkAbstract implements Network, Serializable {
 
 	
 	/**
-	 * Small value for learning rate.
+	 * Small value for learning rate. The values 0.001, 0.0005, 0.0003 are standard learning rate for training neural network.
 	 */
-	public final static double LEARN_RATE_SMALL = LEARN_TERMINATED_THRESHOLD_DEFAULT;
+	public final static double LEARN_RATE_SMALL = LEARN_TERMINATED_THRESHOLD_DEFAULT; //0.001, 0.0003
 
 	
 	/**

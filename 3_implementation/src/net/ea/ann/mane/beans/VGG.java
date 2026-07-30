@@ -247,7 +247,7 @@ public class VGG extends VGGCore {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if (gap && lastSize.depth >= Kernel.LARGE_SIZE && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
+		if (gap && lastSize.depth >= 8*Kernel.LARGE_DEPTH && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
