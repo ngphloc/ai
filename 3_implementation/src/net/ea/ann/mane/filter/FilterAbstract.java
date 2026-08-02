@@ -47,5 +47,12 @@ public abstract class FilterAbstract implements Filter {
 	public void setMoveStride(boolean moveStride) {this.moveStride = moveStride;}
 
 
+	@Override
+	public void copyParameters(Filter source) {
+		Filter.super.copyParameters(source);
+		this.moveStride = ((FilterAbstract)source).moveStride;
+	}
+
+
 }
 

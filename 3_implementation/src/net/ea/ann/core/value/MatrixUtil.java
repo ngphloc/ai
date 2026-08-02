@@ -67,7 +67,7 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	
 	
 	/**
-	 * Creating new matrix.
+	 * Creating new matrix. This method is important, which is the clue of creating matrix task.
 	 * @param size size.
 	 * @return matrix.
 	 */
@@ -315,9 +315,9 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	 * @return matrix.
 	 */
 	public static Matrix toMatrix(Size size, Raster raster, int neuronChannel, int rasterChannel, boolean isNorm, Matrix ref) {
-		if (raster instanceof RasterMatrix && ((RasterMatrix)raster).getImageMatrix() != null) {
+		if (raster instanceof RasterMatrix) {
 			ImageMatrix im = ((RasterMatrix)raster).getImageMatrix();
-			if (im.getNeuronChannel() == neuronChannel && im.getNeuronChannel() == rasterChannel && isNorm &&
+			if (im.getNeuronChannel() == neuronChannel && im.getDepth() == rasterChannel && isNorm &&
 					im.getWidth() == size.getWidth() && im.getHeight() == size.height &&
 					im.getWidth() == raster.getWidth() && im.getHeight() == raster.getHeight() && im.getDepth() == raster.getDepth()) {
 				return im.get();

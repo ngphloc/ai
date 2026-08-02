@@ -17,6 +17,7 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
@@ -297,6 +298,18 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	}
 
 	
+	@Override
+	public void copyParameters(Filter source) {
+		super.copyParameters(source);
+		KernelFilterProduct Source = (KernelFilterProduct)source;
+		
+		if (this.weight != null) {
+			if (Source.weight == null) throw new IllegalArgumentException();
+			this.weight = Source.weight;
+		}
+	}
+
+
 	@Override
 	public String toText() {
 		if (this.kernel == null) return "{}";

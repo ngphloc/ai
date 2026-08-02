@@ -104,7 +104,9 @@ public class ImageMatrix implements Image, Sound {
 	 * Getting neuron channel.
 	 * @return neuron channel.
 	 */
-	public int getNeuronChannel() {return data.get(0, 0).length();}
+	public int getNeuronChannel() {
+		return MatrixUtil.split(data)[0].get(0, 0).length();
+	}
 	
 	
 	@Override
@@ -122,7 +124,75 @@ public class ImageMatrix implements Image, Sound {
 	 * Getting image.
 	 * @return image.
 	 */
-	public BufferedImage getImage() {return getImage(0);}
+	public BufferedImage getImage() {
+		if (getNeuronChannel() != 1) throw new IllegalArgumentException();
+		
+		Matrix[] thisData = MatrixUtil.split(this.data);
+		RasterType rasterType = Raster.toRasterType(thisData.length);
+		int sourceImageType = rasterType == RasterType.GRAY ? BufferedImage.TYPE_BYTE_GRAY : SOURCE_IMAGE_TYPE_DEFAULT;
+		BufferedImage image = new BufferedImage(getWidth(), getHeight(), sourceImageType);
+		
+		double factor = 255;
+		for (int y = 0; y < getHeight(); y++) {
+			for (int x = 0; x < getWidth(); x++) {
+				int a = Image.ALPHA_DEFAULT, r = 0, g = 0, b = 0, gray = 0;
+				
+                switch (rasterType) {
+                case GRAY:
+	                {
+						NeuronValue1 value0 = (NeuronValue1)thisData[0].get(y, x);
+						gray = (int)(value0.get()*factor + 0.5);
+						r = g = b = gray;
+	                }
+                	break;
+                case GB:
+	                {
+						NeuronValue1 value0 = (NeuronValue1)thisData[0].get(y, x);
+						NeuronValue1 value1 = (NeuronValue1)thisData[1].get(y, x);
+	                	g = (int)(value0.get()*factor + 0.5);
+	                	b = (int)(value1.get()*factor + 0.5);
+	                }
+                	break;
+                case RGB:
+	                {
+						NeuronValue1 value0 = (NeuronValue1)thisData[0].get(y, x);
+						NeuronValue1 value1 = (NeuronValue1)thisData[1].get(y, x);
+						NeuronValue1 value2 = (NeuronValue1)thisData[2].get(y, x);
+	                	r = (int)(value0.get()*factor + 0.5);
+	                	g = (int)(value1.get()*factor + 0.5);
+	                	b = (int)(value2.get()*factor + 0.5);
+	                }
+                	break;
+                case ARGB:
+	                {
+						NeuronValue1 value0 = (NeuronValue1)thisData[0].get(y, x);
+						NeuronValue1 value1 = (NeuronValue1)thisData[1].get(y, x);
+						NeuronValue1 value2 = (NeuronValue1)thisData[2].get(y, x);
+						NeuronValue1 value3 = (NeuronValue1)thisData[3].get(y, x);
+	                	a = (int)(value0.get()*factor + 0.5);
+	                	r = (int)(value1.get()*factor + 0.5);
+	                	g = (int)(value2.get()*factor + 0.5);
+	                	b = (int)(value3.get()*factor + 0.5);
+	                }
+                	break;
+                default:
+	                {
+						NeuronValue1 value0 = (NeuronValue1)thisData[0].get(y, x);
+						gray = (int)(value0.get()*factor + 0.5);
+						r = g = b = gray;
+	                }
+                	break;
+                }
+				
+				int p = (a << 24) | (r << 16) | (g << 8) | b;
+	            image.setRGB(x, y, p);
+	            
+			} //End for x
+			
+		} //End for y
+		
+		return image;
+	}
 	
 	
 	/**

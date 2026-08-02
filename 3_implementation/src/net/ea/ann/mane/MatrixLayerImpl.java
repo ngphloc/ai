@@ -510,7 +510,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 */
 	Filter accumFilterKernel(Kernel dFKernel, double learningRate, int recordCount) {
 		if (this.filter == null) return this.filter;
-		return this.filter.accumKernel(dFKernel, learningRate, decay(learningRate, recordCount));
+		return this.filter.accumKernel(dFKernel, learningRate, Kernel.decayL2(learningRate, recordCount));
 	}
 	
 	
@@ -756,7 +756,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (this.weight != null && dWKernels[0] != null) {
 			if (learning) {
 				Kernel dWKernelMean0 = Kernel.mean(dWKernels);
-				this.weight = this.weight.accumKernel(dWKernelMean0, learningRate, decay(learningRate, dWKernels.length));
+				this.weight = this.weight.accumKernel(dWKernelMean0, learningRate, Kernel.decayL2(learningRate, dWKernels.length));
 			}
 			else {
 				Kernel dWKernelSum0 = Kernel.sum(dWKernels);
@@ -814,20 +814,44 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (paramIsGradClipping() && paramGetGradNormMax() > 0) {
 			double maxNorm = paramGetGradNormMax();
 			Matrix[] matrices = MatrixUtil.split(error);
-			boolean clipped = false;
 			for (int d = 0; d < matrices.length; d++) {
-				for (int row = 0; row < error.rows(); row++) {
-					for (int column = 0; column < error.columns(); column++) {
-						NeuronValue value =  matrices[d].get(row, column);
-						double norm = value.norm();
-						if (norm > maxNorm) {
+				if (this.neuronChannel == 1) {
+					double norm = 0;
+					for (int row = 0; row < error.rows(); row++) {
+						for (int column = 0; column < error.columns(); column++) {
+							double v = matrices[d].get(row, column).norm();
+							norm += v*v;
+						}
+					}
+					norm = Math.sqrt(norm);
+					if (norm <= maxNorm) continue;
+	
+					for (int row = 0; row < error.rows(); row++) {
+						for (int column = 0; column < error.columns(); column++) {
+							NeuronValue value = matrices[d].get(row, column);
 							matrices[d].set(row, column, value.divide(norm));
-							clipped = true;
+						}
+					}
+				}
+				else {
+					NeuronValue norm = matrices[d].get(0, 0).zero();
+					for (int row = 0; row < error.rows(); row++) {
+						for (int column = 0; column < error.columns(); column++) {
+							NeuronValue v = matrices[d].get(row, column);
+							norm = norm.add(v.multiply(v));
+						}
+					}
+					norm = norm.sqrt();
+					if (norm.mean() <= maxNorm) continue;
+					
+					for (int row = 0; row < error.rows(); row++) {
+						for (int column = 0; column < error.columns(); column++) {
+							NeuronValue value = matrices[d].get(row, column);
+							matrices[d].set(row, column, value.divide(norm));
 						}
 					}
 				}
 			}
-			if (clipped) error = MatrixUtil.join(matrices);
 		}
 		return error;
 	}
@@ -879,7 +903,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		}
 		if (this.weight != null && this.dWKernelAccum != null) {
 			Kernel dWMean0 = this.dWKernelAccum.divide(recordCount);
-			this.weight = this.weight.accumKernel(dWMean0, learningRate, decay(learningRate, recordCount));
+			this.weight = this.weight.accumKernel(dWMean0, learningRate, Kernel.decayL2(learningRate, recordCount));
 			this.dWKernelAccum = null;
 		}
 		if (this.weight != null && this.weight instanceof NetworkWeight) {

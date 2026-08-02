@@ -723,7 +723,7 @@ public class BatchNormLayer extends CustomLayer {
 			outputErrors[i].errorSet(dValue);
 		}
 		WKernel dWKernelMean0 = (WKernel)this.dWKernelNormAccum.divide(outputErrors.length);
-		this.kernel = accumKernel(dWKernelMean0, learningRate, decay(learningRate, outputErrors.length));
+		this.kernel = accumKernel(dWKernelMean0, learningRate, Kernel.decayL2(learningRate, outputErrors.length));
 		this.dWKernelNormAccum = null;
 		
 		this.batchOutputs.clear();

@@ -74,10 +74,22 @@ public class CustomLayer extends MatrixLayerImpl {
 	 */
 	protected void copyParameters(MatrixLayerImpl source) {
 		assert (source != null);
-		if (this.weight != null && source.weight != null) this.weight.copyParameters(source.weight);
-		if (this.bias != null && source.bias != null) MatrixUtil.copy(source.bias, this.bias);
-		if (this.filter != null && source.filter != null) this.filter.copyParameters(source.filter);
-		if (this.filterBias != null && source.filterBias != null) this.filterBias = source.filterBias/*.duplicate()*/;
+		if (this.weight != null) {
+			if (source.weight == null) throw new IllegalArgumentException();
+			this.weight.copyParameters(source.weight);
+		}
+		if (this.bias != null) {
+			if (source.bias == null) throw new IllegalArgumentException();
+			MatrixUtil.copy(source.bias, this.bias);
+		}
+		if (this.filter != null) {
+			if (source.filter == null) throw new IllegalArgumentException();
+			this.filter.copyParameters(source.filter);
+		}
+		if (this.filterBias != null) {
+			if (source.filterBias == null) throw new IllegalArgumentException();
+			this.filterBias = source.filterBias/*.duplicate()*/;
+		}
 	}
 	
 	

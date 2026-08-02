@@ -53,6 +53,12 @@ public class Raster2DImpl extends RasterAbstract implements Raster2D, RasterMatr
 	
 
 	@Override
+	public int getDepth() {
+		return image != null && image instanceof ImageMatrix ? ((ImageMatrix)image).getDepth() : super.getDepth();
+	}
+
+
+	@Override
 	public Image getImage() {return image;}
 	
 	

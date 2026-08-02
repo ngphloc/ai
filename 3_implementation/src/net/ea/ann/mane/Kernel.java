@@ -24,9 +24,15 @@ public interface Kernel extends Cloneable, Serializable {
 	/**
 	 * L2 regularization flag.
 	 */
-	final boolean REGULAR = true;
+	final boolean L2 = true;
 
 	
+	/**
+	 * L2 regularization strength.
+	 */
+	final double L2_STRENGTH = 1e-4;
+	
+			
 	/**
 	 * Optimization flag.
 	 */
@@ -65,8 +71,8 @@ public interface Kernel extends Cloneable, Serializable {
 	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
 	 */
 	final double GRAD_NORM_MAX_DEFAULT = 1.0;
-	
-			
+
+
 //	/**
 //	 * Matrix normalization flag.
 //	 */
@@ -157,6 +163,21 @@ public interface Kernel extends Cloneable, Serializable {
 	default void copyParameters(Kernel source) {}
 
 	
+	/**
+	 * Calculating decay factor for L2 regularization.
+	 * @param learningRate learning rate.
+	 * @param recordCount record count.
+	 * @return decay factor for L2 regularization.
+	 */
+	static double decayL2(double learningRate, int recordCount) {
+		assert (learningRate > 0 && learningRate <= 1 && recordCount > 0);
+		double lambda = L2_STRENGTH; //Regularization strength.
+//		recordCount = recordCount < 1 ? 1 : recordCount;
+//		return 1.0 - (learningRate * (lambda/recordCount));
+		return 1.0 - learningRate*lambda;
+	}
+
+
 	/**
 	 * Calculating sum.
 	 * @param kernels kernels.

@@ -123,6 +123,8 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	/**
 	 * Name of batch-size field.
 	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
+	 * The best value in literature is 64 with learning rate 0.001, AdamW with weight decay 0.0001, clipped gradient threshold 1.0, dropout rate 0.2.
+	 * The good value is 32. The value 16 is for small dataset.
 	 */
 	public final static String BATCH_SIZE_FILED = "net_batch_size";
 	
@@ -130,8 +132,10 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	/**
 	 * Default value of batch-size field.
 	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
+	 * The best value in literature is 64 with learning rate 0.001, AdamW with weight decay 0.0001, clipped gradient threshold 1.0, dropout rate 0.2.
+	 * The good value is 32. The value 16 is for small dataset.
 	 */
-	public final static int BATCH_SIZE_DEFAULT = 8; //16, 32.
+	public final static int BATCH_SIZE_DEFAULT = 16; //8, 16, 32, 64.
 
 	
 	/**
@@ -408,6 +412,8 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	/**
 	 * Getting batch size.
 	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
+	 * The best value in literature is 64 with learning rate 0.001, AdamW with weight decay 0.0001, clipped gradient threshold 1.0, dropout rate 0.2.
+	 * The good value is 32. The value 16 is for small dataset.
 	 * @return batch size.
 	 */
 	public int paramGetBatchSize() {
@@ -420,6 +426,8 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	/**
 	 * Setting batch size.
 	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
+	 * The best value in literature is 64 with learning rate 0.001, AdamW with weight decay 0.0001, clipped gradient threshold 1.0, dropout rate 0.2.
+	 * The good value is 32. The value 16 is for small dataset.
 	 * @param batchSize batch size.
 	 * @return this network.
 	 */

@@ -247,7 +247,7 @@ public class VGG extends VGGCore {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if (gap && lastSize.depth >= 8*Kernel.LARGE_DEPTH && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
+		if (gap && lastSize.depth >= paramGetGAPDepth() && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -646,7 +646,7 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Field of Global Average Pool (GAP) filter.
 	 */
-	public final static String GAP_FIELD = "mane_layer_gap";
+	public final static String GAP_FIELD = "vgg_gap";
 	
 	
 	/**
@@ -654,6 +654,18 @@ class VGGCore extends ResidualNetwork {
 	 */
 	public final static boolean GAP_DEFAULT = false;
 	
+	
+	/**
+	 * Field for GAP depth threshold.
+	 */
+	public final static String GAP_DEPTH_THRESHOLD_FIELD = "vgg_gap_depth";
+	
+	
+	/**
+	 * Default value for GAP depth threshold.
+	 */
+	public final static int GAP_DEPTH_THRESHOLD_DEFAULT = 8*Kernel.LARGE_DEPTH;
+
 	
 	/**
 	 * Field of layer normalization.
@@ -825,6 +837,7 @@ class VGGCore extends ResidualNetwork {
 		config.put(WEIGHT_NORM_TYPE_FIELD, WeightSpec.kernelTypeToInt(WEIGHT_NORM_TYPE_DEFAULT));
 		config.put(SUB_NETWORK_LENGTH_FIELD, SUB_NETWORK_LENGTH_DEFAULT);
 		config.put(GAP_FIELD, GAP_DEFAULT);
+		config.put(GAP_DEPTH_THRESHOLD_FIELD, GAP_DEPTH_THRESHOLD_DEFAULT);
 		config.put(LAYER_NORM_FIELD, LAYER_NORM_DEFAULT);
 		config.put(OUTPUT_NORM_ALWAYS_FIELD, OUTPUT_NORM_ALWAYS_DEFAULT);
 		config.put(KERNEL_BILINEAR_FIELD, KERNEL_BILINEAR_DEFAULT);
@@ -1128,7 +1141,7 @@ class VGGCore extends ResidualNetwork {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if (gap && lastSize.depth >= Kernel.LARGE_SIZE && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
+		if (gap && lastSize.depth >= paramGetGAPDepth() && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -1271,7 +1284,9 @@ class VGGCore extends ResidualNetwork {
 			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
 			normLayerSpec.weightSpec.kernelType = paramGetWeightNormType();
 			int area = normLayerSpec.size.width*normLayerSpec.size.height;
-			if ((normLayerSpec.size.depth >= Kernel.LARGE_DEPTH || area >= Kernel.LARGE_DEPTH) && area <= Kernel.LARGE_SIZE*Kernel.LARGE_SIZE)
+//			if ((normLayerSpec.size.depth >= Kernel.LARGE_DEPTH || area >= Kernel.LARGE_DEPTH) && area <= Kernel.LARGE_SIZE*Kernel.LARGE_SIZE)
+//				layerSpecs.add(normLayerSpec);
+			if (area*normLayerSpec.size.depth >= Kernel.LARGE_DEPTH && area <= Kernel.LARGE_SIZE*Kernel.LARGE_SIZE)
 				layerSpecs.add(normLayerSpec);
 		}
 	}
@@ -1774,18 +1789,6 @@ class VGGCore extends ResidualNetwork {
 
 
 	/**
-	 * Getting length of sub-network.
-	 * @return length of sub-network.
-	 */
-	int paramGetSubNetworkLength() {
-		if (config.containsKey(SUB_NETWORK_LENGTH_FIELD))
-			return config.getAsInt(SUB_NETWORK_LENGTH_FIELD);
-		else
-			return SUB_NETWORK_LENGTH_DEFAULT;
-	}
-	
-	
-	/**
 	 * Checking weight kernel type.
 	 * @return weight kernel type.
 	 */
@@ -1855,6 +1858,18 @@ class VGGCore extends ResidualNetwork {
 
 	
 	/**
+	 * Getting length of sub-network.
+	 * @return length of sub-network.
+	 */
+	int paramGetSubNetworkLength() {
+		if (config.containsKey(SUB_NETWORK_LENGTH_FIELD))
+			return config.getAsInt(SUB_NETWORK_LENGTH_FIELD);
+		else
+			return SUB_NETWORK_LENGTH_DEFAULT;
+	}
+	
+	
+	/**
 	 * Setting length of sub-network.
 	 * @param length length of sub-network.
 	 * @return this VGG.
@@ -1885,6 +1900,29 @@ class VGGCore extends ResidualNetwork {
 	 */
 	public VGGCore paramSetGAP(boolean gap) {
 		config.put(GAP_FIELD, gap);
+		return this;
+	}
+
+	
+	/**
+	 * Getting GAP depth threshold.
+	 * @return GAP depth threshold.
+	 */
+	int paramGetGAPDepth() {
+		if (config.containsKey(GAP_DEPTH_THRESHOLD_FIELD))
+			return config.getAsInt(GAP_DEPTH_THRESHOLD_FIELD);
+		else
+			return GAP_DEPTH_THRESHOLD_DEFAULT;
+	}
+	
+	
+	/**
+	 * Setting GAP depth threshold.
+	 * @param gapDepth GAP depth threshold.
+	 * @return this VGG.
+	 */
+	VGGCore paramSetGAPDepth(int gapDepth) {
+		config.put(GAP_DEPTH_THRESHOLD_FIELD, gapDepth);
 		return this;
 	}
 

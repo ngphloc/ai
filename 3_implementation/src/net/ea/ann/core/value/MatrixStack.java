@@ -157,6 +157,13 @@ public class MatrixStack implements Matrix, TextParsable {
 
 	
 	@Override
+	public double getv(int row, int column) {
+		if (depth() == 1) return matrices[0].getv(row, column);
+		throw new RuntimeException();
+	}
+
+
+	@Override
 	public void set(int row, int column, NeuronValue value) {
 		if (depth() == 1) {
 			matrices[0].set(row, column, value);
@@ -166,6 +173,16 @@ public class MatrixStack implements Matrix, TextParsable {
 	}
 
 	
+	@Override
+	public void setv(int row, int column, double value) {
+		if (depth() == 1) {
+			matrices[0].setv(row, column, value);
+			return;
+		}
+		throw new RuntimeException();
+	}
+
+
 	@Override
 	public Matrix getRow(int row) {
 		Matrix[] result = new Matrix[this.matrices.length];

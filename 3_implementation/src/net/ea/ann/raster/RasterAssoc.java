@@ -19,6 +19,7 @@ import java.util.List;
 import net.ea.ann.conv.ConvLayerSingle;
 import net.ea.ann.core.Record;
 import net.ea.ann.core.Util;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.raster.ImageAssoc.LabeledImage;
 
@@ -334,6 +335,40 @@ public class RasterAssoc implements Serializable, Cloneable {
 						raster.getProperty().setSingular(true);
 						rasters.add(raster);
 					}
+				}
+			} catch (Exception e) {Util.trace(e);}
+		}
+		return rasters;
+	}
+
+	
+	/**
+	 * Load medical MNIST dataset in form of NPZ file.
+	 * @param dirOrFile source directory or file.
+	 * @return list of rasters loaded from directory or file.
+	 */
+	public static List<Raster> loadNpzMedMNIST(Path dirOrFile, String split) {
+		List<Raster> rasters = Util.newList(0);
+		if (dirOrFile == null) return rasters;
+		File[] files = null;
+		if (Files.isDirectory(dirOrFile))
+			files = dirOrFile.toFile().listFiles();
+		else
+			files = new File[] {dirOrFile.toFile()};
+		if (files == null || files.length == 0) return rasters;
+
+		for (File file : files) {
+			if (!file.isFile()) continue;
+			try {
+				Path path = file.toPath();
+				List<LabeledImage> images = ImageAssoc.loadNpzMedMNIST(path, split);
+				for (LabeledImage image : images) {
+					Raster raster = image.toRaster();
+					if (raster == null) continue;
+					
+					ImageMatrix im = (ImageMatrix)image.image;
+					if (MatrixUtil.depth(im.get()) == 1) raster.getProperty().setSingular(true);
+					rasters.add(raster);
 				}
 			} catch (Exception e) {Util.trace(e);}
 		}

@@ -46,6 +46,15 @@ public interface Matrix extends NeuronValueCreator {
 	
 	
 	/**
+	 * Getting value at specified row and column.
+	 * @param row specified row.
+	 * @param column specified column.
+	 * @return value at specified row and column.
+	 */
+	double getv(int row, int column);
+
+		
+	/**
 	 * Setting value at specified row and column.
 	 * @param row specified row.
 	 * @param column specified column.
@@ -54,6 +63,15 @@ public interface Matrix extends NeuronValueCreator {
 	void set(int row, int column, NeuronValue value);
 
 	
+	/**
+	 * Setting value at specified row and column.
+	 * @param row specified row.
+	 * @param column specified column.
+	 * @param value specified value.
+	 */
+	void setv(int row, int column, double value);
+
+		
 	/**
 	 * Getting row as row vector.
 	 * @param row row index.

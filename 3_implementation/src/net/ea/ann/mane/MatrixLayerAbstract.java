@@ -174,12 +174,6 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 
 	
 	/**
-	 * Regularization strength.
-	 */
-	final static double LAMBDA = 0.01;
-	
-	
-	/**
 	 * Neuron channel.
 	 */
 	protected int neuronChannel = 1;
@@ -870,20 +864,6 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 		return network != null ? network.paramGetGradNormMax() : 0;
 	}
 
-	
-	/**
-	 * Calculating decay factor for L2 regularization.
-	 * @param learningRate learning rate.
-	 * @param recordCount record count.
-	 * @return decay factor for L2 regularization.
-	 */
-	protected static double decay(double learningRate, int recordCount) {
-		assert (learningRate > 0 && learningRate <= 1 && recordCount > 0);
-		double lambda = LAMBDA; //Regularization strength.
-		recordCount = recordCount < 1 ? 1 : recordCount;
-		return 1.0 - (learningRate * (lambda/recordCount));
-	}
-	
 	
 	/**
 	 * Post back-warding this layer.

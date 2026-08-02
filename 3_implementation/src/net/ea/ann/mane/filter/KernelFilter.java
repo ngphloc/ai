@@ -15,6 +15,7 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
@@ -294,10 +295,30 @@ public abstract class KernelFilter extends FilterAbstract {
 		 */
 		public FKernel L2(double decay) {
 			assert (decay > 0 && decay <= 1);
-			if (REGULAR) {
+			if (L2) {
 				this.W = this.W != null ? MatrixStack.multiply(this.W, decay) : null;
 			}
 			return this;
+		}
+
+		@Override
+		public void copyParameters(Kernel source) {
+			Kernel.super.copyParameters(source);
+			FKernel Source = (FKernel)source;
+			if (this.W != null) {
+				assert (Source.W != null && Source.W.length == this.W.length);
+				for (int i = 0; i < this.W.length; i++) MatrixUtil.copy(Source.W[i], this.W[i]);
+			}
+			
+			if (this.Bias != null) {
+				assert (Source.Bias != null && Source.Bias.length == this.Bias.length);
+				for (int i = 0; i < this.Bias.length; i++) MatrixUtil.copy(Source.Bias[i], this.Bias[i]);
+			}
+			
+			if (this.bias != null) {
+				assert (Source.bias != null && Source.bias.length == this.bias.length);
+				for (int i = 0; i < this.bias.length; i++) this.bias[i] = Source.bias[i];
+			}
 		}
 		
 	}
@@ -716,6 +737,17 @@ public abstract class KernelFilter extends FilterAbstract {
 		
 		if (this.kernel().bias != null) size += this.kernel().bias.length;
 		return size;
+	}
+
+
+	@Override
+	public void copyParameters(Filter source) {
+		super.copyParameters(source);
+		KernelFilter Source = (KernelFilter)source;
+		this.kernel().copyParameters(Source.kernel());
+		
+		if (this.width() != Source.width() || this.height() != Source.height() || this.depth() != Source.depth() || this.time() != Source.time()) throw new IllegalArgumentException();
+		if (this.getStrideWidth() != Source.getStrideWidth() || this.getStrideHeight() != Source.getStrideHeight()) throw new IllegalArgumentException();
 	}
 
 

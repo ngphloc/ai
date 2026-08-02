@@ -268,6 +268,12 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 
 	
 	/**
+	 * Flag to add rasters from medical MNIST in form of NPZ file.
+	 */
+	protected final static String ADD_RASTERS_MNIST_MED_NPZ = ImageAssoc.MNIST_MED_NPZ;
+
+	
+	/**
 	 * Flag to add rasters from CIFAR file.
 	 */
 	protected final static String ADD_RASTERS_UCI_OPT_DIGITS = ImageAssoc.UCI_OPT_DIGITS;
@@ -282,7 +288,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	/**
 	 * Flag array to add rasters.
 	 */
-	protected static String[] ADD_RASTERS = new String[] {ADD_RASTERS_CIFAR, ADD_RASTERS_FOLDERS, ADD_RASTERS_NORMAL, ADD_RASTERS_UCI_OPT_DIGITS};
+	protected static String[] ADD_RASTERS = new String[] {ADD_RASTERS_CIFAR, ADD_RASTERS_FOLDERS, ADD_RASTERS_MNIST_MED_NPZ, ADD_RASTERS_NORMAL, ADD_RASTERS_UCI_OPT_DIGITS};
 	
 	
 	/**
@@ -2308,6 +2314,20 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 
 	
 	/**
+	 * Loading medical MNIST rasters in form of NPZ file.
+	 * @param dirOrFile directory or file.
+	 * @param split split.
+	 * @return list of rasters.
+	 */
+	private List<Raster> loadRastersNpzMedMNIST(Path dirOrFile, String split) {
+		if (chkLoad3D.isSelected())
+			return Util.newList(0);
+		else
+			return RasterAssoc.loadNpzMedMNIST(dirOrFile, split);
+	}
+
+	
+	/**
 	 * Loading rasters by folders.
 	 * @param dir directory.
 	 * @return list of rasters by folders.
@@ -2427,7 +2447,7 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 	
 	
 	/**
-	 * Adding CIFAR rasters.
+	 * Adding UCI optical digits rasters.
 	 * @param imageList image list.
 	 * @param curDir current directory.
 	 */
@@ -2460,6 +2480,43 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 		}
 		
 		if (added) JOptionPane.showMessageDialog(this, "Finish to add UCI opticial digits rasters", "Finish to add UCI opticial digits rasters", JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	
+	/**
+	 * Adding medical MNIST rasters in form of NPZ file.
+	 * @param imageList image list.
+	 * @param curDir current directory.
+	 */
+	private void addRastersNpzMedMNIST(ImagePathListExt imageList, Path curDir, String split) {
+		JFileChooser fc = new JFileChooser(curDir != null ? curDir.toFile() : new File("."));
+		fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		fc.setMultiSelectionEnabled(true);
+		fc.showOpenDialog(this);
+		
+		File[] baseFiles = fc.getSelectedFiles();
+		if (baseFiles == null || baseFiles.length == 0) {
+			JOptionPane.showMessageDialog(this, "No selected medical MNIST files", "No selected medical MNIST files", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		boolean added = false;
+		for (File baseFile : baseFiles) {
+			try {
+				List<Raster> rasters = loadRastersNpzMedMNIST(baseFile.toPath(), split);
+				for (int i = 0; i < rasters.size(); i++) {
+					Raster raster = rasters.get(i);
+					String name = RasterAssoc.genDefaultName(ImageAssoc.MNIST_MED_NPZ, raster.getDefaultFormat(), i+1);
+					ImageListItem<Path> item = imageList.addItem(name, raster.getRepImage(), imageListIconSize);
+					if (item != null) {
+						imageList.setItemRaster(item, raster);
+						added = true;
+					}
+				}
+			} catch (Throwable e) {Util.trace(e);}
+		}
+		
+		if (added) JOptionPane.showMessageDialog(this, "Finish to add medical MNIST rasters", "Finish to add medical MNIST rasters", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	
@@ -2530,6 +2587,18 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 
 	
 	/**
+	 * Adding base medical MNIST rasters in form of NPZ file.
+	 */
+	private void addBaseRastersNpzMedMNIST() {
+		if (chkLoad3D.isSelected()) {
+			JOptionPane.showMessageDialog(this, "Loading 3D not allowed", "Loading 3D not allowed", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if (chkAllowAdd.isSelected()) addRastersNpzMedMNIST(baseRasters, getBaseDir(), "train");
+	}
+
+	
+	/**
 	 * Adding base rasters by folders.
 	 */
 	private void addBaseRastersFolders() {
@@ -2563,6 +2632,9 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 					break;
 				case ADD_RASTERS_UCI_OPT_DIGITS:
 					addBaseRastersUCIOptDigits();
+					break;
+				case ADD_RASTERS_MNIST_MED_NPZ:
+					addBaseRastersNpzMedMNIST();
 					break;
 				case ADD_RASTERS_FOLDERS:
 					addBaseRastersFolders();
@@ -2675,6 +2747,18 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 
 	
 	/**
+	 * Adding recovering medical MNIST rasters in form of NPZ file.
+	 */
+	private void addRecoverRastersNpzMedMNIST() {
+		if (chkLoad3D.isSelected()) {
+			JOptionPane.showMessageDialog(this, "Loading 3D not allowed", "Loading 3D not allowed", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if (chkRecover.isSelected() && chkAllowAdd.isSelected()) addRastersNpzMedMNIST(recoverRasters, getRecoverDir(), "test");
+	}
+
+	
+	/**
 	 * Adding recovering rasters by folders.
 	 */
 	private void addRecoverRastersFolders() {
@@ -2708,6 +2792,9 @@ public class GenUI extends JFrame implements Inspector, SetupAlgListener {
 					break;
 				case ADD_RASTERS_UCI_OPT_DIGITS:
 					addRecoverRastersUCIOptDigits();
+					break;
+				case ADD_RASTERS_MNIST_MED_NPZ:
+					addRecoverRastersNpzMedMNIST();
 					break;
 				case ADD_RASTERS_FOLDERS:
 					addRecoverRastersFolders();

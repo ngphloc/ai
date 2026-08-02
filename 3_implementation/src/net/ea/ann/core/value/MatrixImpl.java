@@ -118,8 +118,20 @@ public class MatrixImpl implements Matrix, TextParsable {
 	
 	
 	@Override
+	public double getv(int row, int column) {
+		return ((NeuronValue1)data[row][column]).get();
+	}
+
+	
+	@Override
 	public void set(int row, int column, NeuronValue value) {
 		data[row][column] = value;
+	}
+
+	
+	@Override
+	public void setv(int row, int column, double value) {
+		data[row][column] = value == 0 ? data[0][0].zero() : data[0][0].valueOf(value);
 	}
 
 	

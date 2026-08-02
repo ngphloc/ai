@@ -461,7 +461,13 @@ abstract class NeuronValueM0 implements Matrix, TextParsable {
 		return new NeuronValue1(data[row][column]);
 	}
 
+	
+	@Override
+	public double getv(int row, int column) {
+		return data[row][column];
+	}
 
+	
 	/**
 	 * Getting width.
 	 * @return width.
@@ -482,6 +488,12 @@ abstract class NeuronValueM0 implements Matrix, TextParsable {
 	}
 
 
+	@Override
+	public void setv(int row, int column, double value) {
+		data[row][column] = value;
+	}
+
+	
 	@Override
 	public Matrix getRow(int row) {
 		int n = columns();
@@ -547,6 +559,7 @@ abstract class NeuronValueM0 implements Matrix, TextParsable {
 		double[][] A = this.data;
 		double[][] B = ((NeuronValueM0)other).data;
 		int m = A.length, n = A[0].length;
+		assert (m == B.length && n == B[0].length);
 		double[][] C = new double[m][n];
 		for (int i = 0; i < m; i++) {
 			for (int j = 0; j < n; j++) C[i][j] = A[i][j] + B[i][j];
@@ -560,6 +573,7 @@ abstract class NeuronValueM0 implements Matrix, TextParsable {
 		double[][] A = this.data;
 		double[][] B = ((NeuronValueM0)other).data;
 		int m = A.length, n = A[0].length;
+		assert (m == B.length && n == B[0].length);
 		double[][] C = new double[m][n];
 		for (int i = 0; i < m; i++) {
 			for (int j = 0; j < n; j++) C[i][j] = A[i][j] - B[i][j];

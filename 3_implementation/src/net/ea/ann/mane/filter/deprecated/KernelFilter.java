@@ -185,7 +185,7 @@ public abstract class KernelFilter extends FilterAbstract {
 		 */
 		public FKernel L2(double decay) {
 			assert (decay > 0 && decay <= 1);
-			return REGULAR ? multiply(decay) : this;
+			return L2 ? multiply(decay) : this;
 		}
 		
 	}

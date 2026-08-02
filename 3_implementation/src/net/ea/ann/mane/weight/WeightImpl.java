@@ -175,11 +175,31 @@ public class WeightImpl implements Weight, TextParsable {
 		 */
 		public WKernel L2(double decay) {
 			assert (decay > 0 && decay <= 1);
-			if (REGULAR) {
+			if (L2) {
 				this.W1 = this.W1 != null ? MatrixStack.multiply(this.W1, decay) : null;
 				this.W2 = this.W2 != null ? MatrixStack.multiply(this.W2, decay) : null;
 			}
 			return this;
+		}
+
+		@Override
+		public void copyParameters(Kernel source) {
+			Kernel.super.copyParameters(source);
+			WKernel Source = (WKernel)source;
+			if (this.W1 != null) {
+				assert (Source.W1 != null && Source.W1.length == this.W1.length);
+				for (int i = 0; i < this.W1.length; i++) MatrixUtil.copy(Source.W1[i], this.W1[i]);
+			}
+
+			if (this.W2 != null) {
+				assert (Source.W2 != null && Source.W2.length == this.W2.length);
+				for (int i = 0; i < this.W2.length; i++) MatrixUtil.copy(Source.W2[i], this.W2[i]);
+			}
+			
+			if (this.bias != null) {
+				assert (Source.bias != null && Source.bias.length == this.bias.length);
+				for (int i = 0; i < this.bias.length; i++) MatrixUtil.copy(Source.bias[i], this.bias[i]);
+			}
 		}
 		
 	}
@@ -616,6 +636,16 @@ public class WeightImpl implements Weight, TextParsable {
 		return size;
 	}
 	
+
+	@Override
+	public void copyParameters(Weight source) {
+		Weight.super.copyParameters(source);
+		WeightImpl Source = (WeightImpl)source;
+		this.kernel.copyParameters(Source.kernel());
+		
+		if (this.summode != Source.summode) throw new IllegalArgumentException();
+	}
+
 
 	@Override
 	public String toText() {

@@ -1,0 +1,4 @@
+net_batch_size = 8
+net_learn_rate = 0.001
+mane_layer_norm = false
+vgg_filter_number_init = 4

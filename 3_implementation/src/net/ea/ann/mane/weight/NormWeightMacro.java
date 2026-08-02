@@ -142,8 +142,23 @@ public class NormWeightMacro implements Weight, TextParsable {
 		 */
 		public WKernel L2(double decay) {
 			assert (decay > 0 && decay <= 1);
-			if (REGULAR) this.W = this.W != null ? (MatrixStack)this.W.multiply0(decay) : null;
+			if (L2) this.W = this.W != null ? (MatrixStack)this.W.multiply0(decay) : null;
 			return this;
+		}
+
+		@Override
+		public void copyParameters(Kernel source) {
+			Kernel.super.copyParameters(source);
+			WKernel Source = (WKernel)source;
+			if (this.W != null) {
+				assert (Source.W != null);
+				MatrixUtil.copy(Source.W, this.W);
+			}
+
+			if (this.bias != null) {
+				assert (Source.bias != null);
+				MatrixUtil.copy(Source.bias, this.bias);
+			}
 		}
 		
 	}
@@ -451,6 +466,16 @@ public class NormWeightMacro implements Weight, TextParsable {
 		return (W != null ? MatrixUtil.capacity(W) : 0) + (bias != null ? MatrixUtil.capacity(bias) : 0);
 	}
 	
+
+	@Override
+	public void copyParameters(Weight source) {
+		Weight.super.copyParameters(source);
+		NormWeightMacro Source = (NormWeightMacro)source;
+		this.kernel.copyParameters(Source.kernel());
+		
+		if ((this.layer == null && Source.layer != null) || (this.layer != null && Source.layer == null)) throw new IllegalArgumentException();
+	}
+
 
 	@Override
 	public String toText() {
