@@ -7,13 +7,17 @@
  */
 package net.ea.ann.mane.weight;
 
+import java.util.Random;
+
 import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.mane.Weight;
 import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
@@ -25,7 +29,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class NormWeightMacro implements Weight, TextParsable {
+public class NormWeightMacro implements Weight, Parameter.CloneableParameter, TextParsable {
 
 
 	/**
@@ -93,6 +97,17 @@ public class NormWeightMacro implements Weight, TextParsable {
 			return this;
 		}
 
+		/**
+		 * Subtracting other kernel.
+		 * @param kernel other kernel.
+		 * @return subtracted kernel.
+		 */
+		public WKernel subtract(Kernel kernel) {
+			this.W = this.W != null ? (MatrixStack)this.W.subtract(((WKernel)kernel).W) : null;
+			this.bias = this.bias != null ? (MatrixStack)this.bias.subtract(((WKernel)kernel).bias) : null;
+			return this;
+		}
+
 		@Override
 		public WKernel multiply(double value) {
 			this.W = this.W != null ? (MatrixStack)this.W.multiply0(value) : null;
@@ -147,8 +162,9 @@ public class NormWeightMacro implements Weight, TextParsable {
 		}
 
 		@Override
-		public void copyParameters(Kernel source) {
-			Kernel.super.copyParameters(source);
+		public WKernel copy(Kernel source) {
+			Kernel.super.copy(source);
+			
 			WKernel Source = (WKernel)source;
 			if (this.W != null) {
 				assert (Source.W != null);
@@ -159,6 +175,27 @@ public class NormWeightMacro implements Weight, TextParsable {
 				assert (Source.bias != null);
 				MatrixUtil.copy(Source.bias, this.bias);
 			}
+			
+			return this;
+		}
+
+		@Override
+		protected Object clone() throws CloneNotSupportedException {
+			MatrixStack clonedW = null;
+			if (this.W != null) {
+				clonedW = (MatrixStack)this.W.create();
+				MatrixUtil.copy(this.W, clonedW);
+			}
+			
+			MatrixStack clonedBias = null;
+			if (this.bias != null) {
+				clonedBias = (MatrixStack)this.bias.create();
+				MatrixUtil.copy(this.bias, clonedBias);
+			}
+
+			WKernel clonedKernel = new WKernel(clonedW, clonedBias);
+			clonedKernel.optimizer = this.optimizer;
+			return clonedKernel;
 		}
 		
 	}
@@ -183,13 +220,14 @@ public class NormWeightMacro implements Weight, TextParsable {
 	public NormWeightMacro(WKernel kernel) {
 		assert (kernel != null);
 		this.kernel = kernel;
-		if (kernel.W != null) {
-			NeuronValue unit = kernel.W.get().get(0, 0).unit();
-			MatrixUtil.fill(kernel.W, unit);
+		
+		if (this.kernel.W != null) {
+			NeuronValue unit = this.kernel.W.get().get(0, 0).unit();
+			MatrixUtil.fill(this.kernel.W, unit);
 		}
-		if (kernel.bias != null) {
-			NeuronValue zero = kernel.bias.get().get(0, 0).zero();
-			MatrixUtil.fill(kernel.bias, zero);
+		if (this.kernel.bias != null) {
+			NeuronValue zero = this.kernel.bias.get().get(0, 0).zero();
+			MatrixUtil.fill(this.kernel.bias, zero);
 		}
 		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(this.kernel.createOptimizer());
 	}
@@ -299,17 +337,33 @@ public class NormWeightMacro implements Weight, TextParsable {
 		//Normalizing.
 		Matrix[] prevOutputs = new Matrix[depth];
 		Matrix[] outputs = new Matrix[depth];
-		for (int d = 0; d < depth; d++) {
-			prevOutputs[d] = inputs.get(d).create(new Size(columns, rows));
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					NeuronValue mean = acrossDepth ? means.get(row, column) : mean0[d];
-					NeuronValue std = acrossDepth ? stds.get(row, column) : std0[d];
-					NeuronValue z = inputs.get(d).get(row, column).subtract(mean).divide(std);
-					prevOutputs[d].set(row, column, z);
+		if (Kernel.speedMode(zero)) {
+			for (int d = 0; d < depth; d++) {
+				prevOutputs[d] = inputs.get(d).create(new Size(columns, rows));
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double mean = acrossDepth ? means.getv(row, column) : ((NeuronValue1)mean0[d]).get();
+						double std = acrossDepth ? stds.getv(row, column) : ((NeuronValue1)std0[d]).get();
+						double z = (inputs.get(d).getv(row, column)-mean) / std;
+						prevOutputs[d].setv(row, column, z);
+					}
 				}
+				outputs[d] = W().get(d).multiplyWise(prevOutputs[d]);
 			}
-			outputs[d] = W().get(d).multiplyWise(prevOutputs[d]);
+		}
+		else {
+			for (int d = 0; d < depth; d++) {
+				prevOutputs[d] = inputs.get(d).create(new Size(columns, rows));
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue mean = acrossDepth ? means.get(row, column) : mean0[d];
+						NeuronValue std = acrossDepth ? stds.get(row, column) : std0[d];
+						NeuronValue z = inputs.get(d).get(row, column).subtract(mean).divide(std);
+						prevOutputs[d].set(row, column, z);
+					}
+				}
+				outputs[d] = W().get(d).multiplyWise(prevOutputs[d]);
+			}
 		}
 		
 		//Storing normalized previous output.
@@ -363,43 +417,84 @@ public class NormWeightMacro implements Weight, TextParsable {
 		
 		//Calculating value gradient.
 		Matrix[] dValues = new Matrix[depth];
-		for (int d = 0; d < depth; d++) {
-			Matrix prevOutput = prevOutputs.get(d);
-			Matrix norm = prevOutput.create(new Size(columns, rows));
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					NeuronValue mean = acrossDepth ? means.get(row, column) : mean0[d];
-					NeuronValue std = acrossDepth ? stds.get(row, column) : std0[d];
-					NeuronValue z = prevOutput.get(row, column).subtract(mean).divide(std);
-					norm.set(row, column, z);
+		if (Kernel.speedMode(zero)) {
+			for (int d = 0; d < depth; d++) {
+				Matrix prevOutput = prevOutputs.get(d);
+				Matrix norm = prevOutput.create(new Size(columns, rows));
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double mean = acrossDepth ? means.getv(row, column) : ((NeuronValue1)mean0[d]).get();
+						double std = acrossDepth ? stds.getv(row, column) : ((NeuronValue1)std0[d]).get();
+						double z = (prevOutput.getv(row, column)-mean) / std;
+						norm.setv(row, column, z);
+					}
 				}
-			}
-			norm = W.get(d).multiplyWise(norm);
+				norm = W.get(d).multiplyWise(norm);
 
-			Matrix w = W.get(d);
-			NeuronValue errorSum = zero, normErrorSum = zero;
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					NeuronValue error = thisErrors.get(d).get(row, column).multiply(w.get(row, column));
-					errorSum = errorSum.add(error);
-					NeuronValue normError = error.multiply(norm.get(row, column));
-					normErrorSum = normErrorSum.add(normError);
+				Matrix w = W.get(d);
+				double errorSum = 0, normErrorSum = 0;
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double error = thisErrors.get(d).getv(row, column) * w.getv(row, column);
+						errorSum += error;
+						double normError = error*norm.getv(row, column);
+						normErrorSum += normError;
+					}
+				}
+				
+				int N = acrossDepth ? depth : rows*columns;
+				dValues[d] = prevOutput.create(new Size(columns, rows));
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double std = acrossDepth ? stds.getv(row, column) : ((NeuronValue1)std0[d]).get();
+						double factor = std*N;
+						
+						double error = thisErrors.get(d).getv(row, column) * w.getv(row, column);
+						double bias = (error*N - errorSum - (norm.getv(row, column)*normErrorSum)) / factor;
+						dValues[d].setv(row, column, bias);
+					}
 				}
 			}
-			
-			int N = acrossDepth ? depth : rows*columns;
-			dValues[d] = prevOutput.create(new Size(columns, rows));
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					NeuronValue std = acrossDepth ? stds.get(row, column) : std0[d];
-					NeuronValue factor = std.multiply(N);
-					
-					NeuronValue error = thisErrors.get(d).get(row, column).multiply(w.get(row, column));
-					NeuronValue bias = error.multiply(N)
-						.subtract(errorSum)
-						.subtract(norm.get(row, column).multiply(normErrorSum))
-						.divide(factor);
-					dValues[d].set(row, column, bias);
+		}
+		else {
+			for (int d = 0; d < depth; d++) {
+				Matrix prevOutput = prevOutputs.get(d);
+				Matrix norm = prevOutput.create(new Size(columns, rows));
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue mean = acrossDepth ? means.get(row, column) : mean0[d];
+						NeuronValue std = acrossDepth ? stds.get(row, column) : std0[d];
+						NeuronValue z = prevOutput.get(row, column).subtract(mean).divide(std);
+						norm.set(row, column, z);
+					}
+				}
+				norm = W.get(d).multiplyWise(norm);
+
+				Matrix w = W.get(d);
+				NeuronValue errorSum = zero, normErrorSum = zero;
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue error = thisErrors.get(d).get(row, column).multiply(w.get(row, column));
+						errorSum = errorSum.add(error);
+						NeuronValue normError = error.multiply(norm.get(row, column));
+						normErrorSum = normErrorSum.add(normError);
+					}
+				}
+				
+				int N = acrossDepth ? depth : rows*columns;
+				dValues[d] = prevOutput.create(new Size(columns, rows));
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue std = acrossDepth ? stds.get(row, column) : std0[d];
+						NeuronValue factor = std.multiply(N);
+						
+						NeuronValue error = thisErrors.get(d).get(row, column).multiply(w.get(row, column));
+						NeuronValue bias = error.multiply(N)
+							.subtract(errorSum)
+							.subtract(norm.get(row, column).multiply(normErrorSum))
+							.divide(factor);
+						dValues[d].set(row, column, bias);
+					}
 				}
 			}
 		}
@@ -452,12 +547,49 @@ public class NormWeightMacro implements Weight, TextParsable {
 	}
 
 	
-//	@Override
-//	public void initParams(Random rnd) {
-//		MatrixStack W = this.W(), bias = this.bias();
-//		if (W != null) MatrixUtil.fill(W, rnd, 1);
-//		if (bias != null) MatrixUtil.fill(bias, rnd);
-//	}
+	@Override
+	public void initParams(Random rnd) {
+		Weight.super.initParams(rnd);
+		
+//		if (this.kernel.W != null) {
+//			MatrixUtil.fill(this.kernel.W, rnd, this.kernel.W.columns());
+//		}
+//		if (this.kernel.bias != null) {
+//			NeuronValue zero = this.kernel.bias.get().get(0, 0).zero();
+//			MatrixUtil.fill(this.kernel.bias, zero);
+//		}
+	}
+
+
+	@Override
+	public Parameter pinit(Randomizer rnd) {
+		Weight.super.pinit(rnd);
+		
+//		if (this.kernel.W != null) {
+//			MatrixUtil.fill(this.kernel.W, rnd);
+//		}
+//		if (this.kernel.bias != null) {
+//			NeuronValue zero = this.kernel.bias.get().get(0, 0).zero();
+//			MatrixUtil.fill(this.kernel.bias, zero);
+//		}
+
+		return this;
+	}
+
+
+	@Override
+	public Parameter pmultiplyRandom(Randomizer rnd) {
+		Weight.super.pmultiplyRandom(rnd);
+		
+		if (this.kernel.W != null) {
+			MatrixUtil.fillMulti(this.kernel.W, rnd);
+		}
+		if (this.kernel.bias != null) {
+			MatrixUtil.fillMulti(this.kernel.bias, rnd);
+		}
+	
+		return this;
+	}
 
 
 	@Override
@@ -468,12 +600,53 @@ public class NormWeightMacro implements Weight, TextParsable {
 	
 
 	@Override
-	public void copyParameters(Weight source) {
-		Weight.super.copyParameters(source);
-		NormWeightMacro Source = (NormWeightMacro)source;
-		this.kernel.copyParameters(Source.kernel());
+	public Parameter pcopy(Parameter other) {
+		Weight.super.pcopy(other);
+
+		NormWeightMacro Other = (NormWeightMacro)other;
+		this.kernel.copy(Other.kernel());
 		
-		if ((this.layer == null && Source.layer != null) || (this.layer != null && Source.layer == null)) throw new IllegalArgumentException();
+		if ((this.layer == null && Other.layer != null) || (this.layer != null && Other.layer == null)) throw new IllegalArgumentException();
+		
+		return this;
+	}
+
+
+	@Override
+	public Parameter padd(Parameter other) {
+		Weight.super.padd(other);
+
+		NormWeightMacro Other = (NormWeightMacro)other;
+		this.kernel.add(Other.kernel);
+		return this;
+	}
+
+
+	@Override
+	public Parameter psubtract(Parameter other) {
+		Weight.super.psubtract(other);
+
+		NormWeightMacro Other = (NormWeightMacro)other;
+		this.kernel.subtract(Other.kernel);
+		return this;
+	}
+
+
+	@Override
+	public Parameter pmultiply(double factor) {
+		Weight.super.pmultiply(factor);
+
+		this.kernel.multiply(factor);
+		return this;
+	}
+
+	
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		WKernel clonedKernel = (WKernel)this.kernel.clone();
+		NormWeightMacro cloned = new NormWeightMacro(clonedKernel);
+		cloned.layer = this.layer;
+		return cloned;
 	}
 
 

@@ -14,6 +14,7 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
@@ -129,23 +130,50 @@ public class MacroFilter extends KernelFilter {
 				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
-				//Filtering
-				MatrixStack[] kernel = this.kernel.W;
-				NeuronValue filteredValue = zero;
-				for (int i = 0; i < depth(); i++) {
-					NeuronValue value = summode ? prevLayers.get(i).get(prevY, prevX) :
-						prevLayers.get(time).get(prevY, prevX); //Please pay attention to this code line.
-					filteredValue = filteredValue.add(value.multiply(kernel[time].get(i).get(prevY, prevX)));
+				if (Kernel.speedMode(zero)) {
+					//Filtering
+					MatrixStack[] kernel = this.kernel.W;
+					double filteredValue = 0;
+					for (int i = 0; i < depth(); i++) {
+						double value = summode ? prevLayers.get(i).getv(prevY, prevX) :
+							prevLayers.get(time).getv(prevY, prevX); //Please pay attention to this code line.
+						filteredValue += value*kernel[time].get(i).getv(prevY, prevX);
+					}
+					
+					//Adding bias.
+					NeuronValue thisBias = this.bias(time, thisY, thisX);
+					if (thisBias != null)
+						filteredValue += ((NeuronValue1)thisBias).get();
+					if (bias != null) {
+						if (thisBias == null || Kernel.GLOBAL_BIAS) filteredValue += ((NeuronValue1)bias).get();
+					}
+					
+					if (thisInputLayer != null) thisInputLayer.setv(thisY, thisX, filteredValue);
+					if (thisActivateRef != null) filteredValue = ((NeuronValue1)(new NeuronValue1(filteredValue).evaluate(thisActivateRef))).get();
+					if (thisOutputLayer != null) thisOutputLayer.setv(thisY, thisX, filteredValue);
 				}
-				NeuronValue thisBias = this.bias(time, thisY, thisX);
-				if (thisBias != null)
-					filteredValue = filteredValue.add(thisBias);
-				if (bias != null) {
-					if (thisBias == null || Kernel.GLOBAL_BIAS) filteredValue = filteredValue.add(bias);
+				else {
+					//Filtering
+					MatrixStack[] kernel = this.kernel.W;
+					NeuronValue filteredValue = zero;
+					for (int i = 0; i < depth(); i++) {
+						NeuronValue value = summode ? prevLayers.get(i).get(prevY, prevX) :
+							prevLayers.get(time).get(prevY, prevX); //Please pay attention to this code line.
+						filteredValue = filteredValue.add(value.multiply(kernel[time].get(i).get(prevY, prevX)));
+					}
+					
+					//Adding bias.
+					NeuronValue thisBias = this.bias(time, thisY, thisX);
+					if (thisBias != null)
+						filteredValue = filteredValue.add(thisBias);
+					if (bias != null) {
+						if (thisBias == null || Kernel.GLOBAL_BIAS) filteredValue = filteredValue.add(bias);
+					}
+					
+					if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, filteredValue);
+					if (thisActivateRef != null) filteredValue = filteredValue.evaluate(thisActivateRef);
+					if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
 				}
-				if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, filteredValue);
-				if (thisActivateRef != null) filteredValue = filteredValue.evaluate(thisActivateRef);
-				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
 			}
 		}
 	}
@@ -188,10 +216,21 @@ public class MacroFilter extends KernelFilter {
 				NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
 				if (derivative != null) thisError = derivative.multiplyWise(thisError);
 				MatrixStack[] kernel = this.kernel.W;
-				for (int i = 0; i < depth(); i++) {
-					NeuronValue kernelValue = kernel[time].get(i).get(thisY, thisX);
-					NeuronValue prevError = kernelValue.multiply(thisError);
-					dPrevValues[i].set(prevY, prevX, prevError);
+				
+				if (Kernel.speedMode(zero)) {
+					double thisErrorV = ((NeuronValue1)thisError).get();
+					for (int i = 0; i < depth(); i++) {
+						double kernelValue = kernel[time].get(i).getv(thisY, thisX);
+						double prevError = kernelValue*thisErrorV;
+						dPrevValues[i].setv(prevY, prevX, prevError);
+					}
+				}
+				else {
+					for (int i = 0; i < depth(); i++) {
+						NeuronValue kernelValue = kernel[time].get(i).get(thisY, thisX);
+						NeuronValue prevError = kernelValue.multiply(thisError);
+						dPrevValues[i].set(prevY, prevX, prevError);
+					}
 				}
 			}
 		}
@@ -214,6 +253,7 @@ public class MacroFilter extends KernelFilter {
 		assert (this.kernel.Bias != null && this.kernel.bias == null);
 		assert (this.kernel.Bias.length == time());
 		assert (this.kernel.Bias[0].rows() == this.height() && this.kernel.Bias[0].columns() == this.width());
+		
 		MatrixStack[] kernel = this.kernel().W;
 		NeuronValue zero = kernel[time].get().get(0, 0).zero();
 		Matrix[] dKernels = new Matrix[this.depth()];
@@ -241,11 +281,23 @@ public class MacroFilter extends KernelFilter {
 				NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
 				NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
 				if (derivative != null) thisError = derivative.multiplyWise(thisError);
-				for (int i = 0; i < depth(); i++) {
-					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(prevY, prevX) :
-						prevInputLayers.get(time).get(prevY, prevX); //Please pay attention to this code line.
-					NeuronValue dKernel = prevInput.multiply(thisError);
-					dKernels[i].set(thisY, thisX, dKernel);
+				
+				if (Kernel.speedMode(zero)) {
+					double thisErrorV = ((NeuronValue1)thisError).get();
+					for (int i = 0; i < depth(); i++) {
+						double prevInput = summode ? prevInputLayers.get(i).getv(prevY, prevX) :
+							prevInputLayers.get(time).getv(prevY, prevX); //Please pay attention to this code line.
+						double dKernel = prevInput*thisErrorV;
+						dKernels[i].setv(thisY, thisX, dKernel);
+					}
+				}
+				else {
+					for (int i = 0; i < depth(); i++) {
+						NeuronValue prevInput = summode ? prevInputLayers.get(i).get(prevY, prevX) :
+							prevInputLayers.get(time).get(prevY, prevX); //Please pay attention to this code line.
+						NeuronValue dKernel = prevInput.multiply(thisError);
+						dKernels[i].set(thisY, thisX, dKernel);
+					}
 				}
 				
 				//Calculating bias gradient.

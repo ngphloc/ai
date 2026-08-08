@@ -17,6 +17,7 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.raster.Size;
 
 /**
@@ -273,6 +274,24 @@ public class MicroFilter extends KernelFilter {
 		MatrixStack[] kernel = this.kernel.W;
 		for (MatrixStack ker : kernel) size += MatrixUtil.capacity(ker);
 		return size;
+	}
+
+
+	@Override
+	public Parameter padd(Parameter other) {
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
+	public Parameter psubtract(Parameter other) {
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
+	public Parameter pmultiply(double factor) {
+		throw new RuntimeException("Not implemented yet");
 	}
 
 

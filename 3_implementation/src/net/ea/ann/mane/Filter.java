@@ -7,7 +7,6 @@
  */
 package net.ea.ann.mane;
 
-import java.io.Serializable;
 import java.util.Random;
 
 import net.ea.ann.core.function.Function;
@@ -22,7 +21,7 @@ import net.ea.ann.mane.filter.KernelFilterMax;
  * @version 1.0
  *
  */
-public interface Filter extends Serializable, Cloneable {
+public interface Filter extends Parameter {
 
 	
 	/**
@@ -108,13 +107,6 @@ public interface Filter extends Serializable, Cloneable {
 	default boolean isIndexMode() {return false;}
 	
 	
-//	/**
-//	 * Initializing parameters by specified value.
-//	 * @param v value.
-//	 */
-//	default void initParams(double v) {}
-
-	
 	/**
 	 * Initializing parameters.
 	 * @param rnd randomizer.
@@ -184,13 +176,30 @@ public interface Filter extends Serializable, Cloneable {
 	 */
 	Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef);
 
-	
-	/**
-	 * Copying from source filter.
-	 * @param source source filter.
-	 */
-	default void copyParameters(Filter source) {}
-	
+
+	@Override
+	default Parameter pcopy(Parameter other) {return this;}
+
+
+	@Override
+	default Parameter padd(Parameter other) {return this;}
+
+
+	@Override
+	default Parameter psubtract(Parameter other) {return this;}
+
+
+	@Override
+	default Parameter pmultiply(double factor) {return this;}
+
+
+	@Override
+	default Parameter pinit(Randomizer rnd) {return this;}
+
+
+	@Override
+	default Parameter pmultiplyRandom(Randomizer rnd) {return this;}
+
 	
 }
 

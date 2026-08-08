@@ -7,7 +7,6 @@
  */
 package net.ea.ann.mane;
 
-import java.io.Serializable;
 import java.util.Random;
 
 import net.ea.ann.core.function.Function;
@@ -23,7 +22,7 @@ import net.ea.ann.mane.weight.WeightNetworkImpl;
  * @version 1.0
  *
  */
-public interface Weight extends Cloneable, Serializable {
+public interface Weight extends Parameter {
 
 	
 	/**
@@ -129,6 +128,10 @@ public interface Weight extends Cloneable, Serializable {
 	default void initParams(Random rnd) {}
 
 
+	@Override
+	default Parameter pinit(Randomizer rnd) {return this;}
+
+	
 	/**
 	 * Getting size of parameters.
 	 * @return size of parameters.
@@ -136,11 +139,24 @@ public interface Weight extends Cloneable, Serializable {
 	default int sizeOfParams() {return 0;}
 
 
-	/**
-	 * Copying from source weight.
-	 * @param source source weight.
-	 */
-	default void copyParameters(Weight source) {}
+	@Override
+	default Parameter pcopy(Parameter other) {return this;}
+
+
+	@Override
+	default Parameter padd(Parameter other) {return this;}
+
+
+	@Override
+	default Parameter psubtract(Parameter other) {return this;}
+
+
+	@Override
+	default Parameter pmultiply(double factor) {return this;}
+
+
+	@Override
+	default Parameter pmultiplyRandom(Randomizer rnd) {return this;}
 
 
 }

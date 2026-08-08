@@ -11,6 +11,7 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 
 /**
  * This class implements partially parametric weight based on transformer.
@@ -197,6 +198,16 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
 		MatrixStack dValue = dValue(prevOutputs, thisErrors, learning, learningRate);
 		return dValue.depth() == 1 ? dValue.get() : dValue;
+	}
+
+
+	@Override
+	public Parameter pcopy(Parameter other) {
+		NetworkWeight.super.pcopy(other);
+		
+		NetworkWeightAbstract Other = (NetworkWeightAbstract)other;
+		if (Other.width() != this.width() || Other.height() != this.height() || Other.depth() != this.depth() || Other.time() != this.time()) throw new IllegalArgumentException();
+		return this;
 	}
 	
 	

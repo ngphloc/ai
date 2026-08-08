@@ -14,8 +14,11 @@ import java.util.Random;
 import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
+import net.hudup.core.logistic.NextUpdate;
 
 /**
  * This class represents matrix stack.
@@ -397,7 +400,7 @@ public class MatrixStack implements Matrix, TextParsable {
 
 	
 	@Override
-	public Matrix create(Size size) {
+	public MatrixStack create(Size size) {
 		Matrix[] result = new Matrix[this.matrices.length];
 		for (int i = 0; i < this.matrices.length; i++) {
 			result[i] = this.matrices[i].create(size);
@@ -407,7 +410,7 @@ public class MatrixStack implements Matrix, TextParsable {
 
 
 	@Override
-	public Matrix createIdentity(int n) {
+	public MatrixStack createIdentity(int n) {
 		Matrix[] result = new Matrix[this.matrices.length];
 		for (int i = 0; i < this.matrices.length; i++) {
 			result[i] = this.matrices[i].createIdentity(n);
@@ -471,11 +474,20 @@ public class MatrixStack implements Matrix, TextParsable {
 	 */
 	public static NeuronValue valueSum(MatrixStack...stacks) {
 		if (stacks == null || stacks.length == 0) return null;
-		NeuronValue sum = Matrix.valueSum(stacks[0].matrices);
-		for (int i = 1; i < stacks.length; i++) {
-			sum = sum.add(Matrix.valueSum(stacks[i].matrices));
+		if (Kernel.speedMode(stacks[0].matrices[0].get(0, 0))) {
+			double sum = ((NeuronValue1)Matrix.valueSum(stacks[0].matrices)).get();
+			for (int i = 1; i < stacks.length; i++) {
+				sum += ((NeuronValue1)Matrix.valueSum(stacks[i].matrices)).get();
+			}
+			return new NeuronValue1(sum);
 		}
-		return sum;
+		else {
+			NeuronValue sum = Matrix.valueSum(stacks[0].matrices);
+			for (int i = 1; i < stacks.length; i++) {
+				sum = sum.add(Matrix.valueSum(stacks[i].matrices));
+			}
+			return sum;
+		}
 	}
 
 	
@@ -485,14 +497,21 @@ public class MatrixStack implements Matrix, TextParsable {
 	 * @return value mean.
 	 */
 	public static NeuronValue valueMean(MatrixStack...stacks) {
-		assert (false); //Please remove this code line in next version because it is only for tracking error.
 		if (stacks == null || stacks.length == 0) return null;
-		NeuronValue mean = Matrix.valueMean(stacks[0].matrices);
-		assert (mean != null);
-		for (int i = 1; i < stacks.length; i++) {
-			mean = mean.add(Matrix.valueMean(stacks[i].matrices));
+		if (Kernel.speedMode(stacks[0].matrices[0].get(0, 0))) {
+			double mean = ((NeuronValue1)Matrix.valueMean(stacks[0].matrices)).get();
+			for (int i = 1; i < stacks.length; i++) {
+				mean += ((NeuronValue1)Matrix.valueMean(stacks[i].matrices)).get();
+			}
+			return new NeuronValue1(mean/(double)stacks.length);
 		}
-		return mean.divide((double)stacks.length);
+		else {
+			NeuronValue mean = Matrix.valueMean(stacks[0].matrices);
+			for (int i = 1; i < stacks.length; i++) {
+				mean = mean.add(Matrix.valueMean(stacks[i].matrices));
+			}
+			return mean.divide((double)stacks.length);
+		}
 	}
 
 	
@@ -501,15 +520,25 @@ public class MatrixStack implements Matrix, TextParsable {
 	 * @param stacks matrix stacks.
 	 * @return value sum.
 	 */
+	@NextUpdate
 	public static NeuronValue valueVariance(MatrixStack...stacks) {
 		assert (false); //Please remove this code line in next version because it is only for tracking error.
+		
 		if (stacks == null || stacks.length == 0) return null;
-		NeuronValue variance = Matrix.valueVariance(stacks[0].matrices);
-		assert (variance != null);
-		for (int i = 1; i < stacks.length; i++) {
-			variance = variance.add(Matrix.valueVariance(stacks[i].matrices));
+		if (Kernel.speedMode(stacks[0].matrices[0].get(0, 0))) {
+			double variance = ((NeuronValue1)Matrix.valueVariance(stacks[0].matrices)).get();
+			for (int i = 1; i < stacks.length; i++) {
+				variance += ((NeuronValue1)Matrix.valueVariance(stacks[i].matrices)).get();
+			}
+			return new NeuronValue1(variance/(double)stacks.length);
 		}
-		return variance.divide((double)stacks.length);
+		else {
+			NeuronValue variance = Matrix.valueVariance(stacks[0].matrices);
+			for (int i = 1; i < stacks.length; i++) {
+				variance = variance.add(Matrix.valueVariance(stacks[i].matrices));
+			}
+			return variance.divide((double)stacks.length);
+		}
 	}
 
 	
@@ -537,7 +566,9 @@ public class MatrixStack implements Matrix, TextParsable {
 	 * @param arrays arrays.
 	 * @return mean array.
 	 */
-	public static MatrixStack[] mean2(MatrixStack[]...arrays) {
+	@SuppressWarnings("unused")
+	@Deprecated
+	private static MatrixStack[] mean2(MatrixStack[]...arrays) {
 		MatrixStack[] mean = sum2(arrays);
 		if (mean == null) return null;
 		for (int j = 0; j < mean.length; j++) mean[j] = (MatrixStack)mean[j].divide0(arrays.length);
@@ -545,6 +576,22 @@ public class MatrixStack implements Matrix, TextParsable {
 	}
 
 
+	/**
+	 * Calculating subtracted arrays.
+	 * @param arrays1 arrays 1.
+	 * @param arrays2 arrays 1.
+	 * @return subtracted array.
+	 */
+	public static MatrixStack[] subtract2(MatrixStack[] arrays1, MatrixStack[] arrays2) {
+		assert (arrays1 != null && arrays2 != null && arrays1.length == arrays2.length && arrays1.length > 0);
+		MatrixStack[] result = new MatrixStack[arrays1.length];
+		for (int j = 0; j < result.length; j++) {
+			result[j] = (MatrixStack)arrays1[j].subtract(arrays2[j]);
+		}
+		return result;
+	}
+
+	
 	/**
 	 * Multiplying stacks by value.
 	 * @param stacks stacks.
@@ -614,10 +661,21 @@ public class MatrixStack implements Matrix, TextParsable {
 	 * @return filled matrix.
 	 */
 	public static void fill(MatrixStack stack, NeuronValue value) {
-		for (int i = 0; i < stack.depth(); i++) {
-			Matrix matrix = stack.matrices[i];
-			for (int j = 0; j < matrix.rows(); j++) {
-				for (int k = 0; k < matrix.columns(); k++) matrix.set(j, k, value);
+		if (Kernel.speedMode(value)) {
+			double v = ((NeuronValue1)value).get();
+			for (int i = 0; i < stack.depth(); i++) {
+				Matrix matrix = stack.matrices[i];
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) matrix.setv(j, k, v);
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < stack.depth(); i++) {
+				Matrix matrix = stack.matrices[i];
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) matrix.set(j, k, value);
+				}
 			}
 		}
 	}
@@ -625,13 +683,28 @@ public class MatrixStack implements Matrix, TextParsable {
 	
 	/**
 	 * Filling matrix by specified real value.
-	 * @param matrix matrix.
+	 * @param stack matrix stack.
 	 * @param v value.
 	 * @return filled matrix.
 	 */
-	public static void fill(MatrixStack matrix, double v) {
-		NeuronValue value = matrix.get().get(0, 0).valueOf(v);
-		fill(matrix, value);
+	public static void fill(MatrixStack stack, double v) {
+		if (Kernel.speedMode(stack.get().get(0, 0))) {
+			for (int i = 0; i < stack.depth(); i++) {
+				Matrix matrix = stack.matrices[i];
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) matrix.setv(j, k, v);
+				}
+			}
+		}
+		else {
+			NeuronValue value = stack.get().get(0, 0).valueOf(v);
+			for (int i = 0; i < stack.depth(); i++) {
+				Matrix matrix = stack.matrices[i];
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) matrix.set(j, k, value);
+				}
+			}
+		}
 	}
 	
 	
@@ -643,10 +716,19 @@ public class MatrixStack implements Matrix, TextParsable {
 	public static void fill(MatrixStack stack, Random rnd) {
 		for (int i = 0; i < stack.depth(); i++) {
 			Matrix matrix = stack.matrices[i];
-			for (int j = 0; j < matrix.rows(); j++) {
-				for (int k = 0; k < matrix.columns(); k++) {
-					NeuronValue value = matrix.get(j, k).valueOf(NeuronValue.r(rnd));
-					matrix.set(j, k, value);
+			if (Kernel.speedMode(matrix.get(0, 0))) {
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) {
+						matrix.setv(j, k, NeuronValue.r(rnd));
+					}
+				}
+			}
+			else {
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) {
+						NeuronValue value = matrix.get(j, k).valueOf(NeuronValue.r(rnd));
+						matrix.set(j, k, value);
+					}
 				}
 			}
 		}
@@ -662,10 +744,73 @@ public class MatrixStack implements Matrix, TextParsable {
 	public static void fill(MatrixStack stack, Random rnd, int fanIn) {
 		for (int i = 0; i < stack.depth(); i++) {
 			Matrix matrix = stack.matrices[i];
-			for (int j = 0; j < matrix.rows(); j++) {
-				for (int k = 0; k < matrix.columns(); k++) {
-					NeuronValue value = matrix.get(j, k).valueOf(NeuronValue.rHe(rnd, fanIn));
-					matrix.set(j, k, value);
+			if (Kernel.speedMode(matrix.get(0, 0))) {
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) {
+						matrix.setv(j, k, NeuronValue.rHe(rnd, fanIn));
+					}
+				}
+			}
+			else {
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) {
+						NeuronValue value = matrix.get(j, k).valueOf(NeuronValue.rHe(rnd, fanIn));
+						matrix.set(j, k, value);
+					}
+				}
+			}
+		}
+	}
+
+	
+	/**
+	 * Filling matrix by randomizer.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 */
+	public static void fill(MatrixStack stack, Parameter.Randomizer rnd) {
+		for (int i = 0; i < stack.depth(); i++) {
+			Matrix matrix = stack.matrices[i];
+			if (Kernel.speedMode(matrix.get(0, 0))) {
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) {
+						matrix.setv(j, k, rnd.rand());
+					}
+				}
+			}
+			else {
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) {
+						NeuronValue value = matrix.get(j, k).valueOf(rnd.rand());
+						matrix.set(j, k, value);
+					}
+				}
+			}
+		}
+	}
+
+	
+	/**
+	 * Filling matrix by randomizer.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 */
+	public static void fillMulti(MatrixStack stack, Parameter.Randomizer rnd) {
+		for (int i = 0; i < stack.depth(); i++) {
+			Matrix matrix = stack.matrices[i];
+			if (Kernel.speedMode(matrix.get(0, 0))) {
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) {
+						matrix.setv(j, k, matrix.getv(j, k)*rnd.rand());
+					}
+				}
+			}
+			else {
+				for (int j = 0; j < matrix.rows(); j++) {
+					for (int k = 0; k < matrix.columns(); k++) {
+						NeuronValue value = matrix.get(j, k).valueOf(rnd.rand());
+						matrix.set(j, k, matrix.get(j, k).multiply(value));
+					}
 				}
 			}
 		}
@@ -713,7 +858,9 @@ public class MatrixStack implements Matrix, TextParsable {
 	 * @param ref reference to matrix, which can be null.
 	 * @return matrix.
 	 */
-	static Matrix toMatrix(Size size, Raster raster, int neuronChannel, boolean isNorm, Matrix ref) {
+	@SuppressWarnings("unused")
+	@Deprecated
+	private static Matrix toMatrix(Size size, Raster raster, int neuronChannel, boolean isNorm, Matrix ref) {
 		NeuronValue[] values = raster.toNeuronValues(neuronChannel, size, isNorm);
 		Matrix matrix = (ref == null) ? MatrixUtil.create(size, values[0]) : ref.create(size);
 		for (int j = 0; j < matrix.rows(); j++) {

@@ -34,7 +34,6 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.value.NeuronValueV;
 import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.MatrixNetworkAbstract;
-import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.WeightSpec.KernelType;
 import net.ea.ann.raster.Raster;
@@ -83,34 +82,38 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		int size = 0;
 		if (classifier instanceof VGG) {
 			VGG vgg = (VGG)classifier;
-			size = new MatrixNetworkAssoc(vgg.nut).sizeOfParams();
-			if (vgg.adjuster != null) size += new MatrixNetworkAssoc(vgg.adjuster).sizeOfParams();
+			size = vgg.nut.sizeOfParams();
+			if (vgg.adjuster != null) size += vgg.adjuster.sizeOfParams();
 		}
 		else if (classifier instanceof VGGExt) {
 			VGGExt vggext = (VGGExt)classifier;
-			size = new MatrixNetworkAssoc(vggext.classifier).sizeOfParams();
+			size = vggext.classifier.sizeOfParams();
+		}
+		else if (classifier instanceof Swarm) {
+			Swarm swarm = (Swarm)classifier;
+			size = swarm.classifier.sizeOfParams();
 		}
 		else if (classifier instanceof NiN) {
 			NiN nin = (NiN)classifier;
-			size = new MatrixNetworkAssoc(nin.nut).sizeOfParams();
-			if (nin.adjuster != null) size += new MatrixNetworkAssoc(nin.adjuster).sizeOfParams();
+			size = nin.nut.sizeOfParams();
+			if (nin.adjuster != null) size += nin.adjuster.sizeOfParams();
 		}
 		else if (classifier instanceof MatrixClassifier) {
 			MatrixClassifier mac = (MatrixClassifier)classifier;
-			size = new MatrixNetworkAssoc(mac.nut).sizeOfParams();
-			if (mac.adjuster != null) size += new MatrixNetworkAssoc(mac.adjuster).sizeOfParams();
+			size = mac.nut.sizeOfParams();
+			if (mac.adjuster != null) size += mac.adjuster.sizeOfParams();
 		}
 		else if (classifier instanceof TransformerClassifier) {
 			TransformerClassifier tramac = (TransformerClassifier)classifier;
 			size = new TransformerAssoc(tramac.transformer).sizeOfParams();
-			if (tramac.adjuster != null) size += new MatrixNetworkAssoc(tramac.adjuster).sizeOfParams();
+			if (tramac.adjuster != null) size += tramac.adjuster.sizeOfParams();
 		}
 		else if (classifier instanceof ForestClassifier) {
 			ForestClassifier forest = (ForestClassifier)classifier;
 			size = new ForestAssoc(forest).sizeOfParams();
 		}
 		else if (classifier instanceof MatrixNetworkImpl) {
-			size = new MatrixNetworkAssoc((MatrixNetworkImpl)classifier).sizeOfParams();
+			size = ((MatrixNetworkImpl)classifier).sizeOfParams();
 		}
 		return size;
 	}
@@ -130,6 +133,10 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		else if (classifier instanceof VGGExt) {
 			VGGExt vggext = (VGGExt)classifier;
 			depth = vggext.classifier.size() - 1;
+		}
+		else if (classifier instanceof Swarm) {
+			Swarm swarm = (Swarm)classifier;
+			depth = swarm.classifier.size() - 1;
 		}
 		else if (classifier instanceof NiN) {
 			NiN nin = (NiN)classifier;
@@ -181,6 +188,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		 */
 		public int batches = Network.LEARN_MAX_ITERATION_DEFAULT;
 		
+		/**
+		 * Batch size.
+		 */
+		public int batchSize = VGG.BATCH_SIZE_DEFAULT;
+
 		/**
 		 * Including filter.
 		 */
@@ -252,6 +264,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		public TreeModel treeModel = TreeModel.mac;
 		
 		/**
+		 * Swarm size.
+		 */
+		public int swarmSize = net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_DEFAULT;
+		
+		/**
 		 * Dataset name.
 		 */
 		public String dataset = "cifar10";
@@ -289,6 +306,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			this.model = builder.model;
 			this.learningRate = builder.learningRate;
 			this.batches = builder.batches;
+			this.batchSize = builder.batchSize;
 			this.filterMode = builder.filterMode;
 			this.filterSize = builder.filterSize;
 			this.poolType = builder.poolType;
@@ -302,6 +320,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			this.filtersNumber = builder.filtersNumber;
 			this.middleSize = builder.middleSize;
 			this.treeModel = builder.treeModel;
+			this.swarmSize = builder.swarmSize;
 		}
 		
 	}
@@ -522,7 +541,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			writer.flush();
 			
 			StringBuffer result = new StringBuffer();
-			result.append(Util.format(params.learningRate) + ", " + params.maxIteration + ", " + params.batches + ", " +
+			result.append(Util.format(params.learningRate) + ", " + params.maxIteration + ", " + params.batchSize + ", " +
 				labelList.size() + ", " + info.N + ", " + Util.format(accuracy) + ", ");
 			result.append(Util.format(preciseMean) + ", " + Util.format(preciseVar) + ", ");
 			result.append(Util.format(recallMean) + ", " + Util.format(recallVar) + ", ");
@@ -627,7 +646,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 
 		int defaultDataset = 0;
 		int dataset = defaultDataset;
-		printer.print("Dataset (0-cifar10) (default " + defaultDataset + " is cifar10):");
+		printer.print("Dataset (0-cifar10, 1-UCIOptDigits, 2-MNISTmed) (default " + defaultDataset + " is cifar10):");
 		try {
 			String line = scanner.nextLine().trim();
 			if (!line.isBlank() && !line.isEmpty()) dataset = Integer.parseInt(line);
@@ -636,14 +655,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		if (dataset <= 0) dataset = defaultDataset;
 		printer.println("Dataset is " + dataset + "\n");
 
-		switch (dataset) {
-		case 0:
-			classifyCIFAR10(in, out);
-			break;
-		default:
-			classifyCIFAR10(in, out);
-			break;
-		}
+		classify(in, out, dataset);
 	}
 
 	
@@ -653,7 +665,22 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 * @param out output stream.
 	 */
 	public static void classifyGen(InputStream in, OutputStream out) {
-		classifyCIFAR10Gen(in, out);
+		@SuppressWarnings("resource")
+		Scanner scanner = new Scanner(in);
+		PrintStream printer = new PrintStream(out);
+
+		int defaultDataset = 0;
+		int dataset = defaultDataset;
+		printer.print("Dataset (0-cifar10, 1-UCIOptDigits, 2-MNISTmed) (default " + defaultDataset + " is cifar10):");
+		try {
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) dataset = Integer.parseInt(line);
+		} catch (Throwable e) {}
+		if (Double.isNaN(dataset)) dataset = defaultDataset;
+		if (dataset <= 0) dataset = defaultDataset;
+		printer.println("Dataset is " + dataset + "\n");
+
+		classifyGen(in, out, dataset);
 	}
 	
 	
@@ -661,8 +688,9 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 * Test of classification with CIFAR-10 dataset.
 	 * @param in input stream.
 	 * @param out output stream.
+	 * @param dataset dataset.
 	 */
-	static void classifyCIFAR10(InputStream in, OutputStream out) {
+	static void classify(InputStream in, OutputStream out, int dataset) {
 		ClassifierBuilder builder = ClassifierBuilder.enter(in, out);
 		if (builder == null) return;
 		@SuppressWarnings("resource")
@@ -682,15 +710,17 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	
 		int defaultTrainSize = -1;
 		int trainSize = defaultTrainSize;
-		printer.print("Training size (default " + defaultTrainSize + " for all):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) trainSize = Integer.parseInt(line);
-		} catch (Throwable e) {}
-		if (Double.isNaN(trainSize)) trainSize = defaultTrainSize;
-		if (trainSize < 0) trainSize = defaultTrainSize;
-		printer.println("Training size is " + trainSize + "\n");
-	
+		if (dataset == 0) {
+			printer.print("Training size (default " + defaultTrainSize + " for all):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) trainSize = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (Double.isNaN(trainSize)) trainSize = defaultTrainSize;
+			if (trainSize < 0) trainSize = defaultTrainSize;
+			printer.println("Training size is " + trainSize + "\n");
+		}
+		
 		printer.print("Enter base directory (" + Util.WORKING_DIRECTORY + "/base" + "):");
 		String base = scanner.nextLine().trim();
 		if (base.isBlank() || base.isEmpty()) base = Util.WORKING_DIRECTORY + "/base";
@@ -725,7 +755,22 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		try {
 			final int size = trainSize;
 			Files.list(baseDir).filter(Files::isRegularFile).forEach((basePath) -> {
-				List<Raster> baseRasters = RasterAssoc.loadCIFAR(basePath, size);
+				List<Raster> baseRasters = Util.newList(0);
+				switch (dataset) {
+				case 0:
+					baseRasters = RasterAssoc.loadCIFAR(basePath, size);
+					break;
+				case 1:
+					baseRasters = RasterAssoc.loadUCIOptDigits(basePath);
+					break;
+				case 2:
+					baseRasters = RasterAssoc.loadNpzMedMNIST(basePath, "train");
+					break;
+				default:
+					baseRasters = RasterAssoc.loadCIFAR(basePath, size);
+					break;
+				}
+				
 				if (baseRasters.size() > 0) {
 					if (baseRastersList.size() == 0)
 						baseRastersList.add(baseRasters);
@@ -735,7 +780,22 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			});
 	
 			Files.list(testDir).filter(Files::isRegularFile).forEach((testPath) -> {
-				List<Raster> testRasters = RasterAssoc.loadCIFAR(testPath, size);
+				List<Raster> testRasters = Util.newList(0);;
+				switch (dataset) {
+				case 0:
+					testRasters = RasterAssoc.loadCIFAR(testPath, size);
+					break;
+				case 1:
+					testRasters = RasterAssoc.loadUCIOptDigits(testPath);
+					break;
+				case 2:
+					testRasters = RasterAssoc.loadNpzMedMNIST(testPath, "test");
+					break;
+				default:
+					testRasters = RasterAssoc.loadCIFAR(testPath, size);
+					break;
+				}
+				
 				if (testRasters.size() > 0) {
 					if (testRastersList.size() == 0)
 						testRastersList.add(testRasters);
@@ -754,8 +814,9 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 * Test of classification with CIFAR-10 dataset.
 	 * @param in input stream.
 	 * @param out output stream.
+	 * @param dataset dataset.
 	 */
-	static void classifyCIFAR10Gen(InputStream in, OutputStream out) {
+	static void classifyGen(InputStream in, OutputStream out, int dataset) {
 		@SuppressWarnings("resource")
 		Scanner scanner = new Scanner(in);
 		PrintStream printer = new PrintStream(out);
@@ -770,17 +831,6 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		if (Double.isNaN(trainSize)) trainSize = defaultTrainSize;
 		if (trainSize < 0) trainSize = defaultTrainSize;
 		printer.println("Training size is " + trainSize + "\n");
-
-		int defaultBatches = ClassifierBuilder.DEFAULT_BATCHES;
-		int batches = defaultBatches;
-		printer.print("Batches (default " + batches + "):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) batches = Integer.parseInt(line);
-		} catch (Throwable e) {}
-		if (Double.isNaN(batches)) batches = defaultBatches;
-		if (batches <= 0) batches = defaultBatches;
-		printer.println("Batches are " + batches + "\n");
 
 		printer.print("Enter base directory (" + Util.WORKING_DIRECTORY + "/base" + "):");
 		String base = scanner.nextLine().trim();
@@ -816,17 +866,57 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		try {
 			final int size = trainSize;
 			Files.list(baseDir).filter(Files::isRegularFile).forEach((basePath) -> {
-				List<Raster> baseRasters = RasterAssoc.loadCIFAR(basePath, size);
-				if (baseRasters.size() > 0) baseRastersList.add(baseRasters);
+				List<Raster> baseRasters = Util.newList(0);;
+				switch (dataset) {
+				case 0:
+					baseRasters = RasterAssoc.loadCIFAR(basePath, size);
+					break;
+				case 1:
+					baseRasters = RasterAssoc.loadUCIOptDigits(basePath);
+					break;
+				case 2:
+					baseRasters = RasterAssoc.loadNpzMedMNIST(basePath, "train");
+					break;
+				default:
+					baseRasters = RasterAssoc.loadCIFAR(basePath, size);
+					break;
+				}
+
+				if (baseRasters.size() > 0) {
+					if (baseRastersList.size() == 0)
+						baseRastersList.add(baseRasters);
+					else
+						baseRastersList.get(0).addAll(baseRasters);
+				}
 			});
 	
 			Files.list(testDir).filter(Files::isRegularFile).forEach((testPath) -> {
-				List<Raster> testRasters = RasterAssoc.loadCIFAR(testPath, size);
-				if (testRasters.size() > 0) testRastersList.add(testRasters);
+				List<Raster> testRasters = Util.newList(0);
+				switch (dataset) {
+				case 0:
+					testRasters = RasterAssoc.loadCIFAR(testPath, size);
+					break;
+				case 1:
+					testRasters = RasterAssoc.loadUCIOptDigits(testPath);
+					break;
+				case 2:
+					testRasters = RasterAssoc.loadNpzMedMNIST(testPath, "test");
+					break;
+				default:
+					testRasters = RasterAssoc.loadCIFAR(testPath, size);
+					break;
+				}
+				
+				if (testRasters.size() > 0) {
+					if (testRastersList.size() == 0)
+						testRastersList.add(testRasters);
+					else
+						testRastersList.get(0).addAll(testRasters);
+				}
 			});
 		} catch (Exception e) {Util.trace(e);}
 		
-		classifyCIFAR10(baseRastersList, testRastersList, testresultDir, batches);
+		classify(baseRastersList, testRastersList, testresultDir);
 		printer.println("End task.");
 	}
 	
@@ -837,7 +927,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 //	 * @param testRastersList list of testing dataset.
 //	 * @param testresultDir testing result directory.
 //	 */
-//	private static void classifyCIFAR10(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int batches) {
+//	private static void classify(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int batches) {
 //		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
 //		int maxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
 //		int neuronChannel = RasterAbstract.NEURON_CHANNEL_DEFAULT;
@@ -901,25 +991,17 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 * @param testRastersList list of testing dataset.
 	 * @param testresultDir testing result directory.
 	 */
-	private static void classifyCIFAR10(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int batches) {
+	private static void classify(List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir) {
 		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
 		int maxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
 		ClassifierBuilder builder = new ClassifierBuilder(RasterAbstract.NEURON_CHANNEL_DEFAULT);
 		builder.setRasterChannel(RasterAbstract.RASTER_CHANNEL_DEFAULT);
 		builder.setLearningRate(Network.LEARN_RATE_DEFAULT);
-		builder.setBatches(batches);
 		builder.setBaseline(ClassifierAbstract.BASELINE_DEFAULT);
 		builder.setDual(ClassifierAbstract.DUAL_DEFAULT);
 		builder.setAdjust(ClassifierAbstract.ADJUST_DEFAULT);
 		builder.setMiddleSize(net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT);
 		builder.setPoolType(ClassifierAbstract.FILTER_POOL_TYPE_DEFAULT /*net.ea.ann.mane.FilterSpec.PoolType.average*/);
-
-		int minBaseSize = baseRastersList.get(0).size();
-		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());
-		if (builder.getBatches() > minBaseSize) {
-			builder.setBatches(1);
-			System.out.println("Batches are re-calculated as " + builder.getBatches() + "\n");
-		}
 
 		int sample = 10;
 		for (int iter = 0; iter < sample; iter++) {
@@ -973,13 +1055,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 	 */
 	private static void classify(ClassifierBuilder builder, List<List<Raster>> baseRastersList, List<List<Raster>> testRastersList, Path testresultDir, int maxIteration) {
 		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
-		int minBaseSize = baseRastersList.get(0).size();
-		for (List<Raster> baseRasters : baseRastersList) minBaseSize = Math.min(minBaseSize, baseRasters.size());
-		if (builder.getBatches() > minBaseSize) {
-			builder.setBatches(1);
-			System.out.println("Batches are re-calculated as " + builder.getBatches() + "\n");
-		}
-	
+
 		Classifier classifier = null;
 		ClassifyInfo info = new ClassifyInfo();
 		long time = 0;

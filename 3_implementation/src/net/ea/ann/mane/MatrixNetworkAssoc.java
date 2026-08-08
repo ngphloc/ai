@@ -61,35 +61,8 @@ public class MatrixNetworkAssoc implements Cloneable, Serializable {
 	
 	/**
 	 * Initializing parameters.
-	 * @param rnd randomizer.
 	 */
-	public void initParams(Random rnd) {
-		for (int i = 0; i < mane.layers.length; i++) {
-			MatrixLayerAbstract layer = mane.layers[i];
-			if (layer instanceof MatrixLayerImpl)
-				new MatrixLayerAssoc((MatrixLayerImpl)layer).initParams(rnd);
-		}
-	}
-	
-	
-	/**
-	 * Initializing parameters.
-	 */
-	public void initParams() {initParams(new Random());}
-	
-	
-	/**
-	 * Getting size of parameters.
-	 * @return size of parameters.
-	 */
-	public int sizeOfParams() {
-		int size = 0;
-		for (int i = 0; i < mane.layers.length; i++) {
-			if (!(mane.layers[i] instanceof MatrixLayerImpl)) continue;
-			size += ((MatrixLayerImpl)mane.layers[i]).sizeOfParams();
-		}
-		return size;
-	}
+	public void initParams() {mane.initParams(new Random());}
 	
 	
 	/**

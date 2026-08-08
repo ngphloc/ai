@@ -29,7 +29,7 @@ import net.ea.ann.raster.RasterWrapperProperty;
 import net.ea.ann.raster.Size;
 
 /**
- * This class implements Proxy-NCA (Proxy-Neighborhood Component Analysis) algorithm for deep metric learning, supporting both classification and clustering.
+ * This class implements VGG classifier.
  * @author Loc Nguyen
  * @version 1.0
  *
@@ -98,7 +98,6 @@ public class VGGClassifier extends VGGExt {
 		config.put(BASELINE_MEAN_FIELD, BASELINE_MEAN_DEFAULT);
 		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
 		
-		paramSetGAP(true);
 		paramSetFFNFlatten(true);
 		paramSetVectorized(true);
 	}

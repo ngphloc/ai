@@ -14,6 +14,7 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.raster.Size;
 
 /**
@@ -158,29 +159,61 @@ public abstract class PoolFilter extends FilterAbstract {
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int thisWidth = thisErrorLayers.columns(), thisHeight = thisErrorLayers.rows();
-		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int prevY = thisY*strideHeight;
-			if (prevY >= prevHeight) continue;
-			
-			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int prevX = thisX*strideWidth;
-				if (prevX >= prevWidth) continue;
+		
+		if (Kernel.speedMode(zero)) {
+			for (int thisY = 0; thisY < thisHeight; thisY++) {
+				int prevY = thisY*strideHeight;
+				if (prevY >= prevHeight) continue;
 				
-				//Calculating gradient.
-				for (int i = 0; i < this.depth(); i++) {
-					Matrix dPrevValue = this.dValue(thisY, thisX, prevInputLayers.get(i), prevOutputLayers.get(i), thisErrorLayers.get(i));
-					if (dPrevValue == null) continue;
-					for (int j = 0; j < dPrevValue.rows(); j++) {
-						int prevRow = prevY + j;
-						if (prevRow >= prevHeight) continue;
-						for (int k = 0; k < dPrevValue.columns(); k++) {
-							int prevColumn = prevX + k;
-							if (prevColumn >= prevWidth) continue;
-							NeuronValue dv = dPrevValues[i].get(prevRow, prevColumn).add(dPrevValue.get(j, k));
-							dPrevValues[i].set(prevRow, prevColumn, dv);
+				for (int thisX = 0; thisX < thisWidth; thisX++) {
+					int prevX = thisX*strideWidth;
+					if (prevX >= prevWidth) continue;
+					
+					//Calculating gradient.
+					for (int i = 0; i < this.depth(); i++) {
+						Matrix dPrevValue = this.dValue(thisY, thisX, prevInputLayers.get(i), prevOutputLayers.get(i), thisErrorLayers.get(i));
+						if (dPrevValue == null) continue;
+						for (int j = 0; j < dPrevValue.rows(); j++) {
+							int prevRow = prevY + j;
+							if (prevRow >= prevHeight) continue;
+							for (int k = 0; k < dPrevValue.columns(); k++) {
+								int prevColumn = prevX + k;
+								if (prevColumn >= prevWidth) continue;
+								
+								double dv = dPrevValues[i].getv(prevRow, prevColumn) + dPrevValue.getv(j, k);
+								dPrevValues[i].setv(prevRow, prevColumn, dv);
+							}
 						}
-					}
-				} //End dValues.
+					} //End dValues.
+				}
+			}
+		}
+		else {
+			for (int thisY = 0; thisY < thisHeight; thisY++) {
+				int prevY = thisY*strideHeight;
+				if (prevY >= prevHeight) continue;
+				
+				for (int thisX = 0; thisX < thisWidth; thisX++) {
+					int prevX = thisX*strideWidth;
+					if (prevX >= prevWidth) continue;
+					
+					//Calculating gradient.
+					for (int i = 0; i < this.depth(); i++) {
+						Matrix dPrevValue = this.dValue(thisY, thisX, prevInputLayers.get(i), prevOutputLayers.get(i), thisErrorLayers.get(i));
+						if (dPrevValue == null) continue;
+						for (int j = 0; j < dPrevValue.rows(); j++) {
+							int prevRow = prevY + j;
+							if (prevRow >= prevHeight) continue;
+							for (int k = 0; k < dPrevValue.columns(); k++) {
+								int prevColumn = prevX + k;
+								if (prevColumn >= prevWidth) continue;
+								
+								NeuronValue dv = dPrevValues[i].get(prevRow, prevColumn).add(dPrevValue.get(j, k));
+								dPrevValues[i].set(prevRow, prevColumn, dv);
+							}
+						}
+					} //End dValues.
+				}
 			}
 		}
 		
@@ -201,6 +234,17 @@ public abstract class PoolFilter extends FilterAbstract {
 	@Override
 	public Kernel dKernel(Matrix prevInputLayer, Matrix prevOutputLayer, Matrix thisErrorLayer, Function thisActivateRef) {
 		return null;
+	}
+
+
+	@Override
+	public Parameter pcopy(Parameter other) {
+		super.pcopy(other);
+		
+		PoolFilter Other = (PoolFilter)other;
+		if (this.width() != Other.width() || this.height() != Other.height() || this.depth() != Other.depth()) throw new IllegalArgumentException();
+		if (this.getStrideWidth() != Other.getStrideWidth() || this.getStrideHeight() != Other.getStrideHeight()) throw new IllegalArgumentException();
+		return this;
 	}
 
 

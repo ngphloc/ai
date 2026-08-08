@@ -18,10 +18,10 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.mane.CustomLayer;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Error.LayerInput;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.weight.NormWeight;
 import net.ea.ann.mane.weight.NullWeight;
@@ -33,7 +33,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class BatchNormLayer extends CustomLayer {
+public class BatchNormLayer extends MatrixLayerImpl {
 
 	
 	/**

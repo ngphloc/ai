@@ -11,6 +11,7 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
 /**
@@ -139,11 +140,22 @@ public class AdamOptimizer implements Optimizer {
         //Computing the Adam update gradient.
 		Matrix adam = grad.create(new Size(grad.columns(), grad.rows()));
 		NeuronValue epsilon = adam.get(0, 0).valueOf(EPSILON);
-		for (int row = 0; row < adam.rows(); row++) {
-			for (int column = 0; column < adam.columns(); column++) {
-				NeuronValue mnum = mHat.get(row, column);
-				NeuronValue vdenom = vHat.get(row, column).sqrt().add(epsilon);
-				adam.set(row, column, mnum.divide(vdenom));
+		if (Kernel.speedMode(epsilon)) {
+			for (int row = 0; row < adam.rows(); row++) {
+				for (int column = 0; column < adam.columns(); column++) {
+					double mnum = mHat.getv(row, column);
+					double vdenom = Math.sqrt(vHat.getv(row, column)) + EPSILON;
+					adam.setv(row, column, mnum/vdenom);
+				}
+			}
+		}
+		else {
+			for (int row = 0; row < adam.rows(); row++) {
+				for (int column = 0; column < adam.columns(); column++) {
+					NeuronValue mnum = mHat.get(row, column);
+					NeuronValue vdenom = vHat.get(row, column).sqrt().add(epsilon);
+					adam.set(row, column, mnum.divide(vdenom));
+				}
 			}
 		}
         

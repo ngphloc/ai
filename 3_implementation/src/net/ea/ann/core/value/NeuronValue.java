@@ -684,6 +684,7 @@ public interface NeuronValue extends Value {
 	 */
 	static NeuronValue[] add(NeuronValue[] v1, NeuronValue[] v2) {
 		if (v1 == null || v2 == null) return null;
+		assert (v1.length == v2.length);
 		int n = Math.min(v1.length, v2.length);
 		NeuronValue[] v = new NeuronValue[n];
 		for (int i = 0; i < n; i++) v[i] = v1[i].add(v2[i]);
@@ -717,6 +718,7 @@ public interface NeuronValue extends Value {
 	 */
 	static NeuronValue[] subtract(NeuronValue[] v1, NeuronValue[] v2) {
 		if (v1 == null || v2 == null) return null;
+		assert (v1.length == v2.length);
 		int n = Math.min(v1.length, v2.length);
 		NeuronValue[] v = new NeuronValue[n];
 		for (int i = 0; i < n; i++) v[i] = v1[i].subtract(v2[i]);

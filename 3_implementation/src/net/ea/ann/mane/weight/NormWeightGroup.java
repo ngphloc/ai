@@ -13,6 +13,7 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
@@ -103,34 +104,68 @@ public class NormWeightGroup extends NormWeight {
 		
 		int groups = depth / layersPerGroup;
 		MeanStd[] result = new MeanStd[groups];
-		for (int group = 0; group < groups; group++) {
-			NeuronValue mean = zero;
-			NeuronValue std = zero;
-	
-			int dStart = group*layersPerGroup;
-			int dEnd = group < group-1 ? dStart+layersPerGroup : depth;
-			int N = 0;
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					for (int d = dStart; d < dEnd; d++) {
-						mean = mean.add(matrices[d].get(row, column));
-						N++;
+		
+		if (Kernel.speedMode(zero)) {
+			for (int group = 0; group < groups; group++) {
+				double mean = 0;
+				double std = 0;
+		
+				int dStart = group*layersPerGroup;
+				int dEnd = group < group-1 ? dStart+layersPerGroup : depth;
+				int N = 0;
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						for (int d = dStart; d < dEnd; d++) {
+							mean += matrices[d].getv(row, column);
+							N++;
+						}
 					}
 				}
-			}
-			mean = mean.divide(N);
-			
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					for (int d = dStart; d < dEnd; d++) {
-						NeuronValue dev = matrices[d].get(row, column).subtract(mean);
-						std = std.add(dev.multiply(dev));
+				mean = mean/(double)N;
+				
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						for (int d = dStart; d < dEnd; d++) {
+							double dev = matrices[d].getv(row, column) - mean;
+							std += dev*dev;
+						}
 					}
 				}
+				std = Math.sqrt((std/(double)N) + EPSILON);
+				
+				result[group] = new MeanStd(zero.valueOf(mean), zero.valueOf(std), N);
 			}
-			std = std.divide(N).add(epsilon).sqrt();
-			
-			result[group] = new MeanStd(mean, std, N);
+		}
+		else {
+			for (int group = 0; group < groups; group++) {
+				NeuronValue mean = zero;
+				NeuronValue std = zero;
+		
+				int dStart = group*layersPerGroup;
+				int dEnd = group < group-1 ? dStart+layersPerGroup : depth;
+				int N = 0;
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						for (int d = dStart; d < dEnd; d++) {
+							mean = mean.add(matrices[d].get(row, column));
+							N++;
+						}
+					}
+				}
+				mean = mean.divide(N);
+				
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						for (int d = dStart; d < dEnd; d++) {
+							NeuronValue dev = matrices[d].get(row, column).subtract(mean);
+							std = std.add(dev.multiply(dev));
+						}
+					}
+				}
+				std = std.divide(N).add(epsilon).sqrt();
+				
+				result[group] = new MeanStd(mean, std, N);
+			}
 		}
 		
 		return result;
@@ -175,15 +210,33 @@ public class NormWeightGroup extends NormWeight {
 		//Normalizing.
 		Matrix[] prevOutputs = new Matrix[depth];
 		Matrix[] outputs = new Matrix[depth];
-		for (int d = 0; d < depth; d++) {
-			prevOutputs[d] = inputs[d].create(new Size(columns, rows));
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					NeuronValue z = inputs[d].get(row, column).subtract(means[d]).divide(stds[d]);
-					prevOutputs[d].set(row, column, z);
+		if (Kernel.speedMode(inputs[0].get(0, 0))) {
+			for (int d = 0; d < depth; d++) {
+				prevOutputs[d] = inputs[d].create(new Size(columns, rows));
+				double mean = ((NeuronValue1)means[d]).get();
+				double std = ((NeuronValue1)stds[d]).get();
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double z = (inputs[d].getv(row, column)-mean) / std;
+						prevOutputs[d].setv(row, column, z);
+					}
 				}
+				outputs[d] = prevOutputs[d].multiply0(((NeuronValue1)W(d)).get());
 			}
-			outputs[d] = prevOutputs[d].multiply0(W(d));
+		}
+		else {
+			for (int d = 0; d < depth; d++) {
+				prevOutputs[d] = inputs[d].create(new Size(columns, rows));
+				NeuronValue mean = means[d];
+				NeuronValue std = stds[d];
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue z = inputs[d].get(row, column).subtract(mean).divide(std);
+						prevOutputs[d].set(row, column, z);
+					}
+				}
+				outputs[d] = prevOutputs[d].multiply0(W(d));
+			}
 		}
 		
 		//Storing normalized previous output.
@@ -226,48 +279,94 @@ public class NormWeightGroup extends NormWeight {
 		
 		//Calculating value gradient.
 		Matrix[] dValues = new Matrix[depth];
-		for (int d = 0; d < depth; d++) {
-			Matrix prevOutput = prevOutputs.get(d);
-			Matrix norm = prevOutput.create(new Size(columns, rows));
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					NeuronValue mean = means[d];
-					NeuronValue std = stds[d];
-					NeuronValue z = prevOutput.get(row, column).subtract(mean).divide(std);
-					norm.set(row, column, z);
+		if (Kernel.speedMode(zero)) {
+			for (int d = 0; d < depth; d++) {
+				Matrix prevOutput = prevOutputs.get(d);
+				Matrix norm = prevOutput.create(new Size(columns, rows));
+				double mean = ((NeuronValue1)means[d]).get();
+				double std = ((NeuronValue1)stds[d]).get();
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double z = (prevOutput.getv(row, column)-mean) / std;
+						norm.setv(row, column, z);
+					}
 				}
-			}
-			norm = norm.multiply0(W(d));
+				norm = norm.multiply0(((NeuronValue1)W(d)).get());
 
-			NeuronValue w = W(d);
-			NeuronValue errorSum = zero, normErrorSum = zero;
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					NeuronValue error = thisErrors.get(d).get(row, column).multiply(w);
-					errorSum = errorSum.add(error);
-					NeuronValue normError = error.multiply(norm.get(row, column));
-					normErrorSum = normErrorSum.add(normError);
+				double w = ((NeuronValue1)W(d)).get();
+				double errorSum = 0, normErrorSum = 0;
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double error = thisErrors.get(d).getv(row, column) * w;
+						errorSum += error;
+						double normError = error*norm.getv(row, column);
+						normErrorSum += normError;
+					}
+				}
+				
+				int N = sizes[d];
+				dValues[d] = prevOutput.create(new Size(columns, rows));
+				double factor = std*N;
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double error = thisErrors.get(d).getv(row, column) * w;
+						double bias = (error*N - errorSum - (norm.getv(row, column)*normErrorSum)) / factor;
+						dValues[d].setv(row, column, bias);
+					}
 				}
 			}
-			
-			int N = sizes[d];
-			dValues[d] = prevOutput.create(new Size(columns, rows));
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					NeuronValue std = stds[d];
-					NeuronValue factor = std.multiply(N);
-					
-					NeuronValue error = thisErrors.get(d).get(row, column).multiply(w);
-					NeuronValue bias = error.multiply(N)
-						.subtract(errorSum)
-						.subtract(norm.get(row, column).multiply(normErrorSum))
-						.divide(factor);
-					dValues[d].set(row, column, bias);
+		}
+		else {
+			for (int d = 0; d < depth; d++) {
+				Matrix prevOutput = prevOutputs.get(d);
+				Matrix norm = prevOutput.create(new Size(columns, rows));
+				NeuronValue mean = means[d];
+				NeuronValue std = stds[d];
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue z = prevOutput.get(row, column).subtract(mean).divide(std);
+						norm.set(row, column, z);
+					}
+				}
+				norm = norm.multiply0(W(d));
+	
+				NeuronValue w = W(d);
+				NeuronValue errorSum = zero, normErrorSum = zero;
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue error = thisErrors.get(d).get(row, column).multiply(w);
+						errorSum = errorSum.add(error);
+						NeuronValue normError = error.multiply(norm.get(row, column));
+						normErrorSum = normErrorSum.add(normError);
+					}
+				}
+				
+				int N = sizes[d];
+				dValues[d] = prevOutput.create(new Size(columns, rows));
+				NeuronValue factor = std.multiply(N);
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue error = thisErrors.get(d).get(row, column).multiply(w);
+						NeuronValue bias = error.multiply(N)
+							.subtract(errorSum)
+							.subtract(norm.get(row, column).multiply(normErrorSum))
+							.divide(factor);
+						dValues[d].set(row, column, bias);
+					}
 				}
 			}
 		}
 		
 		return new MatrixStack(dValues);
+	}
+
+
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		WKernel clonedKernel = (WKernel)this.kernel.clone();
+		NormWeightGroup cloned = new NormWeightGroup(clonedKernel);
+		cloned.layer = this.layer;
+		return cloned;
 	}
 
 

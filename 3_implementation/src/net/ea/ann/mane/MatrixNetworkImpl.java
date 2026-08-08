@@ -12,6 +12,7 @@ import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import net.ea.ann.conv.filter.DeconvConvFilter;
 import net.ea.ann.core.Id;
@@ -431,6 +432,32 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		return initialize(layerSpecs, dual1);
 	}
 
+	
+	/**
+	 * Initializing parameters.
+	 * @param rnd randomizer.
+	 */
+	public void initParams(Random rnd) {
+		for (int i = 0; i < this.layers.length; i++) {
+			MatrixLayerAbstract layer = this.layers[i];
+			if (layer instanceof MatrixLayerImpl) ((MatrixLayerImpl)layer).initParams(rnd);
+		}
+	}
+
+	
+	/**
+	 * Getting size of parameters.
+	 * @return size of parameters.
+	 */
+	public int sizeOfParams() {
+		int size = 0;
+		for (int i = 0; i < this.layers.length; i++) {
+			if (!(this.layers[i] instanceof MatrixLayerImpl)) continue;
+			size += ((MatrixLayerImpl)this.layers[i]).sizeOfParams();
+		}
+		return size;
+	}
+	
 	
 	@Override
 	public MatrixLayer getPrevLayer() {

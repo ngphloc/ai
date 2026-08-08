@@ -7,10 +7,13 @@
  */
 package net.ea.ann.mane.weight;
 
+import java.util.Random;
+
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.Kernel.NullKernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.mane.Weight;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerAssoc;
@@ -121,6 +124,27 @@ public class TransformerWeight extends NetworkWeightAbstract {
 
 	
 	@Override
+	public void initParams(Random rnd) {
+		super.initParams(rnd);
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
+	public Parameter pinit(Randomizer rnd) {
+		super.pinit(rnd);
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
+	public Parameter pmultiplyRandom(Randomizer rnd) {
+		super.pmultiplyRandom(rnd);
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
 	public int sizeOfParams() {
 		int size = 0;
 		for (int t = 0; t < time(); t++) {
@@ -129,6 +153,32 @@ public class TransformerWeight extends NetworkWeightAbstract {
 			}
 		}
 		return size;
+	}
+
+
+	@Override
+	public Parameter pcopy(Parameter other) {
+		super.pcopy(other);
+		
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
+	public Parameter padd(Parameter other) {
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
+	public Parameter psubtract(Parameter other) {
+		throw new RuntimeException("Not implemented yet");
+	}
+
+
+	@Override
+	public Parameter pmultiply(double factor) {
+		throw new RuntimeException("Not implemented yet");
 	}
 
 

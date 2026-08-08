@@ -285,7 +285,7 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 	public boolean matrixIsInvertible(NeuronValue[][] matrix) {
 		double[][] dmatrix = toMatrix(matrix);
 		if (dmatrix == null) return false;
-		return NeuronValueM.isInvertible(dmatrix);
+		return MatrixReal.isInvertible(dmatrix);
 	}
 
 
@@ -294,7 +294,7 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 	public NeuronValue matrixDet(NeuronValue[][] matrix) {
 		double[][] values = toMatrix(matrix);
 		if (values == null) return null;
-		return valueOf(NeuronValueM.det(values));
+		return valueOf(MatrixReal.det(values));
 	}
 
 
@@ -302,7 +302,7 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 	public NeuronValue[][] matrixInverse(NeuronValue[][] matrix) {
 		double[][] result = toMatrix(matrix);
 		if (result == null) return null;
-		result = NeuronValueM.inverse(result);
+		result = MatrixReal.inverse(result);
 		return fromMatrix(result);
 	}
 
@@ -311,7 +311,7 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 	public NeuronValue[][] matrixSqrt(NeuronValue[][] matrix) {
 		double[][] result = toMatrix(matrix);
 		if (result == null) return null;
-		result = NeuronValueM.sqrt(result);
+		result = MatrixReal.sqrt(result);
 		return fromMatrix(result);
 	}
 

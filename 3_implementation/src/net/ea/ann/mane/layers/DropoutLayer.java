@@ -18,6 +18,7 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Error.LayerInput;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.raster.Size;
@@ -307,13 +308,23 @@ public class DropoutLayer extends MatrixLayerImpl {
 		if (matrix instanceof MatrixStack) {
 			MatrixStack stack = (MatrixStack)matrix;
 			NeuronValue zero = stack.get().get(0, 0).zero();
-			NeuronValue value = v == 0 ? zero : zero.valueOf(v);
-			for (int d = 0; d < stack.depth(); d++) stack.get(d).set(row, column, value);
+			if (Kernel.speedMode(zero)) {
+				for (int d = 0; d < stack.depth(); d++) stack.get(d).setv(row, column, v);
+			}
+			else {
+				NeuronValue value = v == 0 ? zero : zero.valueOf(v);
+				for (int d = 0; d < stack.depth(); d++) stack.get(d).set(row, column, value);
+			}
 		}
 		else {
 			NeuronValue zero = matrix.get(0, 0).zero();
-			NeuronValue value = v == 0 ? zero : zero.valueOf(v);
-			matrix.set(row, column, value);
+			if (Kernel.speedMode(zero)) {
+				matrix.setv(row, column, v);
+			}
+			else {
+				NeuronValue value = v == 0 ? zero : zero.valueOf(v);
+				matrix.set(row, column, value);
+			}
 		}
 	}
 	

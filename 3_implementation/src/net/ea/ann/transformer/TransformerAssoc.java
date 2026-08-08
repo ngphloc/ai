@@ -9,8 +9,6 @@ package net.ea.ann.transformer;
 
 import java.io.Serializable;
 
-import net.ea.ann.mane.MatrixNetworkAssoc;
-
 /**
  * This utility class provides utility methods for default transformer.
  *  
@@ -72,8 +70,8 @@ public class TransformerAssoc implements Cloneable, Serializable {
 	private static int sizeOfParams(TransformerBlock block) {
 		if (!block.validate()) return 0;
 		int size = sizeOfParams(block.attention);
-		if (block.ffn != null) size += new MatrixNetworkAssoc(block.ffn).sizeOfParams();
-		if (block.outputAdapter != null) size += new MatrixNetworkAssoc(block.outputAdapter).sizeOfParams();
+		if (block.ffn != null) size += block.ffn.sizeOfParams();
+		if (block.outputAdapter != null) size += block.outputAdapter.sizeOfParams();
 		return size;
 	}
 	

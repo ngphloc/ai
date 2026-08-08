@@ -191,8 +191,8 @@ public class GenUIClassifier extends GenUI {
 			params.model = ClassifierModelAbstract.extractClassifierModel(gm);
 			if (config.containsKey(NetworkAbstract.LEARN_RATE_FIELD))
 				params.learningRate = config.getAsReal(NetworkAbstract.LEARN_RATE_FIELD);
-			if (config.containsKey(NetworkAbstract.LEARN_MAX_ITERATION_FIELD))
-				params.batches = config.getAsInt(NetworkAbstract.LEARN_MAX_ITERATION_FIELD);
+			if (config.containsKey(net.ea.ann.mane.beans.VGG.BATCH_SIZE_FILED))
+				params.batchSize = config.getAsInt(net.ea.ann.mane.beans.VGG.BATCH_SIZE_FILED);
 			if (config.containsKey(ClassifierAbstract.FILTER_MODE_FIELD))
 				params.filterMode = config.getAsBoolean(ClassifierAbstract.FILTER_MODE_FIELD);
 			if (config.containsKey(ClassifierAbstract.FILTER_SIZE_FIELD))
@@ -223,6 +223,8 @@ public class GenUIClassifier extends GenUI {
 				params.treeModel = net.ea.ann.classifier.ForestClassifier.toTreeModel(config.getAsInt(net.ea.ann.classifier.ForestClassifier.TREE_MODEL_FIELD));
 			if (config.containsKey(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED))
 				params.maxIteration = config.getAsInt(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED);
+			if (config.containsKey(net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_FIELD))
+				params.swarmSize = config.getAsInt(net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_FIELD);
 			
 			boolean remote = gm instanceof GenModel ? AlgDesc2.isRemote((GenModel)gm) : true;
 			Classifier classifier = !remote && gm.getParameter() != null && gm.getParameter() instanceof Classifier ? (Classifier)gm.getParameter() : null;

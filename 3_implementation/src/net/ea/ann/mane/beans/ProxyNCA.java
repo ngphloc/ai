@@ -1306,7 +1306,7 @@ public class ProxyNCA extends VGGExt {
 
 	
 	@Override
-	protected Error[] learnRaster(Iterable<Raster> sample, double learningRate) {
+	Error[] learnRaster(Iterable<Raster> sample, double learningRate) {
 		if (this.proxyGroupList == null) return super.learnRaster(sample, learningRate);
 		
 		List<Error> outputErrorList = Util.newList(0);

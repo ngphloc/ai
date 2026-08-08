@@ -10,7 +10,8 @@ package net.ea.ann.mane.filter;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.core.value.NeuronValueV;
+import net.ea.ann.core.value.NeuronValue1;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
 /**
@@ -62,46 +63,86 @@ public class PoolFilterAverage extends PoolFilter {
 		NeuronValue zero = layer.get(0, 0).zero();
 		int layerWidth = layer.columns(), layerHeight = layer.rows();
 		
-		NeuronValue result = zero;
-		int N = 0;
-		for (int i = 0; i < height(); i++) {
-			int Y = y + i;
-			if (Y >= layerHeight) continue;
-			for (int j = 0; j < width(); j++) {
-				int X = x + j;
-				if (X >= layerWidth) continue;
-				NeuronValue value = layer.get(Y, X);
-				result = result.add(value);
-				N++;
+		if (Kernel.speedMode(zero)) {
+			double result = 0;
+			int N = 0;
+			for (int i = 0; i < height(); i++) {
+				int Y = y + i;
+				if (Y >= layerHeight) continue;
+				for (int j = 0; j < width(); j++) {
+					int X = x + j;
+					if (X >= layerWidth) continue;
+					double value = layer.getv(Y, X);
+					result += value;
+					N++;
+				}
 			}
+			return zero.valueOf(result/(double)N);
 		}
-		return result.divide(N);
+		else {
+			NeuronValue result = zero;
+			int N = 0;
+			for (int i = 0; i < height(); i++) {
+				int Y = y + i;
+				if (Y >= layerHeight) continue;
+				for (int j = 0; j < width(); j++) {
+					int X = x + j;
+					if (X >= layerWidth) continue;
+					NeuronValue value = layer.get(Y, X);
+					result = result.add(value);
+					N++;
+				}
+			}
+			return result.divide(N);
+		}
 	}
 
 
 	@Override
 	void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer) {
-		NeuronValueV zeroV = new NeuronValueV(2, 0);
-		MatrixUtil.fill(thisInputLayer, zeroV);
 		NeuronValue zero = thisOutputLayer != null ? thisOutputLayer.get(0, 0).zero() : prevLayer.get(0, 0).zero();
+		MatrixUtil.fill(thisInputLayer, zero);
 		MatrixUtil.fill(thisOutputLayer, zero);
 
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevLayer.columns(), prevHeight = prevLayer.rows();
 		int thisWidth = thisOutputLayer.columns(), thisHeight = thisOutputLayer.rows();
-		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int prevY = thisY*strideHeight;
-			if (prevY >= prevHeight) continue;
-			
-			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int prevX = thisX*strideWidth;
-				if (prevX >= prevWidth) continue;
+		
+		if (Kernel.speedMode(zero)) {
+			for (int thisY = 0; thisY < thisHeight; thisY++) {
+				int prevY = thisY*strideHeight;
+				if (prevY >= prevHeight) continue;
 				
-				//Filtering
-				NeuronValue filteredValue = this.apply(prevY, prevX, prevLayer);
-				if (filteredValue == null) continue;
-				if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, filteredValue);
-				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
+				for (int thisX = 0; thisX < thisWidth; thisX++) {
+					int prevX = thisX*strideWidth;
+					if (prevX >= prevWidth) continue;
+					
+					//Filtering
+					NeuronValue filteredValue = this.apply(prevY, prevX, prevLayer);
+					if (filteredValue == null) continue;
+					
+					double filteredValueV = ((NeuronValue1)filteredValue).get();
+					if (thisInputLayer != null) thisInputLayer.setv(thisY, thisX, filteredValueV);
+					if (thisOutputLayer != null) thisOutputLayer.setv(thisY, thisX, filteredValueV);
+				}
+			}
+		}
+		else {
+			for (int thisY = 0; thisY < thisHeight; thisY++) {
+				int prevY = thisY*strideHeight;
+				if (prevY >= prevHeight) continue;
+				
+				for (int thisX = 0; thisX < thisWidth; thisX++) {
+					int prevX = thisX*strideWidth;
+					if (prevX >= prevWidth) continue;
+					
+					//Filtering
+					NeuronValue filteredValue = this.apply(prevY, prevX, prevLayer);
+					if (filteredValue == null) continue;
+					
+					if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, filteredValue);
+					if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
+				}
 			}
 		}
 	}
@@ -121,15 +162,32 @@ public class PoolFilterAverage extends PoolFilter {
 		Matrix dPrevValue = prevInputLayer.create(new Size(kernelWidth, kernelHeight));
 		NeuronValue zero = thisError.zero();
 		MatrixUtil.fill(dPrevValue, zero);
-		for (int j = 0; j < m; j++) {
-			for (int k = 0; k < n; k++) {
-				dPrevValue.set(j, k, thisError);
+		
+		if (Kernel.speedMode(zero)) {
+			double thisErrorV = ((NeuronValue1)thisError).get();
+			for (int j = 0; j < m; j++) {
+				for (int k = 0; k < n; k++) {
+					dPrevValue.setv(j, k, thisErrorV);
+				}
+			}
+		}
+		else {
+			for (int j = 0; j < m; j++) {
+				for (int k = 0; k < n; k++) {
+					dPrevValue.set(j, k, thisError);
+				}
 			}
 		}
 		return dPrevValue;
 	}
 
 	
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		return super.clone();
+	}
+
+
 	/**
 	 * Creating average pooling filter with specific kernel size.
 	 * @param size specific kernel size.

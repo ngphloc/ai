@@ -47,18 +47,8 @@ public class VGGExt extends NetworkAbstract implements Classifier {
 	public VGGExt(int neuronChannel, int rasterChannel) {
 		super();
 		
-		//Removing following lines after debugging.
 		this.classifier = new VGGClassifier(neuronChannel);
 		this.classifier.paramSetRasterChannel(rasterChannel);
-		
-//		this.classifier.paramSetDropoutMode(false);
-//		this.classifier.paramSetResidualMode(false);
-//		this.classifier.paramSetGAP(false);
-//		this.classifier.paramSetLayerNorm(false);
-//		this.classifier.paramSetFiltersNumberMax(1);
-//		this.classifier.paramSetFiltersNumberInit(16);
-//		this.classifier.paramSetVGGMiddleSize(new Size(32, 32));
-//		System.out.println("net.ea.ann.classifier.VGGExt: Removing following lines after debugging.");
 		
 		try {
 			this.config.putAll(this.classifier.getConfig());
@@ -91,20 +81,6 @@ public class VGGExt extends NetworkAbstract implements Classifier {
 		}
 		return errorArray;
 	}
-
-	
-//	@Override
-//	public NeuronValue[] learnRaster(Iterable<Raster> sample) throws RemoteException {
-//		classifier.setConfig(this.config);
-//		
-//		classifier.initializeByCoreClassesWithImplicitMiddleSize(sample);
-//		for (int i = 0; i < classifier.size(); i++) {
-//			classifier.get(i).setWeightActivateRef(IdentityDefault.identity());
-//			classifier.get(i).setFilterActivateRef(IdentityDefault.identity());
-//		}
-//		
-//		return new NeuronValue[] {};
-//	}
 
 	
 	@Override

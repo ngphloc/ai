@@ -8,6 +8,7 @@
 package net.ea.ann.mane.filter;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Random;
 
 import net.ea.ann.core.function.Function;
@@ -15,8 +16,9 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.mane.Filter;
+import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
 import net.ea.ann.raster.Size;
@@ -211,6 +213,18 @@ public abstract class KernelFilter extends FilterAbstract {
 			this.bias = this.bias != null ? NeuronValue.add(this.bias, ((FKernel)kernel).bias) : null;
 			return this;
 		}
+		
+		/**
+		 * Adding other kernel.
+		 * @param kernel other kernel.
+		 * @return subtracted kernel.
+		 */
+		public FKernel subtract(Kernel kernel) {
+			this.W = this.W != null ? MatrixStack.subtract2(this.W, ((FKernel)kernel).W) : null;
+			this.Bias = this.Bias != null ? Matrix.subtract2(this.Bias, ((FKernel)kernel).Bias) : null;
+			this.bias = this.bias != null ? NeuronValue.subtract(this.bias, ((FKernel)kernel).bias) : null;
+			return this;
+		}
 
 		@Override
 		public FKernel multiply(double value) {
@@ -302,8 +316,9 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 
 		@Override
-		public void copyParameters(Kernel source) {
-			Kernel.super.copyParameters(source);
+		public FKernel copy(Kernel source) {
+			Kernel.super.copy(source);
+			
 			FKernel Source = (FKernel)source;
 			if (this.W != null) {
 				assert (Source.W != null && Source.W.length == this.W.length);
@@ -319,6 +334,35 @@ public abstract class KernelFilter extends FilterAbstract {
 				assert (Source.bias != null && Source.bias.length == this.bias.length);
 				for (int i = 0; i < this.bias.length; i++) this.bias[i] = Source.bias[i];
 			}
+			
+			return this;
+		}
+
+		@Override
+		protected Object clone() throws CloneNotSupportedException {
+			MatrixStack[] clonedW = null;
+			if (this.W != null) {
+				clonedW = new MatrixStack[this.W.length];
+				for (int i = 0; i < this.W.length; i++) {
+					clonedW[i] = (MatrixStack)this.W[i].create();
+					MatrixUtil.copy(this.W[i], clonedW[i]);
+				}
+			}
+			
+			Matrix[] clonedBias = null;
+			if (this.Bias != null) {
+				clonedBias = new Matrix[this.Bias.length];
+				for (int i = 0; i < this.Bias.length; i++) {
+					clonedBias[i] = this.Bias[i].create();
+					MatrixUtil.copy(this.Bias[i], clonedBias[i]);
+				}
+			}
+			
+			NeuronValue[] clonedbias = this.bias != null ? Arrays.copyOf(this.bias, this.bias.length) : null;
+			
+			FKernel clonedKernel = new FKernel(clonedW, clonedBias, clonedbias);
+			clonedKernel.optimizer = this.optimizer;
+			return clonedKernel;
 		}
 		
 	}
@@ -416,18 +460,39 @@ public abstract class KernelFilter extends FilterAbstract {
 				int prevX = thisX*strideWidth;
 				if (prevX >= prevWidth) continue;
 				
-				//Filtering
-				NeuronValue filteredValue = this.apply(time, prevY, prevX, prevLayers);
-				if (filteredValue == null) continue;
-				NeuronValue thisBias = this.bias(time, thisY, thisX);
-				if (thisBias != null)
-					filteredValue = filteredValue.add(thisBias);
-				if (bias != null) {
-					if (thisBias == null || Kernel.GLOBAL_BIAS) filteredValue = filteredValue.add(bias);
+				if (Kernel.speedMode(zero)) {
+					//Filtering
+					NeuronValue filteredValueV = this.apply(time, prevY, prevX, prevLayers);
+					if (filteredValueV == null) continue;
+					double filteredValue = ((NeuronValue1)filteredValueV).get();
+					
+					//Adding bias.
+					NeuronValue thisBias = this.bias(time, thisY, thisX);
+					if (thisBias != null) filteredValue += ((NeuronValue1)thisBias).get();
+					if (bias != null) {
+						if (thisBias == null || Kernel.GLOBAL_BIAS) filteredValue += ((NeuronValue1)bias).get();
+					}
+					
+					if (thisInputLayer != null) thisInputLayer.setv(thisY, thisX, filteredValue);
+					if (thisActivateRef != null) filteredValue = ((NeuronValue1)(new NeuronValue1(filteredValue).evaluate(thisActivateRef))).get();
+					if (thisOutputLayer != null) thisOutputLayer.setv(thisY, thisX, filteredValue);
 				}
-				if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, filteredValue);
-				if (thisActivateRef != null) filteredValue = filteredValue.evaluate(thisActivateRef);
-				if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
+				else {
+					//Filtering
+					NeuronValue filteredValue = this.apply(time, prevY, prevX, prevLayers);
+					if (filteredValue == null) continue;
+					
+					//Adding bias.
+					NeuronValue thisBias = this.bias(time, thisY, thisX);
+					if (thisBias != null) filteredValue = filteredValue.add(thisBias);
+					if (bias != null) {
+						if (thisBias == null || Kernel.GLOBAL_BIAS) filteredValue = filteredValue.add(bias);
+					}
+					
+					if (thisInputLayer != null) thisInputLayer.set(thisY, thisX, filteredValue);
+					if (thisActivateRef != null) filteredValue = filteredValue.evaluate(thisActivateRef);
+					if (thisOutputLayer != null) thisOutputLayer.set(thisY, thisX, filteredValue);
+				}
 			}
 		}
 	}
@@ -449,11 +514,6 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		else {
 			if (prevLayers.depth() != time() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
-			/*
-			if (summode || depth() != 1) {
-				if (Kernel.BILINEAR) throw new IllegalArgumentException();
-			}
-			*/
 		}
 		if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
 		
@@ -522,18 +582,36 @@ public abstract class KernelFilter extends FilterAbstract {
 				if (dPrevValue == null) continue;
 				assert (dPrevValue.width() == width() && dPrevValue.height() == height() && dPrevValue.depth() == depth());
 				
-				for (int i = 0; i < dPrevValue.depth(); i++) {
-					for (int j = 0; j < dPrevValue.get(i).rows(); j++) {
-						int prevRow = prevY + j;
-						if (prevRow >= prevHeight) continue;
-						for (int k = 0; k < dPrevValue.get(i).columns(); k++) {
-							int prevColumn = prevX + k;
-							if (prevColumn >= prevWidth) continue;
-							NeuronValue dv = dPrevValues[i].get(prevRow, prevColumn).add(dPrevValue.get(i).get(j, k));
-							dPrevValues[i].set(prevRow, prevColumn, dv);
+				if (Kernel.speedMode(zero)) {
+					for (int i = 0; i < dPrevValue.depth(); i++) {
+						for (int j = 0; j < dPrevValue.get(i).rows(); j++) {
+							int prevRow = prevY + j;
+							if (prevRow >= prevHeight) continue;
+							for (int k = 0; k < dPrevValue.get(i).columns(); k++) {
+								int prevColumn = prevX + k;
+								if (prevColumn >= prevWidth) continue;
+								
+								double dv = dPrevValues[i].getv(prevRow, prevColumn) + dPrevValue.get(i).getv(j, k);
+								dPrevValues[i].setv(prevRow, prevColumn, dv);
+							}
 						}
-					}
-				} //End dValues.
+					} //End dValues.
+				}
+				else {
+					for (int i = 0; i < dPrevValue.depth(); i++) {
+						for (int j = 0; j < dPrevValue.get(i).rows(); j++) {
+							int prevRow = prevY + j;
+							if (prevRow >= prevHeight) continue;
+							for (int k = 0; k < dPrevValue.get(i).columns(); k++) {
+								int prevColumn = prevX + k;
+								if (prevColumn >= prevWidth) continue;
+								
+								NeuronValue dv = dPrevValues[i].get(prevRow, prevColumn).add(dPrevValue.get(i).get(j, k));
+								dPrevValues[i].set(prevRow, prevColumn, dv);
+							}
+						}
+					} //End dValues.
+				}
 			}
 		}
 		
@@ -557,11 +635,6 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		else {
 			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			/*
-			if (summode || depth() != 1) {
-				if (Kernel.BILINEAR) throw new IllegalArgumentException();
-			}
-			*/
 		}
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
@@ -631,29 +704,76 @@ public abstract class KernelFilter extends FilterAbstract {
 		Matrix dBiases = this.kernel().Bias != null ? thisErrorLayer.create(new Size(thisErrorLayer.columns(), thisErrorLayer.rows())) : null;
 		NeuronValue dbiases = this.kernel().bias != null ? zero : null;
 
+		int kernelWidth = width(), kernelHeight = height(), kernelDepth = depth();
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
-		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int prevY = thisY*strideHeight;
-			if (prevY >= prevHeight) continue;
-			
-			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int prevX = thisX*strideWidth;
-				if (prevX >= prevWidth) continue;
+		
+		if (Kernel.speedMode(zero)) {
+			double dbiasesV = 0;
+			for (int thisY = 0; thisY < thisHeight; thisY++) {
+				int prevY = thisY*strideHeight;
+				if (prevY >= prevHeight) continue;
 				
-				//Calculating weight gradient.
-				BiasWeight dBiasWeight = this.dKernel(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
-				if (dBiasWeight == null) continue;
-				MatrixStack dKernel = dBiasWeight.W;
-				assert (dKernel.width() == width() && dKernel.height() == height() && dKernel.depth() == depth());
-				dKernels = (MatrixStack)dKernels.add(dKernel);
+				for (int thisX = 0; thisX < thisWidth; thisX++) {
+					int prevX = thisX*strideWidth;
+					if (prevX >= prevWidth) continue;
+					
+					//Calculating weight gradient.
+					BiasWeight dBiasWeight = this.dKernel(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
+					if (dBiasWeight == null) continue;
+					MatrixStack dK = dBiasWeight.W;
+					assert (dK != dKernels && dK.width() == kernelWidth && dK.height() == kernelHeight && dK.depth() == kernelDepth);
+					
+					/*
+					dKernels = (MatrixStack)dKernels.add(dK);
+					*/
+					for (int i = 0; i < kernelDepth; i++) {
+						Matrix dKernelsi = dKernels.get(i), dKi = dK.get(i);
+						for (int j = 0; j < kernelHeight; j++) {
+							for (int k = 0; k < kernelWidth; k++) {
+								dKernelsi.setv(j, k, dKernelsi.getv(j, k) + dKi.getv(j, k));
+							}
+						}
+					}
+					
+					//Calculating bias gradient.
+					//Improving following code lines later with matrix bias.
+					assert (dBiasWeight.bias != null && dBiasWeight.Bias == null);
+					if (dBiasWeight.bias != null) {
+						double b = ((NeuronValue1)dBiasWeight.bias).get();
+						if (dBiases != null) dBiases.setv(thisY, thisX, b);
+						if (dbiases != null) dbiasesV += b;
+					}
+				}
+			}
+			if (dbiases != null) dbiases = dbiases.valueOf(dbiasesV);
+		}
+		else {
+			for (int thisY = 0; thisY < thisHeight; thisY++) {
+				int prevY = thisY*strideHeight;
+				if (prevY >= prevHeight) continue;
 				
-				//Calculating bias gradient.
-				//Improving following code lines later with matrix bias.
-				assert (dBiasWeight.bias != null && dBiasWeight.Bias == null);
-				if (dBiases != null && dBiasWeight.bias != null) dBiases.set(thisY, thisX, dBiasWeight.bias);
-				if (dbiases != null && dBiasWeight.bias != null) dbiases = dbiases.add(dBiasWeight.bias);
+				for (int thisX = 0; thisX < thisWidth; thisX++) {
+					int prevX = thisX*strideWidth;
+					if (prevX >= prevWidth) continue;
+					
+					//Calculating weight gradient.
+					BiasWeight dBiasWeight = this.dKernel(time, thisY, thisX, prevInputLayers, prevOutputLayer, thisErrorLayer, thisActivateRef);
+					if (dBiasWeight == null) continue;
+					MatrixStack dK = dBiasWeight.W;
+					assert (dK != dKernels && dK.width() == kernelWidth && dK.height() == kernelHeight && dK.depth() == kernelDepth);
+					
+					dKernels = (MatrixStack)dKernels.add(dK);
+					
+					//Calculating bias gradient.
+					//Improving following code lines later with matrix bias.
+					assert (dBiasWeight.bias != null && dBiasWeight.Bias == null);
+					if (dBiasWeight.bias != null) {
+						if (dBiases != null) dBiases.set(thisY, thisX, dBiasWeight.bias);
+						if (dbiases != null) dbiases = dbiases.add(dBiasWeight.bias);
+					}
+				}
 			}
 		}
 		
@@ -677,10 +797,6 @@ public abstract class KernelFilter extends FilterAbstract {
 		}
 		else {
 			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			/*
-			if (summode || depth() != 1) {
-				if (FilterSpec.BILINEAR) throw new IllegalArgumentException();
-			}*/
 		}
 		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
@@ -725,6 +841,29 @@ public abstract class KernelFilter extends FilterAbstract {
 
 	
 	@Override
+	public Parameter pinit(Randomizer rnd) {
+		super.pinit(rnd);
+		
+		MatrixStack[] kernel = this.kernel().W;
+		for (MatrixStack ker : kernel) MatrixUtil.fill(ker, rnd);
+		
+		if (this.kernel().Bias != null) {
+			Matrix[] Biases = this.kernel().Bias;
+			NeuronValue zero = Biases[0].get(0, 0).zero();
+			for (int i = 0; i < Biases.length; i++) MatrixUtil.fill(Biases[i], zero);
+		}
+
+		if (this.kernel().bias != null) {
+			NeuronValue[] biases = this.kernel().bias;
+			NeuronValue zero = biases[0].zero();
+			for (int i = 0; i < biases.length; i++) biases[i] = zero;
+		}
+		
+		return this;
+	}
+
+
+	@Override
 	public int sizeOfParams() {
 		int size = 0;
 		MatrixStack[] kernel = this.kernel().W;
@@ -741,13 +880,67 @@ public abstract class KernelFilter extends FilterAbstract {
 
 
 	@Override
-	public void copyParameters(Filter source) {
-		super.copyParameters(source);
-		KernelFilter Source = (KernelFilter)source;
-		this.kernel().copyParameters(Source.kernel());
+	public Parameter pcopy(Parameter other) {
+		super.pcopy(other);
 		
-		if (this.width() != Source.width() || this.height() != Source.height() || this.depth() != Source.depth() || this.time() != Source.time()) throw new IllegalArgumentException();
-		if (this.getStrideWidth() != Source.getStrideWidth() || this.getStrideHeight() != Source.getStrideHeight()) throw new IllegalArgumentException();
+		KernelFilter Other = (KernelFilter)other;
+		this.kernel().copy(Other.kernel());
+		this.summode = Other.summode;
+		
+		if (this.width() != Other.width() || this.height() != Other.height() || this.depth() != Other.depth() || this.time() != Other.time()) throw new IllegalArgumentException();
+		if (this.getStrideWidth() != Other.getStrideWidth() || this.getStrideHeight() != Other.getStrideHeight()) throw new IllegalArgumentException();
+		
+		return this;
+	}
+
+
+	@Override
+	public Parameter padd(Parameter other) {
+		super.padd(other);
+		
+		KernelFilter Other = (KernelFilter)other;
+		this.kernel().add(Other.kernel());
+		return this;
+	}
+
+
+	@Override
+	public Parameter psubtract(Parameter other) {
+		super.psubtract(other);
+
+		KernelFilter Other = (KernelFilter)other;
+		this.kernel().subtract(Other.kernel());
+		return this;
+	}
+
+
+	@Override
+	public Parameter pmultiply(double factor) {
+		super.pmultiply(factor);
+
+		this.kernel().multiply(factor);
+		return this;
+	}
+
+
+	@Override
+	public Parameter pmultiplyRandom(Randomizer rnd) {
+		super.pmultiplyRandom(rnd);
+		
+		MatrixStack[] kernel = this.kernel().W;
+		for (MatrixStack ker : kernel) MatrixUtil.fillMulti(ker, rnd);
+		
+		if (this.kernel().Bias != null) {
+			Matrix[] Biases = this.kernel().Bias;
+			for (int i = 0; i < Biases.length; i++) MatrixUtil.fillMulti(Biases[i], rnd);
+		}
+
+		if (this.kernel().bias != null) {
+			NeuronValue[] biases = this.kernel().bias;
+			for (int i = 0; i < biases.length; i++) biases[i] = biases[i].multiply(rnd.rand());
+		}
+		
+		return this;
 	}
 
 

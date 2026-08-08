@@ -9,7 +9,6 @@ package net.ea.ann.classifier;
 
 import java.io.Serializable;
 
-import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.transformer.TransformerAssoc;
 
 /**
@@ -53,8 +52,8 @@ public class ForestAssoc implements Cloneable, Serializable {
 		for (ClassifierAbstract tree : forest.trees) {
 			if (tree instanceof MatrixClassifier) {
 				MatrixClassifier mac = (MatrixClassifier)tree;
-				size += new MatrixNetworkAssoc(mac.nut).sizeOfParams();
-				if (mac.adjuster != null) size += new MatrixNetworkAssoc(mac.adjuster).sizeOfParams();
+				size += mac.nut.sizeOfParams();
+				if (mac.adjuster != null) size += mac.adjuster.sizeOfParams();
 			}
 			else if (tree instanceof TransformerClassifier) {
 				TransformerClassifier tramac = (TransformerClassifier)tree;

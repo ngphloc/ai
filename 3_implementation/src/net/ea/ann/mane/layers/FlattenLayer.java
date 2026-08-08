@@ -14,6 +14,7 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.raster.Size;
@@ -115,12 +116,25 @@ public class FlattenLayer extends MatrixLayerImpl {
 		Matrix[] prevLayerOutputs = MatrixUtil.split(prevLayerOutput);
 		int depth = prevLayerOutputs.length, rows = prevLayerOutput.rows(), columns = prevLayerOutput.columns();
 		int index = 0;
-		for (int d = 0; d < depth; d++) {
-			for (int row = 0; row < rows; row++) {
-				for (int column = 0; column < columns; column++) {
-					NeuronValue value = prevLayerOutputs[d].get(row, column);
-					this.input.set(index, 0, value);
-					index++;
+		if (Kernel.speedMode(prevLayerOutputs[0].get(0, 0))) {
+			for (int d = 0; d < depth; d++) {
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double value = prevLayerOutputs[d].getv(row, column);
+						this.input.setv(index, 0, value);
+						index++;
+					}
+				}
+			}
+		}
+		else {
+			for (int d = 0; d < depth; d++) {
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue value = prevLayerOutputs[d].get(row, column);
+						this.input.set(index, 0, value);
+						index++;
+					}
 				}
 			}
 		}
@@ -151,25 +165,52 @@ public class FlattenLayer extends MatrixLayerImpl {
 				MatrixStack backwardErrors = (MatrixStack)backwardError;
 				int depth = backwardErrors.depth();
 				int depthLength = rows*columns;
-				for (int d = 0; d < depth; d++) {
-					int depthIndex = d*depthLength;
-					for (int row = 0; row < rows; row++) {
-						int rowIndex = depthIndex + row*columns;
-						for (int column = 0; column < columns; column++) {
-							int index = rowIndex + column;
-							backwardErrors.get(d).set(row, column, error.get(index, 0));
-							count++;
+				if (Kernel.speedMode(error.get(0, 0))) {
+					for (int d = 0; d < depth; d++) {
+						int depthIndex = d*depthLength;
+						for (int row = 0; row < rows; row++) {
+							int rowIndex = depthIndex + row*columns;
+							for (int column = 0; column < columns; column++) {
+								int index = rowIndex + column;
+								backwardErrors.get(d).setv(row, column, error.getv(index, 0));
+								count++;
+							}
+						}
+					}
+				}
+				else {
+					for (int d = 0; d < depth; d++) {
+						int depthIndex = d*depthLength;
+						for (int row = 0; row < rows; row++) {
+							int rowIndex = depthIndex + row*columns;
+							for (int column = 0; column < columns; column++) {
+								int index = rowIndex + column;
+								backwardErrors.get(d).set(row, column, error.get(index, 0));
+								count++;
+							}
 						}
 					}
 				}
 			}
 			else {
-				for (int row = 0; row < rows; row++) {
-					int rowIndex = row*columns;
-					for (int column = 0; column < columns; column++) {
-						int index = rowIndex + column;
-						backwardError.set(row, column, error.get(index, 0));
-						count++;
+				if (Kernel.speedMode(error.get(0, 0))) {
+					for (int row = 0; row < rows; row++) {
+						int rowIndex = row*columns;
+						for (int column = 0; column < columns; column++) {
+							int index = rowIndex + column;
+							backwardError.setv(row, column, error.getv(index, 0));
+							count++;
+						}
+					}
+				}
+				else {
+					for (int row = 0; row < rows; row++) {
+						int rowIndex = row*columns;
+						for (int column = 0; column < columns; column++) {
+							int index = rowIndex + column;
+							backwardError.set(row, column, error.get(index, 0));
+							count++;
+						}
 					}
 				}
 			}

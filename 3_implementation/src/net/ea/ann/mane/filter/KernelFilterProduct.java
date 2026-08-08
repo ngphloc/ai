@@ -17,8 +17,9 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
-import net.ea.ann.mane.Filter;
+import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.raster.Size;
 
 /**
@@ -28,7 +29,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class KernelFilterProduct extends KernelFilter implements TextParsable {
+public class KernelFilterProduct extends KernelFilter implements Parameter.CloneableParameter, TextParsable {
 
 
 	/**
@@ -52,13 +53,13 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 	/**
 	 * Stride width.
 	 */
-	private int strideWidth = 0;
+	int strideWidth = 0;
 	
 	
 	/**
 	 * Stride width.
 	 */
-	private int strideHeight = 0;
+	int strideHeight = 0;
 	
 	
 	/**
@@ -211,22 +212,45 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		NeuronValue zero = layers.get().get(0, 0).zero();
 		int layerWidth = layers.columns(), layerHeight = layers.rows();
 		
-		NeuronValue result = zero;
-		MatrixStack[] kernel = this.kernel.W;
-		for (int i = 0; i < kernelDepth; i++) {
-			for (int j = 0; j < kernelHeight; j++) {
-				int Y = y + j;
-				if (Y >= layerHeight) continue;
-				for (int k = 0; k < kernelWidth; k++) {
-					int X = x + k;
-					if (X >= layerWidth) continue;
-					NeuronValue value = summode ? layers.get(i).get(Y, X) :
-						layers.get(time).get(Y, X); //Please pay attention to this code line.
-					result = result.add(value.multiply(kernel[time].get(i).get(j, k)));
+		if (Kernel.speedMode(zero)) {
+			double result = 0;
+			MatrixStack[] kernel = this.kernel.W;
+			for (int i = 0; i < kernelDepth; i++) {
+				for (int j = 0; j < kernelHeight; j++) {
+					int Y = y + j;
+					if (Y >= layerHeight) continue;
+					for (int k = 0; k < kernelWidth; k++) {
+						int X = x + k;
+						if (X >= layerWidth) continue;
+						
+						double value = summode ? layers.get(i).getv(Y, X) :
+							layers.get(time).getv(Y, X); //Please pay attention to this code line.
+						result += value*kernel[time].get(i).getv(j, k);
+					}
 				}
 			}
+			result = this.weight != null ? result*((NeuronValue1)this.weight).get() : result;
+			return zero.valueOf(result);
 		}
-		return this.weight != null ? result.multiply(this.weight) : result;
+		else {
+			NeuronValue result = zero;
+			MatrixStack[] kernel = this.kernel.W;
+			for (int i = 0; i < kernelDepth; i++) {
+				for (int j = 0; j < kernelHeight; j++) {
+					int Y = y + j;
+					if (Y >= layerHeight) continue;
+					for (int k = 0; k < kernelWidth; k++) {
+						int X = x + k;
+						if (X >= layerWidth) continue;
+						
+						NeuronValue value = summode ? layers.get(i).get(Y, X) :
+							layers.get(time).get(Y, X); //Please pay attention to this code line.
+						result = result.add(value.multiply(kernel[time].get(i).get(j, k)));
+					}
+				}
+			}
+			return this.weight != null ? result.multiply(this.weight) : result;
+		}
 	}
 	
 
@@ -239,17 +263,34 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
 		if (derivative != null) thisError = derivative.multiplyWise(thisError);
 		MatrixStack[] kernel = this.kernel.W;
-		for (int i = 0; i < kernelDepth; i++) {
-			dValues[i] = prevInputLayers.get().create(new Size(kernelWidth, kernelHeight));
-			for (int j = 0; j < kernelHeight; j++) {
-				for (int k = 0; k < kernelWidth; k++) {
-					NeuronValue kernelValue = kernel[time].get(i).get(j, k);
-					NeuronValue prevError = kernelValue.multiply(thisError);
-					dValues[i].set(j, k, this.weight != null ? prevError.multiply(this.weight) : prevError);
+		
+		if (Kernel.speedMode(thisError.zero())) {
+			double thisErrorV = ((NeuronValue1)thisError).get();
+			for (int i = 0; i < kernelDepth; i++) {
+				dValues[i] = prevInputLayers.get().create(new Size(kernelWidth, kernelHeight));
+				for (int j = 0; j < kernelHeight; j++) {
+					for (int k = 0; k < kernelWidth; k++) {
+						double kernelValue = kernel[time].get(i).getv(j, k);
+						double prevError = kernelValue*thisErrorV;
+						dValues[i].setv(j, k, this.weight != null ? prevError*((NeuronValue1)this.weight).get() : prevError);
+					}
 				}
 			}
+			return new MatrixStack(dValues);
 		}
-		return new MatrixStack(dValues);
+		else {
+			for (int i = 0; i < kernelDepth; i++) {
+				dValues[i] = prevInputLayers.get().create(new Size(kernelWidth, kernelHeight));
+				for (int j = 0; j < kernelHeight; j++) {
+					for (int k = 0; k < kernelWidth; k++) {
+						NeuronValue kernelValue = kernel[time].get(i).get(j, k);
+						NeuronValue prevError = kernelValue.multiply(thisError);
+						dValues[i].set(j, k, this.weight != null ? prevError.multiply(this.weight) : prevError);
+					}
+				}
+			}
+			return new MatrixStack(dValues);
+		}
 	}
 
 
@@ -269,25 +310,53 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 		if (derivative != null) thisError = derivative.multiplyWise(thisError);
 		Matrix[] dKernels = new Matrix[kernelDepth];
 		MatrixStack[] kernel = this.kernel.W;
-		NeuronValue dbiases = thisError.zero();
-		for (int i = 0; i < kernelDepth; i++) {
-			dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
-			MatrixUtil.fill(dKernels[i], zero);
-			for (int j = 0; j < kernelHeight; j++) {
-				int PREVY = prevY + j;
-				if (PREVY >= prevHeight) continue;
-				for (int k = 0; k < kernelWidth; k++) {
-					int PREVX = prevX + k;
-					if (PREVX >= prevWidth) continue;
-					NeuronValue prevInput = summode ? prevInputLayers.get(i).get(PREVY, PREVX) :
-						prevInputLayers.get(time).get(PREVY, PREVX); //Please pay attention to this code line.
-					NeuronValue dKernel = prevInput.multiply(thisError);
-					dKernels[i].set(j, k, this.weight != null ? dKernel.multiply(this.weight) : dKernel);
-					dbiases = dbiases.add(thisError);
+		NeuronValue dbiases = zero;
+		
+		if (Kernel.speedMode(zero)) {
+			double thisErrorV = ((NeuronValue1)thisError).get();
+			double dbiasesV = 0;
+			for (int i = 0; i < kernelDepth; i++) {
+				dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
+				MatrixUtil.fill(dKernels[i], zero);
+				for (int j = 0; j < kernelHeight; j++) {
+					int PREVY = prevY + j;
+					if (PREVY >= prevHeight) continue;
+					for (int k = 0; k < kernelWidth; k++) {
+						int PREVX = prevX + k;
+						if (PREVX >= prevWidth) continue;
+						
+						double prevInput = summode ? prevInputLayers.get(i).getv(PREVY, PREVX) :
+							prevInputLayers.get(time).getv(PREVY, PREVX); //Please pay attention to this code line.
+						double dKernel = prevInput*thisErrorV;
+						dKernels[i].setv(j, k, this.weight != null ? dKernel*((NeuronValue1)this.weight).get() : dKernel);
+						dbiasesV += thisErrorV;
+					}
 				}
 			}
+			dbiases = dbiases.valueOf(dbiasesV);
+			return new BiasWeight(new MatrixStack(dKernels), null, dbiases);
 		}
-		return new BiasWeight(new MatrixStack(dKernels), null, dbiases);
+		else {
+			for (int i = 0; i < kernelDepth; i++) {
+				dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
+				MatrixUtil.fill(dKernels[i], zero);
+				for (int j = 0; j < kernelHeight; j++) {
+					int PREVY = prevY + j;
+					if (PREVY >= prevHeight) continue;
+					for (int k = 0; k < kernelWidth; k++) {
+						int PREVX = prevX + k;
+						if (PREVX >= prevWidth) continue;
+						
+						NeuronValue prevInput = summode ? prevInputLayers.get(i).get(PREVY, PREVX) :
+							prevInputLayers.get(time).get(PREVY, PREVX); //Please pay attention to this code line.
+						NeuronValue dKernel = prevInput.multiply(thisError);
+						dKernels[i].set(j, k, this.weight != null ? dKernel.multiply(this.weight) : dKernel);
+						dbiases = dbiases.add(thisError);
+					}
+				}
+			}
+			return new BiasWeight(new MatrixStack(dKernels), null, dbiases);
+		}
 	}
 	
 
@@ -299,14 +368,44 @@ public class KernelFilterProduct extends KernelFilter implements TextParsable {
 
 	
 	@Override
-	public void copyParameters(Filter source) {
-		super.copyParameters(source);
-		KernelFilterProduct Source = (KernelFilterProduct)source;
+	public Parameter pinit(Randomizer rnd) {
+		super.pinit(rnd);
+		this.weight = this.weight != null ? this.weight.unit() : null;
+		return this;
+	}
+
+
+	@Override
+	public Parameter pmultiplyRandom(Randomizer rnd) {
+		super.pmultiplyRandom(rnd);
+		this.weight = this.weight != null ? this.weight.unit() : null;
+		return this;
+	}
+
+
+	@Override
+	public Parameter pcopy(Parameter other) {
+		super.pcopy(other);
 		
+		KernelFilterProduct Other = (KernelFilterProduct)other;
 		if (this.weight != null) {
-			if (Source.weight == null) throw new IllegalArgumentException();
-			this.weight = Source.weight;
+			if (Other.weight == null) throw new IllegalArgumentException();
+			this.weight = Other.weight;
 		}
+		this.strideWidth = Other.strideWidth;
+		this.strideHeight = Other.strideHeight;
+		
+		return this;
+	}
+
+
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		FKernel clonedKernel = (FKernel)this.kernel.clone();
+		KernelFilterProduct cloned = new KernelFilterProduct(clonedKernel, this.weight);
+		cloned.strideWidth = this.strideWidth;
+		cloned.strideHeight = this.strideHeight;
+		return cloned;
 	}
 
 

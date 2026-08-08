@@ -1010,7 +1010,7 @@ class VGGExt extends VGG {
 	 * @param learningRate learning rate.
 	 * @return backward error.
 	 */
-	protected Error[] learnRaster(Iterable<Raster> sample, double learningRate) {
+	Error[] learnRaster(Iterable<Raster> sample, double learningRate) {
 		Error[] outputErrors = null;
 		if (trainers.size() == 0) {
 			List<Error> outputErrorList = Util.newList(0);

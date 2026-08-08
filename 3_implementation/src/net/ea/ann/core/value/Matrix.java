@@ -10,6 +10,8 @@ package net.ea.ann.core.value;
 import java.util.Random;
 
 import net.ea.ann.core.function.Function;
+import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.raster.Size;
 
 /**
@@ -354,6 +356,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param matrix2 matrix 2.
 	 * @return true if two matrices are equal.
 	 */
+	@Deprecated
 	static boolean equals(Matrix matrix1, Matrix matrix2) {
 		if (matrix1.rows() != matrix2.rows() || matrix1.columns() != matrix2.columns()) return false;
 		int rows = matrix1.rows(), columns = matrix1.columns();
@@ -372,6 +375,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param matrix2 matrix 2.
 	 * @return true if two matrices are equal in elemental reference.
 	 */
+	@Deprecated
 	static boolean refEquals(Matrix matrix1, Matrix matrix2) {
 		if (matrix1.rows() != matrix2.rows() || matrix1.columns() != matrix2.columns()) return false;
 		int rows = matrix1.rows(), columns = matrix1.columns();
@@ -391,19 +395,33 @@ public interface Matrix extends NeuronValueCreator {
 	 */
 	static NeuronValue valueSum(Matrix...matrices) {
 		if (matrices == null || matrices.length == 0) return null;
-		NeuronValue sum = null;
-		for (Matrix matrix : matrices) {
-			for (int i = 0; i < matrix.rows(); i++) {
-				for (int j = 0; j < matrix.columns(); j++) {
-					NeuronValue value = matrix.get(i, j);
-					if (sum == null)
-						sum = value;
-					else
-						sum = sum.add(value);
+		NeuronValue zero = matrices[0].get(0, 0);
+		if (Kernel.speedMode(zero)) {
+			double sum = 0;
+			for (Matrix matrix : matrices) {
+				for (int i = 0; i < matrix.rows(); i++) {
+					for (int j = 0; j < matrix.columns(); j++) {
+						sum += matrix.getv(i, j);
+					}
 				}
 			}
+			return zero.valueOf(sum);
 		}
-		return sum;
+		else {
+			NeuronValue sum = null;
+			for (Matrix matrix : matrices) {
+				for (int i = 0; i < matrix.rows(); i++) {
+					for (int j = 0; j < matrix.columns(); j++) {
+						NeuronValue value = matrix.get(i, j);
+						if (sum == null)
+							sum = value;
+						else
+							sum = sum.add(value);
+					}
+				}
+			}
+			return sum;
+		}
 	}
 
 	
@@ -414,21 +432,37 @@ public interface Matrix extends NeuronValueCreator {
 	 */
 	static NeuronValue valueMean(Matrix...matrices) {
 		if (matrices == null || matrices.length == 0) return null;
-		NeuronValue mean = null;
-		int N = 0;
-		for (Matrix matrix : matrices) {
-			for (int i = 0; i < matrix.rows(); i++) {
-				for (int j = 0; j < matrix.columns(); j++) {
-					NeuronValue value = matrix.get(i, j);
-					if (mean == null)
-						mean = value;
-					else
-						mean = mean.add(value);
-					N++;
+		NeuronValue zero = matrices[0].get(0, 0);
+		if (Kernel.speedMode(zero)) {
+			double mean = 0;
+			int N = 0;
+			for (Matrix matrix : matrices) {
+				for (int i = 0; i < matrix.rows(); i++) {
+					for (int j = 0; j < matrix.columns(); j++) {
+						mean += matrix.getv(i, j);
+						N++;
+					}
 				}
 			}
+			return zero.valueOf(mean/(double)N);
 		}
-		return mean.divide((double)N);
+		else {
+			NeuronValue mean = null;
+			int N = 0;
+			for (Matrix matrix : matrices) {
+				for (int i = 0; i < matrix.rows(); i++) {
+					for (int j = 0; j < matrix.columns(); j++) {
+						NeuronValue value = matrix.get(i, j);
+						if (mean == null)
+							mean = value;
+						else
+							mean = mean.add(value);
+						N++;
+					}
+				}
+			}
+			return mean.divide((double)N);
+		}
 	}
 
 	
@@ -439,19 +473,37 @@ public interface Matrix extends NeuronValueCreator {
 	 */
 	static NeuronValue valueVariance(Matrix...matrices) {
 		if (matrices == null || matrices.length == 0) return null;
-		NeuronValue mean = valueMean(matrices);
-		int N = 0;
-		NeuronValue variance = null;
-		for (Matrix matrix : matrices) {
-			for (int i = 0; i < matrix.rows(); i++) {
-				for (int j = 0; j < matrix.columns(); j++) {
-					NeuronValue d = matrix.get(i, j).subtract(mean);
-					variance = variance != null ? variance.add(d.multiply(d)) : d.multiply(d);
-					N++;
+		NeuronValue zero = matrices[0].get(0, 0);
+		if (Kernel.speedMode(zero)) {
+			double mean = ((NeuronValue1)valueMean(matrices)).get();
+			int N = 0;
+			double variance = 0;
+			for (Matrix matrix : matrices) {
+				for (int i = 0; i < matrix.rows(); i++) {
+					for (int j = 0; j < matrix.columns(); j++) {
+						double d = matrix.getv(i, j) - mean;
+						variance += d*d;
+						N++;
+					}
 				}
 			}
+			return zero.valueOf(variance/(double)N);
 		}
-		return variance.divide((double)N);
+		else {
+			NeuronValue mean = valueMean(matrices);
+			int N = 0;
+			NeuronValue variance = null;
+			for (Matrix matrix : matrices) {
+				for (int i = 0; i < matrix.rows(); i++) {
+					for (int j = 0; j < matrix.columns(); j++) {
+						NeuronValue d = matrix.get(i, j).subtract(mean);
+						variance = variance != null ? variance.add(d.multiply(d)) : d.multiply(d);
+						N++;
+					}
+				}
+			}
+			return variance.divide((double)N);
+		}
 	}
 
 	
@@ -500,6 +552,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param matrix matrix.
 	 * @return max value of matrix.
 	 */
+	@Deprecated
 	static NeuronValue valueMax(Matrix matrix) {
 		NeuronValue max = matrix.get(0, 0);
 		for (int row = 0; row < matrix.rows(); row++) {
@@ -515,6 +568,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param matrices array of matrices.
 	 * @return minimum matrix.
 	 */
+	@Deprecated
 	static Matrix min(Matrix...matrices) {
 		if (matrices == null || matrices.length == 0) return null;
 		Matrix min = matrices[0];
@@ -536,6 +590,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param matrices array of matrices.
 	 * @return minimum matrix.
 	 */
+	@Deprecated
 	static Matrix max(Matrix...matrices) {
 		if (matrices == null || matrices.length == 0) return null;
 		Matrix max = matrices[0];
@@ -597,11 +652,13 @@ public interface Matrix extends NeuronValueCreator {
 
 	
 	/**
-	 * Calculating mean array.
+	 * Calculating mean arrays.
 	 * @param arrays arrays.
 	 * @return mean array.
 	 */
-	static Matrix[] mean2(Matrix[]...arrays) {
+	@SuppressWarnings("unused")
+	@Deprecated
+	private static Matrix[] mean2(Matrix[]...arrays) {
 		if (arrays == null || arrays.length == 0) return null;
 		Matrix[] mean = sum2(arrays);
 		if (mean == null) return null;
@@ -609,6 +666,22 @@ public interface Matrix extends NeuronValueCreator {
 		return mean;
 	}
 	
+	
+	/**
+	 * Calculating subtracted arrays.
+	 * @param arrays1 arrays 1.
+	 * @param arrays2 arrays 1.
+	 * @return subtracted array.
+	 */
+	public static Matrix[] subtract2(Matrix[] arrays1, Matrix[] arrays2) {
+		assert (arrays1 != null && arrays2 != null && arrays1.length == arrays2.length && arrays1.length > 0);
+		Matrix[] result = new Matrix[arrays1.length];
+		for (int j = 0; j < result.length; j++) {
+			result[j] = arrays1[j].subtract(arrays2[j]);
+		}
+		return result;
+	}
+
 	
 	/**
 	 * Multiplying stacks by value.
@@ -648,6 +721,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param matrix2 matrix 2.
 	 * @return mean absolute value of two matrices.
 	 */
+	@Deprecated
 	static NeuronValue mae(Matrix matrix1, Matrix matrix2) {
 		int rows = Math.min(matrix1.rows(), matrix2.rows());
 		int columns = Math.min(matrix1.columns(), matrix2.columns());
@@ -669,6 +743,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param matrices array of matrices.
 	 * @return standard deviation matrix.
 	 */
+	@Deprecated
 	static Matrix std(Matrix...matrices) {
 		if (matrices == null || matrices.length == 0) return null;
 		Matrix mean = mean(matrices);
@@ -698,6 +773,22 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param size size.
 	 */
 	Matrix create(Size size);
+	
+	
+	/**
+	 * Creating matrix with rows and columns.
+	 * @param rows rows.
+	 * @param columns columns.
+	 * @return matrix with the same size.
+	 */
+	default Matrix create(int rows, int columns) {return create(new Size(columns, rows, MatrixUtil.depth(this)));}
+
+	
+	/**
+	 * Creating matrix with the same size.
+	 * @return matrix with the same size.
+	 */
+	default Matrix create() {return create(new Size(columns(), rows(), MatrixUtil.depth(this)));}
 	
 	
 	/**
@@ -744,8 +835,15 @@ public interface Matrix extends NeuronValueCreator {
 		if (source == null || target == null) return;
 		int rows = Math.min(source.rows(), target.rows());
 		int columns = Math.min(source.columns(), target.columns());
-		for (int i = 0; i < rows; i++) {
-			for (int j = 0; j < columns; j++) target.set(i, j, source.get(i, j));
+		if (Kernel.speedMode(source.get(0, 0))) {
+			for (int i = 0; i < rows; i++) {
+				for (int j = 0; j < columns; j++) target.setv(i, j, source.getv(i, j));
+			}
+		}
+		else {
+			for (int i = 0; i < rows; i++) {
+				for (int j = 0; j < columns; j++) target.set(i, j, source.get(i, j));
+			}
 		}
 	}
 
@@ -755,6 +853,7 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param source source array.
 	 * @param target target matrix.
 	 */
+	@Deprecated
 	static void copy(NeuronValue[] source, Matrix target) {
 		if (source == null || target == null) return;
 		int rows = target.rows();
@@ -776,8 +875,16 @@ public interface Matrix extends NeuronValueCreator {
 	 * @return filled matrix.
 	 */
 	static void fill(Matrix matrix, NeuronValue value) {
-		for (int i = 0; i < matrix.rows(); i++) {
-			for (int j = 0; j < matrix.columns(); j++) matrix.set(i, j, value);
+		if (Kernel.speedMode(value)) {
+			double v = ((NeuronValue1)value).get();
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) matrix.setv(i, j, v);
+			}
+		}
+		else {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) matrix.set(i, j, value);
+			}
 		}
 	}
 	
@@ -789,8 +896,17 @@ public interface Matrix extends NeuronValueCreator {
 	 * @return filled matrix.
 	 */
 	static void fill(Matrix matrix, double v) {
-		NeuronValue value = matrix.get(0, 0).valueOf(v);
-		fill(matrix, value);
+		if (Kernel.speedMode(matrix.get(0, 0))) {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) matrix.setv(i, j, v);
+			}
+		}
+		else {
+			NeuronValue value = matrix.get(0, 0).valueOf(v);
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) matrix.set(i, j, value);
+			}
+		}
 	}
 	
 	
@@ -856,10 +972,19 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param rnd randomizer.
 	 */
 	static void fill(Matrix matrix, Random rnd) {
-		for (int i = 0; i < matrix.rows(); i++) {
-			for (int j = 0; j < matrix.columns(); j++) {
-				NeuronValue value = matrix.get(i, j).valueOf(NeuronValue.r(rnd));
-				matrix.set(i, j, value);
+		if (Kernel.speedMode(matrix.get(0, 0))) {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					matrix.setv(i, j, NeuronValue.r(rnd));
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					NeuronValue value = matrix.get(i, j).valueOf(NeuronValue.r(rnd));
+					matrix.set(i, j, value);
+				}
 			}
 		}
 	}
@@ -872,10 +997,67 @@ public interface Matrix extends NeuronValueCreator {
 	 * @param fanIn the number of incoming connections.
 	 */
 	static void fill(Matrix matrix, Random rnd, int fanIn) {
-		for (int i = 0; i < matrix.rows(); i++) {
-			for (int j = 0; j < matrix.columns(); j++) {
-				NeuronValue value = matrix.get(i, j).valueOf(NeuronValue.rHe(rnd, fanIn));
-				matrix.set(i, j, value);
+		if (Kernel.speedMode(matrix.get(0, 0))) {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					matrix.setv(i, j, NeuronValue.rHe(rnd, fanIn));
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					NeuronValue value = matrix.get(i, j).valueOf(NeuronValue.rHe(rnd, fanIn));
+					matrix.set(i, j, value);
+				}
+			}
+		}
+	}
+
+	
+	/**
+	 * Filling matrix by randomizer.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 */
+	static void fill(Matrix matrix, Parameter.Randomizer rnd) {
+		if (Kernel.speedMode(matrix.get(0, 0))) {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					matrix.setv(i, j, rnd.rand());
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					NeuronValue value = matrix.get(i, j).valueOf(rnd.rand());
+					matrix.set(i, j, value);
+				}
+			}
+		}
+	}
+
+	
+	/**
+	 * Filling matrix by randomizer.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 */
+	static void fillMulti(Matrix matrix, Parameter.Randomizer rnd) {
+		if (Kernel.speedMode(matrix.get(0, 0))) {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					matrix.setv(i, j, matrix.getv(i, j)*rnd.rand());
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < matrix.rows(); i++) {
+				for (int j = 0; j < matrix.columns(); j++) {
+					NeuronValue value = matrix.get(i, j).valueOf(rnd.rand());
+					matrix.set(i, j, matrix.get(i, j).multiply(value));
+				}
 			}
 		}
 	}

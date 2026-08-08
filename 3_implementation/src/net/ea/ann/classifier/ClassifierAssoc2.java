@@ -58,14 +58,7 @@ class ClassifierAssoc2 extends ClassifierAssoc {
 		if (dataset <= 0) dataset = defaultDataset;
 		printer.println("Dataset is " + dataset + "\n");
 
-		switch (dataset) {
-		case 0:
-			classifyCIFAR10(in, out);
-			break;
-		default:
-			classifyCIFAR10(in, out);
-			break;
-		}
+		classify(in, out, dataset);
 	}
 
 	

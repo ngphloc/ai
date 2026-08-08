@@ -7,15 +7,12 @@
  */
 package net.ea.ann.mane.weight;
 
-import java.util.Random;
-
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Kernel;
-import net.ea.ann.mane.MatrixNetworkAssoc;
-import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.mane.ParameterNetwork;
 import net.ea.ann.mane.Weight;
 import net.ea.ann.mane.WeightSpec.KernelType;
 import net.ea.ann.raster.Size;
@@ -26,7 +23,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-abstract class WeightNetwork extends MatrixNetworkImpl implements NetworkWeight {
+abstract class WeightNetwork extends ParameterNetwork implements NetworkWeight {
 
 
 	/**
@@ -103,14 +100,6 @@ abstract class WeightNetwork extends MatrixNetworkImpl implements NetworkWeight 
 	public Matrix dValue(Matrix prevOutput, Matrix thisError, boolean learning, double learningRate) {
 		return backward(new Error[] {new Error(thisError)}, null, learning, learningRate)[0].error();
 	}
-
-
-	@Override
-	public void initParams(Random rnd) {new MatrixNetworkAssoc(this).initParams(rnd);}
-
-
-	@Override
-	public int sizeOfParams() {return new MatrixNetworkAssoc(this).sizeOfParams();}
 
 
 }

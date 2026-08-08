@@ -12,6 +12,8 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.core.value.NeuronValue1;
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
 /**
@@ -55,10 +57,19 @@ public class GAP extends PoolFilter {
 		int depth = prevLayers.depth();
 		if (thisInputLayer.rows() != depth || thisOutputLayer.rows() != depth) throw new IllegalArgumentException();
 		
-		for (int d = 0; d < depth; d++) {
-			NeuronValue mean = MatrixUtil.valueMean(prevLayers.get(d));
-			thisInputLayer.set(d, 0, mean);
-			thisOutputLayer.set(d, 0, mean);
+		if (Kernel.speedMode(thisOutputLayer.get(0, 0))) {
+			for (int d = 0; d < depth; d++) {
+				double mean = ((NeuronValue1)MatrixUtil.valueMean(prevLayers.get(d))).get();
+				thisInputLayer.setv(d, 0, mean);
+				thisOutputLayer.setv(d, 0, mean);
+			}
+		}
+		else {
+			for (int d = 0; d < depth; d++) {
+				NeuronValue mean = MatrixUtil.valueMean(prevLayers.get(d));
+				thisInputLayer.set(d, 0, mean);
+				thisOutputLayer.set(d, 0, mean);
+			}
 		}
 	}
 
@@ -78,15 +89,26 @@ public class GAP extends PoolFilter {
 		if (prevOutputLayer.rows() != depth || thisErrorLayer.rows() != depth) throw new IllegalArgumentException();
 
 		Matrix[] dPrevValues = new Matrix[depth];
-		for (int d = 0; d < depth; d++) {
-			int rows = prevInputLayers.rows(), columns = prevInputLayers.columns();
-			dPrevValues[d] = prevInputLayers.get().create(new Size(columns, rows));
-			
-			int size = rows*columns;
-			NeuronValue error = thisErrorLayer.get(d, 0).divide(size);
-			MatrixUtil.fill(dPrevValues[d], error);
-		}
+		int rows = prevInputLayers.rows(), columns = prevInputLayers.columns();
+		double size = rows*columns;
 		
+		if (Kernel.speedMode(thisErrorLayer.get(0, 0))) {
+			for (int d = 0; d < depth; d++) {
+				dPrevValues[d] = prevInputLayers.get().create(new Size(columns, rows));
+				
+				double error = thisErrorLayer.getv(d, 0) / size;
+				MatrixUtil.fill(dPrevValues[d], error);
+			}
+		}
+		else {
+			for (int d = 0; d < depth; d++) {
+				dPrevValues[d] = prevInputLayers.get().create(new Size(columns, rows));
+				
+				NeuronValue error = thisErrorLayer.get(d, 0).divide(size);
+				MatrixUtil.fill(dPrevValues[d], error);
+			}
+		}
+
 		return dPrevValues.length == 1 ? dPrevValues[0] : new MatrixStack(dPrevValues);
 	}
 

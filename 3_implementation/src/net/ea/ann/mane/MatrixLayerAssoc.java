@@ -8,7 +8,6 @@
 package net.ea.ann.mane;
 
 import java.io.Serializable;
-import java.util.Random;
 
 import net.ea.ann.conv.ConvLayer2DImpl;
 import net.ea.ann.conv.ConvLayerSingle2D;
@@ -71,13 +70,6 @@ public class MatrixLayerAssoc implements Cloneable, Serializable {
 //			}
 //		}
 //	}
-
-	
-	/**
-	 * Initializing parameters.
-	 * @param rnd randomizer.
-	 */
-	public void initParams(Random rnd) {layer.initParams(rnd);}
 
 	
 	/**

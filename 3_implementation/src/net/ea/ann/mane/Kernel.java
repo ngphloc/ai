@@ -9,6 +9,8 @@ package net.ea.ann.mane;
 
 import java.io.Serializable;
 
+import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
 
@@ -41,7 +43,7 @@ public interface Kernel extends Cloneable, Serializable {
 	
 	/**
 	 * Bilinear layers flag.
-	 * If this flag is true, the accuracy is higher. If this flag is flag, sum is always, which make the accuracy stabler but lower.
+	 * If this flag is true, the accuracy may be higher. If this flag is false, sum is always, which make the accuracy stabler but (maybe) lower.
 	 * The true flag is effective when the number of filters is large enough.
 	 */
 	final boolean BILINEAR = true; //false;
@@ -73,6 +75,12 @@ public interface Kernel extends Cloneable, Serializable {
 	final double GRAD_NORM_MAX_DEFAULT = 1.0;
 
 
+	/**
+	 * Speed mode flag.
+	 */
+	final boolean SPEED_MODE = true;
+	
+	
 //	/**
 //	 * Matrix normalization flag.
 //	 */
@@ -160,7 +168,7 @@ public interface Kernel extends Cloneable, Serializable {
 	 * Copying from source kernel.
 	 * @param source source kernel.
 	 */
-	default void copyParameters(Kernel source) {}
+	default Kernel copy(Kernel source) {return this;}
 
 	
 	/**
@@ -198,6 +206,16 @@ public interface Kernel extends Cloneable, Serializable {
 	static Kernel mean(Kernel[] kernels) {
 		Kernel sum = sum(kernels);
 		return sum.divide(kernels.length);
+	}
+	
+	
+	/**
+	 * Checking speed mode.
+	 * @param hint hinting value.
+	 * @return speed mode.
+	 */
+	static boolean speedMode(NeuronValue hint) {
+		return hint instanceof NeuronValue1 && Kernel.SPEED_MODE;
 	}
 	
 	

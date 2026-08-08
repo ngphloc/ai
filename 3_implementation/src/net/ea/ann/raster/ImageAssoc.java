@@ -69,7 +69,7 @@ public class ImageAssoc implements Cloneable, Serializable {
 	/**
 	 * Loading buffered image flag.
 	 */
-	private final static boolean CIFAR10_LOAD_BUFFERED_IMAGE = true;
+	private final static boolean CIFAR10_LOAD_BUFFERED_IMAGE = false;
 	
 	
 	/**

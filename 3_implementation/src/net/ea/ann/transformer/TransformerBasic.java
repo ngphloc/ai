@@ -27,11 +27,10 @@ import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixLayerExt;
 import net.ea.ann.mane.MatrixNetworkAbstract;
-import net.ea.ann.mane.MatrixNetworkAssoc;
 import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.TaskTrainer;
-import net.ea.ann.mane.MatrixNetworkImpl.TrainingFlag;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Size;
 
@@ -1589,8 +1588,8 @@ class TransformerBlock implements Cloneable, Serializable {
 	 */
 	static void initParams(TransformerBlock block, Random rnd) {
 		if (block.attention != null) Attention.initParams(block.attention, rnd);
-		if (block.ffn != null) new MatrixNetworkAssoc(block.ffn).initParams(rnd);
-		if (block.outputAdapter != null) new MatrixNetworkAssoc(block.outputAdapter).initParams(rnd);
+		if (block.ffn != null) block.ffn.initParams(rnd);
+		if (block.outputAdapter != null) block.outputAdapter.initParams(rnd);
 	}
 
 

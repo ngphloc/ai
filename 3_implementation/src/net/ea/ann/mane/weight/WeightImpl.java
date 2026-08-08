@@ -18,6 +18,7 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.mane.Weight;
 import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
@@ -114,6 +115,18 @@ public class WeightImpl implements Weight, TextParsable {
 			this.bias = this.bias != null ? Matrix.sum2(this.bias, ((WKernel)kernel).bias) : null;
 			return this;
 		}
+		
+		/**
+		 * Subtracting other kernel.
+		 * @param kernel other kernel.
+		 * @return subtracted kernel.
+		 */
+		public WKernel subtract(Kernel kernel) {
+			this.W1 = this.W1 != null ? MatrixStack.subtract2(this.W1, ((WKernel)kernel).W1) : null;
+			this.W2 = this.W2 != null ? MatrixStack.subtract2(this.W2, ((WKernel)kernel).W2) : null;
+			this.bias = this.bias != null ? Matrix.subtract2(this.bias, ((WKernel)kernel).bias) : null;
+			return this;
+		}
 
 		@Override
 		public WKernel multiply(double value) {
@@ -183,8 +196,8 @@ public class WeightImpl implements Weight, TextParsable {
 		}
 
 		@Override
-		public void copyParameters(Kernel source) {
-			Kernel.super.copyParameters(source);
+		public WKernel copy(Kernel source) {
+			Kernel.super.copy(source);
 			WKernel Source = (WKernel)source;
 			if (this.W1 != null) {
 				assert (Source.W1 != null && Source.W1.length == this.W1.length);
@@ -200,6 +213,42 @@ public class WeightImpl implements Weight, TextParsable {
 				assert (Source.bias != null && Source.bias.length == this.bias.length);
 				for (int i = 0; i < this.bias.length; i++) MatrixUtil.copy(Source.bias[i], this.bias[i]);
 			}
+			
+			return this;
+		}
+
+		@Override
+		protected Object clone() throws CloneNotSupportedException {
+			MatrixStack[] clonedW1 = null;
+			if (this.W1 != null) {
+				clonedW1 = new MatrixStack[this.W1.length];
+				for (int i = 0; i < this.W1.length; i++) {
+					clonedW1[i] = (MatrixStack)this.W1[i].create();
+					MatrixUtil.copy(this.W1[i], clonedW1[i]);
+				}
+			}
+
+			MatrixStack[] clonedW2 = null;
+			if (this.W2 != null) {
+				clonedW2 = new MatrixStack[this.W2.length];
+				for (int i = 0; i < this.W2.length; i++) {
+					clonedW2[i] = (MatrixStack)this.W2[i].create();
+					MatrixUtil.copy(this.W2[i], clonedW2[i]);
+				}
+			}
+
+			Matrix[] clonedBias = null;
+			if (this.bias != null) {
+				clonedBias = new Matrix[this.bias.length];
+				for (int i = 0; i < this.bias.length; i++) {
+					clonedBias[i] = this.bias[i].create();
+					MatrixUtil.copy(this.bias[i], clonedBias[i]);
+				}
+			}
+
+			WKernel clonedKernel = new WKernel(clonedW1, clonedW2, clonedBias);
+			clonedKernel.optimizer = this.optimizer;
+			return clonedKernel;
 		}
 		
 	}
@@ -602,6 +651,8 @@ public class WeightImpl implements Weight, TextParsable {
 
 	@Override
 	public void initParams(Random rnd) {
+		Weight.super.initParams(rnd);
+		
 		MatrixStack[] W1 = W1();
 		MatrixStack[] W2 = W2();
 		Matrix[] biases = bias();
@@ -615,6 +666,49 @@ public class WeightImpl implements Weight, TextParsable {
 			NeuronValue zero = biases[0].get(0, 0).zero();
 			for (Matrix bias : biases) MatrixUtil.fill(bias, zero);
 		}
+	}
+
+
+	@Override
+	public Parameter pinit(Randomizer rnd) {
+		Weight.super.pinit(rnd);
+
+		MatrixStack[] W1 = W1();
+		MatrixStack[] W2 = W2();
+		Matrix[] biases = bias();
+		if (W1 != null) {
+			for (MatrixStack w1 : W1) MatrixUtil.fill(w1, rnd);
+		}
+		if (W2 != null) {
+			for (MatrixStack w2 : W2) MatrixUtil.fill(w2, rnd);
+		}
+		if (biases != null) {
+			NeuronValue zero = biases[0].get(0, 0).zero();
+			for (Matrix bias : biases) MatrixUtil.fill(bias, zero);
+		}
+
+		return this;
+	}
+
+
+	@Override
+	public Parameter pmultiplyRandom(Randomizer rnd) {
+		Weight.super.pmultiplyRandom(rnd);
+
+		MatrixStack[] W1 = W1();
+		MatrixStack[] W2 = W2();
+		Matrix[] biases = bias();
+		if (W1 != null) {
+			for (MatrixStack w1 : W1) MatrixUtil.fillMulti(w1, rnd);
+		}
+		if (W2 != null) {
+			for (MatrixStack w2 : W2) MatrixUtil.fillMulti(w2, rnd);
+		}
+		if (biases != null) {
+			for (Matrix bias : biases) MatrixUtil.fillMulti(bias, rnd);
+		}
+
+		return this;
 	}
 
 
@@ -638,12 +732,44 @@ public class WeightImpl implements Weight, TextParsable {
 	
 
 	@Override
-	public void copyParameters(Weight source) {
-		Weight.super.copyParameters(source);
-		WeightImpl Source = (WeightImpl)source;
-		this.kernel.copyParameters(Source.kernel());
+	public Parameter pcopy(Parameter other) {
+		Weight.super.pcopy(other);
+
+		WeightImpl Other = (WeightImpl)other;
+		this.kernel.copy(Other.kernel());
 		
-		if (this.summode != Source.summode) throw new IllegalArgumentException();
+		if (this.summode != Other.summode) throw new IllegalArgumentException();
+		
+		return this;
+	}
+
+
+	@Override
+	public Parameter padd(Parameter other) {
+		Weight.super.padd(other);
+
+		WeightImpl Other = (WeightImpl)other;
+		this.kernel.add(Other.kernel);
+		return this;
+	}
+
+
+	@Override
+	public Parameter psubtract(Parameter other) {
+		Weight.super.psubtract(other);
+
+		WeightImpl Other = (WeightImpl)other;
+		this.kernel.subtract(Other.kernel);
+		return this;
+	}
+
+
+	@Override
+	public Parameter pmultiply(double factor) {
+		Weight.super.pmultiply(factor);
+
+		this.kernel.multiply(factor);
+		return this;
 	}
 
 

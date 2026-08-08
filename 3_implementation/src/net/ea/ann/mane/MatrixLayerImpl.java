@@ -18,9 +18,13 @@ import net.ea.ann.core.function.IdentityDefault;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.core.value.NeuronValueV;
+import net.ea.ann.core.value.vector.NeuronValueVectorImpl;
 import net.ea.ann.mane.Error.LayerInput;
+import net.ea.ann.mane.filter.KernelFilterMax;
 import net.ea.ann.mane.filter.NetworkFilter;
 import net.ea.ann.mane.filter.NullFilter;
+import net.ea.ann.mane.filter.PoolFilterMax;
 import net.ea.ann.mane.layers.DropoutLayer;
 import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.NetworkWeight;
@@ -41,6 +45,12 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Serial version UID for serializable class. 
 	 */
 	private static final long serialVersionUID = 1L;
+	
+	
+	/**
+	 * Checking point flag.
+	 */
+	private static final boolean CHECK_POINT = false;
 	
 	
 	/**
@@ -237,7 +247,18 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		//Initialize ones related to filter.
 		if (this.filter != null) {
 			this.filterBias = newNeuronValue();
-			this.prevInput = newMatrix(new Size(size.width, size.height, size.depth));
+			
+			if (Kernel.speedMode(this.filterBias)) {
+				if (this.filter instanceof PoolFilterMax)
+					this.prevInput = MatrixUtil.create(new Size(size.width, size.height, size.depth), new NeuronValueV(2, 0).zero());
+				else if (this.filter instanceof KernelFilterMax)
+					this.prevInput = MatrixUtil.create(new Size(size.width, size.height, size.depth), new NeuronValueVectorImpl(this.newNeuronValue()));
+				else
+					this.prevInput = newMatrix(new Size(size.width, size.height, size.depth));
+			}
+			else
+				this.prevInput = newMatrix(new Size(size.width, size.height, size.depth));
+			
 			this.prevOutput = newMatrix(new Size(size.width, size.height, size.depth));
 		}
 		
@@ -355,7 +376,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 	
 	@Override
-	protected Matrix getBias() {return bias;}
+	public Matrix getBias() {return bias;}
 
 
 	@Override
@@ -371,7 +392,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 
 	@Override
-	protected NeuronValue getFilterBias() {return filterBias;}
+	public NeuronValue getFilterBias() {return filterBias;}
 
 
 	@Override
@@ -608,20 +629,43 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 
 		//Browsing errors. Please pay attention that filter is before weight in the same layer.
 		for (int i = 0; i < outputErrors.length; i++) {
-			Matrix errPrevPrevInput = outputErrors[i].oinputPrevPrevOfLayer(this); //Previous previous input.
-			Matrix errPrevInput = outputErrors[i].oinputPrevOfLayer(this); //Previous input.
-			Matrix errPrevOutput = outputErrors[i].ooutputPrevOfLayer(this); //Previous output.
-			Matrix actualErrInput = outputErrors[i].oinputOfLayerActual(this); //Actual input.
-			Matrix actualErrOutput = outputErrors[i].ooutputOfLayer(this);
-			actualErrOutput = actualErrOutput != null ? actualErrOutput : errPrevOutput; //Actual output.
-			Matrix mask = outputErrors[i].oinputDropoutMaskOfLayer(this);
-			if (outputErrors.length == 1) {
-				if (this.prevLayer != null) assert (errPrevPrevInput == this.prevLayer.queryOutput());
-				assert (errPrevInput == getPrevInput());
-				assert (errPrevOutput == getPrevOutput());
-				assert (actualErrInput == queryInput());
-				assert (actualErrOutput == queryOutput());
-				if (this instanceof DropoutLayer) assert (mask == ((DropoutLayer)this).getDropoutMask());
+			Matrix errPrevPrevInput = null, errPrevInput = null, errPrevOutput = null, actualErrInput = null, actualErrOutput = null, mask = null;
+			Error refError = null;
+			if (CHECK_POINT) {
+				refError = outputErrors[i];
+				errPrevPrevInput = refError.oinputPrevPrevOfLayer(this); //Previous previous input.
+				errPrevInput = refError.oinputPrevOfLayer(this); //Previous input.
+				errPrevOutput = refError.ooutputPrevOfLayer(this); //Previous output.
+				actualErrInput = refError.oinputOfLayerActual(this); //Actual input.
+				actualErrOutput = refError.ooutputOfLayer(this);
+				actualErrOutput = actualErrOutput != null ? actualErrOutput : errPrevOutput; //Actual output.
+				mask = refError.oinputDropoutMaskOfLayer(this);
+				if (outputErrors.length == 1) {
+					if (this.prevLayer != null) assert (errPrevPrevInput == this.prevLayer.queryOutput());
+					assert (errPrevInput == getPrevInput());
+					assert (errPrevOutput == getPrevOutput());
+					assert (actualErrInput == queryInput());
+					assert (actualErrOutput == queryOutput());
+					if (this instanceof DropoutLayer) assert (mask == ((DropoutLayer)this).getDropoutMask());
+				}
+			}
+			else if (outputErrors.length == 1) {
+				if (this.prevLayer != null) errPrevPrevInput = this.prevLayer.queryOutput();
+				errPrevInput = getPrevInput();
+				errPrevOutput = getPrevOutput();
+				actualErrInput = queryInput();
+				actualErrOutput = queryOutput();
+				if (this instanceof DropoutLayer) mask = ((DropoutLayer)this).getDropoutMask();
+			}
+			else {
+				refError = outputErrors[i];
+				errPrevPrevInput = refError.oinputPrevPrevOfLayer(this); //Previous previous input.
+				errPrevInput = refError.oinputPrevOfLayer(this); //Previous input.
+				errPrevOutput = refError.ooutputPrevOfLayer(this); //Previous output.
+				actualErrInput = refError.oinputOfLayerActual(this); //Actual input.
+				actualErrOutput = refError.ooutputOfLayer(this);
+				actualErrOutput = actualErrOutput != null ? actualErrOutput : errPrevOutput; //Actual output.
+				mask = refError.oinputDropoutMaskOfLayer(this);
 			}
 			/*
 			 * These inputs and outputs associated with error are not so important for calculating gradients because the accuracy will be improved with a large enough number of batches.
@@ -713,9 +757,9 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				}
 				
 				Function thisFilterActivateRef = applyFilterActivate && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ? this.getFilterActivateRef() : null; //Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
-				dFKernels[i] = dFilterKernel(errors[i], outputErrors[i], applyFilterActivate ? thisFilterActivateRef : null);
+				dFKernels[i] = dFilterKernel(errors[i], refError, applyFilterActivate ? thisFilterActivateRef : null);
 				//Please pay attention to this code line to back-warding value errors. Only this case that the filter is not null, this errors are transformed into the errors of previous layer. 
-				outputErrors[i].errorSet(dFilterValue(errors[i], learning, learningRate, outputErrors[i], applyFilterActivate ? thisFilterActivateRef : null));
+				outputErrors[i].errorSet(dFilterValue(errors[i], learning, learningRate, refError, applyFilterActivate ? thisFilterActivateRef : null));
 				
 				//Adjusting errors again if possible.
 				if (applyFilterActivate && prevOutput0 != null && thisFilterActivateRef != null) {
@@ -814,12 +858,13 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		if (paramIsGradClipping() && paramGetGradNormMax() > 0) {
 			double maxNorm = paramGetGradNormMax();
 			Matrix[] matrices = MatrixUtil.split(error);
+			NeuronValue zero = matrices[0].get(0, 0).zero();
 			for (int d = 0; d < matrices.length; d++) {
-				if (this.neuronChannel == 1) {
+				if (Kernel.speedMode(zero)) {
 					double norm = 0;
 					for (int row = 0; row < error.rows(); row++) {
 						for (int column = 0; column < error.columns(); column++) {
-							double v = matrices[d].get(row, column).norm();
+							double v = matrices[d].getv(row, column);
 							norm += v*v;
 						}
 					}
@@ -828,13 +873,13 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	
 					for (int row = 0; row < error.rows(); row++) {
 						for (int column = 0; column < error.columns(); column++) {
-							NeuronValue value = matrices[d].get(row, column);
-							matrices[d].set(row, column, value.divide(norm));
+							double value = matrices[d].getv(row, column);
+							matrices[d].setv(row, column, value/norm);
 						}
 					}
 				}
 				else {
-					NeuronValue norm = matrices[d].get(0, 0).zero();
+					NeuronValue norm = zero;
 					for (int row = 0; row < error.rows(); row++) {
 						for (int column = 0; column < error.columns(); column++) {
 							NeuronValue v = matrices[d].get(row, column);
@@ -842,7 +887,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 						}
 					}
 					norm = norm.sqrt();
-					if (norm.mean() <= maxNorm) continue;
+					if (norm.mean() <= maxNorm || !norm.canInvertWise()) continue;
 					
 					for (int row = 0; row < error.rows(); row++) {
 						for (int column = 0; column < error.columns(); column++) {

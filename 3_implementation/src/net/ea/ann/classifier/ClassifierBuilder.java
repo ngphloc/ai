@@ -23,7 +23,6 @@ import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.WeightSpec;
 import net.ea.ann.mane.WeightSpec.KernelType;
-import net.ea.ann.mane.beans.VGGClassifier;
 import net.ea.ann.raster.RasterAbstract;
 import net.ea.ann.raster.Size;
 
@@ -44,12 +43,6 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 
 	
 	/**
-	 * Default batches.
-	 */
-	public final static int DEFAULT_BATCHES = 100;
-	
-	
-	/**
 	 * This enum represents classifier model.
 	 * @author Loc Nguyen
 	 * @version 1.0
@@ -65,6 +58,11 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		 * Extensive VGG model.
 		 */
 		vggext,
+		
+		/**
+		 * Swarm model.
+		 */
+		swarm,
 		
 		/**
 		 * NiN (network-in-network) classifier.
@@ -129,6 +127,12 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	 */
 	protected int batches = Network.LEARN_MAX_ITERATION_DEFAULT;
 	
+	
+	/**
+	 * Batch size.
+	 */
+	protected int batchSize = VGG.BATCH_SIZE_DEFAULT;
+
 	
 	/**
 	 * Including filtering.
@@ -221,6 +225,18 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Swarm size.
+	 */
+	protected int swarmSize = net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_DEFAULT;
+	
+	
+	/**
+	 * Global average pooling (GAP).
+	 */
+	protected boolean gap = net.ea.ann.mane.beans.VGG.GAP_DEFAULT;
+	
+	
+	/**
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
@@ -295,18 +311,21 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			model = ClassifierModel.vggext;
 			break;
 		case 2:
-			model = ClassifierModel.nin;
+			model = ClassifierModel.swarm;
 			break;
 		case 3:
-			model = ClassifierModel.mac;
+			model = ClassifierModel.nin;
 			break;
 		case 4:
-			model = ClassifierModel.tramac;
+			model = ClassifierModel.mac;
 			break;
 		case 5:
-			model = ClassifierModel.forest;
+			model = ClassifierModel.tramac;
 			break;
 		case 6:
+			model = ClassifierModel.forest;
+			break;
+		case 7:
 			model = ClassifierModel.stack;
 			break;
 		default:
@@ -330,6 +349,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			break;
 		case "vggext":
 			model = ClassifierModel.vggext;
+			break;
+		case "swarm":
+			model = ClassifierModel.swarm;
 			break;
 		case "nin":
 			model = ClassifierModel.nin;
@@ -368,20 +390,23 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		case vggext:
 			modelIndex = 1; 
 			break;
-		case nin:
+		case swarm:
 			modelIndex = 2; 
 			break;
-		case mac:
+		case nin:
 			modelIndex = 3; 
 			break;
-		case tramac:
+		case mac:
 			modelIndex = 4; 
 			break;
-		case forest:
+		case tramac:
 			modelIndex = 5; 
 			break;
-		case stack:
+		case forest:
 			modelIndex = 6; 
+			break;
+		case stack:
+			modelIndex = 7; 
 			break;
 		default:
 			break;
@@ -403,6 +428,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			break;
 		case vggext:
 			modelText = "vggext";
+			break;
+		case swarm:
+			modelText = "swarm";
 			break;
 		case nin:
 			modelText = "nin";
@@ -490,6 +518,24 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		return this;
 	}
 	
+	
+	/**
+	 * Getting batch size.
+	 * @return batch size.
+	 */
+	public int getBatchSize() {return batchSize;}
+	
+	
+	/**
+	 * Setting batch size.
+	 * @param batchSize batch size.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setBatchSize(int batchSize) {
+		this.batchSize = batchSize;
+		return this;
+	}
+
 	
 	/**
 	 * Getting filter mode.
@@ -773,6 +819,42 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 
 	
 	/**
+	 * Getting swarm size.
+	 * @return swarm size.
+	 */
+	public int getSwarmSize() {return swarmSize;}
+	
+	
+	/**
+	 * Setting swarm size.
+	 * @param swarmSize swarm size.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setSwarmSize(int swarmSize) {
+		this.swarmSize = swarmSize;
+		return this;
+	}
+	
+	
+	/**
+	 * Getting GAP mode.
+	 * @return GAP mode.
+	 */
+	public boolean isGAP() {return gap;}
+	
+	
+	/**
+	 * Setting GAP mode.
+	 * @param gap GAP mode.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setGAP(boolean gap) {
+		this.gap = gap;
+		return this;
+	}
+	
+	
+	/**
 	 * Build classifier.
 	 * @return classifier.
 	 */
@@ -784,6 +866,9 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			break;
 		case vggext:
 			classifier = new VGGExt(neuronChannel, rasterChannel);
+			break;
+		case swarm:
+			classifier = new net.ea.ann.classifier.Swarm(neuronChannel, rasterChannel);
 			break;
 		case nin:
 			classifier = NiN.create(neuronChannel, rasterChannel, true); 
@@ -807,7 +892,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		if (classifier instanceof ClassifierAbstract) {
 			ClassifierAbstract ca = (ClassifierAbstract)classifier;
 			ca.paramSetLearningRate(learningRate);
-			ca.paramSetBatches(batches);
+			ca.paramSetBatchSize(batchSize);
 			ca.paramSetFilterMode(filterMode);
 			ca.paramSetFilterSize(filterSize);
 			ca.paramSetFilterPoolType(poolType);
@@ -829,24 +914,51 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			vgg.paramSetFFNLength(ffnLength);
 		}
 		else if (classifier instanceof VGGExt) {
-			VGGClassifier vggext = ((VGGExt)classifier).classifier;
-			vggext.paramSetLearningRate(learningRate);
-			vggext.paramSetBatches(batches);
-			vggext.paramSetFilterMode(filterMode);
-			vggext.paramSetFilterSize(filterSize);
-			vggext.paramSetFilterPoolType(poolType);
-			vggext.paramSetWeightKernelType(weightType);
-			vggext.paramSetVectorized(vectorized);
+			net.ea.ann.mane.beans.VGG vgg = ((VGGExt)classifier).classifier;
 
-			vggext.paramSetBlocksNumber(blocks);
-			vggext.paramSetLayersNumber(depth);
-			vggext.paramSetFiltersNumberInit(filtersNumber);
-			vggext.paramSetVGGMiddleSize(middleSize);
-			vggext.paramSetFFNLength(ffnLength);
-			vggext.paramSetFFNFlatten(true);
+			vgg.paramSetLearningRate(learningRate);
+			vgg.paramSetBatchSize(batchSize);
+			vgg.paramSetFilterMode(filterMode);
+			vgg.paramSetFilterSize(filterSize);
+			vgg.paramSetFilterPoolType(poolType);
+			vgg.paramSetWeightKernelType(weightType);
+			vgg.paramSetVectorized(vectorized);
+
+			vgg.paramSetBlocksNumber(blocks);
+			vgg.paramSetLayersNumber(depth);
+			vgg.paramSetFiltersNumberInit(filtersNumber);
+			vgg.paramSetVGGMiddleSize(middleSize);
+			vgg.paramSetFFNLength(ffnLength);
+			vgg.paramSetFFNFlatten(true);
+			vgg.paramSetGAP(gap);
 			
 			try {
-				((VGGExt)classifier).getConfig().putAll(vggext.getConfig());
+				((VGGExt)classifier).getConfig().putAll(vgg.getConfig());
+			} catch (Throwable e) {Util.trace(e);}
+		}
+		else if (classifier instanceof Swarm) {
+			net.ea.ann.mane.beans.wi.Swarm swarm = ((Swarm)classifier).classifier;
+
+			swarm.paramSetLearningRate(learningRate);
+			swarm.paramSetBatchSize(batchSize);
+			swarm.paramSetFilterMode(filterMode);
+			swarm.paramSetFilterSize(filterSize);
+			swarm.paramSetFilterPoolType(poolType);
+			swarm.paramSetWeightKernelType(weightType);
+			swarm.paramSetVectorized(vectorized);
+
+			swarm.paramSetBlocksNumber(blocks);
+			swarm.paramSetLayersNumber(depth);
+			swarm.paramSetFiltersNumberInit(filtersNumber);
+			swarm.paramSetVGGMiddleSize(middleSize);
+			swarm.paramSetFFNLength(ffnLength);
+			swarm.paramSetFFNFlatten(true);
+			swarm.paramSetGAP(gap);
+			
+			swarm.paramSetParticlesCount(swarmSize);
+			
+			try {
+				((Swarm)classifier).getConfig().putAll(swarm.getConfig());
 			} catch (Throwable e) {Util.trace(e);}
 		}
 		else if (classifier instanceof NiN) {
@@ -901,14 +1013,15 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		
 		int defaultModelIndex = toModelIndex(ClassifierModel.vggext);
 		int modelIndex = defaultModelIndex;
-		printer.print("Model (0-vgg, 1-vggext, 2-nin, 3-mac, 4-tramac, 5-forest, 6-stack) (default " + defaultModelIndex + " is " + toModel(defaultModelIndex) + "):");
+		printer.print("Model (0-vgg, 1-vggext, 2-swarm, 2-nin, 3-mac, 4-tramac, 5-forest, 6-stack) (default " + defaultModelIndex + " is " + toModel(defaultModelIndex) + "):");
 		try {
 			String line = scanner.nextLine().trim();
 			if (!line.isBlank() && !line.isEmpty()) modelIndex = Integer.parseInt(line);
 		} catch (Throwable e) {}
 		if (Double.isNaN(modelIndex)) modelIndex = defaultModelIndex;
 		if (modelIndex < 0) modelIndex = defaultModelIndex;
-		printer.println("Model is " + toModel(modelIndex) + "\n");
+		ClassifierModel model = toModel(modelIndex);
+		printer.println("Model is " + model + "\n");
 		
 		int defaultRasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
 		int rasterChannel = defaultRasterChannel;
@@ -918,7 +1031,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			if (!line.isBlank() && !line.isEmpty()) rasterChannel = Integer.parseInt(line);
 		} catch (Throwable e) {}
 		if (Double.isNaN(rasterChannel)) rasterChannel = defaultRasterChannel;
-		if (rasterChannel < defaultRasterChannel) rasterChannel = defaultRasterChannel;
+		if (rasterChannel < 1) rasterChannel = defaultRasterChannel;
 		printer.println("Raster channel is " + rasterChannel + "\n");
 	
 		double defaultlr = NetworkAbstract.LEARN_RATE_SMALL;
@@ -932,17 +1045,17 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		if (lr <= 0 || lr > 1) lr = defaultlr;
 		printer.println("Starting learning rate is " + lr + "\n");
 	
-		int defaultBatches = DEFAULT_BATCHES;
-		int batches = defaultBatches;
-		printer.print("Batches (default " + batches + "):");
+		int defaultBatchSize = VGG.BATCH_SIZE_DEFAULT;
+		int batchSize = defaultBatchSize;
+		printer.print("Batch size (default " + batchSize + "):");
 		try {
 			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) batches = Integer.parseInt(line);
+			if (!line.isBlank() && !line.isEmpty()) batchSize = Integer.parseInt(line);
 		} catch (Throwable e) {}
-		if (Double.isNaN(batches)) batches = defaultBatches;
-		if (batches <= 0) batches = defaultBatches;
-		printer.println("Batches are " + batches + "\n");
-	
+		if (Double.isNaN(batchSize)) batchSize = defaultBatchSize;
+		if (batchSize <= 0) batchSize = defaultBatchSize;
+		printer.println("Batch size is " + batchSize + "\n");
+		
 		boolean filterMode = ClassifierAbstract.FILTER_MODE_DEFAULT;
 		printer.print("Including convolutional neural network (" + filterMode + " is default):");
 		try {
@@ -953,7 +1066,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 		int defaultFilterSize = ClassifierAbstract.FILTER_SIZE_DEFAULT;
 		int filterSize = defaultFilterSize;
-		if (filterMode) {
+		if (filterMode && model != ClassifierModel.vggext && model != ClassifierModel.swarm) {
 			printer.print("Filter size (default " + filterSize + "):");
 			try {
 				String line = scanner.nextLine().trim();
@@ -989,7 +1102,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		}
 
 		boolean vectorized = MatrixNetworkAbstract.VECTORIZED_DEFAULT;
-		if (toModel(modelIndex) != ClassifierModel.vggext) {
+		if (model != ClassifierModel.vggext && model != ClassifierModel.swarm) {
 			printer.print("Vectorization (" + vectorized + " is default):");
 			try {
 				String line = scanner.nextLine().trim();
@@ -1002,7 +1115,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		}
 		
 		boolean baseline = ClassifierAbstract.BASELINE_DEFAULT;
-		if (toModel(modelIndex) != ClassifierModel.vggext) {
+		if (model != ClassifierModel.vggext && model != ClassifierModel.swarm) {
 			if (!baseline) {
 				printer.print("Baseline (" + baseline + " is default):");
 				try {
@@ -1059,10 +1172,11 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			printer.println("Cross-entropy trainer mode is " + entropyTrainer + "\n");
 		}
 
-		ClassifierBuilder builder = new ClassifierBuilder(rasterChannel);
-		builder.setModel(modelIndex);
+		ClassifierBuilder builder = new ClassifierBuilder(1);
+		builder.setRasterChannel(rasterChannel);
+		builder.setModel(model);
 		builder.setLearningRate(lr);
-		builder.setBatches(batches);
+		builder.setBatchSize(batchSize);
 		builder.setFilterMode(filterMode);
 		builder.setFilterSize(filterSize);
 		builder.setPoolType(poolType);
@@ -1074,7 +1188,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setDepth(depth);
 		builder.setEntropyTrainer(entropyTrainer);
 
-		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.vggext || builder.getModel() == ClassifierModel.nin) {
+		if (model == ClassifierModel.vgg || model == ClassifierModel.vggext || model == ClassifierModel.swarm || model == ClassifierModel.nin) {
 			int defaultMiddleSize = net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT.width;
 			int middleSize = defaultMiddleSize;
 			printer.print("Middle size (default (" + defaultMiddleSize + ", " + defaultMiddleSize + ")):");
@@ -1112,7 +1226,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			builder.setFFNLength(ffnLength);
 		}
 		
-		if (builder.getModel() == ClassifierModel.vgg || builder.getModel() == ClassifierModel.vggext || builder.getModel() == ClassifierModel.nin || builder.getModel() == ClassifierModel.tramac) {
+		if (model == ClassifierModel.vgg || model == ClassifierModel.vggext || model == ClassifierModel.swarm || model == ClassifierModel.nin || model == ClassifierModel.tramac) {
 			int defaultBlocks = TransformerClassifierAbstract.BLOCKS_NUMBER_DEFAULT;
 			int blocks = defaultBlocks;
 			printer.print("Blocks (default " + defaultBlocks + "):");
@@ -1126,7 +1240,18 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			builder.setBlocks(blocks);
 		}
 		
-		if (builder.getModel() == ClassifierModel.forest) {
+		if (model == ClassifierModel.vggext || model == ClassifierModel.swarm) {
+			boolean gap = net.ea.ann.mane.beans.VGG.GAP_DEFAULT;
+			printer.print("GAP mode (" + gap + " is default):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) gap = Boolean.parseBoolean(line);
+			} catch (Throwable e) {}
+			printer.println("GAP mode is " + gap + "\n");
+			builder.setGAP(gap);
+		}
+		
+		if (model == ClassifierModel.forest) {
 			int defaultTreeModelIndex = ForestClassifier.toTreeModelIndex(TreeModel.mac);
 			int treeModelIndex = defaultTreeModelIndex;
 			printer.print("Tree model (0-mac, 1-tramac) (default " + defaultTreeModelIndex + " is " + ForestClassifier.toTreeModel(defaultTreeModelIndex) + "):");
@@ -1138,6 +1263,20 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			if (treeModelIndex < 0) treeModelIndex = defaultTreeModelIndex;
 			printer.println("Tree model is " + ForestClassifier.toTreeModel(treeModelIndex) + "\n");
 			builder.setTreeModel(treeModelIndex);
+		}
+		
+		if (model == ClassifierModel.swarm) {
+			int defaultSwarmSize = net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_DEFAULT;
+			int swarmSize = defaultSwarmSize;
+			printer.print("Swarm size (default " + swarmSize + "):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) swarmSize = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (Double.isNaN(swarmSize)) swarmSize = defaultSwarmSize;
+			if (swarmSize <= 0) swarmSize = defaultSwarmSize;
+			printer.println("Swarm size is " + swarmSize + "\n");
+			builder.setSwarmSize(swarmSize);
 		}
 		
 		return builder;

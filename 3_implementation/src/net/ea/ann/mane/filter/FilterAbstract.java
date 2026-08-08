@@ -8,6 +8,7 @@
 package net.ea.ann.mane.filter;
 
 import net.ea.ann.mane.Filter;
+import net.ea.ann.mane.Parameter;
 
 /**
  * This class is an abstract implementation of filter.
@@ -48,10 +49,13 @@ public abstract class FilterAbstract implements Filter {
 
 
 	@Override
-	public void copyParameters(Filter source) {
-		Filter.super.copyParameters(source);
-		this.moveStride = ((FilterAbstract)source).moveStride;
+	public Parameter pcopy(Parameter other) {
+		Filter.super.pcopy(other);
+		
+		this.moveStride = ((FilterAbstract)other).moveStride;
+		return this;
 	}
+
 
 
 }

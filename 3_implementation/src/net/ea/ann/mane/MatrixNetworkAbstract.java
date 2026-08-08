@@ -618,9 +618,9 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
 	 * @return raster channel.
 	 */
-	int paramGetGradNormMax() {
+	double paramGetGradNormMax() {
 		if (config.containsKey(GRAD_NORM_MAX_FIELD))
-			return config.getAsInt(GRAD_NORM_MAX_FIELD);
+			return config.getAsReal(GRAD_NORM_MAX_FIELD);
 		else
 			return 0;
 	}

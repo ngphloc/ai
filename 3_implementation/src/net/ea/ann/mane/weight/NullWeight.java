@@ -62,5 +62,5 @@ public class NullWeight implements Weight {
 		return new Kernel.NullKernel();
 	}
 
-	
+
 }

@@ -60,15 +60,6 @@ public class VGG extends VGGCore {
 	 */
 	public VGG(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
-		
-		//Removing following lines after debugging.
-//		paramSetDropoutMode(false);
-//		paramSetResidualMode(false);
-//		paramSetGAP(false);
-//		paramSetLayerNorm(false);
-//		paramSetFiltersNumberMax(1);
-//		paramSetVGGMiddleSize(new Size(32, 32));
-//		System.out.println("VGG: Removing following lines after debugging.");
 	}
 	
 	
@@ -163,7 +154,7 @@ public class VGG extends VGGCore {
 					if (layerSpec.filterSpec != null) {
 						layerSpec.filterSpec.moveStride = false;
 						layerSpec.filterSpec.coweight = paramIsCoweight();
-						layerSpec.filterSpec.bilinear = paramIsKernelBilinear();
+						layerSpec.filterSpec.bilinear = j > 0 ? paramIsKernelBilinear() : false;
 					}
 				} //End setting filter specification.
 				
@@ -214,7 +205,7 @@ public class VGG extends VGGCore {
 				if (paramIsFilterEndPoolMode() && paramIsFilterMode() && layerSpec.prevSize.depth == layerSpec.size.depth) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
 					layerSpec.filterSpec.poolType = paramGetFilterPoolType();
-					if (!flatten) layerSpec.filterSpec.poolType = PoolType.average;
+					if (/*!flatten &&*/ this.neuronChannel != 1) layerSpec.filterSpec.poolType = PoolType.average;
 					if (layerSpec.prevSize.width*layerSpec.prevSize.height >= base*base*layerSpec.size.width*layerSpec.size.height)
 						layerSpec.filterSpec.moveStride = true; //It means zooming out to be smaller.
 					else
@@ -247,7 +238,7 @@ public class VGG extends VGGCore {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if (gap && lastSize.depth >= paramGetGAPDepth() && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
+		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -652,7 +643,7 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Default value for field of Global Average Pool (GAP) filter.
 	 */
-	public final static boolean GAP_DEFAULT = false;
+	public final static boolean GAP_DEFAULT = true;
 	
 	
 	/**
@@ -664,7 +655,7 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Default value for GAP depth threshold.
 	 */
-	public final static int GAP_DEPTH_THRESHOLD_DEFAULT = 8*Kernel.LARGE_DEPTH;
+	public final static int GAP_DEPTH_THRESHOLD_DEFAULT = 8*Kernel.LARGE_DEPTH;//=512
 
 	
 	/**
@@ -693,12 +684,16 @@ class VGGCore extends ResidualNetwork {
 	
 	/**
 	 * Field of kernel bilinear mode.
+	 * The false bilinear mode is less stable but has more chance to obtain higher accuracy.
+	 * However, The true bilinear mode is more stable.
 	 */
 	public final static String KERNEL_BILINEAR_FIELD = "mane_kernel_bilinear";
 	
 	
 	/**
 	 * Default value for field of kernel bilinear mode.
+	 * The false bilinear mode is less stable but has more chance to obtain higher accuracy.
+	 * However, The true bilinear mode is more stable.
 	 */
 	public final static boolean KERNEL_BILINEAR_DEFAULT = Kernel.BILINEAR;
 
@@ -886,12 +881,22 @@ class VGGCore extends ResidualNetwork {
 	public VGGCore(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 	
+	/**
+	 * Creating normal layer.
+	 * @param layerSpec layer specification.
+	 * @return normal layer.
+	 */
+	MatrixLayerAbstract newNormalLayer(MatrixLayerAbstract.LayerSpec layerSpec) {
+		return super.newLayer(layerSpec);
+	}
+	
+	
 	@Override
 	protected MatrixLayerAbstract newLayer(MatrixLayerAbstract.LayerSpec layerSpec) {
-		if (layerSpec == null || !(layerSpec instanceof VGG.LayerSpec)) return super.newLayer(layerSpec);
+		if (layerSpec == null || !(layerSpec instanceof VGG.LayerSpec)) return newNormalLayer(layerSpec);
 		
 		VGG.LayerSpec vggLayerSpec = (VGG.LayerSpec)layerSpec;
-		if (vggLayerSpec.type == VGG.LayerSpec.Type.normal) return super.newLayer(layerSpec);
+		if (vggLayerSpec.type == VGG.LayerSpec.Type.normal) return newNormalLayer(layerSpec);
 		
 		MatrixLayerAbstract layer = null;
 		switch (vggLayerSpec.type) {
@@ -914,7 +919,7 @@ class VGGCore extends ResidualNetwork {
 			layer = new NullLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 			break;
 		default:
-			layer = super.newLayer(layerSpec);
+			layer = newNormalLayer(layerSpec);
 		}
 		
 		layer.setNetwork(this);
@@ -1057,7 +1062,7 @@ class VGGCore extends ResidualNetwork {
 					if (layerSpec.filterSpec != null) {
 						layerSpec.filterSpec.moveStride = false;
 						layerSpec.filterSpec.coweight = paramIsCoweight();
-						layerSpec.filterSpec.bilinear = paramIsKernelBilinear();
+						layerSpec.filterSpec.bilinear = j > 0 ? paramIsKernelBilinear() : false;
 					}
 				} //End setting filter specification.
 				
@@ -1108,7 +1113,7 @@ class VGGCore extends ResidualNetwork {
 				if (paramIsFilterEndPoolMode() && paramIsFilterMode() && layerSpec.prevSize.depth == layerSpec.size.depth) {
 					layerSpec.filterSpec = new FilterSpec(base, base, Type.pool);
 					layerSpec.filterSpec.poolType = paramGetFilterPoolType();
-					if (!flatten) layerSpec.filterSpec.poolType = PoolType.average;
+					if (/*!flatten &&*/ this.neuronChannel != 1) layerSpec.filterSpec.poolType = PoolType.average;
 					if (layerSpec.prevSize.width*layerSpec.prevSize.height >= base*base*layerSpec.size.width*layerSpec.size.height)
 						layerSpec.filterSpec.moveStride = true; //It means zooming out to be smaller.
 					else
@@ -1141,7 +1146,7 @@ class VGGCore extends ResidualNetwork {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if (gap && lastSize.depth >= paramGetGAPDepth() && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
+		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -1975,6 +1980,8 @@ class VGGCore extends ResidualNetwork {
 	
 	/**
 	 * Checking kernel bilinear mode.
+	 * The false bilinear mode is less stable but has more chance to obtain higher accuracy.
+	 * However, The true bilinear mode is more stable.
 	 * @return kernel bilinear mode.
 	 */
 	boolean paramIsKernelBilinear() {
@@ -1987,6 +1994,8 @@ class VGGCore extends ResidualNetwork {
 	
 	/**
 	 * Setting kernel bilinear mode.
+	 * The false bilinear mode is less stable but has more chance to obtain higher accuracy.
+	 * However, The true bilinear mode is more stable.
 	 * @param kernelBilinear kernel bilinear mode.
 	 * @return this VGG.
 	 */

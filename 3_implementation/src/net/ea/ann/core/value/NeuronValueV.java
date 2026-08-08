@@ -465,7 +465,7 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 		List<double[][]> matrixList = toMatrixList(matrix);
 		if (matrixList == null || matrixList.size() == 0) return false;
 		for (int i = 0; i < matrixList.size(); i++) {
-			boolean invertible = NeuronValueM.isInvertible(matrixList.get(i));
+			boolean invertible = MatrixReal.isInvertible(matrixList.get(i));
 			if (!invertible) return false;
 		}
 		return true;
@@ -479,7 +479,7 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 
 		List<Double> detList = Util.newList(matrixList.size());
 		for (int i = 0; i < matrixList.size(); i++) {
-			double det = NeuronValueM.det(matrixList.get(i));
+			double det = MatrixReal.det(matrixList.get(i));
 			detList.add(det);
 		}
 		return new NeuronValueV(detList);
@@ -493,7 +493,7 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 
 		List<double[][]> inverseList = Util.newList(matrixList.size());
 		for (int i = 0; i < matrixList.size(); i++) {
-			double[][] inverse = NeuronValueM.inverse(matrixList.get(i));
+			double[][] inverse = MatrixReal.inverse(matrixList.get(i));
 			if (inverse == null || inverse.length == 0) return null;
 			
 			inverseList.add(inverse);
@@ -509,7 +509,7 @@ public class NeuronValueV implements NeuronValue, TextParsable {
 
 		List<double[][]> sqrtList = Util.newList(matrixList.size());
 		for (int i = 0; i < matrixList.size(); i++) {
-			double[][] sqrt = NeuronValueM.sqrt(matrixList.get(i));
+			double[][] sqrt = MatrixReal.sqrt(matrixList.get(i));
 			if (sqrt == null || sqrt.length == 0) return null;
 			
 			sqrtList.add(sqrt);

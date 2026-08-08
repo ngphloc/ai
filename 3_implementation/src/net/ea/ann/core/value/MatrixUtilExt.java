@@ -9,6 +9,7 @@ package net.ea.ann.core.value;
 
 import java.io.Serializable;
 
+import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
 /**
@@ -65,11 +66,11 @@ public class MatrixUtilExt implements Cloneable, Serializable {
 		if (size.height <= 0 || size.width <= 0)
 			return null;
 		else if (value == null)
-			return new MatrixImpl(size, new NeuronValue1(0).zero());
+			return Kernel.SPEED_MODE ? new MatrixReal(size, 0) : new MatrixImpl(size, new NeuronValue1(0).zero());
 		else if (value instanceof NeuronValue)
-			return new MatrixImpl(size, (NeuronValue)value);
+			return Kernel.speedMode((NeuronValue)value) ? new MatrixReal(size, ((NeuronValue1)value).get()) : new MatrixImpl(size, (NeuronValue)value);
 		else if (value instanceof Number)
-			return new NeuronValueM(size, ((Number)value).doubleValue());
+			return new MatrixReal(size, ((Number)value).doubleValue());
 		else
 			return null;
 	}

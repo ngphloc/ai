@@ -1,0 +1,6 @@
+net_batch_size = 16
+net_learn_rate = 0.001
+mane_layer_norm = true
+vgg_filter_number_init = 4, 8
+vgg_gap = true
+vgg_midsize	= (7, 7)

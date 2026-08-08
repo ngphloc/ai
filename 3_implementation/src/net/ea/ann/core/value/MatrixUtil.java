@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Random;
 
 import net.ea.ann.core.Util;
+import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.raster.ImageMatrix;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.Raster2DImpl;
@@ -75,11 +77,11 @@ public final class MatrixUtil implements Cloneable, Serializable {
 		if (size.height <= 0 || size.width <= 0)
 			return null;
 		else if (value == null)
-			return new MatrixImpl(size, new NeuronValue1(0).zero());
+			return Kernel.SPEED_MODE ? new MatrixReal(size, 0) : new MatrixImpl(size, new NeuronValue1(0).zero());
 		else if (value instanceof NeuronValue)
-			return new MatrixImpl(size, (NeuronValue)value);
+			return Kernel.speedMode((NeuronValue)value) ? new MatrixReal(size, ((NeuronValue1)value).get()) : new MatrixImpl(size, (NeuronValue)value);
 		else if (value instanceof Number)
-			return new NeuronValueM(size, ((Number)value).doubleValue());
+			return new MatrixReal(size, ((Number)value).doubleValue());
 		else
 			return null;
 	}
@@ -261,6 +263,32 @@ public final class MatrixUtil implements Cloneable, Serializable {
 
 	
 	/**
+	 * Filling matrix by randomizer.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 */
+	public static void fill(Matrix matrix, Parameter.Randomizer rnd) {
+		if (matrix instanceof MatrixStack)
+			MatrixStack.fill((MatrixStack)matrix, rnd);
+		else
+			Matrix.fill(matrix, rnd);
+	}
+
+	
+	/**
+	 * Filling matrix by randomizer.
+	 * @param matrix matrix.
+	 * @param rnd randomizer.
+	 */
+	public static void fillMulti(Matrix matrix, Parameter.Randomizer rnd) {
+		if (matrix instanceof MatrixStack)
+			MatrixStack.fillMulti((MatrixStack)matrix, rnd);
+		else
+			Matrix.fillMulti(matrix, rnd);
+	}
+
+	
+	/**
 	 * Flattening array of matrices according to smaller channel.
 	 * @param matrices array of matrices.
 	 * @param smallerChannel smaller channel.
@@ -315,7 +343,7 @@ public final class MatrixUtil implements Cloneable, Serializable {
 	 * @return matrix.
 	 */
 	public static Matrix toMatrix(Size size, Raster raster, int neuronChannel, int rasterChannel, boolean isNorm, Matrix ref) {
-		if (raster instanceof RasterMatrix) {
+		if (raster instanceof RasterMatrix && ((RasterMatrix)raster).getImageMatrix() != null) {
 			ImageMatrix im = ((RasterMatrix)raster).getImageMatrix();
 			if (im.getNeuronChannel() == neuronChannel && im.getDepth() == rasterChannel && isNorm &&
 					im.getWidth() == size.getWidth() && im.getHeight() == size.height &&

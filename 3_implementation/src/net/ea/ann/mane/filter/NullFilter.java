@@ -71,5 +71,5 @@ public class NullFilter extends FilterAbstract {
 		return new Kernel.NullKernel();
 	}
 
-	
+
 }

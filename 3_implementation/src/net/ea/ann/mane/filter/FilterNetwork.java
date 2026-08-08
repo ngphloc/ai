@@ -8,7 +8,6 @@
 package net.ea.ann.mane.filter;
 
 import java.awt.Dimension;
-import java.util.Random;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
@@ -20,8 +19,8 @@ import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.FilterSpec.KernelType;
 import net.ea.ann.mane.Kernel;
-import net.ea.ann.mane.MatrixNetworkAssoc;
-import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.mane.Parameter;
+import net.ea.ann.mane.ParameterNetwork;
 import net.ea.ann.raster.Size;
 
 /**
@@ -30,7 +29,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-abstract class FilterNetwork extends MatrixNetworkImpl implements NetworkFilter {
+abstract class FilterNetwork extends ParameterNetwork implements NetworkFilter {
 
 
 	/**
@@ -127,11 +126,29 @@ abstract class FilterNetwork extends MatrixNetworkImpl implements NetworkFilter 
 
 
 	@Override
-	public void initParams(Random rnd) {new MatrixNetworkAssoc(this).initParams(rnd);}
+	public Parameter pcopy(Parameter other) {
+		NetworkFilter.super.pcopy(other);
+		super.pcopy(other);
+		
+		FilterNetwork Other = (FilterNetwork)other;
+		if (Other.width() != this.width() || Other.height() != this.height() || Other.getStrideWidth() != this.getStrideWidth() || Other.getStrideHeight() != this.getStrideHeight()) throw new IllegalArgumentException();
+		if (Other.moveStride != this.moveStride) throw new IllegalArgumentException();
+		return this;
+	}
 
 
 	@Override
-	public int sizeOfParams() {return new MatrixNetworkAssoc(this).sizeOfParams();}
+	public Parameter pinit(Randomizer rnd) {
+		NetworkFilter.super.pinit(rnd);
+		return super.pinit(rnd);
+	}
+
+
+	@Override
+	public Parameter pmultiplyRandom(Randomizer rnd) {
+		NetworkFilter.super.pmultiplyRandom(rnd);
+		return super.pmultiplyRandom(rnd);
+	}
 	
 	
 }

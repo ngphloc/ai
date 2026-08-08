@@ -603,7 +603,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting bias.
 	 * @return bias.
 	 */
-	protected abstract Matrix getBias();
+	public abstract Matrix getBias();
 	
 	
 	/**
@@ -652,7 +652,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * Getting convolutional filter bias.
 	 * @return convolutional filter bias.
 	 */
-	protected abstract NeuronValue getFilterBias();
+	public abstract NeuronValue getFilterBias();
 	
 	
 	/**
@@ -860,7 +860,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
 	 * @return raster channel.
 	 */
-	int paramGetGradNormMax() {
+	double paramGetGradNormMax() {
 		return network != null ? network.paramGetGradNormMax() : 0;
 	}
 
