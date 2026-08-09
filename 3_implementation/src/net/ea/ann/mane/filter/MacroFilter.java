@@ -267,42 +267,66 @@ public class MacroFilter extends KernelFilter {
 		int strideWidth = this.getStrideWidth(), strideHeight = this.getStrideHeight();
 		int prevWidth = prevInputLayers.columns(), prevHeight = prevInputLayers.rows();
 		int thisWidth = thisErrorLayer.columns(), thisHeight = thisErrorLayer.rows();
-		for (int thisY = 0; thisY < thisHeight; thisY++) {
-			int prevY = thisY*strideHeight;
-			if (prevY >= prevHeight) continue;
-			assert (prevY == thisY);
-			
-			for (int thisX = 0; thisX < thisWidth; thisX++) {
-				int prevX = thisX*strideWidth;
-				if (prevX >= prevWidth) continue;
-				assert (prevX == thisX);
+		
+		if (Kernel.speedMode(zero)) {
+			double dbiasesV = 0;
+			for (int thisY = 0; thisY < thisHeight; thisY++) {
+				int prevY = thisY*strideHeight;
+				if (prevY >= prevHeight) continue;
+				assert (prevY == thisY);
 				
-				//Calculating weight gradient.
-				NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
-				NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
-				if (derivative != null) thisError = derivative.multiplyWise(thisError);
-				
-				if (Kernel.speedMode(zero)) {
+				for (int thisX = 0; thisX < thisWidth; thisX++) {
+					int prevX = thisX*strideWidth;
+					if (prevX >= prevWidth) continue;
+					assert (prevX == thisX);
+					
+					//Calculating weight gradient.
+					NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
+					NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
+					if (derivative != null) thisError = derivative.multiplyWise(thisError);
+					
 					double thisErrorV = ((NeuronValue1)thisError).get();
 					for (int i = 0; i < depth(); i++) {
 						double prevInput = summode ? prevInputLayers.get(i).getv(prevY, prevX) :
 							prevInputLayers.get(time).getv(prevY, prevX); //Please pay attention to this code line.
-						double dKernel = prevInput*thisErrorV;
-						dKernels[i].setv(thisY, thisX, dKernel);
+						double dK = prevInput*thisErrorV;
+						dKernels[i].setv(thisY, thisX, dK);
 					}
+					
+					//Calculating bias gradient.
+					if (dBiases != null) dBiases.setv(thisY, thisX, thisErrorV);
+					if (dbiases != null) dbiasesV += thisErrorV;
 				}
-				else {
+			}
+			if (dbiases != null) dbiases = dbiases.valueOf(dbiasesV);
+		}
+		else {
+			for (int thisY = 0; thisY < thisHeight; thisY++) {
+				int prevY = thisY*strideHeight;
+				if (prevY >= prevHeight) continue;
+				assert (prevY == thisY);
+				
+				for (int thisX = 0; thisX < thisWidth; thisX++) {
+					int prevX = thisX*strideWidth;
+					if (prevX >= prevWidth) continue;
+					assert (prevX == thisX);
+					
+					//Calculating weight gradient.
+					NeuronValue thisError = thisErrorLayer.get(thisY, thisX);
+					NeuronValue derivative = thisActivateRef != null ? prevOutputLayer.get(thisY, thisX).derivativeWiseBy(thisActivateRef) : null;
+					if (derivative != null) thisError = derivative.multiplyWise(thisError);
+					
 					for (int i = 0; i < depth(); i++) {
 						NeuronValue prevInput = summode ? prevInputLayers.get(i).get(prevY, prevX) :
 							prevInputLayers.get(time).get(prevY, prevX); //Please pay attention to this code line.
-						NeuronValue dKernel = prevInput.multiply(thisError);
-						dKernels[i].set(thisY, thisX, dKernel);
+						NeuronValue dK = prevInput.multiply(thisError);
+						dKernels[i].set(thisY, thisX, dK);
 					}
+					
+					//Calculating bias gradient.
+					if (dBiases != null) dBiases.set(thisY, thisX, thisError);
+					if (dbiases != null) dbiases = dbiases.add(thisError);
 				}
-				
-				//Calculating bias gradient.
-				if (dBiases != null) dBiases.set(thisY, thisX, thisError);
-				if (dbiases != null) dbiases = dbiases.add(thisError);
 			}
 		}
 		

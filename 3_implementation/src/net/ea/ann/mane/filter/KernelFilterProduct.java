@@ -314,7 +314,6 @@ public class KernelFilterProduct extends KernelFilter implements Parameter.Clone
 		
 		if (Kernel.speedMode(zero)) {
 			double thisErrorV = ((NeuronValue1)thisError).get();
-			double dbiasesV = 0;
 			for (int i = 0; i < kernelDepth; i++) {
 				dKernels[i] = kernel[time].get().create(new Size(kernelWidth, kernelHeight));
 				MatrixUtil.fill(dKernels[i], zero);
@@ -327,13 +326,12 @@ public class KernelFilterProduct extends KernelFilter implements Parameter.Clone
 						
 						double prevInput = summode ? prevInputLayers.get(i).getv(PREVY, PREVX) :
 							prevInputLayers.get(time).getv(PREVY, PREVX); //Please pay attention to this code line.
-						double dKernel = prevInput*thisErrorV;
-						dKernels[i].setv(j, k, this.weight != null ? dKernel*((NeuronValue1)this.weight).get() : dKernel);
-						dbiasesV += thisErrorV;
+						double dK = prevInput*thisErrorV;
+						dKernels[i].setv(j, k, this.weight != null ? dK*((NeuronValue1)this.weight).get() : dK);
 					}
 				}
 			}
-			dbiases = dbiases.valueOf(dbiasesV);
+			dbiases = dbiases.valueOf(thisErrorV);
 			return new BiasWeight(new MatrixStack(dKernels), null, dbiases);
 		}
 		else {
@@ -349,12 +347,12 @@ public class KernelFilterProduct extends KernelFilter implements Parameter.Clone
 						
 						NeuronValue prevInput = summode ? prevInputLayers.get(i).get(PREVY, PREVX) :
 							prevInputLayers.get(time).get(PREVY, PREVX); //Please pay attention to this code line.
-						NeuronValue dKernel = prevInput.multiply(thisError);
-						dKernels[i].set(j, k, this.weight != null ? dKernel.multiply(this.weight) : dKernel);
-						dbiases = dbiases.add(thisError);
+						NeuronValue dK = prevInput.multiply(thisError);
+						dKernels[i].set(j, k, this.weight != null ? dK.multiply(this.weight) : dK);
 					}
 				}
 			}
+			dbiases = thisError;
 			return new BiasWeight(new MatrixStack(dKernels), null, dbiases);
 		}
 	}
@@ -376,14 +374,6 @@ public class KernelFilterProduct extends KernelFilter implements Parameter.Clone
 
 
 	@Override
-	public Parameter pmultiplyRandom(Randomizer rnd) {
-		super.pmultiplyRandom(rnd);
-		this.weight = this.weight != null ? this.weight.unit() : null;
-		return this;
-	}
-
-
-	@Override
 	public Parameter pcopy(Parameter other) {
 		super.pcopy(other);
 		
@@ -395,6 +385,14 @@ public class KernelFilterProduct extends KernelFilter implements Parameter.Clone
 		this.strideWidth = Other.strideWidth;
 		this.strideHeight = Other.strideHeight;
 		
+		return this;
+	}
+
+
+	@Override
+	public Parameter pmultiplyRandom(Randomizer rnd) {
+		super.pmultiplyRandom(rnd);
+		this.weight = this.weight != null ? this.weight.unit() : null;
 		return this;
 	}
 

@@ -335,10 +335,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	public int sizeOfParams() {
 		int size = 0;
 		if (this.weight != null) size += this.weight.sizeOfParams();
-		if (this.bias != null) size += MatrixUtil.capacity(this.bias);
+		if (this.bias != null)  if (Kernel.GLOBAL_BIAS) size += MatrixUtil.capacity(this.bias);
 		
 		if (this.filter != null) size += this.filter.sizeOfParams();;
-		if (this.filterBias != null) size++;
+		if (this.filterBias != null) if (Kernel.GLOBAL_BIAS) size++;
 		return size;
 	}
 

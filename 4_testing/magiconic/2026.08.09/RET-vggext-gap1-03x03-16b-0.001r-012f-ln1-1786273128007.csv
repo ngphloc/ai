@@ -1,0 +1,3 @@
+learning rate, iterations, batches, classes, N, accuracy, precise.mean, precise.var, recall.mean, recall.var, f1.mean, f1.var, label coverage, precise$0$0, precise$0$1, precise$0$2, precise$0$3, precise$0$4, recall$0$0, recall$0$1, recall$0$2, recall$0$3, recall$0$4, f1$0$0, f1$0$1, f1$0$2, f1$0$3, f1$0$4, time (s), depth, parametric size, note
+0.001, 1, 16, 5, 1080, 0.435, 0.087, 0.030276, 0.2, 0.16, 0.121254355401, 0.058810474815, 0.2, 0.435, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.606271777003, 0, 0, 0, 0, 252.737, 28, 263501, model=vggext~dataset=cifar10~conv=true~weight=normal~vec=true~baseline=false~adjust=false~tree=mac
+

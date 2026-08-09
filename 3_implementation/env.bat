@@ -15,8 +15,8 @@ set CLASSPATH=./hudup-core.jar;./hudup.jar;./sim.jar;./ai.jar;./hudup-runtime-li
 
 echo CLASSPATH=%CLASSPATH%
 
-set JAVA_CMD=java -cp %CLASSPATH%
+set JAVA_CMD=java -Xmx5g -cp %CLASSPATH%
 
-set JAVAW_CMD=javaw -cp %CLASSPATH%
+set JAVAW_CMD=javaw -Xmx5g -cp %CLASSPATH%
 
 @echo on
