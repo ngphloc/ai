@@ -1025,14 +1025,16 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		
 		int defaultRasterChannel = RasterAbstract.RASTER_CHANNEL_DEFAULT;
 		int rasterChannel = defaultRasterChannel;
-		printer.print("Raster channel (1, 2, 3, 4) (default " + defaultRasterChannel + "):");
-		try {
-			String line = scanner.nextLine().trim();
-			if (!line.isBlank() && !line.isEmpty()) rasterChannel = Integer.parseInt(line);
-		} catch (Throwable e) {}
-		if (Double.isNaN(rasterChannel)) rasterChannel = defaultRasterChannel;
-		if (rasterChannel < 1) rasterChannel = defaultRasterChannel;
-		printer.println("Raster channel is " + rasterChannel + "\n");
+		if (rasterChannel != 3) {
+			printer.print("Raster channel (1, 2, 3, 4) (default " + defaultRasterChannel + "):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) rasterChannel = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (Double.isNaN(rasterChannel)) rasterChannel = defaultRasterChannel;
+			if (rasterChannel < 1) rasterChannel = defaultRasterChannel;
+			printer.println("Raster channel is " + rasterChannel + "\n");
+		}
 	
 		double defaultlr = NetworkAbstract.LEARN_RATE_SMALL;
 		double lr = defaultlr;
@@ -1251,20 +1253,6 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			builder.setGAP(gap);
 		}
 		
-		if (model == ClassifierModel.forest) {
-			int defaultTreeModelIndex = ForestClassifier.toTreeModelIndex(TreeModel.mac);
-			int treeModelIndex = defaultTreeModelIndex;
-			printer.print("Tree model (0-mac, 1-tramac) (default " + defaultTreeModelIndex + " is " + ForestClassifier.toTreeModel(defaultTreeModelIndex) + "):");
-			try {
-				String line = scanner.nextLine().trim();
-				if (!line.isBlank() && !line.isEmpty()) treeModelIndex = Integer.parseInt(line);
-			} catch (Throwable e) {}
-			if (Double.isNaN(treeModelIndex)) treeModelIndex = defaultTreeModelIndex;
-			if (treeModelIndex < 0) treeModelIndex = defaultTreeModelIndex;
-			printer.println("Tree model is " + ForestClassifier.toTreeModel(treeModelIndex) + "\n");
-			builder.setTreeModel(treeModelIndex);
-		}
-		
 		if (model == ClassifierModel.swarm) {
 			int defaultSwarmSize = net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_DEFAULT;
 			int swarmSize = defaultSwarmSize;
@@ -1277,6 +1265,20 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			if (swarmSize <= 0) swarmSize = defaultSwarmSize;
 			printer.println("Swarm size is " + swarmSize + "\n");
 			builder.setSwarmSize(swarmSize);
+		}
+		
+		if (model == ClassifierModel.forest) {
+			int defaultTreeModelIndex = ForestClassifier.toTreeModelIndex(TreeModel.mac);
+			int treeModelIndex = defaultTreeModelIndex;
+			printer.print("Tree model (0-mac, 1-tramac) (default " + defaultTreeModelIndex + " is " + ForestClassifier.toTreeModel(defaultTreeModelIndex) + "):");
+			try {
+				String line = scanner.nextLine().trim();
+				if (!line.isBlank() && !line.isEmpty()) treeModelIndex = Integer.parseInt(line);
+			} catch (Throwable e) {}
+			if (Double.isNaN(treeModelIndex)) treeModelIndex = defaultTreeModelIndex;
+			if (treeModelIndex < 0) treeModelIndex = defaultTreeModelIndex;
+			printer.println("Tree model is " + ForestClassifier.toTreeModel(treeModelIndex) + "\n");
+			builder.setTreeModel(treeModelIndex);
 		}
 		
 		return builder;

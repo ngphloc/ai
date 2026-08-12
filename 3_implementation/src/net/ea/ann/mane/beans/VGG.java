@@ -1936,7 +1936,7 @@ class VGGCore extends ResidualNetwork {
 	 * Checking layer normalization mode.
 	 * @return layer normalization mode.
 	 */
-	boolean paramIsLayerNorm() {
+	public boolean paramIsLayerNorm() {
 		if (config.containsKey(LAYER_NORM_FIELD))
 			return config.getAsBoolean(LAYER_NORM_FIELD);
 		else
@@ -1949,7 +1949,7 @@ class VGGCore extends ResidualNetwork {
 	 * @param layerNorm layer normalization mode.
 	 * @return this VGG.
 	 */
-	VGGCore paramSetLayerNorm(boolean layerNorm) {
+	public VGGCore paramSetLayerNorm(boolean layerNorm) {
 		config.put(LAYER_NORM_FIELD, layerNorm);
 		return this;
 	}
