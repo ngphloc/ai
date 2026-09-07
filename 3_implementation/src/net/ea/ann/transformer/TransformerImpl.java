@@ -1483,7 +1483,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 		doStarted = true;
 		while (doStarted && (batchCount <= 0 || iteration < batchCount)) {
 			Iterable<Record> subsample = resample(sample, iteration, batchCount); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, batchCount);
 
 			outputErrors = learn(subsample, lr);
 

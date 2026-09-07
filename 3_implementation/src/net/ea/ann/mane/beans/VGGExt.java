@@ -113,7 +113,7 @@ class VGGExt extends VGG {
 	 * Default value for field of maximum class probability.
 	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 */
-	private final static double MAX_CLASS_PROB_DEFAULT = 0.99; //0.9, 0.95, 0.99
+	private final static double MAX_CLASS_PROB_DEFAULT = 0.95; //0.9, 0.95, 0.99
 	
 	
 	/**
@@ -963,7 +963,7 @@ class VGGExt extends VGG {
 		doStarted = true;
 		while (doStarted && (batchCount <= 0 || iteration < batchCount)) {
 			Iterable<Raster> subsample = resample(sample, iteration, batchCount); //Getting batch.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, batchCount);
 
 			outputErrors = learnRaster(subsample, lr);
 			

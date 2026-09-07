@@ -78,7 +78,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 	/**
 	 * Default value of minimum width field.
 	 */
-	public final static int MINSIZE = 16; //= 32 or = ImageListItem.ICON_MINSIZE/BASE_DEFAULT but it should be 32;
+	public final static int MINSIZE = 32; //= 32 or = ImageListItem.ICON_MINSIZE/BASE_DEFAULT but it should be 32;
 
 	
 	/**
@@ -709,7 +709,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		doStarted = true;
 		while (doStarted && (batchCount <= 0 || iteration < batchCount)) {
 			Iterable<Record> subsample = resample(sample, iteration, batchCount); //Getting batch.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, batchCount);
 
 			outputErrors = learn(subsample, lr);
 			

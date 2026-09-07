@@ -336,6 +336,7 @@ public class Record implements Serializable, Cloneable {
 	 * @return list.
 	 */
 	public static <T> List<T> listOf(Iterable<T> collection) {
+		if (collection instanceof List<?>) return (List<T>)collection;
 		List<T> list = Util.newList(0); 
 		if (collection == null) return list;
 		for (T element : collection) {

@@ -963,7 +963,7 @@ class VGGExt extends VGG {
 		doStarted = true;
 		while (doStarted && (batchCount <= 0 || iteration < batchCount)) {
 			Iterable<Raster> subsample = resample(sample, iteration, batchCount); //Getting batch.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, batchCount);
 
 			outputErrors = learnRaster(subsample, lr);
 			

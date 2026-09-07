@@ -1057,9 +1057,9 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		if (baseRastersList.size() == 0 || testRastersList.size() == 0) return;
 
 		Classifier classifier = null;
-		ClassifyInfo info = new ClassifyInfo();
 		SimpleDateFormat df = new SimpleDateFormat(Util.DATE_FORMAT);
 		for (int iteration = 0; iteration < maxIteration; iteration++) {
+			ClassifyInfo info = new ClassifyInfo();
 			long time = 0;
 			System.out.println("Begin task (iter = " + (iteration+1) + ") at " + df.format(new Date()));
 			for (List<Raster> baseRasters : baseRastersList) {

@@ -206,7 +206,7 @@ public abstract class PixelRNNAbstract extends ConvGenModelAbstract implements P
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, maxIteration);
 
 			for (Record record : subsample) {
 				if (record == null) continue;
@@ -296,7 +296,7 @@ public abstract class PixelRNNAbstract extends ConvGenModelAbstract implements P
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, maxIteration);
 
 			//Learning convolutional network.
 			try {

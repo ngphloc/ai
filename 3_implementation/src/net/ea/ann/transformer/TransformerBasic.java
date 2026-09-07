@@ -794,7 +794,7 @@ public class TransformerBasic extends NetworkAbstract implements Transformer, Ma
 		doStarted = true;
 		while (doStarted && (batchCount <= 0 || iteration < batchCount)) {
 			Iterable<Record> subsample = resample(sample, iteration, batchCount); //Getting batch.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, batchCount);
 
 			outputErrors = learn(subsample, lr);
 			

@@ -69,7 +69,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	/**
 	 * Default value of learning rate fixed field.
 	 */
-	public final static boolean LEARN_RATE_FIXED_DEFAULT = true;
+	public final static boolean LEARN_RATE_FIXED_DEFAULT = false;
 
 	
 	/**
@@ -135,7 +135,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	 * The best value in literature is 64 with learning rate 0.001, AdamW with weight decay 0.0001, clipped gradient threshold 1.0, dropout rate 0.2.
 	 * The good value is 32. The value 16 is for small dataset.
 	 */
-	public final static int BATCH_SIZE_DEFAULT = 16; //8, 16, 32, 64.
+	public final static int BATCH_SIZE_DEFAULT = 32; //8, 16, 32, 64.
 
 	
 	/**
@@ -266,12 +266,13 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	 * Calculating learning rate.
 	 * @param initialLearningRate initial learning rate.
 	 * @param iteration current iteration.
+	 * @param maxIteration maximum iteration.
 	 * @return learning rate.
 	 */
-	protected double calcLearningRate(double initialLearningRate, int iteration) {
+	protected double calcLearningRate(double initialLearningRate, int iteration, int maxIteration) {
 		boolean fixedLearningRate = LEARN_RATE_FIXED_DEFAULT;
 		if (config.containsKey(LEARN_RATE_FIXED_FIELD)) fixedLearningRate = config.getAsBoolean(LEARN_RATE_FIXED_FIELD);
-		return calcLearningRate(initialLearningRate, iteration, fixedLearningRate);
+		return calcLearningRate(initialLearningRate, iteration, fixedLearningRate, maxIteration);
 	}
 	
 	
@@ -282,10 +283,11 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	 * @param fixedLearningRate fixed learning rate.
 	 * @return learning rate.
 	 */
-	public static double calcLearningRate(double initialLearningRate, int iteration, boolean fixedLearningRate) {
+	public static double calcLearningRate(double initialLearningRate, int iteration, boolean fixedLearningRate, int maxIteration) {
 		initialLearningRate = Double.isNaN(initialLearningRate) || initialLearningRate <= 0 || initialLearningRate > 1 ? LEARN_RATE_DEFAULT : initialLearningRate;
-		if (iteration <= 1 || fixedLearningRate) return initialLearningRate;
-		double learningRate = initialLearningRate * (1.0/Math.sqrt(iteration));
+		if (fixedLearningRate) return initialLearningRate;
+		
+		double learningRate = (initialLearningRate/2.0) * (1.0 + Math.cos(iteration*Math.PI/maxIteration));
 		return Math.max(learningRate, LEARN_RATE_MINIMUM);
 	}
 

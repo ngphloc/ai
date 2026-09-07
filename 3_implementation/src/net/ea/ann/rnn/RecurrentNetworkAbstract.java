@@ -539,7 +539,7 @@ public abstract class RecurrentNetworkAbstract extends NetworkAbstract implement
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, maxIteration);
 			Iterable<List<Record>> subsample = resample(sample, iteration, maxIteration);
 
 			for (List<Record> records : subsample) {
@@ -608,7 +608,7 @@ public abstract class RecurrentNetworkAbstract extends NetworkAbstract implement
 		int iteration = 0;
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, maxIteration);
 			Iterable<List<Record>> subsample = resample(sample, iteration, maxIteration);
 
 			for (int i = 0; i < states.size(); i++) {

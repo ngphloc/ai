@@ -693,7 +693,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, maxIteration);
 
 			for (Record record : subsample) {
 				if (record == null) continue;
@@ -792,7 +792,7 @@ public abstract class ConvNetworkAbstract extends NetworkAbstract implements Con
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, maxIteration);
 
 			List<Record> fnSample = Util.newList(0), rfnSample = Util.newList(0);
 			for (Record record : subsample) {

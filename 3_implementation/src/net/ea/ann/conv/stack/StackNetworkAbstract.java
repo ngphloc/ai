@@ -896,7 +896,7 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 		NeuronValue[] outputErrors = null;
 		Iterable<Record> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
-			double lr = calcLearningRate(learningRate, epoch+1);
+			double lr = calcLearningRate(learningRate, epoch, epochs);
 			if (epoch > 0) {
 				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
 				Collections.shuffle((List<?>)newsample);
@@ -917,7 +917,7 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 		NeuronValue[] outputErrors = null;
 		Iterable<Record> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
-			double lr = calcLearningRate(learningRate, epoch+1);
+			double lr = calcLearningRate(learningRate, epoch, epochs);
 			if (epoch > 0) {
 				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
 				Collections.shuffle((List<?>)newsample);
@@ -956,7 +956,7 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, maxIteration);
 
 			for (Record record : subsample) {
 				if (record == null) continue;
@@ -1069,7 +1069,7 @@ public abstract class StackNetworkAbstract extends NetworkAbstract implements St
 		doStarted = true;
 		while (doStarted && (maxIteration <= 0 || iteration < maxIteration)) {
 			Iterable<Record> subsample = resample(sample, iteration, maxIteration); //Re-sampling.
-			double lr = calcLearningRate(learningRate, iteration+1);
+			double lr = calcLearningRate(learningRate, iteration, maxIteration);
 
 			List<Record> fnSample = Util.newList(0), rfnSample = Util.newList(0);
 			for (Record record : subsample) {
