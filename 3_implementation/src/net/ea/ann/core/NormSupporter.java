@@ -19,8 +19,8 @@ public interface NormSupporter extends Cloneable, Serializable {
 
 	
 	/**
-	 * Checking whether something normalized in rang [0, 1].
-	 * @return whether something normalized in rang [0, 1].
+	 * Checking whether something possibly normalized in range [0, 1].
+	 * @return whether something possibly normalized in range [0, 1].
 	 */
 	boolean isNorm();
 	

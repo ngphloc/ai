@@ -75,7 +75,7 @@ abstract class WeightNetwork extends ParameterNetwork implements NetworkWeight {
 
 
 	@Override
-	public Weight accumKernel(Kernel dKernel, double factor) {return this;}
+	public Weight accumKernel(Kernel dKernel, double factor, double decay) {return this;}
 
 
 	/**

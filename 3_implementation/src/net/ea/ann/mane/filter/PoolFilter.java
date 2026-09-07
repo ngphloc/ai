@@ -81,7 +81,7 @@ public abstract class PoolFilter extends FilterAbstract {
 
 	
 	@Override
-	public Filter accumKernel(Kernel dKernel, double factor) {return this;}
+	public Filter accumKernel(Kernel dKernel, double factor, double decay) {return this;}
 
 
 	/**
@@ -101,8 +101,10 @@ public abstract class PoolFilter extends FilterAbstract {
 	 * @param thisOutputLayers current output layers.
 	 */
 	private void forward(MatrixStack prevLayers, MatrixStack thisInputLayers, MatrixStack thisOutputLayers) {
-		if (prevLayers.depth() != depth() || thisInputLayers.depth() != depth() || thisOutputLayers.depth() != depth()) throw new IllegalArgumentException();
-		if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (prevLayers.depth() != depth() || thisInputLayers.depth() != depth() || thisOutputLayers.depth() != depth()) throw new IllegalArgumentException();
+			if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
+		}
 		
 		for (int d = 0; d < depth(); d++) {
 			forward(prevLayers.get(d), thisInputLayers.get(d), thisOutputLayers.get(d));
@@ -145,9 +147,11 @@ public abstract class PoolFilter extends FilterAbstract {
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers) {
-		if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != depth() || thisErrorLayers.depth() != depth()) throw new IllegalArgumentException();
-		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
-
+		if (Kernel.SPEED_MODE) {
+			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != depth() || thisErrorLayers.depth() != depth()) throw new IllegalArgumentException();
+			if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
+		}
+		
 		NeuronValue zero = prevInputLayers.get().get(0, 0).zero();
 		Matrix[] dPrevValues = new Matrix[this.depth()];
 		for (int i = 0; i < dPrevValues.length; i++) {

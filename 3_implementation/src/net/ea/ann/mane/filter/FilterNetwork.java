@@ -95,7 +95,7 @@ abstract class FilterNetwork extends ParameterNetwork implements NetworkFilter {
 
 	
 	@Override
-	public Filter accumKernel(Kernel dKernel, double factor) {return this;}
+	public Filter accumKernel(Kernel dKernel, double factor, double decay) {return this;}
 
 	
 	/**
@@ -138,16 +138,16 @@ abstract class FilterNetwork extends ParameterNetwork implements NetworkFilter {
 
 
 	@Override
-	public Parameter pinit(Randomizer rnd) {
-		NetworkFilter.super.pinit(rnd);
-		return super.pinit(rnd);
+	public Parameter pmultiplyRandom(Randomizer rnd) {
+		NetworkFilter.super.pmultiplyRandom(rnd);
+		return super.pmultiplyRandom(rnd);
 	}
 
 
 	@Override
-	public Parameter pmultiplyRandom(Randomizer rnd) {
-		NetworkFilter.super.pmultiplyRandom(rnd);
-		return super.pmultiplyRandom(rnd);
+	public Parameter pinit(Randomizer rnd) {
+		NetworkFilter.super.pinit(rnd);
+		return super.pinit(rnd);
 	}
 	
 	

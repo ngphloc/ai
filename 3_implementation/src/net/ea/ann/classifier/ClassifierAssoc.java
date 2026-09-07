@@ -564,11 +564,11 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			result.append("model=" + params.model + "~dataset=" + params.dataset +
 				//"~entropy=" + params.entropyTrainer +
 				"~conv=" + params.filterMode +
-				//"~pool=" + params.poolType +
+				"~pool=" + params.poolType +
 				"~weight=" + params.weightType +
 				"~vec=" + params.vectorized +
-				"~baseline=" + params.baseline +
-				"~adjust=" + params.adjust +
+				//"~baseline=" + params.baseline +
+				//"~adjust=" + params.adjust +
 				//"~dual=" + params.dual +
 				"~tree=" + params.treeModel + "\n");
 			writer.write(result.toString() + "\n");
@@ -1058,13 +1058,14 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 
 		Classifier classifier = null;
 		ClassifyInfo info = new ClassifyInfo();
-		long time = 0;
 		SimpleDateFormat df = new SimpleDateFormat(Util.DATE_FORMAT);
-		System.out.println("Begin task at " + df.format(new Date()));
 		for (int iteration = 0; iteration < maxIteration; iteration++) {
+			long time = 0;
+			System.out.println("Begin task (iter = " + (iteration+1) + ") at " + df.format(new Date()));
 			for (List<Raster> baseRasters : baseRastersList) {
 				for (List<Raster> sources : testRastersList) {
 					try {
+						//Classifying rasters.
 						classifier = builder.build();
 						long beginTime = System.currentTimeMillis();
 						classifier.learnRaster(baseRasters);
@@ -1072,6 +1073,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 						long endTime = System.currentTimeMillis();
 						time += endTime - beginTime;
 						
+						//Analyzing results.
 						ClassifyInfo infoOne = new ClassifyInfo();
 						infoOne.collect(sources, results);
 						info.accum(infoOne);
@@ -1079,22 +1081,23 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 					System.gc();
 				}
 			}
+			System.out.println("End task (iter = " + (iteration+1) + ") at " + df.format(new Date()));
+
+			ClassifyParams params = new ClassifyParams();
+			params.importParams(builder);
+			params.dataset = "cifar10";
+			params.maxIteration = maxIteration;
+			params.depth = new ClassifierAssoc(classifier).depth();
+			params.paramSize = new ClassifierAssoc(classifier).sizeOfParams();
+			params.time = time;
+			try {
+				String classifiedName = RasterAssoc.genDefaultName(params.model + "-" + Util.format(params.learningRate) + "-" + "stat", null);
+				BufferedWriter csvWriter = Files.newBufferedWriter(testresultDir.resolve(classifiedName + ".csv"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+				saveClassifyInfo(csvWriter, info, params);
+				csvWriter.close();
+			} catch (Throwable e) {Util.trace(e);}
 		}
-		System.out.println("End task at " + df.format(new Date()));
 	
-		ClassifyParams params = new ClassifyParams();
-		params.importParams(builder);
-		params.dataset = "cifar10";
-		params.maxIteration = maxIteration;
-		params.depth = new ClassifierAssoc(classifier).depth();
-		params.paramSize = new ClassifierAssoc(classifier).sizeOfParams();
-		params.time = time;
-		try {
-			String classifiedName = RasterAssoc.genDefaultName(params.model + "-" + Util.format(params.learningRate) + "-" + "stat", null);
-			BufferedWriter csvWriter = Files.newBufferedWriter(testresultDir.resolve(classifiedName + ".csv"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-			saveClassifyInfo(csvWriter, info, params);
-			csvWriter.close();
-		} catch (Throwable e) {Util.trace(e);}
 	}
 
 

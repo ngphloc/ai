@@ -8,6 +8,7 @@
 package net.ea.ann.mane.filter;
 
 import net.ea.ann.mane.Filter;
+import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.Parameter;
 
 /**
@@ -57,6 +58,28 @@ public abstract class FilterAbstract implements Filter {
 	}
 
 
+	/**
+	 * Getting network.
+	 * @return network;
+	 */
+	MatrixNetworkAbstract getNetwork() {return getLayer() != null ? getLayer().getNetwork() : null;}
+	
+	
+	/**
+	 * Checking whether to make gradient clipping.
+	 * @return whether to make gradient clipping.
+	 */
+	boolean isGradClipping() {return getNetwork() != null ? getNetwork().paramIsGradClipping() : false;}
+	
+	
+	/**
+	 * Getting maximum gradient norm for gradient clipping.
+	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 * @return raster channel.
+	 */
+	double getGradNormMax() {return getNetwork() != null ? getNetwork().paramGetGradNormMax() : 0;}
+
+	
 
 }
 

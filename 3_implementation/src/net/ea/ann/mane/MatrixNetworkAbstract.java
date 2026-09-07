@@ -90,14 +90,16 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 	/**
 	 * Field of maximum gradient norm for gradient clipping which is a useful technique to improve training neural network.
-	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 * The value ranges from 0.1 to 1.0 to 5.0 until 10.0. The value 0 indicates no gradient clipping. The value 0.1 is for indivudual gradients. The value 1 is for AdamW optimization. The value 5 for large scale or safe bound.
+	 * It is should be 5.0 in this framework.
 	 */
 	public final static String GRAD_NORM_MAX_FIELD = "mane_grad_norm_max";
 	
 	
 	/**
 	 * Default value for maximum gradient norm for gradient clipping which is a useful technique to improve training neural network.
-	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 * The value ranges from 0.1 to 1.0 to 5.0 until 10.0. The value 0 indicates no gradient clipping. The value 0.1 is for indivudual gradients. The value 1 is for AdamW optimization. The value 5 for large scale or safe bound.
+	 * It is should be 5.0 in this framework.
 	 */
 	public final static double GRAD_NORM_MAX_DEFAULT = Kernel.GRAD_NORM_MAX_DEFAULT;
 
@@ -608,17 +610,18 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	 * Checking whether to make gradient clipping.
 	 * @return whether to make gradient clipping.
 	 */
-	boolean paramIsGradClipping() {
+	public boolean paramIsGradClipping() {
 		return paramGetGradNormMax() > 0 && paramIsNorm();
 	}
 	
 	
 	/**
 	 * Getting maximum gradient norm for gradient clipping.
-	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 * The value ranges from 0.1 to 1.0 to 5.0 until 10.0. The value 0 indicates no gradient clipping. The value 0.1 is for indivudual gradients. The value 1 is for AdamW optimization. The value 5 for large scale or safe bound.
+	 * It is should be 5.0 in this framework.
 	 * @return raster channel.
 	 */
-	double paramGetGradNormMax() {
+	public double paramGetGradNormMax() {
 		if (config.containsKey(GRAD_NORM_MAX_FIELD))
 			return config.getAsReal(GRAD_NORM_MAX_FIELD);
 		else
@@ -628,7 +631,8 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	
 	/**
 	 * Getting maximum gradient norm for gradient clipping.
-	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 * The value ranges from 0.1 to 1.0 to 5.0 until 10.0. The value 0 indicates no gradient clipping. The value 0.1 is for indivudual gradients. The value 1 is for AdamW optimization. The value 5 for large scale or safe bound.
+	 * It is should be 5.0 in this framework.
 	 * @param gradNormMax maximum gradient norm.
 	 * @return this network.
 	 */

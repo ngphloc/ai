@@ -15,6 +15,7 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.layers.NormLayer;
 import net.ea.ann.raster.Size;
 
 /**
@@ -182,18 +183,42 @@ public class NormWeightGroup extends NormWeight {
 	}
 	
 	
+	/**
+	 * Getting means and standard deviations.
+	 * @return means and standard deviations.
+	 */
+	MeanStd[] getMeanStds() {
+		if (this.layer == null || !(this.layer instanceof NormLayer)) return null;
+		Object tag = ((NormLayer)this.layer).getTag();
+		return tag != null && tag instanceof MeanStd[] ? (MeanStd[])tag : null;
+	}
+	
+	
+	/**
+	 * Setting means and standard deviations.
+	 * @param meanStds means and standard deviations.
+	 */
+	void setMeanStds(MeanStd[] meanStds) {
+		if (meanStds == null || meanStds.length == 0) return;
+		if (this.layer == null || !(this.layer instanceof NormLayer)) return;
+		((NormLayer)this.layer).setTag(meanStds);
+	}
+	
+	
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
-		assert (this.layer != null);
-		if (W().rows() != 1 || W().columns() != 1 || MatrixUtil.depth(input) != W().depth()) throw new IllegalArgumentException();
-		if (bias != null) {
-			if (bias.rows() != W().rows() || bias.columns() != W().columns() || MatrixUtil.depth(bias) != W().depth()) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			assert (this.layer != null);
+			if (W().rows() != 1 || W().columns() != 1 || MatrixUtil.depth(input) != W().depth()) throw new IllegalArgumentException();
+			if (bias != null) {
+				if (bias.rows() != W().rows() || bias.columns() != W().columns() || MatrixUtil.depth(bias) != W().depth()) throw new IllegalArgumentException();
+			}
+			if (this.bias() != null) {
+				if (this.bias().rows() != W().rows() || this.bias().columns() != W().columns() || MatrixUtil.depth(this.bias()) != W().depth()) throw new IllegalArgumentException();
+			}
+			if (this.bias() != null && bias != null) {assert (this.bias() != bias);}
 		}
-		if (this.bias() != null) {
-			if (this.bias().rows() != W().rows() || this.bias().columns() != W().columns() || MatrixUtil.depth(this.bias()) != W().depth()) throw new IllegalArgumentException();
-		}
-		if (this.bias() != null && bias != null) {assert (this.bias() != bias);}
-
+		
 		int rows = input.rows(), columns = input.columns(), depth = W().depth();
 		Matrix[] inputs = MatrixUtil.split(input);
 
@@ -241,6 +266,7 @@ public class NormWeightGroup extends NormWeight {
 		
 		//Storing normalized previous output.
 		if (this.layer != null) {
+			if (this.layer instanceof NormLayer) setMeanStds(meanStds);
 			this.layer.setPrevOutput(prevOutputs.length == 1 ? prevOutputs[0] : new MatrixStack(prevOutputs));
 		}
 		
@@ -253,7 +279,6 @@ public class NormWeightGroup extends NormWeight {
 			bias0 = thisBias;
 		else if (bias != null)
 			bias0 = bias;
-		
 		if (bias0 != null) addBias(outputs, bias0);
 		return outputs.length == 1 ? outputs[0] : new MatrixStack(outputs);
 	}
@@ -269,7 +294,8 @@ public class NormWeightGroup extends NormWeight {
 		NeuronValue[] means = new NeuronValue[depth], stds = new NeuronValue[depth];
 		int[] sizes = new int[depth];
 		int layersPerGroup = calcLayersPerGroup(depth);
-		MeanStd[] meanStds = meanStds(MatrixUtil.split(prevOutputs), layersPerGroup);
+		MeanStd[] meanStds = getMeanStds();
+		if (meanStds == null) meanStds = meanStds(MatrixUtil.split(prevOutputs), layersPerGroup);
 		for (int d = 0; d < depth; d++) {
 			int g = Math.min(d/layersPerGroup, depth/layersPerGroup - 1);
 			means[d] = meanStds[g].mean;
@@ -281,23 +307,21 @@ public class NormWeightGroup extends NormWeight {
 		Matrix[] dValues = new Matrix[depth];
 		if (Kernel.speedMode(zero)) {
 			for (int d = 0; d < depth; d++) {
-				Matrix prevOutput = prevOutputs.get(d);
-				Matrix norm = prevOutput.create(new Size(columns, rows));
-				double mean = ((NeuronValue1)means[d]).get();
-				double std = ((NeuronValue1)stds[d]).get();
-				for (int row = 0; row < rows; row++) {
-					for (int column = 0; column < columns; column++) {
-						double z = (prevOutput.getv(row, column)-mean) / std;
-						norm.setv(row, column, z);
-					}
+				Matrix norm = null;
+				if (this.layer != null && Kernel.SPEED_MODE) {
+					norm = this.layer.getInput();
+					if (norm instanceof MatrixStack) norm = ((MatrixStack)norm).get(d);
 				}
-				norm = norm.multiply0(((NeuronValue1)W(d)).get());
+				else {
+					if (Kernel.GLOBAL_BIAS) throw new IllegalArgumentException();
+					norm = prevOutputs.get(d).multiply0(((NeuronValue1)W(d)).get());
+					addBias(new Matrix[] {norm}, bias().get(d));
+				}
 
-				double w = ((NeuronValue1)W(d)).get();
 				double errorSum = 0, normErrorSum = 0;
 				for (int row = 0; row < rows; row++) {
 					for (int column = 0; column < columns; column++) {
-						double error = thisErrors.get(d).getv(row, column) * w;
+						double error = thisErrors.get(d).getv(row, column);
 						errorSum += error;
 						double normError = error*norm.getv(row, column);
 						normErrorSum += normError;
@@ -305,36 +329,35 @@ public class NormWeightGroup extends NormWeight {
 				}
 				
 				int N = sizes[d];
-				dValues[d] = prevOutput.create(new Size(columns, rows));
-				double factor = std*N;
+				dValues[d] = norm.create(new Size(columns, rows));
+				double factor = ((NeuronValue1)stds[d]).get()*N;
+				double w = ((NeuronValue1)W(d)).get();
 				for (int row = 0; row < rows; row++) {
 					for (int column = 0; column < columns; column++) {
-						double error = thisErrors.get(d).getv(row, column) * w;
+						double error = thisErrors.get(d).getv(row, column);
 						double bias = (error*N - errorSum - (norm.getv(row, column)*normErrorSum)) / factor;
-						dValues[d].setv(row, column, bias);
+						dValues[d].setv(row, column, bias*w);
 					}
 				}
 			}
 		}
 		else {
 			for (int d = 0; d < depth; d++) {
-				Matrix prevOutput = prevOutputs.get(d);
-				Matrix norm = prevOutput.create(new Size(columns, rows));
-				NeuronValue mean = means[d];
-				NeuronValue std = stds[d];
-				for (int row = 0; row < rows; row++) {
-					for (int column = 0; column < columns; column++) {
-						NeuronValue z = prevOutput.get(row, column).subtract(mean).divide(std);
-						norm.set(row, column, z);
-					}
+				Matrix norm = null;
+				if (this.layer != null && Kernel.SPEED_MODE) {
+					norm = this.layer.getInput();
+					if (norm instanceof MatrixStack) norm = ((MatrixStack)norm).get(d);
 				}
-				norm = norm.multiply0(W(d));
-	
-				NeuronValue w = W(d);
+				else {
+					if (Kernel.GLOBAL_BIAS) throw new IllegalArgumentException();
+					norm = prevOutputs.get(d).multiply0(W(d));
+					addBias(new Matrix[] {norm}, bias().get(d));
+				}
+
 				NeuronValue errorSum = zero, normErrorSum = zero;
 				for (int row = 0; row < rows; row++) {
 					for (int column = 0; column < columns; column++) {
-						NeuronValue error = thisErrors.get(d).get(row, column).multiply(w);
+						NeuronValue error = thisErrors.get(d).get(row, column);
 						errorSum = errorSum.add(error);
 						NeuronValue normError = error.multiply(norm.get(row, column));
 						normErrorSum = normErrorSum.add(normError);
@@ -342,16 +365,17 @@ public class NormWeightGroup extends NormWeight {
 				}
 				
 				int N = sizes[d];
-				dValues[d] = prevOutput.create(new Size(columns, rows));
-				NeuronValue factor = std.multiply(N);
+				dValues[d] = norm.create(new Size(columns, rows));
+				NeuronValue factor = stds[d].multiply(N);
+				NeuronValue w = W(d);
 				for (int row = 0; row < rows; row++) {
 					for (int column = 0; column < columns; column++) {
-						NeuronValue error = thisErrors.get(d).get(row, column).multiply(w);
+						NeuronValue error = thisErrors.get(d).get(row, column);
 						NeuronValue bias = error.multiply(N)
 							.subtract(errorSum)
 							.subtract(norm.get(row, column).multiply(normErrorSum))
 							.divide(factor);
-						dValues[d].set(row, column, bias);
+						dValues[d].set(row, column, bias.multiply(w));
 					}
 				}
 			}

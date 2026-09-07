@@ -134,17 +134,16 @@ class WeightImplDeprecated implements Weight, TextParsable {
 			if (this.W1 == null && this.W2 == null) return Kernel.super.optimize();
 			
 			AdamOptimizer adam = (AdamOptimizer)this.optimizer;
-			int time = adam.incTime();
 			if (this.W1 != null) {
 				for (int i = 0; i < this.W1.length; i++) {
-					Matrix W = adam.recalcGradient(this.W1[i], time);
+					Matrix W = adam.recalcGradient(0, this.W1[i]);
 					this.W1[i] = W instanceof MatrixStack ? (MatrixStack)W : new MatrixStack(W);
 				}
 			}
 			
 			if (this.W2 != null) {
 				for (int i = 0; i < this.W2.length; i++) {
-					Matrix W = adam.recalcGradient(this.W2[i], time);
+					Matrix W = adam.recalcGradient(1, this.W2[i]);
 					this.W2[i] = W instanceof MatrixStack ? (MatrixStack)W : new MatrixStack(W);
 				}
 			}
@@ -243,25 +242,13 @@ class WeightImplDeprecated implements Weight, TextParsable {
 
 
 	@Override
-	public WeightImplDeprecated accumKernel(Kernel dKernel, double factor) {
-		assert (factor > 0 && factor <= 1);
-		if (dKernel == this.kernel) throw new IllegalArgumentException();
-		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
-		
-		this.kernel = (WKernel)this.kernel.add(dKernel.multiply(factor));
-		return this;
-	}
-
-	
-	@Override
 	public WeightImplDeprecated accumKernel(Kernel dKernel, double factor, double decay) {
 		assert (factor > 0 && factor <= 1);
 		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
 		
-		this.kernel = (WKernel)this.kernel.L2(decay).add(dKernel.multiply(factor));
+		this.kernel = decay > 0 ? (WKernel)this.kernel.L2(decay).add(dKernel.multiply(factor)) : (WKernel)this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 

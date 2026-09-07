@@ -135,14 +135,14 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 			if (this.W == null) return (WKernel)Kernel.super.optimize();
 			
 			AdamOptimizer adam = (AdamOptimizer)this.optimizer;
-			int time = adam.incTime();
+			int index = 0;
 			if (this.W != null) {
-				Matrix W0 = adam.recalcGradient(this.W, time);
+				Matrix W0 = adam.recalcGradient(index++, this.W);
 				this.W = W0 instanceof MatrixStack ? (MatrixStack)W0 : new MatrixStack(W0);
 			}
 			
 			if (this.bias != null) {
-				Matrix bias0 = adam.recalcGradient(this.bias, time);
+				Matrix bias0 = adam.recalcGradient(index++, this.bias);
 				this.bias = bias0 instanceof MatrixStack ? (MatrixStack)bias0 : new MatrixStack(bias0);
 			}
 			
@@ -266,25 +266,13 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 
 
 	@Override
-	public NormWeightMacro accumKernel(Kernel dKernel, double factor) {
-		assert (factor > 0 && factor <= 1);
-		if (dKernel == this.kernel) throw new IllegalArgumentException();
-		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
-		
-		this.kernel = this.kernel.add(dKernel.multiply(factor));
-		return this;
-	}
-
-	
-	@Override
 	public NormWeightMacro accumKernel(Kernel dKernel, double factor, double decay) {
 		assert (factor > 0 && factor <= 1);
 		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
 		
-		this.kernel = this.kernel/*.L2(decay)*/.add(dKernel.multiply(factor)); //L2 regularization should not be applied into linear norm weight.
+		this.kernel = decay > 0 ? this.kernel/*.L2(decay)*/.add(dKernel.multiply(factor)) : this.kernel.add(dKernel.multiply(factor)); //L2 regularization should not be applied into linear norm weight.
 		return this;
 	}
 
@@ -302,15 +290,17 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 	
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
-		if (input.rows() != W().rows() || input.columns() != W().columns() || MatrixUtil.depth(input) != W().depth()) throw new IllegalArgumentException();
-		if (bias != null) {
-			if (bias.rows() != W().rows() || bias.columns() != W().columns() || MatrixUtil.depth(bias) != W().depth()) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (input.rows() != W().rows() || input.columns() != W().columns() || MatrixUtil.depth(input) != W().depth()) throw new IllegalArgumentException();
+			if (bias != null) {
+				if (bias.rows() != W().rows() || bias.columns() != W().columns() || MatrixUtil.depth(bias) != W().depth()) throw new IllegalArgumentException();
+			}
+			if (this.bias() != null) {
+				if (this.bias().rows() != W().rows() || this.bias().columns() != W().columns() || MatrixUtil.depth(this.bias()) != W().depth()) throw new IllegalArgumentException();
+			}
+			if (this.bias() != null && bias != null) {assert (this.bias() != bias);}
 		}
-		if (this.bias() != null) {
-			if (this.bias().rows() != W().rows() || this.bias().columns() != W().columns() || MatrixUtil.depth(this.bias()) != W().depth()) throw new IllegalArgumentException();
-		}
-		if (this.bias() != null && bias != null) {assert (this.bias() != bias);}
-
+		
 		int rows = input.rows(), columns = input.columns(), depth = W().depth();
 		MatrixStack inputs = input instanceof MatrixStack ? (MatrixStack)input : new MatrixStack(input);
 		NeuronValue zero = inputs.get(0).get(0, 0).zero();
@@ -398,11 +388,11 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 		boolean acrossDepth = acrossDepth(prevOutputs);
 
 		//Calculating means and standard deviations.
-		Matrix means = null, stds = null;
+		Matrix /*means = null,*/ stds = null;
 		NeuronValue[] mean0 = null, std0 = null;
 		if (acrossDepth) {
 			Matrix[] meanStds = NormWeight.meanStds(MatrixUtil.split(prevOutputs));
-			means = meanStds[0];
+			//means = meanStds[0];
 			stds = meanStds[1];
 		}
 		else {
@@ -419,17 +409,16 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 		Matrix[] dValues = new Matrix[depth];
 		if (Kernel.speedMode(zero)) {
 			for (int d = 0; d < depth; d++) {
-				Matrix prevOutput = prevOutputs.get(d);
-				Matrix norm = prevOutput.create(new Size(columns, rows));
-				for (int row = 0; row < rows; row++) {
-					for (int column = 0; column < columns; column++) {
-						double mean = acrossDepth ? means.getv(row, column) : ((NeuronValue1)mean0[d]).get();
-						double std = acrossDepth ? stds.getv(row, column) : ((NeuronValue1)std0[d]).get();
-						double z = (prevOutput.getv(row, column)-mean) / std;
-						norm.setv(row, column, z);
-					}
+				Matrix norm = null;
+				if (this.layer != null && Kernel.SPEED_MODE) {
+					norm = this.layer.getInput();
+					if (norm instanceof MatrixStack) norm = ((MatrixStack)norm).get(d);
 				}
-				norm = W.get(d).multiplyWise(norm);
+				else {
+					if (Kernel.GLOBAL_BIAS) throw new IllegalArgumentException();
+					norm = prevOutputs.get(d).multiplyWise(W.get(d));
+					norm = norm.add(bias().get(d));
+				}
 
 				Matrix w = W.get(d);
 				double errorSum = 0, normErrorSum = 0;
@@ -443,7 +432,7 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 				}
 				
 				int N = acrossDepth ? depth : rows*columns;
-				dValues[d] = prevOutput.create(new Size(columns, rows));
+				dValues[d] = norm.create(new Size(columns, rows));
 				for (int row = 0; row < rows; row++) {
 					for (int column = 0; column < columns; column++) {
 						double std = acrossDepth ? stds.getv(row, column) : ((NeuronValue1)std0[d]).get();
@@ -458,17 +447,16 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 		}
 		else {
 			for (int d = 0; d < depth; d++) {
-				Matrix prevOutput = prevOutputs.get(d);
-				Matrix norm = prevOutput.create(new Size(columns, rows));
-				for (int row = 0; row < rows; row++) {
-					for (int column = 0; column < columns; column++) {
-						NeuronValue mean = acrossDepth ? means.get(row, column) : mean0[d];
-						NeuronValue std = acrossDepth ? stds.get(row, column) : std0[d];
-						NeuronValue z = prevOutput.get(row, column).subtract(mean).divide(std);
-						norm.set(row, column, z);
-					}
+				Matrix norm = null;
+				if (this.layer != null && Kernel.SPEED_MODE) {
+					norm = this.layer.getInput();
+					if (norm instanceof MatrixStack) norm = ((MatrixStack)norm).get(d);
 				}
-				norm = W.get(d).multiplyWise(norm);
+				else {
+					if (Kernel.GLOBAL_BIAS) throw new IllegalArgumentException();
+					norm = prevOutputs.get(d).multiplyWise(W.get(d));
+					norm = norm.add(bias().get(d));
+				}
 
 				Matrix w = W.get(d);
 				NeuronValue errorSum = zero, normErrorSum = zero;
@@ -482,7 +470,7 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 				}
 				
 				int N = acrossDepth ? depth : rows*columns;
-				dValues[d] = prevOutput.create(new Size(columns, rows));
+				dValues[d] = norm.create(new Size(columns, rows));
 				for (int row = 0; row < rows; row++) {
 					for (int column = 0; column < columns; column++) {
 						NeuronValue std = acrossDepth ? stds.get(row, column) : std0[d];
@@ -516,9 +504,11 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 	
 	@Override
 	public Matrix dValue(Matrix prevOutput, Matrix thisError) {
-		if (prevOutput.rows() != W().rows() || prevOutput.columns() != W().columns() || MatrixUtil.depth(prevOutput) != W().depth()) throw new IllegalArgumentException();
-		if (thisError.rows() != W().rows() || thisError.columns() != W().columns() || MatrixUtil.depth(thisError) != W().depth()) throw new IllegalArgumentException();
-
+		if (Kernel.SPEED_MODE) {
+			if (prevOutput.rows() != W().rows() || prevOutput.columns() != W().columns() || MatrixUtil.depth(prevOutput) != W().depth()) throw new IllegalArgumentException();
+			if (thisError.rows() != W().rows() || thisError.columns() != W().columns() || MatrixUtil.depth(thisError) != W().depth()) throw new IllegalArgumentException();
+		}
+		
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
 		MatrixStack dValue = dValue(prevOutputs, thisErrors);
@@ -528,13 +518,15 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 	
 	@Override
 	public Kernel dKernel(Matrix prevOutput, Matrix thisError) {
-		if (prevOutput.rows() != W().rows() || prevOutput.columns() != W().columns() || MatrixUtil.depth(prevOutput) != W().depth()) throw new IllegalArgumentException();
-		if (thisError.rows() != W().rows() || thisError.columns() != W().columns() || MatrixUtil.depth(thisError) != W().depth()) throw new IllegalArgumentException();
-		if (this.bias() != null) {
-			if (this.bias().rows() != W().rows() || this.bias().columns() != W().columns() || MatrixUtil.depth(this.bias()) != W().depth()) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (prevOutput.rows() != W().rows() || prevOutput.columns() != W().columns() || MatrixUtil.depth(prevOutput) != W().depth()) throw new IllegalArgumentException();
+			if (thisError.rows() != W().rows() || thisError.columns() != W().columns() || MatrixUtil.depth(thisError) != W().depth()) throw new IllegalArgumentException();
+			if (this.bias() != null) {
+				if (this.bias().rows() != W().rows() || this.bias().columns() != W().columns() || MatrixUtil.depth(this.bias()) != W().depth()) throw new IllegalArgumentException();
+			}
+			assert (this.bias() != null);
 		}
-		assert (this.bias() != null);
-
+		
 		MatrixStack prevOutputs = prevOutput instanceof MatrixStack ? (MatrixStack)prevOutput : new MatrixStack(prevOutput);
 		MatrixStack thisErrors = thisError instanceof MatrixStack ? (MatrixStack)thisError : new MatrixStack(thisError);
 		Matrix dW = prevOutputs.multiplyWise(thisErrors);

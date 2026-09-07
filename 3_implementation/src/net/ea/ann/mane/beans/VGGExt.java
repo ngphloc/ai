@@ -113,7 +113,7 @@ class VGGExt extends VGG {
 	 * Default value for field of maximum class probability.
 	 * The larger this parameter is, the more the model is overfitting, the more the model is accurate.
 	 */
-	private final static double MAX_CLASS_PROB_DEFAULT = 0.99; //0.9
+	private final static double MAX_CLASS_PROB_DEFAULT = 0.99; //0.9, 0.95, 0.99
 	
 	
 	/**

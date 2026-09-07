@@ -127,7 +127,7 @@ public interface Filter extends Parameter {
 	 * @param factor factor.
 	 * @return this filter.
 	 */
-	Filter accumKernel(Kernel dKernel, double factor);
+	default Filter accumKernel(Kernel dKernel, double factor) {return accumKernel(dKernel, factor, 0);}
 
 	
 	/**
@@ -137,9 +137,7 @@ public interface Filter extends Parameter {
 	 * @param decay decay which is factor of L2 regularization.
 	 * @return this filter.
 	 */
-	default Filter accumKernel(Kernel dKernel, double factor, double decay) {
-		return accumKernel(dKernel, factor);
-	}
+	Filter accumKernel(Kernel dKernel, double factor, double decay);
 	
 	
 	/**
@@ -194,13 +192,27 @@ public interface Filter extends Parameter {
 
 
 	@Override
-	default Parameter pinit(Randomizer rnd) {return this;}
+	default Parameter pmultiplyRandom(Randomizer rnd) {return this;}
 
 
 	@Override
-	default Parameter pmultiplyRandom(Randomizer rnd) {return this;}
+	default Parameter pinit(Randomizer rnd) {return this;}
 
 	
+	/**
+	 * Getting layer.
+	 * @return layer.
+	 */
+	default MatrixLayerAbstract getLayer() {return null;}
+	
+	
+	/**
+	 * Setting layer.
+	 * @param layer layer.
+	 */
+	default void setLayer(MatrixLayerAbstract layer) {}
+
+
 }
 
 

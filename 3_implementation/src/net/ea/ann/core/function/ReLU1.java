@@ -27,6 +27,12 @@ public class ReLU1 implements ReLU {
 
 	
 	/**
+	 * Flag to concern maximum bound.
+	 */
+	final static boolean CONCERN_MAX = false; //true;
+
+	
+	/**
 	 * Minimum value.
 	 */
 	private double min = 0;
@@ -95,7 +101,7 @@ public class ReLU1 implements ReLU {
 	@Override
 	public NeuronValue derivative(NeuronValue x) {
 		double v = ((NeuronValue1)x).get();
-		if ((v < min /*v <= min*/) || (isConcernMax() && v > max /*v >= max*/))
+		if ((v <= min /*v < min*/) || (isConcernMax() && v >= max /*v > max*/))
 			return new NeuronValue1(0);
 		else
 			return new NeuronValue1(1);

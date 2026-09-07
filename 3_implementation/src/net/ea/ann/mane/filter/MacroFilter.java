@@ -15,7 +15,6 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValue1;
-import net.ea.ann.mane.Filter;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.raster.Size;
 
@@ -83,25 +82,13 @@ public class MacroFilter extends KernelFilter {
 
 	
 	@Override
-	public MacroFilter accumKernel(Kernel dKernel, double factor) {
+	public MacroFilter accumKernel(Kernel dKernel, double factor, double decay) {
 		assert (factor > 0 && factor <= 1);
 		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
 		
-		this.kernel = this.kernel.add(dKernel.multiply(factor));
-		return this;
-	}
-	
-	
-	@Override
-	public Filter accumKernel(Kernel dKernel, double factor, double decay) {
-		assert (factor > 0 && factor <= 1);
-		if (dKernel == this.kernel) throw new IllegalArgumentException();
-		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
-		
-		this.kernel = this.kernel.L2(decay).add(dKernel.multiply(factor));
+		this.kernel = decay > 0 ? this.kernel.L2(decay).add(dKernel.multiply(factor)) : this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 
@@ -190,6 +177,7 @@ public class MacroFilter extends KernelFilter {
 		assert (prevInputLayers.rows() == this.height() && prevInputLayers.columns() == this.width());
 		assert (prevOutputLayer.rows() == this.height() && prevOutputLayer.columns() == this.width());
 		assert (thisErrorLayer.rows() == this.height() && thisErrorLayer.columns() == this.width());
+		
 		NeuronValue zero = prevInputLayers.get().get(0, 0).zero();
 		Matrix[] dPrevValues = new Matrix[this.depth()];
 		for (int i = 0; i < dPrevValues.length; i++) {

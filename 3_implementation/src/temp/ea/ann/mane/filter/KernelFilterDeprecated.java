@@ -167,10 +167,9 @@ abstract class KernelFilterDeprecated extends FilterAbstract {
 			if (this.W == null) return Kernel.super.optimize();
 			
 			AdamOptimizer adam = (AdamOptimizer)this.optimizer;
-			int time = adam.incTime();
 			if (this.W != null) {
 				for (int i = 0; i < this.W.length; i++) {
-					Matrix W0 = adam.recalcGradient(this.W[i], time);
+					Matrix W0 = adam.recalcGradient(0, this.W[i]);
 					this.W[i] = W0 instanceof MatrixStack ? (MatrixStack)W0 : new MatrixStack(W0);
 				}
 			}

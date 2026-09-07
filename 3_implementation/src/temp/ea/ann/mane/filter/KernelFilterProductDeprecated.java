@@ -178,25 +178,13 @@ class KernelFilterProductDeprecated extends KernelFilterDeprecated implements Te
 	
 
 	@Override
-	public KernelFilterProductDeprecated accumKernel(Kernel dKernel, double factor) {
-		assert (factor > 0 && factor <= 1);
-		if (dKernel == this.kernel) throw new IllegalArgumentException();
-		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
-		
-		this.kernel = this.kernel.add(dKernel.multiply(factor));
-		return this;
-	}
-	
-	
-	@Override
 	public KernelFilterProductDeprecated accumKernel(Kernel dKernel, double factor, double decay) {
 		assert (factor > 0 && factor <= 1);
 		if (dKernel == this.kernel) throw new IllegalArgumentException();
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
 		
-		this.kernel = this.kernel.L2(decay).add(dKernel.multiply(factor));
+		this.kernel = decay > 0 ? this.kernel.L2(decay).add(dKernel.multiply(factor)) : this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 

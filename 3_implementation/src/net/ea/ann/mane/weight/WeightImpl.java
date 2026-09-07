@@ -18,6 +18,8 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.Parameter;
 import net.ea.ann.mane.Weight;
 import net.ea.ann.mane.train.AdamOptimizer;
@@ -145,6 +147,14 @@ public class WeightImpl implements Weight, TextParsable {
 		}
 
 		@Override
+		public WKernel clip(double maxNorm) {
+			if (this.W1 != null) Kernel.clip(maxNorm, this.W1);
+			if (this.W2 != null) Kernel.clip(maxNorm, this.W2);
+			if (this.bias != null) Kernel.clip(maxNorm, this.bias);
+			return this;
+		}
+
+		@Override
 		public Optimizer getOptimizer() {return optimizer;}
 
 		@Override
@@ -157,27 +167,27 @@ public class WeightImpl implements Weight, TextParsable {
 			if (this.W1 == null && this.W2 == null) return Kernel.super.optimize();
 			
 			AdamOptimizer adam = (AdamOptimizer)this.optimizer;
-			int time = adam.incTime();
+			int index = 0;
 			if (this.W1 != null) {
 				for (int i = 0; i < this.W1.length; i++) {
-					Matrix W = adam.recalcGradient(this.W1[i], time);
+					Matrix W = adam.recalcGradient(index++, this.W1[i]);
 					this.W1[i] = W instanceof MatrixStack ? (MatrixStack)W : new MatrixStack(W);
 				}
 			}
 			
 			if (this.W2 != null) {
 				for (int i = 0; i < this.W2.length; i++) {
-					Matrix W = adam.recalcGradient(this.W2[i], time);
+					Matrix W = adam.recalcGradient(index++, this.W2[i]);
 					this.W2[i] = W instanceof MatrixStack ? (MatrixStack)W : new MatrixStack(W);
 				}
 			}
 
 			if (this.bias != null) {
 				for (int i = 0; i < this.bias.length; i++) {
-					this.bias[i] = adam.recalcGradient(this.bias[i], time);
+					this.bias[i] = adam.recalcGradient(index++, this.bias[i]);
 				}
 			}
-
+			
 			return this;
 		}
 		
@@ -267,6 +277,12 @@ public class WeightImpl implements Weight, TextParsable {
 	
 	
 	/**
+	 * Referred layer.
+	 */
+	MatrixLayerAbstract layer = null;
+	
+	
+	/**
 	 * Constructor with the kernel.
 	 * @param kernel the kernel.
 	 */
@@ -274,6 +290,36 @@ public class WeightImpl implements Weight, TextParsable {
 		this.kernel = kernel;
 		if (Kernel.OPTIMIZER) this.kernel.setOptimizer(this.kernel.createOptimizer());
 	}
+
+	
+	@Override
+	public MatrixLayerAbstract getLayer() {return layer;}
+	
+
+	@Override
+	public void setLayer(MatrixLayerAbstract layer) {this.layer = layer;}
+
+	
+	/**
+	 * Getting network.
+	 * @return network;
+	 */
+	MatrixNetworkAbstract getNetwork() {return getLayer() != null ? getLayer().getNetwork() : null;}
+	
+	
+	/**
+	 * Checking whether to make gradient clipping.
+	 * @return whether to make gradient clipping.
+	 */
+	boolean isGradClipping() {return getNetwork() != null ? getNetwork().paramIsGradClipping() : false;}
+	
+	
+	/**
+	 * Getting maximum gradient norm for gradient clipping.
+	 * The value ranges from 1.0 to 5.0. The value 0 indicates no gradient clipping.
+	 * @return raster channel.
+	 */
+	double getGradNormMax() {return getNetwork() != null ? getNetwork().paramGetGradNormMax() : 0;}
 
 	
 	/**
@@ -372,25 +418,16 @@ public class WeightImpl implements Weight, TextParsable {
 	
 	
 	@Override
-	public WeightImpl accumKernel(Kernel dKernel, double factor) {
-		assert (factor > 0 && factor <= 1);
-		if (dKernel == this.kernel) throw new IllegalArgumentException();
-		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
-		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
-		
-		this.kernel = (WKernel)this.kernel.add(dKernel.multiply(factor));
-		return this;
-	}
-
-	
-	@Override
 	public WeightImpl accumKernel(Kernel dKernel, double factor, double decay) {
 		assert (factor > 0 && factor <= 1);
 		if (dKernel == this.kernel) throw new IllegalArgumentException();
+		
+		if (isGradClipping()) dKernel = dKernel.clip(getGradNormMax());
+		
 		if (dKernel.getOptimizer() == null) dKernel.setOptimizer(this.kernel.getOptimizer());
 		if (dKernel.getOptimizer() == this.kernel.getOptimizer()) dKernel = dKernel.optimize();
 		
-		this.kernel = (WKernel)this.kernel.L2(decay).add(dKernel.multiply(factor));
+		this.kernel = decay > 0 ? (WKernel)this.kernel.L2(decay).add(dKernel.multiply(factor)) : (WKernel)this.kernel.add(dKernel.multiply(factor));
 		return this;
 	}
 
@@ -423,12 +460,14 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return evaluated value.
 	 */
 	private MatrixStack evaluate(MatrixStack inputs, MatrixStack biases) {
-		if (summode) {
-			if (inputs.depth() != depth() || inputs.depth() != depth() || (biases != null && biases.depth() != time())) throw new IllegalArgumentException();
-		}
-		else {
-			if (inputs.depth() != time() || inputs.depth() != time() || (biases != null && biases.depth() != time())) throw new IllegalArgumentException();
-			if (depth() != 1) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (summode) {
+				if (inputs.depth() != depth() || inputs.depth() != depth() || (biases != null && biases.depth() != time())) throw new IllegalArgumentException();
+			}
+			else {
+				if (inputs.depth() != time() || inputs.depth() != time() || (biases != null && biases.depth() != time())) throw new IllegalArgumentException();
+				if (depth() != 1) throw new IllegalArgumentException();
+			}
 		}
 		
 		int time = time();
@@ -486,17 +525,14 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return gradient of previous layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors) {
-		if (prevOutputs.depth() != thisErrors.depth()) {
-			if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (!summode) throw new IllegalArgumentException();
-		}
-		else {
-			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			/*
-			if (summode || depth() != 1) {
-				if (Kernel.BILINEAR) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (prevOutputs.depth() != thisErrors.depth()) {
+				if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+				if (!summode) throw new IllegalArgumentException();
 			}
-			*/
+			else {
+				if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+			}
 		}
 		
 		int time = time();
@@ -558,17 +594,14 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return gradient of the current first weight.
 	 */
 	private MatrixStack[] dW1(MatrixStack prevOutputs, MatrixStack thisErrors) {
-		if (prevOutputs.depth() != thisErrors.depth()) {
-			if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (!summode) throw new IllegalArgumentException();
-		}
-		else {
-			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			/*
-			if (summode || depth() != 1) {
-				if (Kernel.BILINEAR) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (prevOutputs.depth() != thisErrors.depth()) {
+				if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+				if (!summode) throw new IllegalArgumentException();
 			}
-			*/
+			else {
+				if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+			}
 		}
 		
 		if (this.W1() == null) return null;
@@ -609,17 +642,14 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return gradient of the current first weight.
 	 */
 	private MatrixStack[] dW2(MatrixStack prevOutputs, MatrixStack thisErrors) {
-		if (prevOutputs.depth() != thisErrors.depth()) {
-			if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			if (!summode) throw new IllegalArgumentException();
-		}
-		else {
-			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-			/*
-			if (summode || depth() != 1) {
-				if (Kernel.BILINEAR) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (prevOutputs.depth() != thisErrors.depth()) {
+				if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+				if (!summode) throw new IllegalArgumentException();
 			}
-			*/
+			else {
+				if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+			}
 		}
 		
 		if (this.W2() == null) return null;
@@ -737,8 +767,9 @@ public class WeightImpl implements Weight, TextParsable {
 
 		WeightImpl Other = (WeightImpl)other;
 		this.kernel.copy(Other.kernel());
+		this.summode = Other.summode;
 		
-		if (this.summode != Other.summode) throw new IllegalArgumentException();
+		if ((this.layer == null && Other.layer != null) || (this.layer != null && Other.layer == null)) throw new IllegalArgumentException();
 		
 		return this;
 	}

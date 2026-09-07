@@ -19,7 +19,6 @@ import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValueCreator;
-import net.ea.ann.mane.weight.NormWeight;
 import net.ea.ann.raster.Image;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAbstract;
@@ -312,7 +311,7 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 */
 	protected Weight newWeight(Size prevSize, Size size, LayerSpec layerSpec) {
 		Weight weight = WeightSpec.newWeight(prevSize, size, newNeuronValue(), layerSpec, this.neuronChannel);
-		if (weight instanceof NormWeight) ((NormWeight)weight).setLayer(this);
+		weight.setLayer(this);
 		return weight;
 	}
 
@@ -324,7 +323,9 @@ public abstract class MatrixLayerAbstract extends LayerAbstract implements Matri
 	 * @return filter.
 	 */
 	protected Filter newFilter(Size filterSize, LayerSpec layerSpec) {
-		return FilterSpec.newFilter(filterSize, newNeuronValue(), layerSpec, this.neuronChannel);
+		Filter filter = FilterSpec.newFilter(filterSize, newNeuronValue(), layerSpec, this.neuronChannel);
+		filter.setLayer(this);
+		return filter;
 	}
 	
 	/**

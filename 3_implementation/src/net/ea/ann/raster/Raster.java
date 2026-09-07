@@ -15,8 +15,8 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.Logistic1;
 import net.ea.ann.core.function.LogisticV;
 import net.ea.ann.core.function.ReLU;
-import net.ea.ann.core.function.ReLU1;
-import net.ea.ann.core.function.ReLUV;
+import net.ea.ann.core.function.ReLULeaky1;
+import net.ea.ann.core.function.ReLULeakyV;
 import net.ea.ann.core.function.indexed.IndexedLogistic1;
 import net.ea.ann.core.function.indexed.IndexedLogisticV;
 import net.ea.ann.core.value.NeuronValue;
@@ -308,6 +308,37 @@ public interface Raster extends Serializable, Cloneable {
 	}
 
 	
+//	/**
+//	 * Retrieving convolutional activation function from raster type. 
+//	 * @param rasterType raster type.
+//	 * @param isNorm checking whether to normalized pixels value in range [0, 1].
+//	 * @return convolutional activation function from raster type.
+//	 */
+//	private static Function toConvActivationRef(RasterType rasterType, boolean isNorm) {
+//		Function f = null;
+//		
+//        switch (rasterType) {
+//        case GRAY:
+//        	f = isNorm ? new ReLU1(0.0, 1.0) : new ReLU1(0.0, 255.0);
+//        	break;
+//        case GB:
+//        	f = isNorm ? new ReLUV(2, 0.0, 1.0) : new ReLUV(2, 0.0, 255.0);
+//        	break;
+//        case RGB:
+//        	f = isNorm ? new ReLUV(3, 0.0, 1.0) : new ReLUV(3, 0.0, 255.0);
+//        	break;
+//        case ARGB:
+//        	f = isNorm ? new ReLUV(4, 0.0, 1.0) : new ReLUV(4, 0.0, 255.0);
+//        	break;
+//        default:
+//        	f = isNorm ? new ReLU1(0.0, 1.0) : new ReLU1(0.0, 255.0);
+//        	break;
+//        }
+//        
+//        return f;
+//	}
+
+	
 	/**
 	 * Retrieving convolutional activation function from raster type. 
 	 * @param rasterType raster type.
@@ -319,19 +350,19 @@ public interface Raster extends Serializable, Cloneable {
 		
         switch (rasterType) {
         case GRAY:
-        	f = isNorm ? new ReLU1(0.0, 1.0) : new ReLU1(0.0, 255.0);
+        	f = new ReLULeaky1();
         	break;
         case GB:
-        	f = isNorm ? new ReLUV(2, 0.0, 1.0) : new ReLUV(2, 0.0, 255.0);
+        	f = new ReLULeakyV();
         	break;
         case RGB:
-        	f = isNorm ? new ReLUV(3, 0.0, 1.0) : new ReLUV(3, 0.0, 255.0);
+        	f = new ReLULeakyV();
         	break;
         case ARGB:
-        	f = isNorm ? new ReLUV(4, 0.0, 1.0) : new ReLUV(4, 0.0, 255.0);
+        	f = new ReLULeakyV();
         	break;
         default:
-        	f = isNorm ? new ReLU1(0.0, 1.0) : new ReLU1(0.0, 255.0);
+        	f = new ReLULeaky1();
         	break;
         }
         
@@ -381,6 +412,27 @@ public interface Raster extends Serializable, Cloneable {
 	}
 
 	
+//	/**
+//	 * Retrieving activation function from neuron channel.
+//	 * @param neuronChannel neuron channel.
+//	 * @param isNorm checking whether to normalized pixels value in range [0, 1].
+//	 * @return activation function from neuron channel.
+//	 */
+//	static Function toConvActivationRef(int neuronChannel, boolean isNorm) {
+//		if (isNorm) {
+//			if (neuronChannel <= 0)
+//				return null;
+//			else if (neuronChannel == 1)
+//	        	return new ReLU1(0.0, 1.0);
+//			else
+//	        	return new ReLUV(neuronChannel, 0.0, 1.0);
+//		}
+//		
+//		RasterType rasterType = toRasterType(neuronChannel);
+//		return toConvActivationRef(rasterType, isNorm);
+//	}
+
+	
 	/**
 	 * Retrieving activation function from neuron channel.
 	 * @param neuronChannel neuron channel.
@@ -392,9 +444,9 @@ public interface Raster extends Serializable, Cloneable {
 			if (neuronChannel <= 0)
 				return null;
 			else if (neuronChannel == 1)
-	        	return new ReLU1(0.0, 1.0);
+	        	return new ReLULeaky1();
 			else
-	        	return new ReLUV(neuronChannel, 0.0, 1.0);
+	        	return new ReLULeakyV();
 		}
 		
 		RasterType rasterType = toRasterType(neuronChannel);

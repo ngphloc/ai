@@ -108,7 +108,10 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 	 * @return evaluated layer.
 	 */
 	private MatrixStack evaluate(MatrixStack inputs, MatrixStack biases) {
-		if (inputs.depth() != depth() || biases.depth() != time()) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (inputs.depth() != depth() || biases.depth() != time()) throw new IllegalArgumentException();
+		}
+		
 		int time = time();
 		Matrix[] values = new Matrix[time];
 		for (int t = 0; t < time; t++) {
@@ -180,8 +183,10 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 	 * @return gradient of previous layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors, boolean learning, double learningRate) {
-		if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
-		if (prevOutputs.rows() != thisErrors.rows() || prevOutputs.columns() != thisErrors.columns()) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
+			if (prevOutputs.rows() != thisErrors.rows() || prevOutputs.columns() != thisErrors.columns()) throw new IllegalArgumentException();
+		}
 		
 		int time = time();
 		Matrix[] dValues = new Matrix[time];

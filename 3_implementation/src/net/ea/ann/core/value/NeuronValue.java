@@ -235,7 +235,7 @@ public interface NeuronValue extends Value {
 
 	
 	/**
-	 * Calculate mean.
+	 * Calculate mean. For complex number, it is norm.
 	 * @return mean value.
 	 */
 	double mean();

@@ -308,7 +308,7 @@ public class GenUIClassifier extends GenUI {
 			GenUIClassifier classifierUI = queryLocalGenModel(new VGGExt(), null);
 			if (classifierUI != null) classifierUI.setVisible(true);
 		}
-		else if (arg.equalsIgnoreCase("mane") || arg.equalsIgnoreCase("gen") || arg.equalsIgnoreCase("general"))
+		else if (arg.equalsIgnoreCase("g") || arg.equalsIgnoreCase("gen"))
 			ClassifierAssoc.classifyGen(System.in, System.out);
 		else
 			ClassifierAssoc.classify(System.in, System.out);

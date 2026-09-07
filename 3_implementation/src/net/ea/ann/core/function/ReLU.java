@@ -19,10 +19,4 @@ import net.ea.ann.core.NormSupporter;
 public interface ReLU extends FunctionInvertible, NormSupporter {
 
 	
-	/**
-	 * Flag to concern maximum bound.
-	 */
-	final static boolean CONCERN_MAX = false; //true;
-	
-	
 }

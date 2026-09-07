@@ -21,12 +21,14 @@ import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.FilterSpec.Type;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.WeightSpec;
-import net.ea.ann.mane.layers.BatchNormLayer;
+import net.ea.ann.mane.layers.NormLayerBatch;
 import net.ea.ann.mane.layers.DropoutLayer;
 import net.ea.ann.mane.layers.FlattenLayer;
 import net.ea.ann.mane.layers.FlattenLayer2;
+import net.ea.ann.mane.layers.NormLayer;
 import net.ea.ann.mane.layers.NullLayer;
 import net.ea.ann.mane.layers.ResidualLayer;
 import net.ea.ann.mane.layers.ResidualNetwork;
@@ -238,7 +240,7 @@ public class VGG extends VGGCore {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
+		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= MatrixNetworkImpl.MINSIZE*MatrixNetworkImpl.MINSIZE) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -393,13 +395,13 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Default value for middle size.
 	 */
-	public final static Size MIDDLE_SIZE_DEFAULT = new Size(MINSIZE, MINSIZE);
+	public final static Size MIDDLE_SIZE_DEFAULT = new Size(7, 7);
 
 	
 	/**
 	 * Default text value for middle size.
 	 */
-	public final static String MIDDLE_SIZE_DEFAULT_TEXT = MINSIZE + ", " + MINSIZE;
+	public final static String MIDDLE_SIZE_DEFAULT_TEXT = 7 + ", " + 7;
 	
 	
 	/**
@@ -720,7 +722,7 @@ class VGGCore extends ResidualNetwork {
 		public static enum Type {
 			
 			/**
-			 * Normal layer.
+			 * Normalization layer.
 			 */
 			normal,
 			
@@ -739,6 +741,11 @@ class VGGCore extends ResidualNetwork {
 			 */
 			norm,
 			
+			/**
+			 * Batch normalization layer.
+			 */
+			norm_batch,
+
 			/**
 			 * Flattening layer.
 			 */
@@ -907,7 +914,10 @@ class VGGCore extends ResidualNetwork {
 			layer = new ResidualLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 			break;
 		case norm:
-			layer = new BatchNormLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
+			layer = new NormLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
+			break;
+		case norm_batch:
+			layer = new NormLayerBatch(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
 			break;
 		case flatten:
 			layer = new FlattenLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
@@ -1146,7 +1156,7 @@ class VGGCore extends ResidualNetwork {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
+		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= MatrixNetworkImpl.MINSIZE*MatrixNetworkImpl.MINSIZE) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -1287,6 +1297,7 @@ class VGGCore extends ResidualNetwork {
 		if (paramIsLayerNorm() /*&& (prevSize.width == 1 || paramIsVectorized() || Kernel.MATRIX_NORM)*/) {
 			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
+			normLayerSpec.type = VGG.LayerSpec.Type.norm;
 			normLayerSpec.weightSpec.kernelType = paramGetWeightNormType();
 			int area = normLayerSpec.size.width*normLayerSpec.size.height;
 //			if ((normLayerSpec.size.depth >= Kernel.LARGE_DEPTH || area >= Kernel.LARGE_DEPTH) && area <= Kernel.LARGE_SIZE*Kernel.LARGE_SIZE)
@@ -1318,7 +1329,7 @@ class VGGCore extends ResidualNetwork {
 		if (paramIsLayerNorm()) {
 			VGG.LayerSpec normLayerSpec = new VGG.LayerSpec(prevSize, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 			normLayerSpec.prevSize = normLayerSpec.size; //Setting previous size not important.
-			normLayerSpec.type = VGG.LayerSpec.Type.norm;
+			normLayerSpec.type = VGG.LayerSpec.Type.norm_batch;
 			resLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.filter_activate : net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
 			layerSpecs.add(normLayerSpec);
 		}

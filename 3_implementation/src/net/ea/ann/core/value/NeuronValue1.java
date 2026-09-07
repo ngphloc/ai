@@ -62,9 +62,14 @@ public class NeuronValue1 implements NeuronValue, TextParsable {
 	 * Getting double value.
 	 * @return double value.
 	 */
-	public double get() {
-		return v;
-	}
+	public double get() {return v;}
+	
+	
+	/**
+	 * Setting double value.
+	 * @param v double value.
+	 */
+	public void set(double v) {this.v = v;}
 	
 
 	@Override

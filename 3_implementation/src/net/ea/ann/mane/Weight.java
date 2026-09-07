@@ -50,7 +50,7 @@ public interface Weight extends Parameter {
 	 * @param factor factor.
 	 * @return this weight.
 	 */
-	Weight accumKernel(Kernel dKernel, double factor);
+	default Weight accumKernel(Kernel dKernel, double factor) {return accumKernel(dKernel, factor, 0);}
 
 		
 	/**
@@ -60,9 +60,7 @@ public interface Weight extends Parameter {
 	 * @param decay decay which is factor of L2 regularization.
 	 * @return this weight.
 	 */
-	default Weight accumKernel(Kernel dKernel, double factor, double decay) {
-		return accumKernel(dKernel, factor);
-	}
+	Weight accumKernel(Kernel dKernel, double factor, double decay);
 	
 	
 	/**
@@ -157,6 +155,20 @@ public interface Weight extends Parameter {
 
 	@Override
 	default Parameter pmultiplyRandom(Randomizer rnd) {return this;}
+
+
+	/**
+	 * Getting layer.
+	 * @return layer.
+	 */
+	default MatrixLayerAbstract getLayer() {return null;}
+	
+	
+	/**
+	 * Setting layer.
+	 * @param layer layer.
+	 */
+	default void setLayer(MatrixLayerAbstract layer) {}
 
 
 }

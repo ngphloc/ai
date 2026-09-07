@@ -26,6 +26,7 @@ import net.ea.ann.mane.filter.NetworkFilter;
 import net.ea.ann.mane.filter.NullFilter;
 import net.ea.ann.mane.filter.PoolFilterMax;
 import net.ea.ann.mane.layers.DropoutLayer;
+import net.ea.ann.mane.layers.NormLayer;
 import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.NetworkWeight;
 import net.ea.ann.mane.weight.NormWeight;
@@ -51,6 +52,12 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Checking point flag.
 	 */
 	private static final boolean CHECK_POINT = false;
+	
+	
+	/**
+	 * Error clipping flag.
+	 */
+	private static boolean ERROR_CLIP = false;
 	
 	
 	/**
@@ -616,6 +623,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	@Override
 	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		if (outputErrors == null || outputErrors.length == 0) return null;
+		if (outputErrors.length > 1) assert (!(this instanceof NormLayer));
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? Network.LEARN_RATE_DEFAULT : learningRate;
 		if (focus == null) learning = true;
 		
@@ -695,13 +703,15 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			
 			//Adjusting errors.
 			errors[i] = adjustError(errors[i], outputErrors[i]);
-			if (isNextWeightBackWard) {
+			boolean applyDerivative = false;
+			if (isNextWeightBackWard || (this.weight != null && this.weight.backwardErrorMode() && this.filter == null)) {
 				Function thisWeightActivateRef = this.weight != null ? (!(this.weight instanceof NullWeight) ? this.getWeightActivateRef() : null) :
 					(this.filter != null && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ?
 						this.getFilterActivateRef() : null); //Getting right-most activation function. Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
 				Matrix input0 = actualErrInput != null ? actualErrInput : queryInput(); //X^k-1 = input.
 				Matrix derivative = thisWeightActivateRef != null ? input0.derivativeWise(thisWeightActivateRef) : null;
 				errors[i] = derivative != null ? derivative.multiplyWise(errors[i]) : errors[i];
+				applyDerivative = true;
 			}
 
 			//Validating errors. It is possible to remove these assertions.
@@ -752,7 +762,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 					errors[i] = this.weight.dValue(prevInput0, prevOutput0, errors[i], this.getWeightActivateRef());
 					applyFilterActivate = false;
 				}
-				else if (this.weight == null && isNextWeightBackWard) {
+				else if (this.weight == null && applyDerivative) {
 					applyFilterActivate = false;
 				}
 				
@@ -854,50 +864,10 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * @return adjusted error.
 	 */
 	protected Matrix adjustError(Matrix error, Error ERROR) {
-		//Gradient Clipping is a useful technique to improve training neural network, which prevents gradient explosion.
-		if (paramIsGradClipping() && paramGetGradNormMax() > 0) {
-			double maxNorm = paramGetGradNormMax();
-			Matrix[] matrices = MatrixUtil.split(error);
-			NeuronValue zero = matrices[0].get(0, 0).zero();
-			for (int d = 0; d < matrices.length; d++) {
-				if (Kernel.speedMode(zero)) {
-					double norm = 0;
-					for (int row = 0; row < error.rows(); row++) {
-						for (int column = 0; column < error.columns(); column++) {
-							double v = matrices[d].getv(row, column);
-							norm += v*v;
-						}
-					}
-					norm = Math.sqrt(norm);
-					if (norm <= maxNorm) continue;
-	
-					for (int row = 0; row < error.rows(); row++) {
-						for (int column = 0; column < error.columns(); column++) {
-							double value = matrices[d].getv(row, column);
-							matrices[d].setv(row, column, value/norm);
-						}
-					}
-				}
-				else {
-					NeuronValue norm = zero;
-					for (int row = 0; row < error.rows(); row++) {
-						for (int column = 0; column < error.columns(); column++) {
-							NeuronValue v = matrices[d].get(row, column);
-							norm = norm.add(v.multiply(v));
-						}
-					}
-					norm = norm.sqrt();
-					if (norm.mean() <= maxNorm || !norm.canInvertWise()) continue;
-					
-					for (int row = 0; row < error.rows(); row++) {
-						for (int column = 0; column < error.columns(); column++) {
-							NeuronValue value = matrices[d].get(row, column);
-							matrices[d].set(row, column, value.divide(norm));
-						}
-					}
-				}
-			}
+		if (ERROR_CLIP && paramIsGradClipping()) {
+			Kernel.clip(paramGetGradNormMax(), MatrixUtil.split(error));
 		}
+		
 		return error;
 	}
 	

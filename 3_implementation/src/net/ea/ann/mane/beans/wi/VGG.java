@@ -21,6 +21,7 @@ import net.ea.ann.mane.FilterSpec.PoolType;
 import net.ea.ann.mane.FilterSpec.Type;
 import net.ea.ann.mane.Kernel;
 import net.ea.ann.mane.MatrixLayerAbstract;
+import net.ea.ann.mane.MatrixNetworkImpl;
 import net.ea.ann.mane.MatrixNetworkInitializer;
 import net.ea.ann.mane.WeightSpec;
 import net.ea.ann.mane.layers.BatchNormLayer;
@@ -28,8 +29,8 @@ import net.ea.ann.mane.layers.DropoutLayer;
 import net.ea.ann.mane.layers.FlattenLayer;
 import net.ea.ann.mane.layers.FlattenLayer2;
 import net.ea.ann.mane.layers.NullLayer;
-import net.ea.ann.mane.layers.ResidualLayer;
 import net.ea.ann.mane.layers.PResidualNetwork;
+import net.ea.ann.mane.layers.ResidualLayer;
 import net.ea.ann.raster.Size;
 import net.ea.ann.transformer.TransformerBasic;
 import net.hudup.core.parser.TextParserUtil;
@@ -238,7 +239,7 @@ public class VGG extends VGGCore {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
+		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= MatrixNetworkImpl.MINSIZE*MatrixNetworkImpl.MINSIZE) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -393,13 +394,13 @@ class VGGCore extends PResidualNetwork {
 	/**
 	 * Default value for middle size.
 	 */
-	public final static Size MIDDLE_SIZE_DEFAULT = new Size(MINSIZE, MINSIZE);
+	public final static Size MIDDLE_SIZE_DEFAULT = new Size(7, 7);
 
 	
 	/**
 	 * Default text value for middle size.
 	 */
-	public final static String MIDDLE_SIZE_DEFAULT_TEXT = MINSIZE + ", " + MINSIZE;
+	public final static String MIDDLE_SIZE_DEFAULT_TEXT = 7 + ", " + 7;
 	
 	
 	/**
@@ -643,7 +644,7 @@ class VGGCore extends PResidualNetwork {
 	/**
 	 * Default value for field of Global Average Pool (GAP) filter.
 	 */
-	public final static boolean GAP_DEFAULT = false;
+	public final static boolean GAP_DEFAULT = true;
 	
 	
 	/**
@@ -1146,7 +1147,7 @@ class VGGCore extends PResidualNetwork {
 
 		boolean gap = paramIsGAP();
 		Size ffnSize = null;
-		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= Kernel.LARGE_DEPTH) {
+		if ((gap || lastSize.depth >= paramGetGAPDepth()) && lastSize.width*lastSize.height <= MatrixNetworkImpl.MINSIZE*MatrixNetworkImpl.MINSIZE) {
 			ffnSize = new Size(1, lastSize.depth, 1, 1);
 			
 			//Adding Global Average Pooling (GAP) layer.
@@ -1936,7 +1937,7 @@ class VGGCore extends PResidualNetwork {
 	 * Checking layer normalization mode.
 	 * @return layer normalization mode.
 	 */
-	boolean paramIsLayerNorm() {
+	public boolean paramIsLayerNorm() {
 		if (config.containsKey(LAYER_NORM_FIELD))
 			return config.getAsBoolean(LAYER_NORM_FIELD);
 		else
@@ -1949,7 +1950,7 @@ class VGGCore extends PResidualNetwork {
 	 * @param layerNorm layer normalization mode.
 	 * @return this VGG.
 	 */
-	VGGCore paramSetLayerNorm(boolean layerNorm) {
+	public VGGCore paramSetLayerNorm(boolean layerNorm) {
 		config.put(LAYER_NORM_FIELD, layerNorm);
 		return this;
 	}

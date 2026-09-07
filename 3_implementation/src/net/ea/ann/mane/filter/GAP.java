@@ -51,11 +51,13 @@ public class GAP extends PoolFilter {
 
 	@Override
 	public void forward(Matrix prevLayer, Matrix thisInputLayer, Matrix thisOutputLayer, NeuronValue bias, Function thisActivateRef) {
-		if (thisInputLayer instanceof MatrixStack || thisOutputLayer instanceof MatrixStack) throw new IllegalArgumentException();
-		if (thisInputLayer.columns() != 1 || thisOutputLayer.columns() != 1) throw new IllegalArgumentException();
 		MatrixStack prevLayers = prevLayer instanceof MatrixStack ? (MatrixStack)prevLayer : new MatrixStack(prevLayer);
 		int depth = prevLayers.depth();
-		if (thisInputLayer.rows() != depth || thisOutputLayer.rows() != depth) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (thisInputLayer instanceof MatrixStack || thisOutputLayer instanceof MatrixStack) throw new IllegalArgumentException();
+			if (thisInputLayer.columns() != 1 || thisOutputLayer.columns() != 1) throw new IllegalArgumentException();
+			if (thisInputLayer.rows() != depth || thisOutputLayer.rows() != depth) throw new IllegalArgumentException();
+		}
 		
 		if (Kernel.speedMode(thisOutputLayer.get(0, 0))) {
 			for (int d = 0; d < depth; d++) {

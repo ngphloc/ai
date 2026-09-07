@@ -40,7 +40,7 @@ public class ActivateFWeight implements Weight {
 
 	
 	@Override
-	public Weight accumKernel(Kernel dKernel, double factor) {return this;}
+	public Weight accumKernel(Kernel dKernel, double factor, double decay) {return this;}
 
 	
 	@Override
@@ -49,16 +49,22 @@ public class ActivateFWeight implements Weight {
 	
 	@Override
 	public Matrix dValue(Matrix prevOutput, Matrix thisError) {
-		if (MatrixUtil.depth(prevOutput) != MatrixUtil.depth(thisError)) throw new IllegalArgumentException();
-		if (prevOutput.rows() != thisError.rows() || prevOutput.columns() != thisError.columns()) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (MatrixUtil.depth(prevOutput) != MatrixUtil.depth(thisError)) throw new IllegalArgumentException();
+			if (prevOutput.rows() != thisError.rows() || prevOutput.columns() != thisError.columns()) throw new IllegalArgumentException();
+		}
+		
 		return thisError;
 	}
 
 	
 	@Override
 	public Kernel dKernel(Matrix prevOutput, Matrix thisError) {
-		if (MatrixUtil.depth(prevOutput) != MatrixUtil.depth(thisError)) throw new IllegalArgumentException();
-		if (prevOutput.rows() != prevOutput.rows() || prevOutput.columns() != thisError.columns()) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (MatrixUtil.depth(prevOutput) != MatrixUtil.depth(thisError)) throw new IllegalArgumentException();
+			if (prevOutput.rows() != prevOutput.rows() || prevOutput.columns() != thisError.columns()) throw new IllegalArgumentException();
+		}
+		
 		return new Kernel.NullKernel();
 	}
 

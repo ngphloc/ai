@@ -117,4 +117,132 @@ public class MatrixUtilExt implements Cloneable, Serializable {
 	}
 	
 	
+	/**
+	 * Calculating norm of stacks.
+	 * @param matrices stacks.
+	 * @return norm of stacks.
+	 */
+	public static double norm(MatrixStack...stacks) {
+		assert (stacks != null && stacks.length > 0);
+		
+		double norm = 0;
+		for (MatrixStack stack : stacks) {
+			Matrix[] matrices = stack.matrices();
+			int rows = matrices[0].rows(), columns = matrices[0].columns();
+			for (int d = 0; d < matrices.length; d++) {
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						double v = matrices[d].getv(row, column);
+						norm += v*v;
+					}
+				}
+			}
+		}
+		return Math.sqrt(norm);
+	}
+
+	
+	/**
+	 * Calculating norm of stacks.
+	 * @param matrices stacks.
+	 * @return norm of stacks.
+	 */
+	public static NeuronValue normV(MatrixStack...stacks) {
+		assert (stacks != null && stacks.length > 0);
+		
+		NeuronValue norm = stacks[0].get().get(0, 0).zero();
+		for (MatrixStack stack : stacks) {
+			Matrix[] matrices = stack.matrices();
+			int rows = matrices[0].rows(), columns = matrices[0].columns();
+			for (int d = 0; d < matrices.length; d++) {
+				for (int row = 0; row < rows; row++) {
+					for (int column = 0; column < columns; column++) {
+						NeuronValue v = matrices[d].get(row, column);
+						norm = norm.add(v.multiply(v));
+					}
+				}
+			}
+		}
+		return norm.sqrt();
+	}
+
+	
+	/**
+	 * Calculating norm of matrices.
+	 * @param matrices matrices.
+	 * @return norm of matrices.
+	 */
+	public static double norm(Matrix...matrices) {
+		assert (matrices != null && matrices.length > 0);
+		
+		int rows = matrices[0].rows(), columns = matrices[0].columns();
+		double norm = 0;
+		for (int d = 0; d < matrices.length; d++) {
+			for (int row = 0; row < rows; row++) {
+				for (int column = 0; column < columns; column++) {
+					double v = matrices[d].getv(row, column);
+					norm += v*v;
+				}
+			}
+		}
+		return Math.sqrt(norm);
+	}
+	
+	
+	/**
+	 * Calculating norm of matrices.
+	 * @param matrices matrices.
+	 * @return norm of matrices.
+	 */
+	public static NeuronValue normV(Matrix...matrices) {
+		assert (matrices != null && matrices.length > 0);
+		
+		int rows = matrices[0].rows(), columns = matrices[0].columns();
+		NeuronValue norm = matrices[0].get(0, 0).zero();
+		for (int d = 0; d < matrices.length; d++) {
+			for (int row = 0; row < rows; row++) {
+				for (int column = 0; column < columns; column++) {
+					NeuronValue v = matrices[d].get(row, column);
+					norm = norm.add(v.multiply(v));
+				}
+			}
+		}
+		return norm.sqrt();
+	}
+
+	
+	/**
+	 * Calculating norm of values.
+	 * @param values values.
+	 * @return norm of values.
+	 */
+	public static double norm(NeuronValue...values) {
+		assert (values != null && values.length > 0);
+		
+		double norm = 0;
+		for (int d = 0; d < values.length; d++) {
+			double v = ((NeuronValue1)values[d]).get();
+			norm += v*v;
+		}
+		return Math.sqrt(norm);
+	}
+
+	
+	/**
+	 * Calculating norm of matrices.
+	 * @param matrices matrices.
+	 * @return norm of matrices.
+	 */
+	public static NeuronValue normV(NeuronValue...values) {
+		assert (values != null && values.length > 0);
+		
+		NeuronValue norm = values[0].zero();
+		for (int d = 0; d < values.length; d++) {
+			NeuronValue v = values[d];
+			norm = norm.add(v.multiply(v));
+		}
+		return norm.sqrt();
+	}
+
+	
 }

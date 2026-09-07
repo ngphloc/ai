@@ -18,6 +18,7 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.Parameter;
 import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
@@ -254,6 +255,14 @@ public abstract class KernelFilter extends FilterAbstract {
 			return sum;
 		}
 		
+		@Override
+		public FKernel clip(double maxNorm) {
+			if (this.W != null) Kernel.clip(maxNorm, this.W);
+			if (this.Bias != null) Kernel.clip(maxNorm, this.Bias);
+			if (this.bias != null) Kernel.clip(maxNorm, this.bias);
+			return this;
+		}
+
 		/**
 		 * Calculating mean.
 		 * @param kernels kernels.
@@ -279,26 +288,26 @@ public abstract class KernelFilter extends FilterAbstract {
 			if (this.W == null) return Kernel.super.optimize();
 			
 			AdamOptimizer adam = (AdamOptimizer)this.optimizer;
-			int time = adam.incTime();
+			int index = 0;
 			if (this.W != null) {
 				for (int i = 0; i < this.W.length; i++) {
-					Matrix W0 = adam.recalcGradient(this.W[i], time);
+					Matrix W0 = adam.recalcGradient(index++, this.W[i]);
 					this.W[i] = W0 instanceof MatrixStack ? (MatrixStack)W0 : new MatrixStack(W0);
 				}
 			}
 			
 			if (this.Bias != null) {
 				for (int i = 0; i < this.Bias.length; i++) {
-					this.Bias[i] = adam.recalcGradient(this.Bias[i], time);
+					this.Bias[i] = adam.recalcGradient(index++, this.Bias[i]);
 				}
 			}
 			
 			if (this.bias != null) {
 				for (int i = 0; i < this.bias.length; i++) {
-					this.bias[i] = adam.recalcGradient(this.bias[i], time);
+					this.bias[i] = adam.recalcGradient(index++, this.bias[i]);
 				}
 			}
-
+			
 			return this;
 		}
 		
@@ -375,11 +384,25 @@ public abstract class KernelFilter extends FilterAbstract {
 	
 	
 	/**
+	 * Referred layer.
+	 */
+	MatrixLayerAbstract layer = null;
+
+	
+	/**
 	 * Default constructor.
 	 */
 	protected KernelFilter() {
 		super();
 	}
+
+	
+	@Override
+	public MatrixLayerAbstract getLayer() {return layer;}
+	
+
+	@Override
+	public void setLayer(MatrixLayerAbstract layer) {this.layer = layer;}
 
 	
 	/**
@@ -508,14 +531,16 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @param thisActivateRef current activation function.
 	 */
 	private void forward(MatrixStack prevLayers, MatrixStack thisInputLayers, MatrixStack thisOutputLayers, NeuronValue bias, Function thisActivateRef) {
-		if (prevLayers.depth() != thisInputLayers.depth()) {
-			if (prevLayers.depth() != depth() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
-			if (!summode) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (prevLayers.depth() != thisInputLayers.depth()) {
+				if (prevLayers.depth() != depth() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
+				if (!summode) throw new IllegalArgumentException();
+			}
+			else {
+				if (prevLayers.depth() != time() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
+			}
+			if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
 		}
-		else {
-			if (prevLayers.depth() != time() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
-		}
-		if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
 		
 		for (int t = 0; t < time(); t++) {
 			forward(t, prevLayers, thisInputLayers.get(t), thisOutputLayers.get(t), bias, thisActivateRef);
@@ -629,14 +654,16 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
-		if (prevInputLayers.depth() != prevOutputLayers.depth()) {
-			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			if (!summode) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (prevInputLayers.depth() != prevOutputLayers.depth()) {
+				if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+				if (!summode) throw new IllegalArgumentException();
+			}
+			else {
+				if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+			}
+			if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		}
-		else {
-			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-		}
-		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
 		MatrixStack dValueSum = null;
 		if (summode) { //Please pay attention to this code line.
@@ -791,14 +818,16 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
 	private BiasWeight[] dKernel(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
-		if (prevInputLayers.depth() != prevOutputLayers.depth()) {
-			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-			if (!summode) throw new IllegalArgumentException();
+		if (Kernel.SPEED_MODE) {
+			if (prevInputLayers.depth() != prevOutputLayers.depth()) {
+				if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+				if (!summode) throw new IllegalArgumentException();
+			}
+			else {
+				if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
+			}
+			if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		}
-		else {
-			if (prevInputLayers.depth() != time() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
-		}
-		if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		
 		BiasWeight[] dKernels = new BiasWeight[time()];
 		for (int t = 0; t < time(); t++) {
@@ -889,6 +918,7 @@ public abstract class KernelFilter extends FilterAbstract {
 		
 		if (this.width() != Other.width() || this.height() != Other.height() || this.depth() != Other.depth() || this.time() != Other.time()) throw new IllegalArgumentException();
 		if (this.getStrideWidth() != Other.getStrideWidth() || this.getStrideHeight() != Other.getStrideHeight()) throw new IllegalArgumentException();
+		if ((this.layer == null && Other.layer != null) || (this.layer != null && Other.layer == null)) throw new IllegalArgumentException();
 		
 		return this;
 	}
