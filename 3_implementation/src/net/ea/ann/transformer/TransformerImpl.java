@@ -1448,7 +1448,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 		Error[][] outputErrors = null;
 		Iterable<Record> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
-			double lr = learningRate*Math.pow(MatrixNetworkImpl.LEARNING_RATE_DECAY, epoch); //calcLearningRate(learningRate, epoch+1);
+			double lr = calcLearningRate(learningRate, epoch, false, epochs); //learningRate*Math.pow(MatrixNetworkImpl.LEARNING_RATE_DECAY, epoch); //This is the learning rate scheduler.
 			if (epoch > 0) {
 				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
 				Collections.shuffle((List<?>)newsample);

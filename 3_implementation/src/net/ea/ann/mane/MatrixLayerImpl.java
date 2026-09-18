@@ -26,7 +26,6 @@ import net.ea.ann.mane.filter.NetworkFilter;
 import net.ea.ann.mane.filter.NullFilter;
 import net.ea.ann.mane.filter.PoolFilterMax;
 import net.ea.ann.mane.layers.DropoutLayer;
-import net.ea.ann.mane.layers.NormLayer;
 import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.NetworkWeight;
 import net.ea.ann.mane.weight.NormWeight;
@@ -623,7 +622,6 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	@Override
 	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
 		if (outputErrors == null || outputErrors.length == 0) return null;
-		if (outputErrors.length > 1) assert (!(this instanceof NormLayer));
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? Network.LEARN_RATE_DEFAULT : learningRate;
 		if (focus == null) learning = true;
 		

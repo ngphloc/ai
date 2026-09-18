@@ -29,6 +29,7 @@ import net.ea.ann.mane.Error;
 import net.ea.ann.mane.MatrixLayer;
 import net.ea.ann.mane.Record;
 import net.ea.ann.mane.train.TaskTrainerLossEntropy;
+import net.ea.ann.raster.Augmentor;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterAssoc;
 import net.ea.ann.raster.RasterProperty;
@@ -117,6 +118,18 @@ class VGGExt extends VGG {
 	
 	
 	/**
+	 * Field for augmentation number.
+	 */
+	public final static String AUGMENT_NUMBER_FIELD = "vgg_augment_number";
+	
+	
+	/**
+	 * Default value for augmentation number. Value 0 indicates no augmentation.
+	 */
+	public final static int AUGMENT_NUMBER_DEFAULT = 1;
+
+	
+	/**
 	 * This interface specifies trainer applying into VGG for specific task with sample of raster.
 	 * @author Loc Nguyen
 	 * @version 1.0
@@ -191,6 +204,7 @@ class VGGExt extends VGG {
 		config.put(CLASS_NUMBER_FIELD, CLASS_NUMBER_DEFAULT);
 		config.put(LABEL_SMOOTH_FIELD, LABEL_SMOOTH_DEFAULT);
 		config.put(MAX_CLASS_PROB_FIELD, MAX_CLASS_PROB_DEFAULT);
+		config.put(AUGMENT_NUMBER_FIELD, AUGMENT_NUMBER_DEFAULT);
 	}
 
 
@@ -929,7 +943,7 @@ class VGGExt extends VGG {
 		Error[] outputErrors = null;
 		Iterable<Raster> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
-			double lr = learningRate*Math.pow(LEARNING_RATE_DECAY, epoch); //calcLearningRate(learningRate, epoch+1);
+			double lr = calcLearningRate(learningRate, epoch, false, epochs); //learningRate*Math.pow(LEARNING_RATE_DECAY, epoch); //This is the learning rate scheduler.
 			if (epoch > 0) {
 				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
 				Collections.shuffle((List<?>)newsample);
@@ -1014,20 +1028,35 @@ class VGGExt extends VGG {
 		Error[] outputErrors = null;
 		if (trainers.size() == 0) {
 			List<Error> outputErrorList = Util.newList(0);
-			for (Raster raster : sample) {
-				Record record = toRecord(raster, true);
-				Matrix input = record.input(), realOutput = record.output();
-				Error error = new Error((Matrix)null);
-				Object[] params = defineOutputErrorParams(error, TrainingFlag.create());
-				Matrix output = evaluate0(input, params); //Please pay attention to this code line because of tracking errors.
-				Matrix err = calcOutputError(output, realOutput, getOutputLayer(), params);
-				if (err == null) continue;
+			for (Raster anchor : sample) {
+				List<Raster> subsample = Util.newList(0);
+				subsample.add(anchor);
 				
-				error.errorSet(err);
-				Error[] errors = backward(new Error[] {error}, false, learningRate);
-				assert (errors != null && errors.length == 1 && errors[0] != null);
-				if (errors != null) outputErrorList.add(errors[0]);
-//				outputErrorList.add(error);
+				if (paramGetAugmentNumber() >= 1 /*&& paramGetPseudoEpochs() <= 1*/) {
+					int augmentNumber = paramGetAugmentNumber();
+					for (int i = 0; i < augmentNumber; i++) {
+						try {
+							Raster augmented = new Augmentor(anchor).augmentRandom();
+							if (augmented != null) subsample.add(augmented);
+						} catch (Throwable e) {Util.trace(e);}
+					}
+				}
+				
+				for (Raster raster : subsample) {
+					Record record = toRecord(raster, true);
+					Matrix input = record.input(), realOutput = record.output();
+					Error error = new Error((Matrix)null);
+					Object[] params = defineOutputErrorParams(error, TrainingFlag.create());
+					Matrix output = evaluate0(input, params); //Please pay attention to this code line because of tracking errors.
+					Matrix err = calcOutputError(output, realOutput, getOutputLayer(), params);
+					if (err == null) continue;
+					
+					error.errorSet(err);
+					Error[] errors = backward(new Error[] {error}, false, learningRate);
+					assert (errors != null && errors.length == 1 && errors[0] != null);
+					if (errors != null) outputErrorList.add(errors[0]);
+//					outputErrorList.add(error);
+				}
 			}
 			outputErrors = outputErrorList.toArray(new Error[] {});
 			if (outputErrors.length > 0) {
@@ -1182,6 +1211,28 @@ class VGGExt extends VGG {
 	VGGExt paramSetMaxClassProb(double maxProb) {
 		maxProb = Math.max(0.5, Math.min(1, maxProb));
 		config.put(MAX_CLASS_PROB_FIELD, maxProb);
+		return this;
+	}
+
+	
+	/**
+	 * Getting the number of augmentations.
+	 * @return the number of augmentations.
+	 */
+	int paramGetAugmentNumber() {
+		int augmentNumber = config.getAsInt(AUGMENT_NUMBER_FIELD);
+		return augmentNumber < 0 ? AUGMENT_NUMBER_DEFAULT : augmentNumber;
+	}
+	
+	
+	/**
+	 * Setting the number of augmentations.
+	 * @param augmentNumber the number of augmentations.
+	 * @return this model.
+	 */
+	VGGExt paramSetAugmentNumber(int augmentNumber) {
+		augmentNumber = augmentNumber < 0 ? AUGMENT_NUMBER_DEFAULT : augmentNumber;
+		config.put(AUGMENT_NUMBER_FIELD, augmentNumber);
 		return this;
 	}
 

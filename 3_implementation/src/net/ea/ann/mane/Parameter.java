@@ -84,41 +84,6 @@ public interface Parameter extends Cloneable, Serializable {
 	}
 	
 	
-//	/**
-//	 * This interface represents layer parameter.
-//	 * @author Loc Nguyen
-//	 * @version 1.0
-//	 *
-//	 */
-//	interface LayerParameter extends Parameter {
-//		
-//		/**
-//		 * Getting weight.
-//		 * @return the weight.
-//		 */
-//		Weight getWeight();
-//
-//		/**
-//		 * Getting bias.
-//		 * @return bias.
-//		 */
-//		Matrix getBias();
-//		
-//		/**
-//		 * Getting convolutional filter.
-//		 * @return convolutional filter.
-//		 */
-//		Filter getFilter();
-//
-//		/**
-//		 * Getting convolutional filter bias.
-//		 * @return convolutional filter bias.
-//		 */
-//		NeuronValue getFilterBias();
-//
-//	}
-	
-	
 	/**
 	 * This class represents null parameter.
 	 * @author Loc Nguyen

@@ -9,6 +9,7 @@ package net.ea.ann.mane.beans;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
@@ -19,9 +20,11 @@ import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
+import net.ea.ann.mane.Error;
 import net.ea.ann.mane.LikelihoodGradient;
 import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.Record;
+import net.ea.ann.mane.beans.Swarm.Particle;
 import net.ea.ann.raster.Raster;
 import net.ea.ann.raster.RasterProperty;
 import net.ea.ann.raster.RasterProperty.Label;
@@ -34,7 +37,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class VGGClassifier extends VGGExt {
+public class VGGClassifier extends Swarm /*VGGExt*/ {
 
 
 	/**
@@ -82,7 +85,7 @@ public class VGGClassifier extends VGGExt {
 	/**
 	 * Baseline.
 	 */
-	Matrix baseline = null;
+	private Matrix baseline = null;
 
 	
 	/**
@@ -94,9 +97,9 @@ public class VGGClassifier extends VGGExt {
 	 */
 	public VGGClassifier(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
-		config.put(BASELINE_FIELD, BASELINE_DEFAULT);
-		config.put(BASELINE_MEAN_FIELD, BASELINE_MEAN_DEFAULT);
-		config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
+		this.config.put(BASELINE_FIELD, BASELINE_DEFAULT);
+		this.config.put(BASELINE_MEAN_FIELD, BASELINE_MEAN_DEFAULT);
+		this.config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
 		
 		paramSetFFNFlatten(true);
 		paramSetVectorized(true);
@@ -127,6 +130,25 @@ public class VGGClassifier extends VGGExt {
 	 * @param neuronChannel neuron channel.
 	 */
 	public VGGClassifier(int neuronChannel) {this(neuronChannel, null, null, null);}
+
+	
+	@Override
+	protected ClassifierParticle createParticle() {
+		return new ClassifierParticle(this.neuronChannel, this.activateRef, this.convActivateRef, this.idRef) {
+			
+			/**
+			 * Serial version UID for serializable class. 
+			 */
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public NetworkParameter getGlobalBestPosition() {
+				Swarm thisSwarm = thisSwarm();
+				return thisSwarm.globalBestPosition;
+			}
+			
+		};
+	}
 
 	
 	@Override
@@ -462,3 +484,141 @@ public class VGGClassifier extends VGGExt {
 
 
 }
+
+
+
+/**
+ * This class represents particle in classifier swarm.
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+abstract class ClassifierParticle extends VGGClassifier implements Particle {
+
+
+	/**
+	 * Serial version UID for serializable class. 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	
+	/**
+	 * Internal velocity.
+	 */
+	protected NetworkParameter velocity = null;
+	
+	
+	/**
+	 * Best local position.
+	 */
+	protected NetworkParameter bestPosition = null;
+	
+	
+	/**
+	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 * @param idRef identifier reference.
+	 */
+	public ClassifierParticle(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+		super(neuronChannel, activateRef, convActivateRef, idRef);
+	}
+
+
+	/**
+	 * Constructor with neuron channel, activation function, and convolutional activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 */
+	public ClassifierParticle(int neuronChannel, Function activateRef, Function convActivateRef) {
+		this(neuronChannel, activateRef, convActivateRef, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel and activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 */
+	public ClassifierParticle(int neuronChannel, Function activateRef) {
+		this(neuronChannel, activateRef, null, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel.
+	 * @param neuronChannel neuron channel.
+	 */
+	public ClassifierParticle(int neuronChannel) {this(neuronChannel, null, null, null);}
+
+	
+	@Override
+	public NetworkParameter getPosition() {return this.extractParameter();}
+
+	
+	@Override
+	public NetworkParameter clonePosition() {return this.cloneParameter();}
+
+	
+	@Override
+	public void setPosition(NetworkParameter position) {this.pcopy(position);}
+	
+	
+	@Override
+	public NetworkParameter getVelocity() {return this.velocity;}
+	
+	
+	@Override
+	public void setVelocity(NetworkParameter velocity) {this.velocity = velocity;}
+	
+	
+	@Override
+	public NetworkParameter getBestPosition() {return this.bestPosition;}
+
+
+	@Override
+	public void setBestPosition(NetworkParameter bestPosition) {this.bestPosition = bestPosition;}
+	
+	
+	@Override
+	public void reset() {
+		super.reset();
+		this.velocity = null;
+		this.bestPosition = null;
+	}
+
+
+	@Override
+	public double target() {
+		return MatrixUtil.valueSum(getInputLayer().getBias()).mean();
+	}
+	
+	
+	@Override
+	public boolean initialize(net.ea.ann.mane.MatrixLayerAbstract.LayerSpec[] layerSpecs, boolean dual) {
+		if (!super.initialize(layerSpecs, dual)) return false;
+		
+		this.velocity = (NetworkParameter)cloneParameter().pinit(() -> {
+			return new Random().nextDouble();
+		});
+		this.bestPosition = null;
+		return true;
+	}
+
+
+	@Override
+	public Error[] learn(Iterable<Record> sample, double learningRate) {
+		return super.learn(sample, learningRate);
+	}
+
+
+	@Override
+	public Error[] learnRaster(Iterable<Raster> sample, double learningRate) {
+		return super.learnRaster(sample, learningRate);
+	}
+
+
+}
+

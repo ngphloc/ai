@@ -101,7 +101,7 @@ public abstract class PoolFilter extends FilterAbstract {
 	 * @param thisOutputLayers current output layers.
 	 */
 	private void forward(MatrixStack prevLayers, MatrixStack thisInputLayers, MatrixStack thisOutputLayers) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevLayers.depth() != depth() || thisInputLayers.depth() != depth() || thisOutputLayers.depth() != depth()) throw new IllegalArgumentException();
 			if (thisInputLayers.rows() != thisOutputLayers.rows() || thisInputLayers.columns() != thisOutputLayers.columns()) throw new IllegalArgumentException();
 		}
@@ -147,7 +147,7 @@ public abstract class PoolFilter extends FilterAbstract {
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != depth() || thisErrorLayers.depth() != depth()) throw new IllegalArgumentException();
 			if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		}

@@ -227,13 +227,19 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	/**
 	 * Swarm size.
 	 */
-	protected int swarmSize = net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_DEFAULT;
+	protected int swarmSize = net.ea.ann.mane.beans.Swarm.PARTICLES_COUNT_DEFAULT;
 	
 	
 	/**
 	 * Global average pooling (GAP).
 	 */
 	protected boolean gap = net.ea.ann.mane.beans.VGG.GAP_DEFAULT;
+	
+	
+	/**
+	 * Pseudo-epochs.
+	 */
+	protected int pseudoEpochs = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
 	
 	
 	/**
@@ -855,6 +861,24 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 	
 	
 	/**
+	 * Getting pseudo-epochs.
+	 * @return pseudo-epochs.
+	 */
+	public int getPseudoEpochs() {return pseudoEpochs;}
+	
+	
+	/**
+	 * Setting pseudo-epochs.
+	 * @param pseudoEpochs pseudo-epochs.
+	 * @return this builder.
+	 */
+	public ClassifierBuilder setPseudoEpochs(int pseudoEpochs) {
+		this.pseudoEpochs = pseudoEpochs;
+		return this;
+	}
+
+	
+	/**
 	 * Build classifier.
 	 * @return classifier.
 	 */
@@ -868,7 +892,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			classifier = new VGGExt(neuronChannel, rasterChannel);
 			break;
 		case swarm:
-			classifier = new net.ea.ann.classifier.Swarm(neuronChannel, rasterChannel);
+			classifier = new Swarm(neuronChannel, rasterChannel);
 			break;
 		case nin:
 			classifier = NiN.create(neuronChannel, rasterChannel, true); 
@@ -903,6 +927,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			ca.paramSetDual(dual);
 			ca.paramSetDepth(depth);
 			ca.paramSetEntropyTrainer(entropyTrainer);
+			ca.paramSetPseudoEpochs(pseudoEpochs);
 		}
 		
 		if (classifier instanceof VGG) {
@@ -912,9 +937,10 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			vgg.paramSetFiltersNumber(filtersNumber);
 			vgg.paramSetVGGMiddleSize(middleSize);
 			vgg.paramSetFFNLength(ffnLength);
+			vgg.paramSetPseudoEpochs(pseudoEpochs);
 		}
 		else if (classifier instanceof VGGExt) {
-			net.ea.ann.mane.beans.VGG vgg = ((VGGExt)classifier).classifier;
+			net.ea.ann.mane.beans.VGGClassifier vgg = ((VGGExt)classifier).classifier;
 
 			vgg.paramSetLearningRate(learningRate);
 			vgg.paramSetBatchSize(batchSize);
@@ -931,13 +957,16 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			vgg.paramSetFFNLength(ffnLength);
 			vgg.paramSetFFNFlatten(true);
 			vgg.paramSetGAP(gap);
+			vgg.paramSetPseudoEpochs(pseudoEpochs);
 			
+			vgg.paramSetParticlesCount(swarmSize);
+
 			try {
 				((VGGExt)classifier).getConfig().putAll(vgg.getConfig());
 			} catch (Throwable e) {Util.trace(e);}
 		}
 		else if (classifier instanceof Swarm) {
-			net.ea.ann.mane.beans.wi.Swarm swarm = ((Swarm)classifier).classifier;
+			net.ea.ann.mane.beans.SwarmClassifier swarm = ((Swarm)classifier).classifier;
 
 			swarm.paramSetLearningRate(learningRate);
 			swarm.paramSetBatchSize(batchSize);
@@ -954,6 +983,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			swarm.paramSetFFNLength(ffnLength);
 			swarm.paramSetFFNFlatten(true);
 			swarm.paramSetGAP(gap);
+			swarm.paramSetPseudoEpochs(pseudoEpochs);
 			
 			swarm.paramSetParticlesCount(swarmSize);
 			
@@ -968,6 +998,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			nin.paramSetFiltersNumber(filtersNumber);
 			nin.paramSetVGGMiddleSize(middleSize);
 			nin.paramSetFFNLength(ffnLength);
+			nin.paramSetPseudoEpochs(pseudoEpochs);
 		}
 		else if (classifier instanceof MatrixClassifier) {
 
@@ -1174,6 +1205,17 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			printer.println("Cross-entropy trainer mode is " + entropyTrainer + "\n");
 		}
 
+		int defaultPseudoEpochs = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
+		int pseudoEpochs = defaultPseudoEpochs;
+		printer.print("Pseudo-epochs (default " + pseudoEpochs + "):");
+		try {
+			String line = scanner.nextLine().trim();
+			if (!line.isBlank() && !line.isEmpty()) pseudoEpochs = Integer.parseInt(line);
+		} catch (Throwable e) {}
+		if (Double.isNaN(pseudoEpochs)) pseudoEpochs = defaultPseudoEpochs;
+		if (pseudoEpochs <= 0) pseudoEpochs = defaultPseudoEpochs;
+		printer.println("Pseudo-epochs are " + pseudoEpochs + "\n");
+
 		ClassifierBuilder builder = new ClassifierBuilder(1);
 		builder.setRasterChannel(rasterChannel);
 		builder.setModel(model);
@@ -1189,6 +1231,7 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 		builder.setDual(dual);
 		builder.setDepth(depth);
 		builder.setEntropyTrainer(entropyTrainer);
+		builder.setPseudoEpochs(pseudoEpochs);
 
 		if (model == ClassifierModel.vgg || model == ClassifierModel.vggext || model == ClassifierModel.swarm || model == ClassifierModel.nin) {
 			int defaultMiddleSize = net.ea.ann.mane.beans.VGG.MIDDLE_SIZE_DEFAULT.width;
@@ -1253,8 +1296,8 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			builder.setGAP(gap);
 		}
 		
-		if (model == ClassifierModel.swarm) {
-			int defaultSwarmSize = net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_DEFAULT;
+		if (model == ClassifierModel.vggext || model == ClassifierModel.swarm) {
+			int defaultSwarmSize = model == ClassifierModel.vggext ? net.ea.ann.mane.beans.SwarmClassifier.PARTICLES_COUNT_DEFAULT : net.ea.ann.mane.beans.SwarmClassifier.PARTICLES_COUNT_SMALL;
 			int swarmSize = defaultSwarmSize;
 			printer.print("Swarm size (default " + swarmSize + "):");
 			try {

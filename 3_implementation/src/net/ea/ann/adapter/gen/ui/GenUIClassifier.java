@@ -223,8 +223,12 @@ public class GenUIClassifier extends GenUI {
 				params.treeModel = net.ea.ann.classifier.ForestClassifier.toTreeModel(config.getAsInt(net.ea.ann.classifier.ForestClassifier.TREE_MODEL_FIELD));
 			if (config.containsKey(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED))
 				params.maxIteration = config.getAsInt(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED);
-			if (config.containsKey(net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_FIELD))
-				params.swarmSize = config.getAsInt(net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_FIELD);
+			if (config.containsKey(net.ea.ann.mane.beans.Swarm.PARTICLES_COUNT_FIELD))
+				params.swarmSize = config.getAsInt(net.ea.ann.mane.beans.Swarm.PARTICLES_COUNT_FIELD);
+			if (config.containsKey(net.ea.ann.mane.beans.VGG.GAP_FIELD))
+				params.gap = config.getAsBoolean(net.ea.ann.mane.beans.VGG.GAP_FIELD);
+			if (config.containsKey(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED))
+				params.pseudoEpochs = config.getAsInt(MatrixNetworkAbstract.EPOCHS_PSEUDO_FILED);
 			
 			boolean remote = gm instanceof GenModel ? AlgDesc2.isRemote((GenModel)gm) : true;
 			Classifier classifier = !remote && gm.getParameter() != null && gm.getParameter() instanceof Classifier ? (Classifier)gm.getParameter() : null;

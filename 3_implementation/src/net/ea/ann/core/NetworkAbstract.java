@@ -69,7 +69,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 	/**
 	 * Default value of learning rate fixed field.
 	 */
-	public final static boolean LEARN_RATE_FIXED_DEFAULT = false;
+	public final static boolean LEARN_RATE_FIXED_DEFAULT = true;
 
 	
 	/**
@@ -287,7 +287,7 @@ public abstract class NetworkAbstract implements Network, Serializable {
 		initialLearningRate = Double.isNaN(initialLearningRate) || initialLearningRate <= 0 || initialLearningRate > 1 ? LEARN_RATE_DEFAULT : initialLearningRate;
 		if (fixedLearningRate) return initialLearningRate;
 		
-		double learningRate = (initialLearningRate/2.0) * (1.0 + Math.cos(iteration*Math.PI/maxIteration));
+		double learningRate = iteration == 0 ? initialLearningRate : (initialLearningRate/2.0) * (1.0 + Math.cos(iteration*Math.PI/maxIteration));
 		return Math.max(learningRate, LEARN_RATE_MINIMUM);
 	}
 
@@ -381,8 +381,8 @@ public abstract class NetworkAbstract implements Network, Serializable {
 
 	
 	/**
-	 * Setting maximum iteration.
-	 * @param maxIteration maximum iteration.
+	 * Setting pseudo-epochs.
+	 * @param pseudoEpochs pseudo-epochs.
 	 * @return this network.
 	 */
 	public NetworkAbstract paramSetPseudoEpochs(int pseudoEpochs) {

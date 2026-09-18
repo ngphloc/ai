@@ -16,6 +16,7 @@ import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValue1;
 import net.ea.ann.mane.Kernel;
+import net.ea.ann.mane.Parameter;
 import net.ea.ann.raster.Size;
 
 /**
@@ -25,7 +26,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class MacroFilter extends KernelFilter {
+public class MacroFilter extends KernelFilter implements Parameter.CloneableParameter {
 
 
 	/**
@@ -319,6 +320,17 @@ public class MacroFilter extends KernelFilter {
 		}
 		
 		return new BiasWeight(new MatrixStack(dKernels), dBiases, dbiases);
+	}
+
+	
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		FKernel clonedKernel = (FKernel)this.kernel.clone();
+		MacroFilter cloned = new MacroFilter(clonedKernel);
+		cloned.moveStride = this.moveStride;
+		cloned.summode = this.summode;
+		cloned.layer = this.layer;
+		return cloned;
 	}
 
 	

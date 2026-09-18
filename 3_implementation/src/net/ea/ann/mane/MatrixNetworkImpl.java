@@ -649,7 +649,7 @@ public class MatrixNetworkImpl extends MatrixNetworkAbstract {
 		Error[] outputErrors = null;
 		Iterable<Record> newsample = sample;
 		for (int epoch = 0; epoch < epochs; epoch++) {
-			double lr = learningRate*Math.pow(LEARNING_RATE_DECAY, epoch); //calcLearningRate(learningRate, epoch+1); //This is the learning rate scheduler.
+			double lr = learningRate*Math.pow(LEARNING_RATE_DECAY, epoch); //calcLearningRate(learningRate, epoch, false, epochs); //This is the learning rate scheduler.
 			if (epoch > 0) {
 				if (!(newsample instanceof List<?>)) newsample = net.ea.ann.core.Record.listOf(newsample);
 				Collections.shuffle((List<?>)newsample);

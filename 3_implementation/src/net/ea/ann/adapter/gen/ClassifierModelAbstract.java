@@ -16,6 +16,7 @@ import net.ea.ann.adapter.Util;
 import net.ea.ann.adapter.gen.beans.ForestClassifier;
 import net.ea.ann.adapter.gen.beans.MatrixClassifier;
 import net.ea.ann.adapter.gen.beans.StackClassifier;
+import net.ea.ann.adapter.gen.beans.Swarm;
 import net.ea.ann.adapter.gen.beans.TransformerClassifier;
 import net.ea.ann.adapter.gen.beans.VGG;
 import net.ea.ann.adapter.gen.beans.VGGExt;
@@ -311,6 +312,8 @@ public abstract class ClassifierModelAbstract extends ExecuteAsLearnAlgAbstract 
 			return ClassifierModel.vgg;
 		else if (gm instanceof VGGExt)
 			return ClassifierModel.vggext;
+		else if (gm instanceof Swarm)
+			return ClassifierModel.swarm;
 		else if (gm instanceof MatrixClassifier)
 			return ClassifierModel.mac;
 		else if (gm instanceof TransformerClassifier)

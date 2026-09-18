@@ -9,7 +9,9 @@ package net.ea.ann.mane.layers;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
-import net.ea.ann.mane.MatrixLayerImpl;
+import net.ea.ann.mane.Error;
+import net.ea.ann.mane.MatrixLayer;
+import net.ea.ann.mane.ParameterLayer;
 
 /**
  * This class implements normalization layer.
@@ -17,7 +19,7 @@ import net.ea.ann.mane.MatrixLayerImpl;
  * @version 1.0
  *
  */
-public class NormLayer extends MatrixLayerImpl {
+public class NormLayer extends ParameterLayer /*MatrixLayerImpl*/ {
 
 
 	/**
@@ -27,9 +29,9 @@ public class NormLayer extends MatrixLayerImpl {
 
 	
 	/**
-	 * Tag object.
+	 * Norm information.
 	 */
-	protected Object tag = null;
+	protected Object normInfo = null;
 	
 	
 	/**
@@ -72,18 +74,25 @@ public class NormLayer extends MatrixLayerImpl {
 	public NormLayer(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 
+	@Override
+	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
+		if (outputErrors.length > 1) throw new IllegalArgumentException();
+		return super.backward(outputErrors, focus, learning, learningRate);
+	}
+
+
 	/**
 	 * Getting tag.
 	 * @return tag.
 	 */
-	public Object getTag() {return this.tag;}
+	public Object getNormInfo() {return this.normInfo;}
 	
 	
 	/**
-	 * Setting tag.
-	 * @param tag tag.
+	 * Setting norm information.
+	 * @param normInfo norm information.
 	 */
-	public void setTag(Object tag) {this.tag = tag;}
+	public void setNormInfo(Object normInfo) {this.normInfo = normInfo;}
 	
 	
 }

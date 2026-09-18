@@ -167,7 +167,7 @@ abstract class NetworkFilterAbstract extends KernelFilter implements NetworkFilt
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef, boolean learning, double learningRate) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
 			if (prevOutputLayers.rows() != thisErrorLayers.rows() || prevOutputLayers.columns() != thisErrorLayers.columns()) throw new IllegalArgumentException();
 		}

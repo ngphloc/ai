@@ -71,4 +71,10 @@ public class CustomNetwork extends ParameterNetwork {
 	}
 
 
+	@Override
+	public Parameter pcopy(Parameter other) {
+		return super.pcopy(other);
+	}
+
+
 }

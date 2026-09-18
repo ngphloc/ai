@@ -8,16 +8,13 @@
 package net.ea.ann.raster;
 
 import java.awt.image.BufferedImage;
-import java.io.OutputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
-
-import javax.imageio.ImageIO;
 
 import net.ea.ann.core.Util;
 import net.ea.ann.core.value.Matrix;
+import net.ea.ann.core.value.MatrixReal;
+import net.ea.ann.core.value.MatrixStack;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.core.value.NeuronValue1;
@@ -51,9 +48,38 @@ public class ImageMatrix implements Image, Sound {
 	 * @param data image data.
 	 */
 	public ImageMatrix(Matrix data) {
+		assert (data != null);
 		this.data = data;
 	}
 
+	
+	/**
+	 * Constructor with matrix.
+	 * @param data image data.
+	 */
+	public ImageMatrix(double[][] data) {
+		assert (data != null);
+		MatrixReal matrix = MatrixReal.Wrap(data);
+		this.data = matrix;
+	}
+	
+	
+	/**
+	 * Constructor with matrices.
+	 * @param data matrices.
+	 */
+	public ImageMatrix(double[][][] data) {
+		assert (data != null && data.length > 0);
+		if (data.length == 1) {
+			this.data = MatrixReal.Wrap(data[0]);
+		}
+		else {
+			Matrix[] matrices = new Matrix[data.length];
+			for (int d = 0; d < data.length; d++) matrices[d] = MatrixReal.Wrap(data[d]);
+			this.data = new MatrixStack(matrices);
+		}
+	}
+	
 	
 	/**
 	 * Constructor with size and hint value. 
@@ -85,6 +111,25 @@ public class ImageMatrix implements Image, Sound {
 	}
 	
 	
+	/**
+	 * Creating new matrix image.
+	 * @param size size.
+	 * @return new matrix image.
+	 */
+	public ImageMatrix create(Size size) {
+		return new ImageMatrix(this.data.create(size));
+	}
+	
+	
+	/**
+	 * Creating new matrix image.
+	 * @return new matrix image.
+	 */
+	public ImageMatrix create() {
+		return new ImageMatrix(this.data.create());
+	}
+
+	
 	@Override
 	public int getWidth() {return data.columns();}
 
@@ -98,6 +143,15 @@ public class ImageMatrix implements Image, Sound {
 	 * @return depth.
 	 */
 	public int getDepth() {return MatrixUtil.depth(data);}
+	
+	
+	/**
+	 * Getting size.
+	 * @return size.
+	 */
+	public Size getSize() {
+		return new Size(getWidth(), getHeight(), getDepth());
+	}
 	
 	
 	/**
@@ -118,6 +172,43 @@ public class ImageMatrix implements Image, Sound {
 	 * @return matrix data.
 	 */
 	public Matrix get() {return data;}
+	
+	
+	/**
+	 * Getting internal matrix data at specified index.
+	 * @param index specified index.
+	 * @return internal matrix data at specified index.
+	 */
+	public Matrix get(int index) {
+		return MatrixUtil.split(this.data)[index];
+	}
+	
+	
+	/**
+	 * Getting internal matrix data at specified index..
+	 * @param index specified index.
+	 * @return matrix data at specified index.
+	 */
+	public double[][] getReal(int index) {
+		Matrix matrix = MatrixUtil.split(this.data)[index];
+		return matrix instanceof MatrixReal ? ((MatrixReal)matrix).getData() : null;
+	}
+	
+	
+	/**
+	 * Getting internal matrix data.
+	 * @return internal matrix data.
+	 */
+	public double[][][] getReals() {
+		Matrix[] matrices = MatrixUtil.split(this.data);
+		double[][][] arrays = new double[matrices.length][][];
+		for (int d = 0; d < arrays.length; d++) {
+			double[][] array = matrices[d] instanceof MatrixReal ? ((MatrixReal)matrices[d]).getData() : null;
+			if (array == null) return null;
+			arrays[d] = array;
+		}
+		return arrays;
+	}
 	
 	
 	/**
@@ -200,7 +291,7 @@ public class ImageMatrix implements Image, Sound {
 	 * @param index index.
 	 * @return image.
 	 */
-	BufferedImage getImage(int index) {
+	public BufferedImage getImage(int index) {
 		RasterType rasterType = Raster.toRasterType(getNeuronChannel());
 		int sourceImageType = rasterType == RasterType.GRAY ? BufferedImage.TYPE_BYTE_GRAY : SOURCE_IMAGE_TYPE_DEFAULT;
 		BufferedImage image = new BufferedImage(getWidth(), getHeight(), sourceImageType);
@@ -255,16 +346,46 @@ public class ImageMatrix implements Image, Sound {
 	
 	
 	/**
+	 * Getting images.
+	 * @return images.
+	 */
+	public List<BufferedImage> getImages() {
+		List<BufferedImage> images = Util.newList(0);
+		int depth = getDepth();
+		for (int d = 0; d < depth; d++) {
+			BufferedImage image = getImage(d);
+			assert (image != null);
+			images.add(image);
+		}
+		return images;
+	}
+	
+	
+	/**
+	 * Getting image list.
+	 * @return image list.
+	 */
+	public ImageList getImageList() {
+		Matrix[] matrices = MatrixUtil.split(this.data);
+		List<Image> images = Util.newList(matrices.length);
+		for (Matrix matrix : matrices) images.add(new ImageMatrix(matrix));
+		return ImageList.create(images);
+	}
+	
+	
+	/**
 	 * Converting this image to raster.
 	 * @return raster.
 	 */
 	public Raster toRaster() {
 		if (getDepth() > 1) {
-			Matrix[] matrices = MatrixUtil.split(this.data);
-			List<Image> images = Util.newList(matrices.length);
-			for (Matrix matrix : matrices) images.add(new ImageMatrix(matrix));
-			ImageList imageList = ImageList.create(images);
-			return Raster3DImpl.create(imageList);
+			if (getNeuronChannel() == 1) {
+				return Raster2DImpl.create(this);
+			}
+			else {
+				ImageList imageList = getImageList();
+				return Raster3DImpl.create(imageList);
+			}
 		}
 		else if (getHeight() > 1)
 			return Raster2DImpl.create(this);
@@ -275,21 +396,7 @@ public class ImageMatrix implements Image, Sound {
 	
 	@Override
 	public boolean save(Path path) {
-		try {
-			BufferedImage image = getImage();
-			if (image == null) return false;
-			
-			OutputStream os = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-			ImageIO.write(image, Image.IMAGE_FORMAT_DEFAULT, os);
-			os.close();
-			
-			return true;
-		}
-		catch (Throwable e) {
-			Util.trace(e);
-		}
-		
-		return false;
+		return toRaster().save(path);
 	}
 
 	

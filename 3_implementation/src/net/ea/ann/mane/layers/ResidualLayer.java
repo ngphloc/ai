@@ -12,7 +12,7 @@ import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Kernel;
-import net.ea.ann.mane.MatrixLayerImpl;
+import net.ea.ann.mane.ParameterLayer;
 import net.ea.ann.mane.weight.NullWeight;
 
 /**
@@ -21,7 +21,7 @@ import net.ea.ann.mane.weight.NullWeight;
  * @version 1.0
  *
  */
-public class ResidualLayer extends MatrixLayerImpl  {
+public class ResidualLayer extends ParameterLayer /*MatrixLayerImpl*/  {
 
 	
 	/**

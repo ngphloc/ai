@@ -12,6 +12,7 @@ import java.util.List;
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.mane.MatrixLayerAbstract.LayerSpec;
 import net.ea.ann.mane.ParameterLayer.LayerParameter;
 import net.ea.ann.mane.ParameterLayer.NullLayerParameter;
 import net.ea.ann.mane.ParameterNetwork.NetworkParameter;
@@ -103,6 +104,14 @@ public class ParameterNetwork extends MatrixNetworkImpl implements Parameter {
 	public ParameterNetwork(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 
+	@Override
+	protected MatrixLayerAbstract newLayer(LayerSpec layerSpec) {
+		ParameterLayer layer = new ParameterLayer(neuronChannel, getActivateRef(), getConvActivateRef(), idRef);
+		layer.setNetwork(this);
+		return layer;
+	}
+
+	
 	/**
 	 * Getting layer parameter.
 	 * @param index index.
@@ -290,7 +299,7 @@ class NetworkParameterImpl implements NetworkParameter, Parameter.CloneableParam
 	 * @param layer layer.
 	 * @return true if adding is successful.
 	 */
-	boolean addLayer(MatrixLayerAbstract layer) {
+	boolean addPLayer(MatrixLayerAbstract layer) {
 		LayerParameter player = layer instanceof ParameterLayer ? ((ParameterLayer)layer).extractParameter() : new NullLayerParameter();
 		return addPLayer(player);
 	}
@@ -301,7 +310,7 @@ class NetworkParameterImpl implements NetworkParameter, Parameter.CloneableParam
 	 * @param layer layer.
 	 * @return true if adding is successful.
 	 */
-	boolean addCloneLayer(MatrixLayerAbstract layer) {
+	boolean addClonePLayer(MatrixLayerAbstract layer) {
 		LayerParameter player = layer instanceof ParameterLayer ? ((ParameterLayer)layer).cloneParameter() : new NullLayerParameter();
 		return addPLayer(player);
 	}
@@ -319,13 +328,13 @@ class NetworkParameterImpl implements NetworkParameter, Parameter.CloneableParam
 	 * @param index index.
 	 * @return removed layer parameter.
 	 */
-	LayerParameter removeLayer(int index) {return this.players.remove(index);}
+	LayerParameter removePLayer(int index) {return this.players.remove(index);}
 	
 	
 	/**
 	 * Clearing layer parameters.
 	 */
-	void clearLayers() {this.players.clear();}
+	void clearPLayers() {this.players.clear();}
 
 
 	@Override

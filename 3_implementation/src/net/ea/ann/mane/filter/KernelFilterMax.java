@@ -334,6 +334,9 @@ public class KernelFilterMax extends KernelFilterProduct implements Parameter.Cl
 		cloned.weight = this.weight;
 		cloned.strideWidth = this.strideWidth;
 		cloned.strideHeight = this.strideHeight;
+		cloned.moveStride = this.moveStride;
+		cloned.summode = this.summode;
+		cloned.layer = this.layer;
 		return cloned;
 	}
 

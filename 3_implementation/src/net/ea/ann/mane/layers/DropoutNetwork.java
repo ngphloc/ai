@@ -9,7 +9,7 @@ package net.ea.ann.mane.layers;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.function.Function;
-import net.ea.ann.mane.MatrixNetworkImpl;
+import net.ea.ann.mane.ParameterNetwork;
 
 /**
  * This class implements matrix neural network with dropout technique.
@@ -17,7 +17,7 @@ import net.ea.ann.mane.MatrixNetworkImpl;
  * @version 1.0
  *
  */
-public class DropoutNetwork extends MatrixNetworkImpl {
+public class DropoutNetwork extends ParameterNetwork /*MatrixNetworkImpl*/ {
 
 
 	/**

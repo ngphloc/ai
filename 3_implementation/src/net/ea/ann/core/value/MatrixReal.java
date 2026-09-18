@@ -56,7 +56,15 @@ public class MatrixReal implements Matrix, TextParsable {
 	 * @param data specified data.
 	 * @return wrapped matrix.
 	 */
-	protected Matrix wrap(double[][] data) {
+	protected Matrix wrap(double[][] data) {return Wrap(data);}
+
+	
+	/**
+	 * Wrapping data as matrix.
+	 * @param data specified data.
+	 * @return wrapped matrix.
+	 */
+	public static MatrixReal Wrap(double[][] data) {
 		if (data == null || data.length == 0) return null;
 		int n = data[0].length;
 		if (n == 0) return null;
@@ -92,6 +100,13 @@ public class MatrixReal implements Matrix, TextParsable {
 		return data[row][column];
 	}
 
+	
+	/**
+	 * Getting data.
+	 * @return matrix data.
+	 */
+	public double[][] getData() {return data;}
+	
 	
 	/**
 	 * Getting width.

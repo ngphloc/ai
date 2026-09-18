@@ -97,14 +97,15 @@ public class Augmentor implements Cloneable, Serializable {
 	 */
 	protected static Op[] operators = {
 		Op.flip,
-//		Op.rotate,
+		Op.rotate,
 		Op.crop,
 		Op.jitter,
-		Op.grayscale,
-		Op.blur,
-		Op.sharpen,
-		Op.solarize,
-//		Op.erase
+		
+//		Op.grayscale,
+//		Op.blur,
+//		Op.sharpen,
+//		Op.solarize,
+		Op.erase,
 	};
 	
 	
@@ -129,23 +130,91 @@ public class Augmentor implements Cloneable, Serializable {
 	 */
 	public Raster augmentRandom() {
 		if (!(this.raster instanceof Raster2D)) throw new IllegalArgumentException();
-		Raster2D raster2D = (Raster2D)this.raster;
-		Image image = raster2D.getImage();
-		if (!(image instanceof ImageWrapper)) throw new IllegalArgumentException();
 		
-		//Cloning image.
-		ImageWrapper imageWrapper = null;
-		try {
-			imageWrapper = (ImageWrapper) ((ImageWrapper)image).clone();
-		} catch (Throwable e) {Util.trace(e);}
+		Raster2DImpl augmentedRaster = null;
+		Image image = ((Raster2D)this.raster).getImage();
+		if (image instanceof ImageMatrix) {
+			//Creating random augmented image.
+			ImageMatrix augmented = augmentRandom((ImageMatrix)image);
+			assert (augmented != null);
+			if (augmented == null) return null;
+			augmentedRaster = (Raster2DImpl)augmented.toRaster();
+		}
+		else if (image instanceof ImageWrapper) {
+			//Cloning image.
+			ImageWrapper imageWrapper = null;
+			try {
+				imageWrapper = (ImageWrapper) ((ImageWrapper)image).clone();
+			} catch (Throwable e) {Util.trace(e);}
+			
+			//Creating random augmented image.
+			BufferedImage augmented = augmentRandom(imageWrapper.getImage());
+			augmentedRaster = new Raster2DImpl(new ImageWrapper(augmented));
+		}
+		else {
+			throw new IllegalArgumentException();
+		}
 		
-		//Creating random augmented image.
-		BufferedImage augmented = augmentRandom(imageWrapper.getImage());
-		Raster2DImpl augmentedRaster = new Raster2DImpl(new ImageWrapper(augmented));
 		augmentedRaster.setProperty(this.raster.getProperty());
 		return augmentedRaster;
 	}
 	
+	
+	/**
+	 * Taking random augmentation operator.
+	 * @param src source image.
+	 * @return augmented version.
+	 */
+	private static ImageMatrix augmentRandom(ImageMatrix src) {
+		int op = new Random().nextInt(operators.length);
+		return augmentRandom(src, operators[op]);
+	}
+
+	
+	/**
+	 * Taking augmentation operator.
+	 * @param src source image.
+	 * @param op augmentation operator.
+	 * @return augmented version.
+	 */
+	private static ImageMatrix augmentRandom(ImageMatrix src, Op op) {
+		ImageMatrix augmented = null;
+		ImageMatrixAssoc assoc = new ImageMatrixAssoc(src);
+		switch (op) {
+		case flip:
+			augmented = assoc.horizontalFlip();
+			break;
+		case rotate:
+			augmented = assoc.rotateRandom();
+			break;
+		case crop:
+			augmented = assoc.resizedCropRandom();
+			break;
+		case jitter:
+			augmented = assoc.colorJitterRandom();
+			break;
+		case grayscale:
+			augmented = assoc.grayScale();
+			break;
+		case blur:
+			augmented = assoc.blur();
+			break;
+		case sharpen:
+			augmented = assoc.sharpenRandom();
+			break;
+		case solarize:
+			augmented = assoc.solarize();
+			break;
+		case erase:
+			augmented = assoc.eraseRandom();
+			break;
+		default:
+			augmented = src;
+			break;
+		}
+		return augmented;
+	}
+
 	
 	/**
 	 * Taking random augmentation operator.
@@ -263,7 +332,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @return rotated image.
 	 */
-	private static BufferedImage rotateRandom(BufferedImage src) {return rotateRandom(src, 15.0);}
+	private static BufferedImage rotateRandom(BufferedImage src) {return rotateRandom(src, 20.0);}
     
     
 	/**
@@ -327,7 +396,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @return resized cropped image.
 	 */
-	private static BufferedImage resizedCropRandom(BufferedImage src) {return resizedCropRandom(src, src.getWidth(), src.getHeight(), 0.1);}
+	private static BufferedImage resizedCropRandom(BufferedImage src) {return resizedCropRandom(src, src.getWidth(), src.getHeight(), 0.2);}
     
     
 	/**
@@ -371,11 +440,11 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @return image after color jitter operator.
 	 */
-	private static BufferedImage colorJitterRandom(BufferedImage src) {return colorJitterRandom(src, 0.5f, 0.5f);}
+	private static BufferedImage colorJitterRandom(BufferedImage src) {return colorJitterRandom(src, 0.4f, 0.4f);}
 	
 	
 	/**
-	 * Random gray-scale.
+	 * Gray-scale.
 	 * @param src source image.
 	 * @return gray-scaled image.
 	 * @author Gemini 2026.
@@ -417,11 +486,11 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @return blurred image.
 	 */
-	private static BufferedImage blur(BufferedImage src) {return blur(src, 1);}
+	private static BufferedImage blur(BufferedImage src) {return blur(src, 3);}
 	
 	
 	/**
-	 * Sharpness.
+	 * Sharpening image.
 	 * @param src source image.
 	 * @param sharpnessFactor
 	 * @return sharpened image.
@@ -450,12 +519,12 @@ public class Augmentor implements Cloneable, Serializable {
     
 
 	/**
-	 * Sharpness.
+	 * Sharpening image.
 	 * @param src
 	 * @return sharpened image.
 	 */
 	private static BufferedImage sharpenRandom(BufferedImage src) {
-		float minSharpness = 1.0f;
+		float minSharpness = 0.1f;
 		float maxSharpness = 2.0f;
 		float randomFactor = minSharpness + new Random().nextFloat() * (maxSharpness - minSharpness);
 		return sharpen(src, randomFactor);
@@ -542,7 +611,7 @@ public class Augmentor implements Cloneable, Serializable {
 	 * @param src source image.
 	 * @return image whose some area is erased.
 	 */
-	private static BufferedImage eraseRandom(BufferedImage src) {return eraseRandom(src, 0.01, 0.08);}
+	private static BufferedImage eraseRandom(BufferedImage src) {return eraseRandom(src, 0.02, 0.2);}
 	
 	
 }

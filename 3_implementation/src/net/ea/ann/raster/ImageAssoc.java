@@ -150,7 +150,7 @@ public class ImageAssoc implements Cloneable, Serializable {
 			int size = 32*32*3;
 			for (int i = 0; i < nImages; i++) {
 				try {
-					int label = is.read();
+					int label = is.read() /*& 0xFF*/;
 					if (label < 0) break;
 					
 					byte[] imageData = new byte[size];
@@ -162,10 +162,11 @@ public class ImageAssoc implements Cloneable, Serializable {
 						for (int y = 0; y < height; y++) {
 							int yw = y*width;
 							for (int x = 0; x < width; x++) {
+								int index = yw + x;
 								int a = Image.ALPHA_DEFAULT;
-								int r = imageData[yw + x];
-								int g = imageData[wh + yw + x];
-								int b = imageData[2*wh + yw + x];
+								int r = imageData[index] & 0xFF;
+								int g = imageData[wh + index] & 0xFF;
+								int b = imageData[2*wh + index] & 0xFF;
 								int color = (a << 24) | (r << 16) | (g << 8) | b;
 								image.setRGB(x, y, color);
 							}
@@ -181,12 +182,14 @@ public class ImageAssoc implements Cloneable, Serializable {
 						for (int y = 0; y < height; y++) {
 							int yw = y*width;
 							for (int x = 0; x < width; x++) {
-								double r = (double)imageData[yw + x] / 255.0;
-								double g = (double)imageData[wh + yw + x] / 255.0;
-								double b = (double)imageData[2*wh + yw + x] / 255.0;
-								matrices[0].setv(y, x, r);
-								matrices[1].setv(y, x, g);
-								matrices[2].setv(y, x, b);
+								int index = yw + x;
+								int r = imageData[index] & 0xFF;
+								int g = imageData[wh + index] & 0xFF;
+								int b = imageData[2*wh + index] & 0xFF;
+								
+								matrices[0].setv(y, x, (double)r/255.0);
+								matrices[1].setv(y, x, (double)g/255.0);
+								matrices[2].setv(y, x, (double)b/255.0);
 							}
 						}
 						labeledImages.add(new LabeledImage(image, label));

@@ -112,7 +112,7 @@ public class NormWeightGroup extends NormWeight {
 				double std = 0;
 		
 				int dStart = group*layersPerGroup;
-				int dEnd = group < group-1 ? dStart+layersPerGroup : depth;
+				int dEnd = group < groups-1 ? dStart+layersPerGroup : depth;
 				int N = 0;
 				for (int row = 0; row < rows; row++) {
 					for (int column = 0; column < columns; column++) {
@@ -143,7 +143,7 @@ public class NormWeightGroup extends NormWeight {
 				NeuronValue std = zero;
 		
 				int dStart = group*layersPerGroup;
-				int dEnd = group < group-1 ? dStart+layersPerGroup : depth;
+				int dEnd = group < groups-1 ? dStart+layersPerGroup : depth;
 				int N = 0;
 				for (int row = 0; row < rows; row++) {
 					for (int column = 0; column < columns; column++) {
@@ -189,8 +189,8 @@ public class NormWeightGroup extends NormWeight {
 	 */
 	MeanStd[] getMeanStds() {
 		if (this.layer == null || !(this.layer instanceof NormLayer)) return null;
-		Object tag = ((NormLayer)this.layer).getTag();
-		return tag != null && tag instanceof MeanStd[] ? (MeanStd[])tag : null;
+		Object normInfo = ((NormLayer)this.layer).getNormInfo();
+		return normInfo != null && normInfo instanceof MeanStd[] ? (MeanStd[])normInfo : null;
 	}
 	
 	
@@ -201,13 +201,13 @@ public class NormWeightGroup extends NormWeight {
 	void setMeanStds(MeanStd[] meanStds) {
 		if (meanStds == null || meanStds.length == 0) return;
 		if (this.layer == null || !(this.layer instanceof NormLayer)) return;
-		((NormLayer)this.layer).setTag(meanStds);
+		((NormLayer)this.layer).setNormInfo(meanStds);
 	}
 	
 	
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			assert (this.layer != null);
 			if (W().rows() != 1 || W().columns() != 1 || MatrixUtil.depth(input) != W().depth()) throw new IllegalArgumentException();
 			if (bias != null) {

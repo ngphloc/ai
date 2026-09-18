@@ -86,9 +86,9 @@ public interface Kernel extends Cloneable, Serializable {
 
 
 	/**
-	 * Speed mode flag.
+	 * Speed mode flag which should be true.
 	 */
-	final boolean SPEED_MODE = true;
+	final boolean SPEED_MODE = true; //false;
 	
 	
 //	/**

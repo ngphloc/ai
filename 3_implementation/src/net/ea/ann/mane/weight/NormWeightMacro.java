@@ -290,7 +290,7 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 	
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (input.rows() != W().rows() || input.columns() != W().columns() || MatrixUtil.depth(input) != W().depth()) throw new IllegalArgumentException();
 			if (bias != null) {
 				if (bias.rows() != W().rows() || bias.columns() != W().columns() || MatrixUtil.depth(bias) != W().depth()) throw new IllegalArgumentException();
@@ -504,7 +504,7 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 	
 	@Override
 	public Matrix dValue(Matrix prevOutput, Matrix thisError) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevOutput.rows() != W().rows() || prevOutput.columns() != W().columns() || MatrixUtil.depth(prevOutput) != W().depth()) throw new IllegalArgumentException();
 			if (thisError.rows() != W().rows() || thisError.columns() != W().columns() || MatrixUtil.depth(thisError) != W().depth()) throw new IllegalArgumentException();
 		}
@@ -518,7 +518,7 @@ public class NormWeightMacro implements Weight, Parameter.CloneableParameter, Te
 	
 	@Override
 	public Kernel dKernel(Matrix prevOutput, Matrix thisError) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevOutput.rows() != W().rows() || prevOutput.columns() != W().columns() || MatrixUtil.depth(prevOutput) != W().depth()) throw new IllegalArgumentException();
 			if (thisError.rows() != W().rows() || thisError.columns() != W().columns() || MatrixUtil.depth(thisError) != W().depth()) throw new IllegalArgumentException();
 			if (this.bias() != null) {

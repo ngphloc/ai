@@ -49,7 +49,7 @@ public class NullWeight implements Weight {
 	
 	@Override
 	public Matrix dValue(Matrix prevOutput, Matrix thisError) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (MatrixUtil.depth(prevOutput) != MatrixUtil.depth(thisError)) throw new IllegalArgumentException();
 			if (prevOutput.rows() != thisError.rows() || prevOutput.columns() != thisError.columns()) throw new IllegalArgumentException();
 		}
@@ -60,7 +60,7 @@ public class NullWeight implements Weight {
 	
 	@Override
 	public Kernel dKernel(Matrix prevOutput, Matrix thisError) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (MatrixUtil.depth(prevOutput) != MatrixUtil.depth(thisError)) throw new IllegalArgumentException();
 			if (prevOutput.rows() != prevOutput.rows() || prevOutput.columns() != thisError.columns()) throw new IllegalArgumentException();
 		}

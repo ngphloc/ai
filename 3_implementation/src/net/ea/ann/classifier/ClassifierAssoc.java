@@ -266,8 +266,18 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		/**
 		 * Swarm size.
 		 */
-		public int swarmSize = net.ea.ann.mane.beans.wi.Swarm.PARTICLES_COUNT_DEFAULT;
+		public int swarmSize = net.ea.ann.mane.beans.Swarm.PARTICLES_COUNT_DEFAULT;
 		
+		/**
+		 * Global average pooling (GAP).
+		 */
+		public boolean gap = net.ea.ann.mane.beans.VGG.GAP_DEFAULT;
+
+		/**
+		 * Pseudo-epochs.
+		 */
+		public int pseudoEpochs = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
+
 		/**
 		 * Dataset name.
 		 */
@@ -321,6 +331,8 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 			this.middleSize = builder.middleSize;
 			this.treeModel = builder.treeModel;
 			this.swarmSize = builder.swarmSize;
+			this.gap = builder.gap;
+			this.pseudoEpochs = builder.pseudoEpochs;
 		}
 		
 	}
@@ -697,7 +709,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 		Scanner scanner = new Scanner(in);
 		PrintStream printer = new PrintStream(out);
 
-		int defaultMaxIteration = NetworkAbstract.EPOCHS_PSEUDO_DEFAULT;
+		int defaultMaxIteration = 10;
 		int maxIteration = defaultMaxIteration;
 		printer.print("Maximum iteration (default " + defaultMaxIteration + "):");
 		try {
@@ -1085,7 +1097,7 @@ public class ClassifierAssoc implements Cloneable, Serializable {
 
 			ClassifyParams params = new ClassifyParams();
 			params.importParams(builder);
-			params.dataset = "cifar10";
+			params.dataset = "dataset";
 			params.maxIteration = maxIteration;
 			params.depth = new ClassifierAssoc(classifier).depth();
 			params.paramSize = new ClassifierAssoc(classifier).sizeOfParams();

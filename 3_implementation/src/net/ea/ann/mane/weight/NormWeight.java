@@ -399,7 +399,7 @@ public class NormWeight implements Weight, Parameter.CloneableParameter, TextPar
 	 * @param bias0 bias.
 	 */
 	public static void addBias(Matrix[] matrices, Matrix bias0) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (bias0 == null || bias0.rows() != 1 || bias0.columns() != 1) throw new IllegalArgumentException();
 			assert (MatrixUtil.depth(bias0) == matrices.length);
 		}
@@ -428,7 +428,7 @@ public class NormWeight implements Weight, Parameter.CloneableParameter, TextPar
 	
 	@Override
 	public Matrix evaluate(Matrix input, Matrix bias) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			assert (this.layer != null);
 			if (W().rows() != 1 || W().columns() != 1 || MatrixUtil.depth(input) != W().depth()) throw new IllegalArgumentException();
 			if (bias != null) {
@@ -548,22 +548,6 @@ public class NormWeight implements Weight, Parameter.CloneableParameter, TextPar
 		Matrix[] dValues = new Matrix[depth];
 		if (Kernel.speedMode(zero)) {
 			for (int d = 0; d < depth; d++) {
-				/*
-				Matrix prevOutput = prevOutputs.get(d);
-				Matrix norm = prevOutput.create(new Size(columns, rows));
-				for (int row = 0; row < rows; row++) {
-					for (int column = 0; column < columns; column++) {
-						double mean = acrossDepth ? means.getv(row, column) : ((NeuronValue1)mean0[d]).get();
-						double std = acrossDepth ? stds.getv(row, column) : ((NeuronValue1)std0[d]).get();
-						double z = (prevOutput.getv(row, column)-mean) / std;
-						norm.setv(row, column, z);
-					}
-				}
-				if (Kernel.GLOBAL_BIAS) throw new IllegalArgumentException();
-				norm = norm.multiply0(((NeuronValue1)W(d)).get());
-				addBias(new Matrix[] {norm}, bias().get(d));
-				*/
-				
 				Matrix norm = null;
 				if (this.layer != null && Kernel.SPEED_MODE) {
 					norm = this.layer.getInput();
@@ -602,22 +586,6 @@ public class NormWeight implements Weight, Parameter.CloneableParameter, TextPar
 		}
 		else {
 			for (int d = 0; d < depth; d++) {
-				/*
-				Matrix prevOutput = prevOutputs.get(d);
-				Matrix norm = prevOutput.create(new Size(columns, rows));
-				for (int row = 0; row < rows; row++) {
-					for (int column = 0; column < columns; column++) {
-						NeuronValue mean = acrossDepth ? means.get(row, column) : mean0[d];
-						NeuronValue std = acrossDepth ? stds.get(row, column) : std0[d];
-						NeuronValue z = prevOutput.get(row, column).subtract(mean).divide(std);
-						norm.set(row, column, z);
-					}
-				}
-				if (Kernel.GLOBAL_BIAS) throw new IllegalArgumentException();
-				norm = norm.multiply0(W(d));
-				addBias(new Matrix[] {norm}, bias().get(d));
-				*/
-				
 				Matrix norm = null;
 				if (this.layer != null && Kernel.SPEED_MODE) {
 					norm = this.layer.getInput();
@@ -664,7 +632,7 @@ public class NormWeight implements Weight, Parameter.CloneableParameter, TextPar
 	
 	@Override
 	public Matrix dValue(Matrix prevOutput, Matrix thisError) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (W().rows() != 1 || W().columns() != 1 || MatrixUtil.depth(prevOutput) != W().depth()) throw new IllegalArgumentException();
 			if (thisError.rows() != prevOutput.rows() || thisError.columns() != prevOutput.columns() || MatrixUtil.depth(thisError) != W().depth()) throw new IllegalArgumentException();
 		}
@@ -678,7 +646,7 @@ public class NormWeight implements Weight, Parameter.CloneableParameter, TextPar
 	
 	@Override
 	public Kernel dKernel(Matrix prevOutput, Matrix thisError) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (W().rows() != 1 || W().columns() != 1 || MatrixUtil.depth(prevOutput) != W().depth()) throw new IllegalArgumentException();
 			if (thisError.rows() != prevOutput.rows() || thisError.columns() != prevOutput.columns() || MatrixUtil.depth(thisError) != W().depth()) throw new IllegalArgumentException();
 			if (this.bias() != null) {

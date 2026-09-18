@@ -19,8 +19,8 @@ import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Error.LayerInput;
 import net.ea.ann.mane.Kernel;
-import net.ea.ann.mane.MatrixLayerImpl;
 import net.ea.ann.mane.MatrixNetworkAbstract;
+import net.ea.ann.mane.ParameterLayer;
 import net.ea.ann.raster.Size;
 
 /**
@@ -29,7 +29,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class DropoutLayer extends MatrixLayerImpl {
+public class DropoutLayer extends ParameterLayer /*MatrixLayerImpl*/ {
 
 
 	/**

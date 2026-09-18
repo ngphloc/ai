@@ -108,7 +108,7 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 	 * @return evaluated layer.
 	 */
 	private MatrixStack evaluate(MatrixStack inputs, MatrixStack biases) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (inputs.depth() != depth() || biases.depth() != time()) throw new IllegalArgumentException();
 		}
 		
@@ -183,7 +183,7 @@ abstract class NetworkWeightAbstract implements NetworkWeight {
 	 * @return gradient of previous layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors, boolean learning, double learningRate) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevOutputs.depth() != time() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 			if (prevOutputs.rows() != thisErrors.rows() || prevOutputs.columns() != thisErrors.columns()) throw new IllegalArgumentException();
 		}

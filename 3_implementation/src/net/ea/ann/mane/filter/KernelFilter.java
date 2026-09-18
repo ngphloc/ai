@@ -531,7 +531,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @param thisActivateRef current activation function.
 	 */
 	private void forward(MatrixStack prevLayers, MatrixStack thisInputLayers, MatrixStack thisOutputLayers, NeuronValue bias, Function thisActivateRef) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevLayers.depth() != thisInputLayers.depth()) {
 				if (prevLayers.depth() != depth() || thisInputLayers.depth() != time() || thisOutputLayers.depth() != time()) throw new IllegalArgumentException();
 				if (!summode) throw new IllegalArgumentException();
@@ -654,7 +654,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @return derivative of previous layers given current layers as bias layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevInputLayers.depth() != prevOutputLayers.depth()) {
 				if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
 				if (!summode) throw new IllegalArgumentException();
@@ -818,7 +818,7 @@ public abstract class KernelFilter extends FilterAbstract {
 	 * @return derivative of kernel of previous layers given current layers as bias layers.
 	 */
 	private BiasWeight[] dKernel(MatrixStack prevInputLayers, MatrixStack prevOutputLayers, MatrixStack thisErrorLayers, Function thisActivateRef) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevInputLayers.depth() != prevOutputLayers.depth()) {
 				if (prevInputLayers.depth() != depth() || prevOutputLayers.depth() != time() || thisErrorLayers.depth() != time()) throw new IllegalArgumentException();
 				if (!summode) throw new IllegalArgumentException();
@@ -914,8 +914,8 @@ public abstract class KernelFilter extends FilterAbstract {
 		
 		KernelFilter Other = (KernelFilter)other;
 		this.kernel().copy(Other.kernel());
-		this.summode = Other.summode;
 		
+		if (this.summode != Other.summode) throw new IllegalArgumentException();
 		if (this.width() != Other.width() || this.height() != Other.height() || this.depth() != Other.depth() || this.time() != Other.time()) throw new IllegalArgumentException();
 		if (this.getStrideWidth() != Other.getStrideWidth() || this.getStrideHeight() != Other.getStrideHeight()) throw new IllegalArgumentException();
 		if ((this.layer == null && Other.layer != null) || (this.layer != null && Other.layer == null)) throw new IllegalArgumentException();

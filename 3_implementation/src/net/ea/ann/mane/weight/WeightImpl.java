@@ -33,7 +33,7 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class WeightImpl implements Weight, TextParsable {
+public class WeightImpl implements Weight, Parameter.CloneableParameter, TextParsable {
 
 
 	/**
@@ -460,7 +460,7 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return evaluated value.
 	 */
 	private MatrixStack evaluate(MatrixStack inputs, MatrixStack biases) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (summode) {
 				if (inputs.depth() != depth() || inputs.depth() != depth() || (biases != null && biases.depth() != time())) throw new IllegalArgumentException();
 			}
@@ -525,7 +525,7 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return gradient of previous layers.
 	 */
 	private MatrixStack dValue(MatrixStack prevOutputs, MatrixStack thisErrors) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevOutputs.depth() != thisErrors.depth()) {
 				if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 				if (!summode) throw new IllegalArgumentException();
@@ -594,7 +594,7 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return gradient of the current first weight.
 	 */
 	private MatrixStack[] dW1(MatrixStack prevOutputs, MatrixStack thisErrors) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevOutputs.depth() != thisErrors.depth()) {
 				if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 				if (!summode) throw new IllegalArgumentException();
@@ -642,7 +642,7 @@ public class WeightImpl implements Weight, TextParsable {
 	 * @return gradient of the current first weight.
 	 */
 	private MatrixStack[] dW2(MatrixStack prevOutputs, MatrixStack thisErrors) {
-		if (Kernel.SPEED_MODE) {
+		if (!Kernel.SPEED_MODE) {
 			if (prevOutputs.depth() != thisErrors.depth()) {
 				if (prevOutputs.depth() != depth() || thisErrors.depth() != time()) throw new IllegalArgumentException();
 				if (!summode) throw new IllegalArgumentException();
@@ -767,8 +767,8 @@ public class WeightImpl implements Weight, TextParsable {
 
 		WeightImpl Other = (WeightImpl)other;
 		this.kernel.copy(Other.kernel());
-		this.summode = Other.summode;
 		
+		if (this.summode != Other.summode) throw new IllegalArgumentException();
 		if ((this.layer == null && Other.layer != null) || (this.layer != null && Other.layer == null)) throw new IllegalArgumentException();
 		
 		return this;
@@ -801,6 +801,16 @@ public class WeightImpl implements Weight, TextParsable {
 
 		this.kernel.multiply(factor);
 		return this;
+	}
+
+
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		WKernel clonedKernel = (WKernel)this.kernel.clone();
+		WeightImpl cloned = new WeightImpl(clonedKernel);
+		cloned.summode = this.summode;
+		cloned.layer = this.layer;
+		return cloned;
 	}
 
 

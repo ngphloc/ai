@@ -15,7 +15,7 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
-import net.ea.ann.mane.beans.wi.SwarmClassifier;
+import net.ea.ann.mane.beans.SwarmClassifier;
 import net.ea.ann.raster.Raster;
 
 /**

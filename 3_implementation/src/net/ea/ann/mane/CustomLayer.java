@@ -74,6 +74,12 @@ public class CustomLayer extends ParameterLayer {
 
 
 	@Override
+	public Parameter pcopy(Parameter other) {
+		return super.pcopy(other);
+	}
+
+
+	@Override
 	public boolean initialize(Size size, Size prevSize, LayerSpec layerSpec) {
 		return super.initialize(size, prevSize, layerSpec);
 	}
