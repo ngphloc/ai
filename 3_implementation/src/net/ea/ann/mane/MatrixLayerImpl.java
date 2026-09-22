@@ -7,12 +7,10 @@
  */
 package net.ea.ann.mane;
 
-import java.util.List;
 import java.util.Random;
 
 import net.ea.ann.core.Id;
 import net.ea.ann.core.Network;
-import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.function.IdentityDefault;
 import net.ea.ann.core.value.Matrix;
@@ -29,6 +27,7 @@ import net.ea.ann.mane.layers.DropoutLayer;
 import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.NetworkWeight;
 import net.ea.ann.mane.weight.NormWeight;
+import net.ea.ann.mane.weight.NormWeightMacro;
 import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.raster.Size;
 
@@ -45,12 +44,6 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Serial version UID for serializable class. 
 	 */
 	private static final long serialVersionUID = 1L;
-	
-	
-	/**
-	 * Checking point flag.
-	 */
-	private static final boolean CHECK_POINT = false;
 	
 	
 	/**
@@ -615,19 +608,18 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	}
 
 	
-	/*
-	 * Please pay attention that filter is before weight in the same layer.
-	 * This method is the core of matrix neural network.
-	 */
 	@Override
-	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-		if (outputErrors == null || outputErrors.length == 0) return null;
+	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate, Object...params) {
+		assert (outputErrors != null && outputErrors.length > 0);
 		learningRate = Double.isNaN(learningRate) || learningRate <= 0 || learningRate > 1 ? Network.LEARN_RATE_DEFAULT : learningRate;
 		if (focus == null) learning = true;
 		
 		//Checking whether the next weight is in backward mode.
 		boolean isNextWeightBackWard = this.nextLayer != null && this.nextLayer.getFilter() == null && this.nextLayer.getWeight() != null && this.nextLayer.getWeight().backwardErrorMode();
 
+		//Checking fast mode.
+		boolean fastMode = outputErrors.length == 1 && MatrixLayer.extractFastMode(params);
+		
 		Matrix[] errors = new Matrix[outputErrors.length];
 		Kernel[] dWKernels = new Kernel[outputErrors.length];
 		NeuronValue[] dFBiases = new NeuronValue[outputErrors.length];
@@ -637,25 +629,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		for (int i = 0; i < outputErrors.length; i++) {
 			Matrix errPrevPrevInput = null, errPrevInput = null, errPrevOutput = null, actualErrInput = null, actualErrOutput = null, mask = null;
 			Error refError = null;
-			if (CHECK_POINT) {
-				refError = outputErrors[i];
-				errPrevPrevInput = refError.oinputPrevPrevOfLayer(this); //Previous previous input.
-				errPrevInput = refError.oinputPrevOfLayer(this); //Previous input.
-				errPrevOutput = refError.ooutputPrevOfLayer(this); //Previous output.
-				actualErrInput = refError.oinputOfLayerActual(this); //Actual input.
-				actualErrOutput = refError.ooutputOfLayer(this);
-				actualErrOutput = actualErrOutput != null ? actualErrOutput : errPrevOutput; //Actual output.
-				mask = refError.oinputDropoutMaskOfLayer(this);
-				if (outputErrors.length == 1) {
-					if (this.prevLayer != null) assert (errPrevPrevInput == this.prevLayer.queryOutput());
-					assert (errPrevInput == getPrevInput());
-					assert (errPrevOutput == getPrevOutput());
-					assert (actualErrInput == queryInput());
-					assert (actualErrOutput == queryOutput());
-					if (this instanceof DropoutLayer) assert (mask == ((DropoutLayer)this).getDropoutMask());
-				}
-			}
-			else if (outputErrors.length == 1) {
+			if (fastMode) {
 				if (this.prevLayer != null) errPrevPrevInput = this.prevLayer.queryOutput();
 				errPrevInput = getPrevInput();
 				errPrevOutput = getPrevOutput();
@@ -684,19 +658,25 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 			
 			//TRANSFORMING ERRORS FROM WEIGHTED NEXT LAYER.
 			if (isNextWeightBackWard) {
-				Matrix output0 = actualErrOutput != null ? actualErrOutput : queryOutput(); //Xk = output.
+				Matrix output0 = null;
+				Weight nextWeight = this.nextLayer.getWeight();
+				if (nextWeight instanceof NormWeight || nextWeight instanceof NormWeightMacro)
+					output0 = fastMode ? this.nextLayer.getPrevOutput() : refError.ooutputPrevOfLayer(this.nextLayer);
+				else
+					output0 = actualErrOutput != null ? actualErrOutput : queryOutput(); //Xk = output.
 				assert (output0 != null);
-				errors[i] = this.nextLayer.getWeight().dValue(output0, errors[i]);
+				errors[i] = nextWeight.dValue(output0, errors[i]);
 			}
 			
 			//Adding residual backward errors.
 			if (getEndLayer() != null) {
 				LayerInput layerInput = outputErrors[i].layerOInput(getEndLayer());
 				Matrix endError = layerInput != null && layerInput.backwardError != null ? layerInput.backwardError.error() : null;
+				assert (endError != null);
 				if (endError != null) errors[i] = errors[i].add(endError);
 			}
 			//Applying dropout mask into errors.
-			mask = mask != null ? mask : (this instanceof DropoutLayer ? ((DropoutLayer)this).getDropoutMask() : null);
+			if (this instanceof DropoutLayer) assert (mask != null);
 			errors[i] = mask != null ? mask.multiplyWise(errors[i]) : errors[i];
 			
 			//Adjusting errors.
@@ -706,6 +686,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				Function thisWeightActivateRef = this.weight != null ? (!(this.weight instanceof NullWeight) ? this.getWeightActivateRef() : null) :
 					(this.filter != null && this.filter.doesApplyActivate() && !this.filter.isIndexMode() ?
 						this.getFilterActivateRef() : null); //Getting right-most activation function. Setting function of index-mode filter like max-pooling filter to be null because of the filtered result of index-mode filter is indexing matrix.
+				
 				Matrix input0 = actualErrInput != null ? actualErrInput : queryInput(); //X^k-1 = input.
 				Matrix derivative = thisWeightActivateRef != null ? input0.derivativeWise(thisWeightActivateRef) : null;
 				errors[i] = derivative != null ? derivative.multiplyWise(errors[i]) : errors[i];
@@ -726,10 +707,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 					dWKernels[i] = this.weight.dKernel(prevOutput0, errors[i]);
 					
 					//Asserting normalization weight. It is possible to remove these code lines.
-					if (this.weight instanceof NormWeight) {
-						if (this.filter != null || getPrevOutput() == null) throw new IllegalArgumentException();
-						if (outputErrors.length == 1) assert (errPrevOutput == getPrevOutput() && prevOutput0 == getPrevOutput());
-					}
+					if (this.weight instanceof NormWeight || this.weight instanceof NormWeightMacro) assert (this.filter == null && getPrevOutput() != null);
 				}
 				else {
 					//Calculating value errors at this layer.
@@ -780,12 +758,12 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 				outputErrors[i].errorSet(errors[i]);
 			} //Calculating filter gradient.
 			
-			//Storing current layer error.
-			if (outputErrors[i].error() == null) throw new IllegalArgumentException();
-			if (outputErrors[i].error2() == null)
-				outputErrors[i].add(errors[i]);
-			else
-				outputErrors[i].errorSet2(errors[i]);
+			//Storing current layer error for this layer if it has starting layer, for residual network.
+			if (getStartLayer() != null) {
+				LayerInput layerInput = outputErrors[i].layerOInput(this);
+				assert (layerInput != null); //This code line should be removed in next version.
+				if (layerInput != null) layerInput.backwardError = new Error(outputErrors[i].error()); //Please pay attention to this code line.
+			}
 			
 		} //Browsing errors.
 		
@@ -854,7 +832,7 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 		return this.prevLayer.backward(outputErrors, focus, learning, learningRate); //Back-warding errors back to previous layers.
 	}
 
-
+	
 	/**
 	 * Adjusting error.
 	 * @param error error will be adjusted.
@@ -884,19 +862,41 @@ public class MatrixLayerImpl extends MatrixLayerAbstract {
 	 * Back-warding layer as learning matrix neural network.
 	 * @param outputErrors core last errors which are core last biases.
 	 * @param learningRate learning rate.
+	 * @param params additional parameters.
 	 * @return training error.
 	 */
-	protected Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
+	Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate, Object...params) {
 		resetBackwardInfo();
-		if (outputErrors == null || outputErrors.length == 0) return null;
-		List<Error> outputErrorList = Util.newList(0);
+		
+		assert (outputErrors != null && outputErrors.length > 0);
 		for (int i = 0; i < outputErrors.length; i++) {
-			Error[] errors = backward(new Error[] {outputErrors[i]}, this, false, learningRate);
+			Error[] errors = backward(new Error[] {outputErrors[i]}, this, false, learningRate, params);
 			assert (errors != null && errors.length == 1 && errors[0] != null);
-			if (errors != null) outputErrorList.add(errors[0]);
+			outputErrors[i] = errors[0]; //Forcing every error to be always non-null.
 		}
-		return outputErrorList.size() > 0 ? outputErrorList.toArray(new Error[] {}) : null;
+		return outputErrors;
 	}
+
+		
+//	/**
+//	 * Back-warding layer as learning matrix neural network.
+//	 * @param outputErrors core last errors which are core last biases.
+//	 * @param learningRate learning rate.
+//	 * @param params additional parameters.
+//	 * @return training error.
+//	 */
+//	Error[] backwardWithoutLearning(Error[] outputErrors, double learningRate, Object...params) {
+//		resetBackwardInfo();
+//		
+//		assert (outputErrors != null && outputErrors.length > 0);
+//		List<Error> outputErrorList = Util.newList(0); //This new errors list prevents unexpected coincidence.
+//		for (int i = 0; i < outputErrors.length; i++) {
+//			Error[] errors = backward(new Error[] {outputErrors[i]}, this, false, learningRate, params);
+//			assert (errors != null && errors.length == 1 && errors[0] != null);
+//			if (errors != null) outputErrorList.add(errors[0]);
+//		}
+//		return outputErrorList.size() > 0 ? outputErrorList.toArray(new Error[] {}) : null;
+//	}
 
 	
 	/**

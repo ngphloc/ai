@@ -535,4 +535,213 @@ public class ImageMatrixAssoc implements Cloneable, Serializable {
 	}
 
 
+	/**
+	 * This class represents mixed sample.
+	 * @author Gemini 2026
+	 * @version 1.0
+	 *
+	 */
+	public static class MixedSample {
+		
+		/**
+		 * Image.
+		 */
+		public final double[][][] image;
+		
+		/**
+		 * Label.
+		 */
+		public final double[] label;
+		
+		/**
+		 * Lambda proportion.
+		 */
+		public final double lambda;
+		
+		/**
+		 * Constructor.
+		 * @param image image.
+		 * @param label label.
+		 * @param lambda lambda.
+		 */
+		public MixedSample(double[][][] image, double[] label, double lambda) {
+			this.image = image;
+			this.label = label;
+			this.lambda = lambda;
+		}
+		
+	}
+
+    
+    /**
+	 * Helper to sample a random value from a Beta(alpha, alpha) distribution using Gamma variables.
+	 * When alpha is around 0.2 to 1.0, it generates values leaning towards 0.0 or 1.0.
+	 * @param alpha alpha parameter.
+	 * @return beta sample.
+	 */
+	private static double sampleBeta(double alpha, Random rand) {
+		if (alpha <= 0) return 1.0;
+		double x = sampleGamma(alpha, 1.0, rand);
+		double y = sampleGamma(alpha, 1.0, rand);
+		return x / (x + y);
+	}
+
+	
+	/**
+	 * Sampling gamma value.
+	 * @param alpha alpha parameter.
+	 * @param beta beta parameter.
+	 * @param rand randomizer.
+	 * @return gamma sample.
+	 */
+	private static double sampleGamma(double alpha, double beta, Random rand) {
+		//Marsaglia and Tsang method for alpha >= 1
+		if (alpha < 1.0) {
+			return sampleGamma(alpha + 1.0, beta, rand) * Math.pow(rand.nextDouble(), 1.0 / alpha);
+		}
+		double d = alpha - 1.0 / 3.0;
+		double c = 1.0 / Math.sqrt(9.0 * d);
+		while (true) {
+			double z = rand.nextGaussian();
+			double u = rand.nextDouble();
+			double v = 1.0 + c * z;
+			if (v <= 0) continue;
+			v = v * v * v;
+			if (u < 1.0 - 0.0331 * z * z * z * z) return d * v / beta;
+			if (Math.log(u) < 0.5 * z * z + d * (1.0 - v + Math.log(v))) return d * v / beta;
+		}
+	}
+
+    
+	/**
+	 * Performs mixup between two images and their one-hot label vectors.
+	 * @param imgA First image array [channels][height][width].
+	 * @param labelA First one-hot label vector [numClasses].
+	 * @param imgB Second image array [channels][height][width].
+	 * @param labelB Second one-hot label vector [numClasses].
+	 * @param alpha Hyper-parameter for Beta distribution (standard choice: 0.2 to 1.0).
+	 * @return Result object containing the mixed image and soft label vector.
+	 * @author Gemini 2026
+	 */
+	private static MixedSample mixup(double[][][] imgA, double[] labelA,
+									double[][][] imgB, double[] labelB, 
+									double alpha) {
+		double lambda = sampleBeta(alpha, new Random());
+		
+		int channels = imgA.length, height = imgA[0].length, width = imgA[0][0].length, numClasses = labelA.length;
+		
+		double[][][] mixedImg = new double[channels][height][width];
+		double[] mixedLabel = new double[numClasses];
+		
+		//1. Linearly interpolate pixel values: lambda * imgA + (1 - lambda) * imgB
+		for (int c = 0; c < channels; c++) {
+			for (int y = 0; y < height; y++) {
+				for (int x = 0; x < width; x++) {
+					mixedImg[c][y][x] = lambda * imgA[c][y][x] + (1.0 - lambda) * imgB[c][y][x];
+				}
+			}
+		}
+		
+		//2. Linearly interpolate target labels: lambda * labelA + (1 - lambda) * labelB
+		for (int i = 0; i < numClasses; i++) {
+			mixedLabel[i] = lambda * labelA[i] + (1.0 - lambda) * labelB[i];
+		}
+		
+		return new MixedSample(mixedImg, mixedLabel, lambda);
+	}
+
+	
+	/**
+	 * Performs mixup between two images and their one-hot label vectors.
+	 * @param imgA First image array [channels][height][width].
+	 * @param labelA First one-hot label vector [numClasses].
+	 * @param imgB Second image array [channels][height][width].
+	 * @param labelB Second one-hot label vector [numClasses].
+	 * @return Result object containing the mixed image and soft label vector.
+	 * @author Gemini 2026
+	 */
+	public static MixedSample mixup(double[][][] imgA, double[] labelA,
+									double[][][] imgB, double[] labelB) {
+		return mixup(imgA, labelA, imgB, labelB, 1.0);
+	}
+	
+	
+	/**
+	 * Performs CutMix by cutting a region out of imgB and pasting it onto imgA.
+	 * @param imgA Base image array [channels][height][width].
+	 * @param labelA Base one-hot label vector [numClasses].
+	 * @param imgB Patch source image array [channels][height][width].
+	 * @param labelB Patch source one-hot label vector [numClasses].
+	 * @param alpha Hyper-parameter for Beta distribution (standard choice: 1.0).
+	 * @return Result object containing the cut-mixed image and soft label vector.
+	 * @author Gemini 2026
+	 */
+	private static MixedSample cutMix(double[][][] imgA, double[] labelA,
+									double[][][] imgB, double[] labelB, 
+									double alpha) {
+		Random rand = new Random();
+		double lambda = sampleBeta(alpha, rand);
+		
+		int channels = imgA.length, height = imgA[0].length, width = imgA[0][0].length, numClasses = labelA.length;
+		
+		//Clone base image imgA
+		double[][][] mixedImg = new double[channels][height][width];
+		for (int c = 0; c < channels; c++) {
+			for (int y = 0; y < height; y++) {
+				System.arraycopy(imgA[c][y], 0, mixedImg[c][y], 0, width);
+			}
+		}
+		
+		// Calculate patch dimensions scaled by sqrt(1 - lambda)
+		double cutRatio = Math.sqrt(1.0 - lambda);
+		int cutW = (int) (width * cutRatio);
+		int cutH = (int) (height * cutRatio);
+		
+		// Pick random center point for the patch bounding box
+		int rx = rand.nextInt(width);
+		int ry = rand.nextInt(height);
+		
+		// Compute top-left and bottom-right corners (clamped to image borders)
+		int x1 = Math.max(0, rx - cutW / 2);
+		int y1 = Math.max(0, ry - cutH / 2);
+		int x2 = Math.min(width, rx + cutW / 2);
+		int y2 = Math.min(height, ry + cutH / 2);
+		
+		// Paste patch from imgB into mixedImg
+		for (int c = 0; c < channels; c++) {
+			for (int y = y1; y < y2; y++) {
+				for (int x = x1; x < x2; x++) {
+					mixedImg[c][y][x] = imgB[c][y][x];
+				}
+			}
+		}
+		
+		// Calculate exact area fraction of the pasted patch to update lambda
+		double adjustedLambda = 1.0 - ((double) (x2 - x1) * (y2 - y1) / (width * height));
+		
+		// Interpolate labels based on exact area ratio
+		double[] mixedLabel = new double[numClasses];
+		for (int i = 0; i < numClasses; i++) {
+			mixedLabel[i] = adjustedLambda * labelA[i] + (1.0 - adjustedLambda) * labelB[i];
+		}
+		
+		return new MixedSample(mixedImg, mixedLabel, adjustedLambda);
+	}
+
+
+	/**
+	 * Performs CutMix by cutting a region out of imgB and pasting it onto imgA.
+	 * @param imgA Base image array [channels][height][width].
+	 * @param labelA Base one-hot label vector [numClasses].
+	 * @param imgB Patch source image array [channels][height][width].
+	 * @param labelB Patch source one-hot label vector [numClasses].
+	 * @return Result object containing the cut-mixed image and soft label vector.
+	 * @author Gemini 2026
+	 */
+	public static MixedSample cutMix(double[][][] imgA, double[] labelA,
+									double[][][] imgB, double[] labelB) {
+		return cutMix(imgA, labelA, imgB, labelB, 1.0);
+	}
+	
+	
 }

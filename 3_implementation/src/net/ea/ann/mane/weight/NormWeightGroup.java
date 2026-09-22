@@ -188,8 +188,7 @@ public class NormWeightGroup extends NormWeight {
 	 * @return means and standard deviations.
 	 */
 	MeanStd[] getMeanStds() {
-		if (this.layer == null || !(this.layer instanceof NormLayer)) return null;
-		Object normInfo = ((NormLayer)this.layer).getNormInfo();
+		Object normInfo = getNormInfo();
 		return normInfo != null && normInfo instanceof MeanStd[] ? (MeanStd[])normInfo : null;
 	}
 	
@@ -198,10 +197,8 @@ public class NormWeightGroup extends NormWeight {
 	 * Setting means and standard deviations.
 	 * @param meanStds means and standard deviations.
 	 */
-	void setMeanStds(MeanStd[] meanStds) {
-		if (meanStds == null || meanStds.length == 0) return;
-		if (this.layer == null || !(this.layer instanceof NormLayer)) return;
-		((NormLayer)this.layer).setNormInfo(meanStds);
+	private void setMeanStds(MeanStd[] meanStds) {
+		if (meanStds != null && meanStds.length > 0) setNormInfo(meanStds);
 	}
 	
 	
@@ -307,9 +304,8 @@ public class NormWeightGroup extends NormWeight {
 		Matrix[] dValues = new Matrix[depth];
 		if (Kernel.speedMode(zero)) {
 			for (int d = 0; d < depth; d++) {
-				Matrix norm = null;
-				if (this.layer != null && Kernel.SPEED_MODE) {
-					norm = this.layer.getInput();
+				Matrix norm = retrieveDefaultNorm();
+				if (norm != null) {
 					if (norm instanceof MatrixStack) norm = ((MatrixStack)norm).get(d);
 				}
 				else {
@@ -343,9 +339,8 @@ public class NormWeightGroup extends NormWeight {
 		}
 		else {
 			for (int d = 0; d < depth; d++) {
-				Matrix norm = null;
-				if (this.layer != null && Kernel.SPEED_MODE) {
-					norm = this.layer.getInput();
+				Matrix norm = retrieveDefaultNorm();
+				if (norm != null) {
 					if (norm instanceof MatrixStack) norm = ((MatrixStack)norm).get(d);
 				}
 				else {

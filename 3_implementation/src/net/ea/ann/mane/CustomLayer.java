@@ -92,8 +92,8 @@ public class CustomLayer extends ParameterLayer {
 
 
 	@Override
-	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-		return super.backward(outputErrors, focus, learning, learningRate);
+	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate, Object...params) {
+		return super.backward(outputErrors, focus, learning, learningRate, params);
 	}
 
 

@@ -1372,7 +1372,8 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	 */
 	Error[][] backwardWithoutLearning(Error[] outputErrors, double learningRate) {
 		resetBackwardInfo();
-		if (outputErrors == null || outputErrors.length == 0) return null;
+		
+		assert (outputErrors != null && outputErrors.length > 0);
 		Error[][] errors = new Error[outputErrors.length][];
 		for (int i = 0; i < outputErrors.length; i++) {
 			errors[i] = backward(new Error[] {outputErrors[i]}, false, learningRate)[0];
@@ -1411,7 +1412,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	
 	
 	@Override
-	public net.ea.ann.mane.Error[] backward(net.ea.ann.mane.Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
+	public net.ea.ann.mane.Error[] backward(net.ea.ann.mane.Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate, Object...params) {
 		Error[] errors = Error.create(outputErrors);
 		Error[][] learnedErrors = backward(errors, learning, learningRate);
 		if (learnedErrors == null || learnedErrors.length == 0 || learnedErrors[0] == null) return null;
@@ -1420,7 +1421,7 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 		if (this.prevLayer == null || this == focus)
 			return backwardErrors;
 		else
-			return this.prevLayer.backward(backwardErrors, focus, learning, learningRate);
+			return this.prevLayer.backward(backwardErrors, focus, learning, learningRate, params);
 	}
 
 
@@ -1533,8 +1534,11 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 	protected Error[][] learn(Iterable<Record> sample, double learningRate) {
 		Error[][] outputErrors = null;
 		if (trainers.size() == 0) {
+			//Option 1.
+			//List<Error[]> outputErrorsList = Util.newList(0);
+			//Option 2.
 			List<Error> errorList = Util.newList(0);
-//			List<Error[]> outputErrorsList = Util.newList(0);
+			
 			for (Record record : sample) {
 				Error error = new Error((Matrix)null);
 				Matrix A = evaluate(record.inputY(), record.inputX(), record.inputMask(), error, TrainingFlag.create());
@@ -1542,28 +1546,40 @@ abstract class TransformerAbstract extends NetworkAbstract implements Transforme
 				if (err == null) continue;
 
 				error.errorSet(err);
-//				Error[][] errors = backward(new Error[] {error}, false, learningRate);
-//				assert (errors != null && errors.length > 0 && errors[0] != null && errors[0].length == 1);
-//				if (errors != null) {
-//					if (errors.length > 1) {
-//						assert (errors[1] != null && errors[1].length == 1);
-//						outputErrorsList.add(new Error[] {errors[0][0], errors[1][0]});
-//					}
-//					else
-//						outputErrorsList.add(new Error[] {errors[0][0]});
-//				}
+				
+				//Option 1.
+				/*
+				Error[][] errors = backward(new Error[] {error}, false, learningRate);
+				assert (errors != null && errors.length > 0 && errors[0] != null && errors[0].length == 1);
+				if (errors != null) {
+					if (errors.length > 1) {
+						assert (errors[1] != null && errors[1].length == 1);
+						outputErrorsList.add(new Error[] {errors[0][0], errors[1][0]});
+					}
+					else
+						outputErrorsList.add(new Error[] {errors[0][0]});
+				}
+				*/
+				//Option 2.
 				errorList.add(error);
 			}
-//			if (outputErrorsList.size() > 0) {
-//				updateParametersFromBackwardInfo(outputErrorsList.size(), learningRate);
-//				Error[] mainErrors = new Error[outputErrorsList.size()];
-//				for (int i = 0; i < mainErrors.length; i++) mainErrors[i] = outputErrorsList.get(i)[0];
-//				//Only return main errors and so, ignoring attached errors. This is the drawback of one-by-one back-warding.
-//				outputErrors = new Error[][] {mainErrors};
-//			}
-//			else
-//				outputErrors = null;
+			
+			//Option 1.
+			/*
+			if (outputErrorsList.size() > 0) {
+				updateParametersFromBackwardInfo(outputErrorsList.size(), learningRate);
+				Error[] mainErrors = new Error[outputErrorsList.size()];
+				for (int i = 0; i < mainErrors.length; i++) mainErrors[i] = outputErrorsList.get(i)[0];
+				//Only return main errors and so, ignoring attached errors. This is the drawback of one-by-one back-warding.
+				outputErrors = new Error[][] {mainErrors};
+			}
+			else
+				outputErrors = null;
+			*/
+			//Option 2.
 			outputErrors = backward(errorList.toArray(new Error[] {}), true, learningRate);
+			
+			assert (outputErrors != null && outputErrors.length > 0);
 		}
 		else {
 			List<net.ea.ann.mane.Record> subinouts = Util.newList(0);

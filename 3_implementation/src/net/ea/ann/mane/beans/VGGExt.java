@@ -1052,19 +1052,23 @@ class VGGExt extends VGG {
 					if (err == null) continue;
 					
 					error.errorSet(err);
+					
+					//Option 1.
 					Error[] errors = backward(new Error[] {error}, false, learningRate);
 					assert (errors != null && errors.length == 1 && errors[0] != null);
-					if (errors != null) outputErrorList.add(errors[0]);
-//					outputErrorList.add(error);
+					outputErrorList.add(errors[0]);
+					//Option 2.
+					//outputErrorList.add(error);
 				}
 			}
 			outputErrors = outputErrorList.toArray(new Error[] {});
-			if (outputErrors.length > 0) {
-				updateParametersFromBackwardInfo(outputErrors.length, learningRate);
-				outputErrors = backwardPost(outputErrors, this, true, learningRate);
-			}
-//			outputErrors = backward(outputErrorList.toArray(new Error[] {}), this, true, learningRate);
 			assert (outputErrors != null && outputErrors.length > 0);
+			
+			//Option 1.
+			updateParametersFromBackwardInfo(outputErrors.length, learningRate);
+			outputErrors = backwardPost(outputErrors, this, true, learningRate);
+			//Option 2.
+			//outputErrors = backward(outputErrors, this, true, learningRate);
 		}
 		else {
 			Object[] params = defineOutputErrorParams(TrainingFlag.create());

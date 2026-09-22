@@ -75,9 +75,9 @@ public class NormLayer extends ParameterLayer /*MatrixLayerImpl*/ {
 
 
 	@Override
-	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
+	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate, Object...params) {
 		if (outputErrors.length > 1) throw new IllegalArgumentException();
-		return super.backward(outputErrors, focus, learning, learningRate);
+		return super.backward(outputErrors, focus, learning, learningRate, params);
 	}
 
 

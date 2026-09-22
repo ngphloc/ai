@@ -34,7 +34,7 @@ public interface Weight extends Parameter {
 	 * Anyhow true back-warding error mode is important to connect two successive layers together when it is true.
 	 * @return back-warding error mode.
 	 */
-	default boolean backwardErrorMode( ) {return true;}
+	default boolean backwardErrorMode() {return true;}
 	 
 	 
 	/**

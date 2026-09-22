@@ -16,6 +16,7 @@ import net.ea.ann.mane.weight.ActivateFWeight;
 import net.ea.ann.mane.weight.ActivateWWeight;
 import net.ea.ann.mane.weight.NormWeight;
 import net.ea.ann.mane.weight.NormWeightGroup;
+import net.ea.ann.mane.weight.NormWeightGroup2;
 import net.ea.ann.mane.weight.NormWeightMacro;
 import net.ea.ann.mane.weight.NullWeight;
 import net.ea.ann.mane.weight.TransformerWeight;
@@ -87,6 +88,11 @@ public class WeightSpec implements Cloneable, Serializable {
 		norm_group,
 
 		/**
+		 * extensive group normalization kernel without storing norm information.
+		 */
+		norm_group2,
+
+		/**
 		 * Macro normalization kernel.
 		 */
 		norm_macro,
@@ -105,6 +111,7 @@ public class WeightSpec implements Cloneable, Serializable {
 		 * Null type.
 		 */
 		nil,
+		
 	}
 
 	
@@ -231,15 +238,18 @@ public class WeightSpec implements Cloneable, Serializable {
 			kernelType = KernelType.norm_group;
 			break;
 		case 4:
-			kernelType = KernelType.norm_macro;
+			kernelType = KernelType.norm_group2;
 			break;
 		case 5:
-			kernelType = KernelType.filter_activate;
+			kernelType = KernelType.norm_macro;
 			break;
 		case 6:
-			kernelType = KernelType.weight_activate;
+			kernelType = KernelType.filter_activate;
 			break;
 		case 7:
+			kernelType = KernelType.weight_activate;
+			break;
+		case 8:
 			kernelType = KernelType.nil;
 			break;
 		default:
@@ -332,6 +342,9 @@ public class WeightSpec implements Cloneable, Serializable {
 				break;
 			case norm_group:
 				weight = NormWeightGroup.create(prevSize, size, hint);
+				break;
+			case norm_group2:
+				weight = NormWeightGroup2.create(prevSize, size, hint);
 				break;
 			case norm_macro:
 				weight = NormWeightMacro.create(prevSize, size, hint);
@@ -449,6 +462,9 @@ public class WeightSpec implements Cloneable, Serializable {
 				break;
 			case norm_group:
 				weight = NormWeightGroup.create(prevSize, size, hint);
+				break;
+			case norm_group2:
+				weight = NormWeightGroup2.create(prevSize, size, hint);
 				break;
 			case norm_macro:
 				weight = NormWeightMacro.create(prevSize, size, hint);

@@ -306,7 +306,7 @@ public class Error implements Cloneable, Serializable {
 		 * @return true if adding is successful.
 		 */
 		@Deprecated
-		public boolean addLayerOInput(MatrixLayerExt layer) {
+		private boolean addLayerOInput(MatrixLayerExt layer) {
 			if (layer == null) return false;
 			MatrixLayerAbstract outputLayer = LayerInput.getOutputLayer(layer);
 			if (outputLayer == null) return false;
@@ -871,7 +871,7 @@ public class Error implements Cloneable, Serializable {
 	 * @return true if adding is successful.
 	 */
 	@Deprecated
-	public boolean addLayerOInput(MatrixLayerExt layer) {
+	private boolean addLayerOInput(MatrixLayerExt layer) {
 		Error0 error0 = get();
 		return error0 != null ? error0.addLayerOInput(layer) : false;
 	}
@@ -893,8 +893,9 @@ public class Error implements Cloneable, Serializable {
 	 * @param layer layer.
 	 * @return true if adding is successful.
 	 */
+	@SuppressWarnings("unused")
 	@Deprecated
-	public static void addLayerOInput(MatrixLayerExt layer, Object[] params) {
+	private static void addLayerOInput(MatrixLayerExt layer, Object[] params) {
 		if (params == null || params.length == 0) return;
 		for (Object param : params) {
 			if (param == null) continue;
@@ -1129,6 +1130,17 @@ public class Error implements Cloneable, Serializable {
 	}
 
 
+	/**
+	 * Adding training flag.
+	 * @param params array of parameters.
+	 * @param trainingFlag training flag.
+	 * @return new array of parameters.
+	 */
+	static Object[] addTrainingFlag(Object[] params, TrainingFlag trainingFlag) {
+		return MatrixLayer.addOtherParam(params, trainingFlag);
+	}
+	
+	
 	/**
 	 * Extracting layer input.
 	 * @param params parameters.

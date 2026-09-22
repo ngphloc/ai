@@ -1436,8 +1436,8 @@ public class ProxyNCA extends VGGExt {
 
 
 	@Override
-	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-		outputErrors = super.backward(outputErrors, focus, learning, learningRate);
+	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate, Object...params) {
+		outputErrors = super.backward(outputErrors, focus, learning, learningRate, params);
 		if (learning) updateParametersFromBackwardInfo0(outputErrors.length, learningRate);
 		return outputErrors;
 	}

@@ -147,10 +147,9 @@ public class FlattenLayer extends MatrixLayerImpl {
 
 
 	@Override
-	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-		outputErrors = super.backward(outputErrors, focus, learning, learningRate);
+	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate, Object...params) {
+		outputErrors = super.backward(outputErrors, focus, learning, learningRate, params);
 		
-		if (outputErrors == null || outputErrors.length == 0) return null;
 		if (this.output != this.input || this.prevLayer == null || this.weight != null || this.filter != null) throw new IllegalArgumentException(); //Flatten layer cannot be input layer.
 		Matrix prevLayerOutput = this.prevLayer.queryOutput();
 		if (MatrixUtil.capacity(prevLayerOutput) != MatrixUtil.capacity(this.output)) throw new IllegalArgumentException();

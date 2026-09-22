@@ -20,6 +20,7 @@ import net.ea.ann.mane.MatrixLayerAbstract;
 import net.ea.ann.mane.MatrixNetworkAbstract;
 import net.ea.ann.mane.Parameter;
 import net.ea.ann.mane.Weight;
+import net.ea.ann.mane.layers.NormLayer;
 import net.ea.ann.mane.train.AdamOptimizer;
 import net.ea.ann.mane.train.Optimizer;
 import net.ea.ann.raster.Size;
@@ -254,6 +255,35 @@ public class NormWeight implements Weight, Parameter.CloneableParameter, TextPar
 	 */
 	MatrixNetworkAbstract getNetwork() {return getLayer() != null ? getLayer().getNetwork() : null;}
 	
+	
+	/**
+	 * Getting norm information.
+	 * @return norm information.
+	 */
+	Object getNormInfo() {
+		if (this.layer == null || !(this.layer instanceof NormLayer)) return null;
+		return ((NormLayer)this.layer).getNormInfo();
+	}
+	
+	
+	/**
+	 * Setting norm information.
+	 * @param normInfo norm information.
+	 */
+	void setNormInfo(Object normInfo) {
+		if (this.layer == null || !(this.layer instanceof NormLayer)) return;
+		((NormLayer)this.layer).setNormInfo(normInfo);
+	}
+	
+	
+	/**
+	 * Retrieving default norm which can be null.
+	 * @return default norm.
+	 */
+	public Matrix retrieveDefaultNorm() {
+		return this.layer != null /*&& Kernel.SPEED_MODE*/ ? this.layer.getInput() : null;
+	}
+
 	
 	/**
 	 * Checking whether to make gradient clipping.
@@ -548,9 +578,8 @@ public class NormWeight implements Weight, Parameter.CloneableParameter, TextPar
 		Matrix[] dValues = new Matrix[depth];
 		if (Kernel.speedMode(zero)) {
 			for (int d = 0; d < depth; d++) {
-				Matrix norm = null;
-				if (this.layer != null && Kernel.SPEED_MODE) {
-					norm = this.layer.getInput();
+				Matrix norm = retrieveDefaultNorm();
+				if (norm != null) {
 					if (norm instanceof MatrixStack) norm = ((MatrixStack)norm).get(d);
 				}
 				else {
@@ -586,9 +615,8 @@ public class NormWeight implements Weight, Parameter.CloneableParameter, TextPar
 		}
 		else {
 			for (int d = 0; d < depth; d++) {
-				Matrix norm = null;
-				if (this.layer != null && Kernel.SPEED_MODE) {
-					norm = this.layer.getInput();
+				Matrix norm = retrieveDefaultNorm();
+				if (norm != null) {
 					if (norm instanceof MatrixStack) norm = ((MatrixStack)norm).get(d);
 				}
 				else {

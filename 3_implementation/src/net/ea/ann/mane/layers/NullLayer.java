@@ -103,8 +103,8 @@ public class NullLayer extends MatrixLayerImpl {
 
 
 	@Override
-	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate) {
-		if (outputErrors == null || outputErrors.length == 0) return null;
+	public Error[] backward(Error[] outputErrors, MatrixLayer focus, boolean learning, double learningRate, Object...params) {
+		assert (outputErrors != null && outputErrors.length > 0);
 		if (this.output != this.input || this.prevLayer == null) throw new IllegalArgumentException(); //Null layer cannot be input layer.
 		Matrix prevLayerOutput = this.prevLayer.queryOutput();
 		if (this.output.rows() != prevLayerOutput.rows() || this.output.columns() != prevLayerOutput.columns() || MatrixUtil.depth(this.output) != MatrixUtil.depth(prevLayerOutput)) throw new IllegalArgumentException();
