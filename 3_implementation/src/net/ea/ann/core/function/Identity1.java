@@ -17,7 +17,7 @@ import net.ea.ann.core.value.NeuronValue1;
  * @version 1.0
  *
  */
-public class Identity1 implements Identity {
+public class Identity1 implements Identity, FunctionReal {
 
 
 	/**
@@ -41,9 +41,21 @@ public class Identity1 implements Identity {
 
 
 	@Override
+	public double evaluate(double x) {
+		return x;
+	}
+
+
+	@Override
 	public NeuronValue derivative(NeuronValue x) {
 		NeuronValue1 v = (NeuronValue1)x;
 		return v.unit();
+	}
+
+
+	@Override
+	public double derivative(double x) {
+		return 1;
 	}
 
 

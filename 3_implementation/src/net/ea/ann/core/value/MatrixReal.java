@@ -3,6 +3,8 @@ package net.ea.ann.core.value;
 import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.core.function.FunctionReal;
+import net.ea.ann.core.function.Identity;
 import net.ea.ann.core.function.VectorFunction;
 import net.ea.ann.raster.Size;
 
@@ -294,11 +296,18 @@ public class MatrixReal implements Matrix, TextParsable {
 	
 	@Override
 	public Matrix evaluate0(Function f) {
-		if (f == null) return null;
+		if (f instanceof Identity) return this;
+		
 		Matrix result = create(new Size(this.columns(), this.rows()));
-		for (int i = 0; i < this.rows(); i++) {
-			for (int j = 0; j < this.columns(); j++) {
-				result.set(i, j, this.get(i, j).evaluate(f));
+		if (f instanceof FunctionReal) {
+			FunctionReal r = (FunctionReal)f;
+			for (int i = 0; i < this.rows(); i++) {
+				for (int j = 0; j < this.columns(); j++) result.setv(i, j, r.evaluate(this.getv(i, j)));
+			}
+		}
+		else {
+			for (int i = 0; i < this.rows(); i++) {
+				for (int j = 0; j < this.columns(); j++) result.set(i, j, this.get(i, j).evaluate(f));
 			}
 		}
 		return result;
@@ -309,9 +318,15 @@ public class MatrixReal implements Matrix, TextParsable {
 	public Matrix derivativeWise(Function f) {
 		if (!(f instanceof VectorFunction)) {
 			Matrix result = create(new Size(this.columns(), this.rows()));
-			for (int i = 0; i < this.rows(); i++) {
-				for (int j = 0; j < this.columns(); j++) {
-					result.set(i, j, this.get(i, j).derivative(f));
+			if (f instanceof FunctionReal) {
+				FunctionReal r = (FunctionReal)f;
+				for (int i = 0; i < this.rows(); i++) {
+					for (int j = 0; j < this.columns(); j++) result.setv(i, j, r.derivative(this.getv(i, j)));
+				}
+			}
+			else {
+				for (int i = 0; i < this.rows(); i++) {
+					for (int j = 0; j < this.columns(); j++) result.set(i, j, this.get(i, j).derivative(f));
 				}
 			}
 			return result;

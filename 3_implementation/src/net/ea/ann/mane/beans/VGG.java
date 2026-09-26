@@ -1288,7 +1288,7 @@ class VGGCore extends ResidualNetwork {
 		VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(size, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 		resLayerSpec.prevSize = resLayerSpec.size; //Setting previous size not important.
 		resLayerSpec.type = VGG.LayerSpec.Type.residual;
-		resLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.filter_activate : net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
+		resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.nil; //filterMode ? net.ea.ann.mane.WeightSpec.KernelType.filter_activate : net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
 		residualIndices.add(beginIndex + layerSpecs.size());
 		layerSpecs.add(resLayerSpec);
 		
@@ -1320,7 +1320,7 @@ class VGGCore extends ResidualNetwork {
 		VGG.LayerSpec resLayerSpec = new VGG.LayerSpec(size, new WeightSpec(net.ea.ann.mane.WeightSpec.Type.kernel));
 		resLayerSpec.prevSize = resLayerSpec.size; //Setting previous size not important.
 		resLayerSpec.type = VGG.LayerSpec.Type.residual;
-		resLayerSpec.weightSpec.kernelType = filterMode ? net.ea.ann.mane.WeightSpec.KernelType.filter_activate : net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
+		resLayerSpec.weightSpec.kernelType = net.ea.ann.mane.WeightSpec.KernelType.nil; //filterMode ? net.ea.ann.mane.WeightSpec.KernelType.filter_activate : net.ea.ann.mane.WeightSpec.KernelType.weight_activate;
 		residualIndices.add(beginIndex + layerSpecs.size());
 		layerSpecs.add(resLayerSpec);
 		

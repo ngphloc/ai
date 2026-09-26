@@ -17,7 +17,7 @@ import net.ea.ann.core.value.NeuronValue1;
  * @version 1.0
  *
  */
-public class ReLULeaky1 implements ReLU {
+public class ReLULeaky1 implements ReLU, FunctionReal {
 
 
 	/**
@@ -67,12 +67,24 @@ public class ReLULeaky1 implements ReLU {
 
 	
 	@Override
+	public double evaluate(double x) {
+		return x > 0 ? x : (alpha == 0 ? 0 : alpha*x);
+	}
+
+
+	@Override
 	public NeuronValue derivative(NeuronValue x) {
 		double v = ((NeuronValue1)x).get();
 		return new NeuronValue1(v > 0 ? 1 : alpha);
 	}
 
 	
+	@Override
+	public double derivative(double x) {
+		return x > 0 ? 1 : alpha;
+	}
+
+
 	@Override
 	public NeuronValue evaluateInverse(NeuronValue y) {
 		double v = ((NeuronValue1)y).get();

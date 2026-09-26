@@ -10,6 +10,7 @@ package net.ea.ann.core.value;
 import net.ea.ann.conv.Content;
 import net.ea.ann.core.TextParsable;
 import net.ea.ann.core.function.Function;
+import net.ea.ann.core.function.Identity;
 import net.ea.ann.core.function.VectorFunction;
 import net.ea.ann.raster.Size;
 
@@ -262,6 +263,8 @@ public class MatrixImpl implements Matrix, TextParsable {
 
 	@Override
 	public Matrix evaluate0(Function f) {
+		if (f instanceof Identity) return this;
+
 		Matrix result = create(new Size(this.columns(), this.rows()));
 		for (int i = 0; i < this.rows(); i++) {
 			for (int j = 0; j < this.columns(); j++) {

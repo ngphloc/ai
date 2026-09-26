@@ -16,7 +16,7 @@ import net.ea.ann.core.value.NeuronValue;
  * @version 1.0
  *
  */
-public class IdentityDefault implements Identity {
+public class IdentityDefault implements Identity, FunctionReal {
 
 
 	/**
@@ -47,11 +47,23 @@ public class IdentityDefault implements Identity {
 
 
 	@Override
+	public double evaluate(double x) {
+		return x;
+	}
+
+	
+	@Override
 	public NeuronValue derivative(NeuronValue x) {
 		return x.unit();
 	}
 
 
+	@Override
+	public double derivative(double x) {
+		return 1;
+	}
+
+	
 	@Override
 	public NeuronValue evaluateInverse(NeuronValue y) {
 		return evaluate(y);
