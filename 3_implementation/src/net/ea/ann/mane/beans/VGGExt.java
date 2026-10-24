@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import net.ea.ann.core.Id;
@@ -100,7 +101,7 @@ class VGGExt extends VGG {
 	 * Default value for field of label smoothing.
 	 * If true, label smoothing is applied so that one-hot class vector become class probability in which the probability of certain class is large enough but smaller than 1, for example {@link #MAX_CLASS_PROB_DEFAULT}.
 	 */
-	public final static boolean LABEL_SMOOTH_DEFAULT = true; //false
+	public final static boolean LABEL_SMOOTH_DEFAULT = false; //true
 
 	
 	/**
@@ -126,8 +127,14 @@ class VGGExt extends VGG {
 	/**
 	 * Default value for augmentation number. Value 0 indicates no augmentation.
 	 */
-	public final static int AUGMENT_NUMBER_DEFAULT = 1;
+	public final static int AUGMENT_NUMBER_DEFAULT = 0;
 
+	
+	/**
+	 * Augmentation random probability which ranges from 1 (always) to 0 (never).
+	 */
+	private final static double AUGMENT_RANDOM_PROB = 0.25;
+	
 	
 	/**
 	 * This interface specifies trainer applying into VGG for specific task with sample of raster.
@@ -1032,9 +1039,12 @@ class VGGExt extends VGG {
 				List<Raster> subsample = Util.newList(0);
 				subsample.add(anchor);
 				
+				Random rnd = new Random();
 				if (paramGetAugmentNumber() >= 1 /*&& paramGetPseudoEpochs() <= 1*/) {
 					int augmentNumber = paramGetAugmentNumber();
+					double prob = AUGMENT_RANDOM_PROB / augmentNumber;
 					for (int i = 0; i < augmentNumber; i++) {
+						if (rnd.nextDouble() >= prob) continue;
 						try {
 							Raster augmented = new Augmentor(anchor).augmentRandom();
 							if (augmented != null) subsample.add(augmented);

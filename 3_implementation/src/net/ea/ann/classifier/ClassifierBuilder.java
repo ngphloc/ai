@@ -955,7 +955,6 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			vgg.paramSetFiltersNumberInit(filtersNumber);
 			vgg.paramSetVGGMiddleSize(middleSize);
 			vgg.paramSetFFNLength(ffnLength);
-			vgg.paramSetFFNFlatten(true);
 			vgg.paramSetGAP(gap);
 			vgg.paramSetPseudoEpochs(pseudoEpochs);
 			
@@ -981,7 +980,6 @@ public final class ClassifierBuilder implements Cloneable, Serializable {
 			swarm.paramSetFiltersNumberInit(filtersNumber);
 			swarm.paramSetVGGMiddleSize(middleSize);
 			swarm.paramSetFFNLength(ffnLength);
-			swarm.paramSetFFNFlatten(true);
 			swarm.paramSetGAP(gap);
 			swarm.paramSetPseudoEpochs(pseudoEpochs);
 			

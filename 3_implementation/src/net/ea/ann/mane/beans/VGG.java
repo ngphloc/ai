@@ -513,7 +513,7 @@ class VGGCore extends ResidualNetwork {
 	/**
 	 * Default value for flattening feed-forward network mode.
 	 */
-	public final static boolean FFN_FLATTEN_DEFAULT = false;
+	public final static boolean FFN_FLATTEN_DEFAULT = true; //false;
 
 	
 	/**

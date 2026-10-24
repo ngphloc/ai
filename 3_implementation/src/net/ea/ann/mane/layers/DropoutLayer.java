@@ -15,6 +15,7 @@ import net.ea.ann.core.Util;
 import net.ea.ann.core.function.Function;
 import net.ea.ann.core.value.Matrix;
 import net.ea.ann.core.value.MatrixStack;
+import net.ea.ann.core.value.MatrixUtil;
 import net.ea.ann.core.value.NeuronValue;
 import net.ea.ann.mane.Error;
 import net.ea.ann.mane.Error.LayerInput;
@@ -208,6 +209,8 @@ public class DropoutLayer extends ParameterLayer /*MatrixLayerImpl*/ {
 	 * Checking filter mode. If false, filtering is not applied.
 	 * @return filter mode.
 	 */
+	@SuppressWarnings("unused")
+	@Deprecated
 	private boolean isFilterMode() {
 		MatrixNetworkAbstract network = getNetwork();
 		if (network == null) return VGG.FILTER_MODE_DEFAULT;
@@ -232,6 +235,7 @@ public class DropoutLayer extends ParameterLayer /*MatrixLayerImpl*/ {
 	 */
 	void setupMask(Object...params) {
 		this.dropoutMask = null;
+		
 		assert (this.getNetwork() != null);
 		if (!isDropoutMode() || getDropoutRate() <= 0 || getDropoutRate() >= 1) return;
 		if (this.getNetwork() != null && this.getNetwork().getOutputLayer() == this) return; //Do not dropout the output layer.
@@ -243,34 +247,81 @@ public class DropoutLayer extends ParameterLayer /*MatrixLayerImpl*/ {
 		}
 		if (this.dropoutMask == null) return;
 		
+		Matrix[] dropoutMasks = MatrixUtil.split(this.dropoutMask);
+		int rows = this.dropoutMask.rows(), columns = this.dropoutMask.columns();
 		boolean training = Error.extractTrainingFlag(params);
-		double keepProb = 1.0 - getDropoutRate();
+		double keepProb = 1.0 - (columns > 1 ? getDropoutRate()/2.0 : getDropoutRate()); //Spatial dropout rate is decreased a half.
 		double scale = isDropoutInverted() ? 1.0/keepProb : (training ? 1.0 : keepProb);
-		Random rnd = new Random();
 		
-		if (isFilterMode()) {
-			//Spatial dropout.
-			for (int row = 0; row < this.dropoutMask.rows(); row++) {
-				boolean keep = rnd.nextDouble() < keepProb;
-				for (int column = 0; column < this.dropoutMask.columns(); column++) {
-					if (keep)
-						setValue(this.dropoutMask, row, column, scale);
-					else
-						setValue(this.dropoutMask, row, column, 0);
+		Random rnd = new Random();
+		boolean speedMode = Kernel.speedMode(dropoutMasks[0].get(0, 0));
+		if (columns > 1) { //Spatial 2D dropout.
+			if (dropoutMasks.length == 1) {
+				//Rows dropout.
+				if (speedMode) {
+					for (int row = 0; row < rows; row++) {
+						boolean keep = rnd.nextDouble() < keepProb;
+						for (int column = 0; column < columns; column++) {
+							if (keep)
+								dropoutMasks[0].setv(row, column, scale);
+							else
+								dropoutMasks[0].setv(row, column, 0);
+						}
+					}
+				}
+				else {
+					NeuronValue zero = dropoutMasks[0].get(0, 0).zero();
+					NeuronValue vScale = zero.valueOf(scale);
+					for (int row = 0; row < rows; row++) {
+						boolean keep = rnd.nextDouble() < keepProb;
+						for (int column = 0; column < columns; column++) {
+							if (keep)
+								dropoutMasks[0].set(row, column, vScale);
+							else
+								dropoutMasks[0].set(row, column, zero);
+						}
+					}
 				}
 			}
-		}
-		else {
-			//Individual dropout.
-			for (int row = 0; row < this.dropoutMask.rows(); row++) {
-				for (int column = 0; column < this.dropoutMask.columns(); column++) {
+			else {
+				//Channels dropout.
+				for (int d = 0; d < dropoutMasks.length; d++) {
 					if (rnd.nextDouble() < keepProb)
-						setValue(this.dropoutMask, row, column, scale);
+						MatrixUtil.fill(dropoutMasks[d], scale);
 					else
-						setValue(this.dropoutMask, row, column, 0);
+						MatrixUtil.fill(dropoutMasks[d], 0);
 				}
 			}
 		}
+		else { //Individual dropout.
+			if (speedMode) {
+				for (int d = 0; d < dropoutMasks.length; d++) {
+					for (int row = 0; row < rows; row++) {
+						for (int column = 0; column < columns; column++) {
+							if (rnd.nextDouble() < keepProb)
+								dropoutMasks[d].setv(row, column, scale);
+							else
+								dropoutMasks[d].setv(row, column, 0);
+						}
+					}
+				}
+			}
+			else {
+				NeuronValue zero = dropoutMasks[0].get(0, 0).zero();
+				NeuronValue vScale = zero.valueOf(scale);
+				for (int d = 0; d < dropoutMasks.length; d++) {
+					for (int row = 0; row < rows; row++) {
+						for (int column = 0; column < columns; column++) {
+							if (rnd.nextDouble() < keepProb)
+								dropoutMasks[d].set(row, column, vScale);
+							else
+								dropoutMasks[d].set(row, column, zero);
+						}
+					}
+				}
+			}
+		}
+		
 	}
 
 	
@@ -304,6 +355,8 @@ public class DropoutLayer extends ParameterLayer /*MatrixLayerImpl*/ {
 	 * @param column column.
 	 * @param v value.
 	 */
+	@SuppressWarnings("unused")
+	@Deprecated
 	private static void setValue(Matrix matrix, int row, int column, double v) {
 		if (matrix instanceof MatrixStack) {
 			MatrixStack stack = (MatrixStack)matrix;

@@ -61,7 +61,7 @@ public abstract class MatrixNetworkAbstract extends NetworkAbstract implements M
 	/**
 	 * Default value of vectorization field.
 	 */
-	public final static boolean VECTORIZED_DEFAULT = false;
+	public final static boolean VECTORIZED_DEFAULT = true; //false;
 
 	
 	/**

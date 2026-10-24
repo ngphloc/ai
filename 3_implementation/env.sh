@@ -17,6 +17,6 @@ CLASSPATH=./hudup-core.jar:./hudup.jar:./sim.jar:./ai.jar:./hudup-runtime-lib.ja
 
 echo CLASSPATH=$CLASSPATH
 
-JAVA_CMD="java -cp '$CLASSPATH'"
+JAVA_CMD="java -Xmx5g -cp '$CLASSPATH'"
 
-JAVAW_CMD="java -cp '$CLASSPATH'"
+JAVAW_CMD="java -Xmx5g -cp '$CLASSPATH'"

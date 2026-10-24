@@ -101,8 +101,8 @@ public class VGGClassifier extends Swarm /*VGGExt*/ {
 		this.config.put(BASELINE_MEAN_FIELD, BASELINE_MEAN_DEFAULT);
 		this.config.put(ENTROPY_TRAINER_FIELD, ENTROPY_TRAINER_DEFAULT);
 		
-		paramSetFFNFlatten(true);
-		paramSetVectorized(true);
+//		paramSetFFNFlatten(true);
+//		paramSetVectorized(true);
 	}
 
 

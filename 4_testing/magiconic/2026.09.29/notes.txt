@@ -1,0 +1,9 @@
+aug: augmentation
+b: batch size
+e: epoch
+f: filter
+gap: global average pooling
+lm: label smoothing
+r: learning rate
+sdo: spatial dropout
+x: final CNN dimension
