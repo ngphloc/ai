@@ -91,9 +91,13 @@ public interface Sim<T> extends Serializable, Cloneable {
 		
 		@Override
 		public NeuronValue sim(Matrix o1, Matrix o2) {
-			if (o1.rows() != o2.rows() || o1.columns() != o2.columns()) {
-				o1 = o1.columns() > 1 ? o1.vec() : o1;
-				o2 = o2.columns() > 1 ? o2.vec() : o2;
+			if (o1.columns() > 1 || o2.columns() > 1 || o1.rows() != o2.rows() || o1.columns() != o2.columns()) {
+				if (o1 == o2)
+					o1 = o2 = o1.vec();
+				else {
+					o1 = o1.vec();
+					o2 = o2.vec();
+				}
 			}
 			if (o1.rows() != o2.rows()) throw new IllegalArgumentException();
 			
@@ -155,9 +159,13 @@ public interface Sim<T> extends Serializable, Cloneable {
 		
 		@Override
 		public NeuronValue sim(Matrix o1, Matrix o2) {
-			if (o1.rows() != o2.rows() || o1.columns() != o2.columns()) {
-				o1 = o1.columns() > 1 ? o1.vec() : o1;
-				o2 = o2.columns() > 1 ? o2.vec() : o2;
+			if (o1.columns() > 1 || o2.columns() > 1 || o1.rows() != o2.rows() || o1.columns() != o2.columns()) {
+				if (o1 == o2)
+					o1 = o2 = o1.vec();
+				else {
+					o1 = o1.vec();
+					o2 = o2.vec();
+				}
 			}
 			if (o1.rows() != o2.rows()) throw new IllegalArgumentException();
 			

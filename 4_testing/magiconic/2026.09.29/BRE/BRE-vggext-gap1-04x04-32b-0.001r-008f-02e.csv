@@ -1,0 +1,22 @@
+learning rate, iterations, batches, classes, N, accuracy, precise.mean, precise.var, recall.mean, recall.var, f1.mean, f1.var, label coverage, precise$0$0, precise$0$1, recall$0$0, recall$0$1, f1$0$0, f1$0$1, time (s), depth, parametric size, note
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 13.652, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 20.686, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 20.656, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 16.186, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.75, 0.7742, 0.0007, 0.5595, 0.194, 0.5317, 0.1052, 1, 0.8, 0.7483, 0.119, 1, 0.2073, 0.8561, 18.661, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 18.164, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 20.833, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 20.972, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 19.078, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 21.925, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.75, 0.8725, 0.0162, 0.5357, 0.2156, 0.4936, 0.1298, 1, 1, 0.7451, 0.0714, 1, 0.1333, 0.8539, 18.954, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 18.144, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 21.635, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 19.353, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.75, 0.8725, 0.0162, 0.5357, 0.2156, 0.4936, 0.1298, 1, 1, 0.7451, 0.0714, 1, 0.1333, 0.8539, 18.513, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7436, 0.8701, 0.0169, 0.5238, 0.2268, 0.4708, 0.1443, 1, 1, 0.7403, 0.0476, 1, 0.0909, 0.8507, 24.593, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 18.384, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 17.997, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 21.225, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+0.001, 20, 32, 2, 156, 0.7308, 0.3654, 0.1335, 0.5, 0.25, 0.4222, 0.1783, 0.5, 0, 0.7308, 0, 1, 0, 0.8444, 18.028, 18, 7682, model=vggext~dataset=dataset~conv=true~pool=max~weight=normal~vec=true~tree=mac
+

@@ -108,8 +108,15 @@ public interface Feature extends Cloneable, Serializable {
 		public NeuronValue sim(Feature other) {
 			Sim.ProductMatrixSim sim = new Sim.ProductMatrixSim();
 			Matrix otherFeature = ((MatrixFeature)other).feature;
-			NeuronValue module = sim.sim(this.feature, this.feature).multiply(sim.sim(otherFeature, otherFeature));
-			return sim.sim(this.feature, otherFeature).divide(module.sqrt()); //Cosine similarity.
+			NeuronValue module1 = sim.sim(this.feature, this.feature), module2 = sim.sim(otherFeature, otherFeature);
+			NeuronValue module = module1.multiply(module2);
+			
+			if (module.mean() != 0)
+				return sim.sim(this.feature, otherFeature).divide(module.sqrt()); //Cosine similarity.
+			else if (module1.mean() == 0 && module2.mean() == 0)
+				return module.unit();
+			else
+				return module.zero();
 		}
 		
 		@Override

@@ -216,6 +216,50 @@ public class ProxyNCA extends VGGExt {
 		public int positiveIndexOf(Matrix positive) {return this.positives.indexOf(positive);}
 		
 		/**
+		 * Getting number of negative features.
+		 * @return number of negative features.
+		 */
+		public int negativeSize() {return negatives.size();}
+		
+		/**
+		 * Getting negative feature.
+		 * @param index negative index.
+		 * @return negative feature at specified index.
+		 */
+		public Matrix negative(int index) {return negatives.get(index);}
+
+		/**
+		 * Getting previous negative feature.
+		 * @param index negative index.
+		 * @return previous negative feature.
+		 */
+		public Matrix negativePrev(int index) {
+			Matrix negative = negative(index);
+			return negative != null && prevs.containsKey(negative) ? prevs.get(negative) : null;
+		}
+		
+		/**
+		 * Adding previous negative feature.
+		 * @param index negative index.
+		 * @param negativePrev previous negative feature.
+		 */
+		public void negativePrevAdd(int index, Matrix negativePrev) {
+			Matrix negative = negatives.get(index);
+			if (negative != null && negativePrev != null) prevs.put(negative, negativePrev);
+		}
+		
+		/**
+		 * Adding previous negative feature.
+		 * @param negative negative feature.
+		 * @param negativePrev previous negative feature.
+		 */
+		public void negativePrevAdd(Matrix negative, Matrix negativePrev) {
+			if (negative == null || negativePrev == null) return;
+			int index = negativeIndexOf(negative);
+			if (index >= 0) negativePrevAdd(index, negativePrev);
+		}
+		
+		/**
 		 * Getting index of negative feature.
 		 * @param negative negative feature.
 		 * @return index of negative feature.
@@ -351,6 +395,40 @@ public class ProxyNCA extends VGGExt {
 		public void positivePrevAdd(Matrix positive, Matrix positivePrev) {triplet.positivePrevAdd(positive, positivePrev);}
 
 		/**
+		 * Getting number of negative features.
+		 * @return number of negative features.
+		 */
+		public int negativeSize() {return triplet.negativeSize();}
+		
+		/**
+		 * Getting negative feature.
+		 * @param index negative index.
+		 * @return negative feature at specified index.
+		 */
+		public Matrix negative(int index) {return triplet.negative(index);}
+
+		/**
+		 * Getting previous negative feature.
+		 * @param index negative index.
+		 * @return previous negative feature.
+		 */
+		public Matrix negativePrev(int index) {return triplet.negativePrev(index);}
+		
+		/**
+		 * Adding previous negative feature.
+		 * @param index negative index.
+		 * @param negativePrev previous negative feature.
+		 */
+		public void negativePrevAdd(int index, Matrix negativePrev) {triplet.negativePrevAdd(index, negativePrev);}
+		
+		/**
+		 * Adding previous negative feature.
+		 * @param negative negative feature.
+		 * @param negativePrev previous negative feature.
+		 */
+		public void negativePrevAdd(Matrix negative, Matrix negativePrev) {triplet.negativePrevAdd(negative, negativePrev);}
+		
+		/**
 		 * Getting proxy group which is also called proxy matrix.
 		 * @return proxy group which is also called proxy matrix.
 		 */
@@ -433,6 +511,7 @@ public class ProxyNCA extends VGGExt {
 		 * @return exponential sum.
 		 */
 		private NeuronValue expSum() {
+			//Calculating positive sum.
 			NeuronValue pSum = null;
 			for (int pIndex = 0; triplet != null && pIndex < triplet.positives.size(); pIndex++) {
 				NeuronValue pExp = triplet.positiveSim(pIndex).exp();
@@ -513,7 +592,7 @@ public class ProxyNCA extends VGGExt {
 
 		/**
 		 * Calculating positive softmax. Rows indicates proxies and columns indicate positive features.
-		 * In case there is no positives, there is only one row and columns indicates proxies.
+		 * In case there is no positive, there is only one row and columns indicates proxies.
 		 * @return positive softmax.
 		 */
 		public NeuronValue[][] positiveSoftmax() {
@@ -526,7 +605,7 @@ public class ProxyNCA extends VGGExt {
 		
 		/**
 		 * Calculating positive entropy gradient. Rows indicates proxies and columns indicate positive features.
-		 * In case there is no positives, there is only one row and columns indicates proxies.
+		 * In case there is no positive, there is only one row and columns indicates proxies.
 		 * @param realProbs real probabilities array whose size is the number of proxies.
 		 * @return positive entropy gradient.
 		 */
@@ -547,7 +626,7 @@ public class ProxyNCA extends VGGExt {
 			NeuronValue[][] softmax = null;
 			if (proxies.size() == 0) { //No proxy.
 				if (triplet == null || !triplet.validate()) throw new IllegalArgumentException();
-				if (triplet.positives.size() == 0) {
+				if (triplet.positives.size() == 0) { //No positive.
 					if (triplet.negatives.size() == 0) throw new IllegalArgumentException();
 					softmax = new NeuronValue[1][triplet.negatives.size()];
 					//Calculating negative sum.
@@ -561,7 +640,7 @@ public class ProxyNCA extends VGGExt {
 						softmax[0][nIndex] = softmax[0][nIndex].divide(nSum);
 					}
 				}
-				else {
+				else { //Having positives.
 					softmax = new NeuronValue[1][triplet.positives.size()];
 					//Calculating positive sum.
 					NeuronValue pSum = null;
@@ -659,8 +738,169 @@ public class ProxyNCA extends VGGExt {
 		 */
 		private NeuronValue[][] positiveEntropyGradient0(NeuronValue[] realProbs) {
 			NeuronValue[][] softmax = positiveSoftmax0();
-			if (softmax == null) return null;
+			assert (softmax != null);
+			return entropyGradient0(softmax, realProbs);
+		}
+		
+		/**
+		 * Calculating negative softmax. Rows indicates proxies and columns indicate negative features.
+		 * In case there is no negative, there is only one row and columns indicates proxies.
+		 * @return positive softmax.
+		 */
+		public NeuronValue[][] negativeSoftmax() {
+			if (triplet == null) return null;
+			if (proxies.size() == 0 && triplet.negatives.size() == 0) return null;
+			if (triplet.negatives.size() == 0 && triplet.positives.size() > 0) return null;
 			
+			return negativeSoftmax0();
+		}
+
+		/**
+		 * Calculating negative entropy gradient. Rows indicates proxies and columns indicate negative features.
+		 * In case there is no negative, there is only one row and columns indicates proxies.
+		 * @param realProbs real probabilities array whose size is the number of proxies.
+		 * @return negative entropy gradient.
+		 */
+		public NeuronValue[][] negativeEntropyGradient(NeuronValue[] realProbs) {
+			if (triplet == null) return null;
+			if (proxies.size() == 0 && triplet.negatives.size() == 0) return null;
+			if (triplet.negatives.size() == 0 && triplet.positives.size() > 0) return null;
+			
+			return negativeEntropyGradient0(realProbs);
+		}
+
+		/**
+		 * Calculating negative softmax. Rows indicates proxies and columns indicate negative features.
+		 * In case there is no negatives, there is only one row and columns indicates proxies.
+		 * @return negative softmax.
+		 */
+		private NeuronValue[][] negativeSoftmax0() {
+			NeuronValue[][] softmax = null;
+			if (proxies.size() == 0) { //No proxy.
+				if (triplet == null || !triplet.validate()) throw new IllegalArgumentException();
+				if (triplet.negatives.size() == 0) { //No negative.
+					if (triplet.positives.size() == 0) throw new IllegalArgumentException();
+					softmax = new NeuronValue[1][triplet.positives.size()];
+					//Calculating positive sum.
+					NeuronValue pSum = null;
+					for (int pIndex = 0; pIndex < triplet.positives.size(); pIndex++) {
+						softmax[0][pIndex] = triplet.positiveSim(pIndex).exp();
+						pSum = pSum != null ? pSum.add(softmax[0][pIndex]) : softmax[0][pIndex];
+					}
+					//Calculating softmax.
+					for (int pIndex = 0; pIndex < triplet.positives.size(); pIndex++) {
+						softmax[0][pIndex] = softmax[0][pIndex].divide(pSum);
+					}
+				}
+				else { //Having negatives.
+					softmax = new NeuronValue[1][triplet.negatives.size()];
+					//Calculating negative sum.
+					NeuronValue nSum = null;
+					for (int nIndex = 0; nIndex < triplet.negatives.size(); nIndex++) {
+						softmax[0][nIndex] = triplet.negativeSim(nIndex).exp();
+						nSum = nSum != null ? nSum.add(softmax[0][nIndex]) : softmax[0][nIndex];
+					}
+					//Calculating positive sum.
+					NeuronValue pSum = null;
+					for (int pIndex = 0; pIndex < triplet.positives.size(); pIndex++) {
+						NeuronValue pExp = triplet.positiveSim(pIndex).exp();
+						pSum = pSum != null ? pSum.add(pExp) : pExp;
+					}
+					//Calculating softmax.
+					NeuronValue sum = nSum.add(pSum);
+					for (int nIndex = 0; nIndex < triplet.negatives.size(); nIndex++) {
+						softmax[0][nIndex] = softmax[0][nIndex].divide(sum);
+					}
+				}
+			}
+			else if ( (triplet == null) || (!triplet.validate()) || (triplet.negatives.size() == 0 && triplet.positives.size() == 0) ) { //Having proxies but have no triplet.
+				softmax = new NeuronValue[1][proxies.size()];
+				//Calculating proxy sum.
+				NeuronValue proxySum = null;
+				for (int proxyIndex = 0; proxyIndex < proxies.size(); proxyIndex++) {
+					softmax[0][proxyIndex] = proxySim(proxyIndex).exp();
+					proxySum = proxySum != null ? proxySum.add(softmax[0][proxyIndex]) : softmax[0][proxyIndex];
+				}
+				//Calculating softmax.
+				for (int proxyIndex = 0; proxyIndex < proxies.size(); proxyIndex++) {
+					softmax[0][proxyIndex] = softmax[0][proxyIndex].divide(proxySum);
+				}
+			}
+			else if (triplet.negatives.size() == 0) { //Having proxies but have no negative.
+				softmax = new NeuronValue[1][triplet.positives.size()];
+				//Calculating positive sum.
+				NeuronValue pSum = null;
+				for (int pIndex = 0; pIndex < triplet.positives.size(); pIndex++) {
+					softmax[0][pIndex] = triplet.positiveSim(pIndex).exp();
+					pSum = pSum != null ? pSum.add(softmax[0][pIndex]) : softmax[0][pIndex];
+				}
+				//Calculating proxy sum.
+				NeuronValue proxySum = null;
+				for (int proxyIndex = 0; proxyIndex < proxies.size(); proxyIndex++) {
+					NeuronValue proxyExp = proxySim(proxyIndex).exp();
+					proxySum = proxySum != null ? proxySum.add(proxyExp) : proxyExp;
+				}
+				//Calculating softmax.
+				NeuronValue sum = pSum.multiply(proxySum);
+				for (int pIndex = 0; pIndex < triplet.positives.size(); pIndex++) {
+					softmax[0][pIndex] = softmax[0][pIndex].divide(sum);
+				}
+			}
+			else { //Having proxies and having negatives.
+				//Calculating negative sum.
+				NeuronValue[] negativeExps = new NeuronValue[triplet.negatives.size()];
+				NeuronValue nSum = null;
+				for (int nIndex = 0; nIndex < triplet.negatives.size(); nIndex++) {
+					negativeExps[nIndex] = triplet.negativeSim(nIndex).exp();
+					nSum = nSum != null ? nSum.add(negativeExps[nIndex]) : negativeExps[nIndex];
+				}
+				//Calculating positive sum.
+				NeuronValue pSum = null;
+				for (int pIndex = 0; pIndex < triplet.positives.size(); pIndex++) {
+					NeuronValue pExp = triplet.positiveSim(pIndex).exp();
+					pSum = pSum != null ? pSum.add(pExp) : pExp;
+				}
+				//Calculating proxy sum.
+				softmax = new NeuronValue[proxies.size()][triplet.negatives.size()];
+				NeuronValue proxySum = null;
+				for (int proxyIndex = 0; proxyIndex < proxies.size(); proxyIndex++) {
+					NeuronValue proxyExp = proxySim(proxyIndex).exp();
+					proxySum = proxySum != null ? proxySum.add(proxyExp) : proxyExp;
+					for (int nIndex = 0; nIndex < triplet.negatives.size(); nIndex++) {
+						softmax[proxyIndex][nIndex] = negativeExps[nIndex].multiply(proxyExp);
+					}
+				}
+				//Calculating softmax.
+				NeuronValue sum = pSum != null ? nSum.add(pSum).multiply(proxySum) : nSum.multiply(proxySum);
+				for (int proxyIndex = 0; proxyIndex < proxies.size(); proxyIndex++) {
+					for (int nIndex = 0; nIndex < triplet.negatives.size(); nIndex++) {
+						softmax[proxyIndex][nIndex] = softmax[proxyIndex][nIndex].divide(sum);
+					}
+				}
+			}
+			
+			return softmax;
+		}
+		
+		/**
+		 * Calculating negative entropy gradient. Rows indicates proxies and columns indicate negative features.
+		 * In case there is no negative, there is only one row and columns indicates proxies.
+		 * @param realProbs real probabilities array whose size is the number of proxies.
+		 * @return negative entropy gradient.
+		 */
+		private NeuronValue[][] negativeEntropyGradient0(NeuronValue[] realProbs) {
+			NeuronValue[][] softmax = negativeSoftmax0();
+			assert (softmax != null);
+			return entropyGradient0(softmax, realProbs);
+		}
+
+		/**
+		 * Calculating entropy gradient. Rows indicates proxies and columns indicate features.
+		 * In case there is no feature, there is only one row and columns indicates proxies.
+		 * @param realProbs real probabilities array whose size is the number of proxies.
+		 * @return entropy gradient.
+		 */
+		private NeuronValue[][] entropyGradient0(NeuronValue[][] softmax, NeuronValue[] realProbs) {
 			int rows = softmax.length, columns = softmax[0].length;
 			NeuronValue[][] grad = new NeuronValue[rows][columns];
 			NeuronValue zero = softmax[0][0].zero(), unit = zero.unit();
@@ -695,7 +935,7 @@ public class ProxyNCA extends VGGExt {
 			
 			return grad;
 		}
-		
+
 	}
 	
 	
