@@ -8,6 +8,7 @@
 package net.ea.ann.mane.beans;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -35,7 +36,69 @@ import net.ea.ann.raster.Size;
  * @version 1.0
  *
  */
-public class ProxyNCA extends VGGExt {
+public class ProxyNCA extends ProxyNCACore {
+
+
+	/**
+	 * Serial version UID for serializable class. 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	/**
+	 * Constructor with neuron channel, activation function, convolutional activation function, and identifier reference.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 * @param idRef identifier reference.
+	 */
+	public ProxyNCA(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+		super(neuronChannel, activateRef, convActivateRef, idRef);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel, activation function, and convolutional activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 * @param convActivateRef convolutional activation function.
+	 */
+	public ProxyNCA(int neuronChannel, Function activateRef, Function convActivateRef) {
+		this(neuronChannel, activateRef, convActivateRef, null);
+	}
+
+	
+	/**
+	 * Constructor with neuron channel and activation function.
+	 * @param neuronChannel neuron channel.
+	 * @param activateRef activation function.
+	 */
+	public ProxyNCA(int neuronChannel, Function activateRef) {this(neuronChannel, activateRef, null, null);}
+
+	
+	/**
+	 * Constructor with neuron channel.
+	 * @param neuronChannel neuron channel.
+	 */
+	public ProxyNCA(int neuronChannel) {this(neuronChannel, null, null, null);}
+
+
+	@Override
+	Error[] learnRaster(Iterable<Raster> sample, double learningRate) {
+		return super.learnRaster(sample, learningRate);
+	}
+
+
+}
+
+
+
+/**
+ * This class implements Proxy-NCA (Proxy-Neighborhood Component Analysis) algorithm for deep metric learning.
+ * @author Loc Nguyen
+ * @version 1.0
+ *
+ */
+class ProxyNCACore extends VGGExt {
 
 
 	/**
@@ -78,6 +141,84 @@ public class ProxyNCA extends VGGExt {
 	 * Default value for piece size.
 	 */
 	public final static int PIECE_SIZE_DEFAULT = 2;
+
+	
+	/**
+	 * This class represents NCA error.
+	 * @author Loc Nguyen
+	 * @version 1.0
+	 *
+	 */
+	private static class NCAError implements Cloneable, Serializable {
+		
+		/**
+		 * Serial version UID for serializable class. 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * This class is the pair of bias and quartet.
+		 * @author Loc Nguyen
+		 * @version 1.0
+		 *
+		 */
+		public static class QuartetBias implements Cloneable, Serializable {
+			
+			/**
+			 * Serial version UID for serializable class. 
+			 */
+			private static final long serialVersionUID = 1L;
+
+			/**
+			 * Bias.
+			 */
+			public Matrix bias = null;
+			
+			/**
+			 * Quartet.
+			 */
+			public Quartet quartet = null;
+			
+			/**
+			 * Constructor with bias and quartet.
+			 * @param bias bias.
+			 * @param quartet quartet.
+			 */
+			public QuartetBias(Matrix bias, Quartet quartet) {
+				this.bias = bias;
+				this.quartet = quartet;
+			}
+			
+		}
+		
+		/**
+		 * Proxy group stack.
+		 */
+		public MatrixStack proxyGroupStack = null;
+		
+		/**
+		 * Accumulated bias.
+		 */
+		public Matrix biasAccum = null;
+
+		/**
+		 * list of quartets and biases.
+		 */
+		public List<QuartetBias> quartetBiases = Util.newList(0);
+		
+		/**
+		 * Constructor with proxy group stack, accumulated bias, and quartet and biases.
+		 * @param proxyGroupStack proxy group stack.
+		 * @param biasAccum accumulated bias.
+		 * @param quartetBiases quartets and biases.
+		 */
+		public NCAError(MatrixStack proxyGroupStack, Matrix biasAccum, List<QuartetBias> quartetBiases) {
+			this.proxyGroupStack = proxyGroupStack;
+			this.biasAccum = biasAccum;
+			this.quartetBiases = quartetBiases;
+		}
+		
+	}
 
 	
 	/**
@@ -284,7 +425,7 @@ public class ProxyNCA extends VGGExt {
 	
 	
 	/**
-	 * This class consists of one anchor feature, one or many positive features, zero or many negative features, one or many weight.
+	 * This class consists of one anchor feature, one or many positive features, zero or many negative features, one or many proxies (weights).
 	 * @author Loc Nguyen
 	 * @version 1.0
 	 *
@@ -1180,7 +1321,7 @@ public class ProxyNCA extends VGGExt {
 	 * @param convActivateRef convolutional activation function.
 	 * @param idRef identifier reference.
 	 */
-	public ProxyNCA(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
+	public ProxyNCACore(int neuronChannel, Function activateRef, Function convActivateRef, Id idRef) {
 		super(neuronChannel, activateRef, convActivateRef, idRef);
 		config.put(IS_PROXY_FIELD, IS_PROXY_DEFAULT);
 		config.put(AUGMENTED_FIELD, AUGMENTED_DEFAULT);
@@ -1194,7 +1335,7 @@ public class ProxyNCA extends VGGExt {
 	 * @param activateRef activation function.
 	 * @param convActivateRef convolutional activation function.
 	 */
-	public ProxyNCA(int neuronChannel, Function activateRef, Function convActivateRef) {
+	public ProxyNCACore(int neuronChannel, Function activateRef, Function convActivateRef) {
 		this(neuronChannel, activateRef, convActivateRef, null);
 	}
 
@@ -1204,14 +1345,14 @@ public class ProxyNCA extends VGGExt {
 	 * @param neuronChannel neuron channel.
 	 * @param activateRef activation function.
 	 */
-	public ProxyNCA(int neuronChannel, Function activateRef) {this(neuronChannel, activateRef, null, null);}
+	public ProxyNCACore(int neuronChannel, Function activateRef) {this(neuronChannel, activateRef, null, null);}
 
 	
 	/**
 	 * Constructor with neuron channel.
 	 * @param neuronChannel neuron channel.
 	 */
-	public ProxyNCA(int neuronChannel) {this(neuronChannel, null, null, null);}
+	public ProxyNCACore(int neuronChannel) {this(neuronChannel, null, null, null);}
 
 
 	/**
@@ -1381,7 +1522,7 @@ public class ProxyNCA extends VGGExt {
 //			if (positives.size() == 0 && negatives.size() > 0) continue;
 			
 			Quartet quartet = null;
-			Matrix anchor = addOutput(origins.get(i), null, prevs, params);
+			Matrix anchor = addOutput(origins.get(i), null, prevs, params); //Adding previous feature of anchor.
 			quartet = create(anchor, positives, negatives, this.proxyGroupList != null ? this.proxyGroupList.get(groupIndex) : null);
 			if (quartet != null) {
 				quartet.triplet.prevs.putAll(prevs);
@@ -1419,16 +1560,21 @@ public class ProxyNCA extends VGGExt {
 	 * @param output triplet output.
 	 * @param realOutputProbs real output probabilities.
 	 * @param outputLayer output layer.
+	 * @param groupIndex group index.
 	 * @param params additional parameters.
-	 * @return last bias.
+	 * @return an array of three matrices.
+	 * The first matrix which is is concatenation of proxy errors is proxy group error.
+	 * The second matrix is accumulated bias error (accumulated theta error) if being existent.
+	 * The third matrix is matrix stack of accumulated bias errors (accumulated theta errors) if being existent.
 	 */
-	protected Matrix[] calcOutputError(Quartet output, NeuronValue[] realOutputProbs, MatrixLayerAbstract outputLayer, int groupIndex, Object... params) {
+	protected Matrix[] calcOutputError(Quartet output, NeuronValue[] realOutputProbs, MatrixLayerAbstract outputLayer, int groupIndex, /*boolean calcAccumBias,*/ Object... params) {
 		NeuronValue[][] grads = output.positiveEntropyGradient(realOutputProbs);
 		if (grads == null) return null;
 		
 		Matrix[] dProxyGroup = null; //This is proxy group because proxy group is matrix and every proxy is also a 1-row matrix (row vector).
-		Matrix dThetaAccum = null;
-		if (this.proxyGroupList == null) {
+		Matrix dBiasAccum = null;
+		/*List<Matrix> dBiasList = Util.newList(0);*/
+		if (this.proxyGroupList == null) { //No proxy but having positives.
 			if (grads.length != 1 || grads[0].length != output.positiveSize()) throw new IllegalArgumentException();
 			for (int positiveIndex = 0; positiveIndex < grads[0].length; positiveIndex++) {
 				NeuronValue grad = grads[0][positiveIndex];
@@ -1438,12 +1584,15 @@ public class ProxyNCA extends VGGExt {
 				Matrix positivePrev = positive != null ? output.positivePrev(positiveIndex) : null;
 				Matrix dsx2 = positive != null ? sim().dsim(positive, output.anchor(), f, positivePrev, output.anchorPrev()) : null;
 				//
-				Matrix dTheta = dsx2 != null ? dsx2.multiply0(grad) : null;
+				Matrix dBias = dsx2 != null ? dsx2.multiply0(grad) : null;
 				
-				if (dTheta != null) dThetaAccum = dThetaAccum != null ? dThetaAccum.add(dTheta) : dTheta;
+				if (dBias != null) {
+					/*if (calcAccumBias)*/ dBiasAccum = dBiasAccum != null ? dBiasAccum.add(dBias) : dBias;
+					/*if (!calcAccumBias) dBiasList.add(dBias); //Fixing date: 2026.11.17.*/
+				}
 			}
 		}
-		else if (output.positiveSize() == 0) {
+		else if (output.positiveSize() == 0) { //Having proxies but no positive.
 			if (grads.length != 1 || grads[0].length != this.proxyCount(groupIndex)) throw new IllegalArgumentException();
 			dProxyGroup = new Matrix[grads[0].length];
 			for (int proxyIndex = 0; proxyIndex < grads[0].length; proxyIndex++) {
@@ -1455,7 +1604,7 @@ public class ProxyNCA extends VGGExt {
 				dProxyGroup[proxyIndex] = dProxyGroup[proxyIndex] != null ? dProxyGroup[proxyIndex].add(dsw) : dsw;
 			}
 		}
-		else {
+		else { //Having both proxies and positives.
 			if (grads.length != this.proxyCount(groupIndex)) throw new IllegalArgumentException();
 			dProxyGroup = new Matrix[grads.length];
 			for (int proxyIndex = 0; proxyIndex < grads.length; proxyIndex++) {
@@ -1472,31 +1621,50 @@ public class ProxyNCA extends VGGExt {
 					Matrix positivePrev = positive != null ? output.positivePrev(positiveIndex) : null;
 					Matrix dsx2 = positive != null ? sim().dsim(positive, output.anchor(), f, positivePrev, output.anchorPrev()) : null;
 					//
-					Matrix dTheta = dsx2 != null ? dsx1.add(dsx2).multiply0(grad) : dsx1.multiply0(grad);
+					Matrix dBias = dsx2 != null ? dsx1.add(dsx2).multiply0(grad) : dsx1.multiply0(grad);
 					
 					dProxyGroup[proxyIndex] = dProxyGroup[proxyIndex] != null ? dProxyGroup[proxyIndex].add(dsw) : dsw;
-					dThetaAccum = dThetaAccum != null ? dThetaAccum.add(dTheta) : dTheta;
+					//
+					if (dBias != null) {
+						/*if (calcAccumBias)*/ dBiasAccum = dBiasAccum != null ? dBiasAccum.add(dBias) : dBias;
+						/*if (!calcAccumBias) dBiasList.add(dBias); //Fixing date: 2026.11.17.*/
+					}
 				}
 				if (dProxyGroup[proxyIndex].rows() != 1) dProxyGroup[proxyIndex] = dProxyGroup[proxyIndex].transpose();
 			}
 		}
-		if (dProxyGroup == null && dThetaAccum == null) return null;
+		assert ((dProxyGroup != null) && (dBiasAccum != null /*|| dBiasList.size() > 0*/));
 		
-		if (dThetaAccum != null) {
-			Matrix OUTPUT = getOutput();
-			if (dThetaAccum.rows() == OUTPUT.rows()*OUTPUT.columns() && dThetaAccum.columns() == 1) dThetaAccum = dThetaAccum.vecInverse(OUTPUT.rows());
+		Matrix OUTPUT = getOutput();
+		if (dBiasAccum != null) {
+			if (dBiasAccum.rows() == OUTPUT.rows()*OUTPUT.columns() && dBiasAccum.columns() == 1) {
+				dBiasAccum = dBiasAccum.vecInverse(OUTPUT.rows());
+			}
 		}
-		return new Matrix[] {dProxyGroup != null ? dProxyGroup[0].concatHorizontal(dProxyGroup) : null, dThetaAccum};
+		/*
+		Matrix[] dBiases = dBiasList.toArray(new Matrix[] {});
+		if (dBiases.length > 0) {
+			if (dBiases[0].rows() == OUTPUT.rows()*OUTPUT.columns() && dBiases[0].columns() == 1) {
+				for (int i = 0; i < dBiases.length; i++) dBiases[i] = dBiases[i].vecInverse(OUTPUT.rows());
+			}
+		}
+		*/
+		
+		return new Matrix[] {
+			dProxyGroup != null ? dProxyGroup[0].concatHorizontal(dProxyGroup) : null,
+			dBiasAccum/*,
+			dBiases.length > 0 ? new MatrixStack(dBiases) : null*/};
 	}
 	
 	
 	/**
 	 * Calculating the last bias.
 	 * @param piece piece of sample.
+	 * @param calcBiasAccum flag to calculate accumulated bias.
 	 * @param params additional parameters which are rare to be used.
-	 * @return the last bias.
+	 * @return NCA error.
 	 */
-	private Matrix[] calcOutputError(Iterable<Raster> piece, Object...params) {
+	private NCAError calcOutputError(Iterable<Raster> piece, boolean calcBiasAccum, Object...params) {
 		List<Raster> origins = Util.newList(0);
 		List<Raster> augments = Util.newList(0);
 		for (Raster origin : piece) {
@@ -1516,7 +1684,8 @@ public class ProxyNCA extends VGGExt {
 		
 		int groupCount = this.proxyGroupList != null ? this.proxyGroupList.size() : 1;
 		List<Matrix> dProxyGroupList = Util.newList(0);
-		Matrix dThetaAccum = null;
+		List<NCAError.QuartetBias> quartetBiasList = Util.newList(0);
+		Matrix dBiasAccum = null;
 		for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
 			List<Quartet> quartets = Util.newList(0);
 			quartets.addAll(createQuartets(origins, augments, groupIndex, params));
@@ -1531,17 +1700,23 @@ public class ProxyNCA extends VGGExt {
 					if (classIndex >= 0) realOutputProbs = createOutputByClass(groupIndex, classIndex);
 				}
 				
-				Matrix[] errors = calcOutputError(quartet, realOutputProbs, getOutputLayer(), groupIndex, params);
+				Matrix[] errors = calcOutputError(quartet, realOutputProbs, getOutputLayer(), groupIndex, true, params);
 				if (errors == null) continue;
+				
 				if (errors[0] != null) dProxyGroup = dProxyGroup != null ? dProxyGroup.add(errors[0]) : errors[0];
-				if (errors[1] != null) dThetaAccum = dThetaAccum != null ? dThetaAccum.add(errors[1]) : errors[1];
+				if (errors[1] != null) {
+					if (calcBiasAccum) dBiasAccum = dBiasAccum != null ? dBiasAccum.add(errors[1]) : errors[1];
+					if (!calcBiasAccum) quartetBiasList.add(new NCAError.QuartetBias(errors[1], quartet));
+				}
 			}
 			if (dProxyGroup != null) dProxyGroupList.add(dProxyGroup);
 		}
-		if (dProxyGroupList.size() == 0 && dThetaAccum == null) return null;
+		assert ((dProxyGroupList.size() > 0) && (dBiasAccum != null || quartetBiasList.size() > 0));
 		
-		MatrixStack dProxyGroupStack = dProxyGroupList.size() > 0 ? new MatrixStack(dProxyGroupList.toArray(new Matrix[] {})) : null;
-		return new Matrix[] {dProxyGroupStack, dThetaAccum};
+		return new NCAError(
+			new MatrixStack(dProxyGroupList.toArray(new Matrix[] {})),
+			dBiasAccum,
+			quartetBiasList);
 	}
 
 	
@@ -1552,6 +1727,7 @@ public class ProxyNCA extends VGGExt {
 		List<Error> outputErrorList = Util.newList(0);
 		List<Raster> piece = Util.newList(0);
 		boolean trained = false;
+		int pieceCount = 0;
 		for (Raster raster : sample) {
 			if ((paramGetPieceSize() > 0 && piece.size() < paramGetPieceSize()) || (paramGetPieceSize() <= 0)) {
 				piece.add(raster);
@@ -1559,19 +1735,24 @@ public class ProxyNCA extends VGGExt {
 			}
 
 			if (piece.size() >= 2) {
-				Error outputError = backwardPieceWithoutLearning(piece, learningRate);
-				if (outputError != null) outputErrorList.add(outputError);
+				Error[] outputErrors = backwardPieceWithoutLearning(piece, learningRate);
+				if (outputErrors != null && outputErrors.length > 0) outputErrorList.addAll(Arrays.asList(outputErrors));
 				piece.clear();
 				trained = true;
+				pieceCount++;
 			}
 		}
 		
 		if ((piece.size() >= 2) || (piece.size() == 1 && !trained)){
-			Error outputError = backwardPieceWithoutLearning(piece, learningRate);
-			if (outputError != null) outputErrorList.add(outputError);
+			Error[] outputErrors = backwardPieceWithoutLearning(piece, learningRate);
+			if (outputErrors != null && outputErrors.length > 0) outputErrorList.addAll(Arrays.asList(outputErrors));
 			piece.clear();
 			trained = true;
+			pieceCount++;
 		}
+		
+		//Updating proxy groups.
+		if (pieceCount > 0) updateParametersFromBackwardInfo0(pieceCount, learningRate);
 		
 		Error[] outputErrors = outputErrorList.toArray(new Error[] {});
 		if (outputErrors.length > 0) updateParametersFromBackwardInfo(outputErrors.length, learningRate);
@@ -1586,33 +1767,50 @@ public class ProxyNCA extends VGGExt {
 	 * @param learningRate learning rate.
 	 * @return backward error.
 	 */
-	private Error backwardPieceWithoutLearning(List<Raster> piece, double learningRate) {
-		Matrix[] errors = calcOutputError(piece/*, new TrainingFlag() {}*/); //Removing training flag because of not back-warding yet.
-
-		if (errors != null && errors[0] != null) {
-			MatrixStack errorStack = (MatrixStack)errors[0];
-			this.dProxyGroupListAccum = this.dProxyGroupListAccum != null ? this.dProxyGroupListAccum.accum(errorStack) : new ProxyGroupListAccumulator(errorStack);
-		}
+	private Error[] backwardPieceWithoutLearning(List<Raster> piece, double learningRate) {
+		NCAError error = calcOutputError(piece, false/*, new TrainingFlag() {}*/); //Removing training flag because of not back-warding yet.
+		assert (error != null);
 		
-		if (errors != null && errors[1] != null) {
-			Error error1 = new Error(errors[1]); //One representative error.
-			Object[] params = defineOutputErrorParams(error1, TrainingFlag.create()); //Adding training flag for back-warding.
+		//Accumulating proxy group stack.
+		assert (error.proxyGroupStack != null);
+		this.dProxyGroupListAccum = this.dProxyGroupListAccum != null ? this.dProxyGroupListAccum.accum(error.proxyGroupStack) : new ProxyGroupListAccumulator(error.proxyGroupStack);
+		
+		if (error.biasAccum != null) {
+			Error biasError = new Error(error.biasAccum); //One representative bias error.
+			Object[] params = defineOutputErrorParams(biasError, TrainingFlag.create()); //Adding training flag for back-warding.
 			
 			int index = new Random().nextInt(piece.size()); //Randomized representative anchor in the piece.
 			evaluate(piece.get(index), params); //Please pay attention to this code line so as to set inputs and outputs to error at the random raster in the piece.
-			Error[] outputErrors = backward(new Error[] {error1}, this, false, learningRate);
+			Error[] outputErrors = backward(new Error[] {biasError}, this, false, learningRate);
 			assert (outputErrors != null && outputErrors.length == 1 && outputErrors[0] != null);
 
-//			Error error1 = new Error(errors[1].divide0(piece.size())); //Make the error as average error.
-//			Error[] outputErrors = null;
-//			for (int i = 0; i < piece.size(); i++) {
-//				Object[] params = defineOutputErrorParams(error1, new TrainingFlag() {}); //Adding training flag for back-warding.
-//				evaluate(piece.get(i), params); //Please pay attention to this code line so as to set inputs and outputs to error at every raster in the piece.
-//				outputErrors = backward(new Error[] {error1}, this, false, learningRate);
-//				assert (outputErrors != null && outputErrors.length == 1 && outputErrors[0] != null);
-//			}
+			/*
+			Error biasError = new Error(error.biasAccum.divide0(piece.size())); //Make the error as average error.
+			Error[] outputErrors = null;
+			for (int i = 0; i < piece.size(); i++) {
+				Object[] params = defineOutputErrorParams(biasError, TrainingFlag.create()); //Adding training flag for back-warding.
+				evaluate(piece.get(i), params); //Please pay attention to this code line so as to set inputs and outputs to error at every raster in the piece.
+				outputErrors = backward(new Error[] {biasError}, this, false, learningRate);
+				assert (outputErrors != null && outputErrors.length == 1 && outputErrors[0] != null);
+			}
+			*/
 			
-			if (outputErrors != null) return outputErrors[0];
+			if (outputErrors != null) return outputErrors;
+		}
+		else if (error.quartetBiases.size() > 0) {
+			List<Error> outputErrorList = Util.newList(0);
+			for (NCAError.QuartetBias qb : error.quartetBiases) {
+				Error biasError = new Error(qb.bias);
+				Object[] params = defineOutputErrorParams(biasError, TrainingFlag.create()); //Adding training flag for back-warding.
+				Raster anchorRaster = qb.quartet.triplet.anchorInputRaster;
+				assert (anchorRaster != null);
+				evaluate(anchorRaster, params); //Please pay attention to this code line so as to set inputs and outputs to error at every raster in the piece.
+
+				Error[] outputErrors = backward(new Error[] {biasError}, this, false, learningRate);
+				if (outputErrors != null && outputErrors.length > 0) outputErrorList.addAll(Arrays.asList(outputErrors));
+			}
+			
+			return outputErrorList.size() > 0 ? outputErrorList.toArray(new Error[] {}) : null;
 		}
 		
 		return null;
@@ -1733,7 +1931,7 @@ public class ProxyNCA extends VGGExt {
 	 * @param isProxy proxy flag.
 	 * @return this Proxy-NCA.
 	 */
-	ProxyNCA paramSetProxy(boolean isProxy) {
+	ProxyNCACore paramSetProxy(boolean isProxy) {
 		config.put(IS_PROXY_FIELD, isProxy);
 		return this;
 	}
@@ -1753,7 +1951,7 @@ public class ProxyNCA extends VGGExt {
 	 * @param augmented augmentation flag.
 	 * @return this Proxy-NCA.
 	 */
-	ProxyNCA paramSetAugmented(boolean augmented) {
+	ProxyNCACore paramSetAugmented(boolean augmented) {
 		config.put(AUGMENTED_FIELD, augmented);
 		return this;
 	}
@@ -1774,7 +1972,7 @@ public class ProxyNCA extends VGGExt {
 	 * @param pieceSize piece size.
 	 * @return this model.
 	 */
-	ProxyNCA paramSetPieceSize(int pieceSize) {
+	ProxyNCACore paramSetPieceSize(int pieceSize) {
 		pieceSize = pieceSize < 2 ? PIECE_SIZE_DEFAULT : pieceSize;
 		config.put(PIECE_SIZE_FIELD, pieceSize);
 		return this;
