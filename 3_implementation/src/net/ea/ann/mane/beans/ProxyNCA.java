@@ -197,25 +197,25 @@ class ProxyNCACore extends VGGExt {
 		public MatrixStack proxyGroupStack = null;
 		
 		/**
+		 * List of quartets and biases.
+		 */
+		public List<QuartetBias> quartetBiases = Util.newList(0);
+
+		/**
 		 * Accumulated bias.
 		 */
 		public Matrix biasAccum = null;
 
 		/**
-		 * list of quartets and biases.
-		 */
-		public List<QuartetBias> quartetBiases = Util.newList(0);
-		
-		/**
 		 * Constructor with proxy group stack, accumulated bias, and quartet and biases.
 		 * @param proxyGroupStack proxy group stack.
-		 * @param biasAccum accumulated bias.
 		 * @param quartetBiases quartets and biases.
+		 * @param biasAccum accumulated bias.
 		 */
-		public NCAError(MatrixStack proxyGroupStack, Matrix biasAccum, List<QuartetBias> quartetBiases) {
+		public NCAError(MatrixStack proxyGroupStack, List<QuartetBias> quartetBiases, Matrix biasAccum) {
 			this.proxyGroupStack = proxyGroupStack;
-			this.biasAccum = biasAccum;
 			this.quartetBiases = quartetBiases;
+			this.biasAccum = biasAccum;
 		}
 		
 	}
@@ -1660,11 +1660,10 @@ class ProxyNCACore extends VGGExt {
 	/**
 	 * Calculating the last bias.
 	 * @param piece piece of sample.
-	 * @param calcBiasAccum flag to calculate accumulated bias.
 	 * @param params additional parameters which are rare to be used.
 	 * @return NCA error.
 	 */
-	private NCAError calcOutputError(Iterable<Raster> piece, boolean calcBiasAccum, Object...params) {
+	private NCAError calcOutputError(Iterable<Raster> piece, /*boolean calcBiasAccum,*/ Object...params) {
 		List<Raster> origins = Util.newList(0);
 		List<Raster> augments = Util.newList(0);
 		for (Raster origin : piece) {
@@ -1685,7 +1684,7 @@ class ProxyNCACore extends VGGExt {
 		int groupCount = this.proxyGroupList != null ? this.proxyGroupList.size() : 1;
 		List<Matrix> dProxyGroupList = Util.newList(0);
 		List<NCAError.QuartetBias> quartetBiasList = Util.newList(0);
-		Matrix dBiasAccum = null;
+		/*Matrix dBiasAccum = null;*/
 		for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
 			List<Quartet> quartets = Util.newList(0);
 			quartets.addAll(createQuartets(origins, augments, groupIndex, params));
@@ -1705,18 +1704,18 @@ class ProxyNCACore extends VGGExt {
 				
 				if (errors[0] != null) dProxyGroup = dProxyGroup != null ? dProxyGroup.add(errors[0]) : errors[0];
 				if (errors[1] != null) {
-					if (calcBiasAccum) dBiasAccum = dBiasAccum != null ? dBiasAccum.add(errors[1]) : errors[1];
-					if (!calcBiasAccum) quartetBiasList.add(new NCAError.QuartetBias(errors[1], quartet));
+					/*if (calcBiasAccum) dBiasAccum = dBiasAccum != null ? dBiasAccum.add(errors[1]) : errors[1];*/
+					/*if (!calcBiasAccum)*/ quartetBiasList.add(new NCAError.QuartetBias(errors[1], quartet));
 				}
 			}
 			if (dProxyGroup != null) dProxyGroupList.add(dProxyGroup);
 		}
-		assert ((dProxyGroupList.size() > 0) && (dBiasAccum != null || quartetBiasList.size() > 0));
+		assert ((dProxyGroupList.size() > 0) && (quartetBiasList.size() > 0 /*|| dBiasAccum != null*/));
 		
 		return new NCAError(
 			new MatrixStack(dProxyGroupList.toArray(new Matrix[] {})),
-			dBiasAccum,
-			quartetBiasList);
+			quartetBiasList,
+			null /*dBiasAccum*/);
 	}
 
 	
@@ -1768,7 +1767,7 @@ class ProxyNCACore extends VGGExt {
 	 * @return backward error.
 	 */
 	private Error[] backwardPieceWithoutLearning(List<Raster> piece, double learningRate) {
-		NCAError error = calcOutputError(piece, false/*, new TrainingFlag() {}*/); //Removing training flag because of not back-warding yet.
+		NCAError error = calcOutputError(piece /*, new TrainingFlag() {}*/); //Removing training flag because of not back-warding yet.
 		assert (error != null);
 		
 		//Accumulating proxy group stack.
